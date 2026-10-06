@@ -17,3 +17,5 @@ npm test               # run unit tests (Vitest)
 npm run test:coverage  # unit tests with coverage report
 npm run build          # production build into dist/
 ```
+
+Every push to `main` runs the tests and deploys the app to GitHub Pages (see `.github/workflows/deploy.yml`).
