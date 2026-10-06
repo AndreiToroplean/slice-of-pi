@@ -9,12 +9,20 @@ module.exports = defineConfig([
     files: ['**/*.ts'],
     extends: [
       eslint.configs.recommended,
-      tseslint.configs.recommended,
-      tseslint.configs.stylistic,
+      tseslint.configs.strictTypeChecked,
+      tseslint.configs.stylisticTypeChecked,
       angular.configs.tsRecommended,
     ],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: __dirname,
+      },
+    },
     processor: angular.processInlineTemplates,
     rules: {
+      // Angular components, directives and services are decorated classes that may legitimately have no members.
+      '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
       '@angular-eslint/directive-selector': [
         'error',
         {

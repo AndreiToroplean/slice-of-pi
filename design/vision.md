@@ -55,7 +55,7 @@ Each digit position gets a color. The colors are random-looking but **determinis
 This makes the color layer a personal memorization aid — and therefore precious:
 
 - **The player must keep their seed.** Losing it scrambles all their colors and makes it very hard to get back on their feet. We need a way to persist, back up and restore it (e.g. show/export the seed, sync to an account).
-- **Seed-derived output is frozen once stable.** From a given version onward, the mapping *seed → colors* (and anything else derived from the seed) must never change. Changing it would effectively wipe or corrupt players' memories.
+- **Seed-derived output is frozen once stable.** From a given version onward, the mapping _seed → colors_ (and anything else derived from the seed) must never change. Changing it would effectively wipe or corrupt players' memories.
 
 Implications for development:
 
