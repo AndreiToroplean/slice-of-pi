@@ -23,6 +23,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: npm run lint
       - run: npm run test:coverage
       - run: npm run build -- --base-href "/${{ github.event.repository.name }}/"
       # Serve the app for unknown paths too, so client-side routes survive a reload.
