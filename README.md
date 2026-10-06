@@ -13,9 +13,10 @@ Requires Node.js 24 (see `.nvmrc`).
 ```sh
 npm ci                 # install dependencies
 npm start              # serve at http://localhost:4200
+npm run lint           # lint with ESLint
 npm test               # run unit tests (Vitest)
 npm run test:coverage  # unit tests with coverage report
 npm run build          # production build into dist/
 ```
 
-Every push to `main` runs the tests and deploys the app to GitHub Pages (see `.github/workflows/deploy.yml`).
+Every push to `main` runs the linter and tests and deploys the app to GitHub Pages (see `.github/workflows/deploy.yml`).
