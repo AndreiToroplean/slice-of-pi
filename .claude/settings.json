@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": ["Bash(npx -y modern-web-guidance@latest:*)"]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$CLAUDE_CODE_REMOTE\" != true ] || (cd \"$CLAUDE_PROJECT_DIR\" && npm install --no-audit --no-fund)"
+          }
+        ]
+      }
+    ]
+  }
+}
