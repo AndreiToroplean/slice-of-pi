@@ -314,39 +314,45 @@ describe('Keypad', () => {
       expect(typed).toHaveLength(4);
     });
 
-    it('does not type the key once more on release after repeating', () => {
-      down('7');
+    it('does not type backspace once more on release after repeating', () => {
+      down('backspace');
       vi.advanceTimersByTime(REPEAT_DELAY + REPEAT_INTERVAL);
-      up('7');
+      up('backspace');
       vi.advanceTimersByTime(1000);
 
-      expect(typed).toEqual(['7', '7']);
+      expect(typed).toEqual(['backspace', 'backspace']);
     });
 
-    it('stops repeating when the finger slides off the key', () => {
-      down('7');
+    it('stops repeating when the finger slides off backspace', () => {
+      down('backspace');
       vi.advanceTimersByTime(REPEAT_DELAY);
-      pointer('pointermove', CENTERS['8']);
+      pointer('pointermove', CENTERS['3']);
       vi.advanceTimersByTime(1000);
-      up('8');
+      up('3');
 
+      expect(typed).toEqual(['backspace']);
+    });
+
+    it('does not repeat digits: a long press types the digit once, on release', () => {
+      down('7');
+      vi.advanceTimersByTime(2000);
+      expect(typed).toEqual([]);
+
+      up('7');
       expect(typed).toEqual(['7']);
     });
 
-    it('repeats keys held by two fingers independently', () => {
-      down('1', 1);
-      vi.advanceTimersByTime(REPEAT_DELAY / 2);
+    it('lets a digit be typed while backspace is held by another finger', () => {
+      down('backspace', 1);
       down('2', 2);
-      vi.advanceTimersByTime(REPEAT_DELAY / 2);
-      up('1', 1);
-      vi.advanceTimersByTime(REPEAT_DELAY / 2);
       up('2', 2);
+      up('backspace', 1);
 
-      expect(typed).toEqual(['1', '2']);
+      expect(typed).toEqual(['2', 'backspace']);
     });
 
     it('stops repeating when destroyed', () => {
-      down('7');
+      down('backspace');
       fixture.destroy();
       vi.advanceTimersByTime(1000);
 
@@ -363,12 +369,14 @@ describe('Keypad', () => {
       expect(event.defaultPrevented).toBe(true);
     });
 
-    it('repeats keys as the keyboard repeats them', () => {
+    it('repeats backspace as the keyboard repeats it, but not digits', () => {
       keyboard('keydown', { key: '4' });
-      keyboard('keydown', { key: '4', repeat: true });
+      const repeat = keyboard('keydown', { key: '4', repeat: true });
+      keyboard('keydown', { key: 'Backspace' });
       keyboard('keydown', { key: 'Backspace', repeat: true });
 
-      expect(typed).toEqual(['4', '4', 'backspace']);
+      expect(typed).toEqual(['4', 'backspace', 'backspace']);
+      expect(repeat.defaultPrevented).toBe(true);
     });
 
     it('lights up keys while they are held down', () => {

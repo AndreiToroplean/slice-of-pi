@@ -12,7 +12,8 @@ interface Press {
   readonly key: KeypadKey;
   /** Whether the key has already repeated, in which case releasing it does not type it once more. */
   repeated: boolean;
-  timer: ReturnType<typeof setTimeout>;
+  /** Pending repeat, for backspace only. */
+  timer: ReturnType<typeof setTimeout> | undefined;
 }
 
 /**
@@ -23,9 +24,10 @@ interface Press {
  * - A key is typed when the touch is released, provided it is still on that key; sliding within the key is fine, but
  *   sliding off it cancels the press.
  * - Several fingers can press keys at once; each key is typed when its finger is released.
- * - Holding a key repeats it.
+ * - Holding backspace repeats it; digits don't repeat.
  *
- * Keys can also be typed on a physical keyboard: they are typed when pressed and repeat as the keyboard repeats them.
+ * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
+ * repeats it.
  * Keys being pressed, by touch or keyboard, are shown pressed. The buttons themselves still work with the keyboard and
  * assistive technology (Enter or Space on a focused key).
  */
@@ -109,9 +111,12 @@ export class Keypad {
     const press: Press = {
       key,
       repeated: false,
-      timer: setTimeout(() => {
-        this.repeat(event.pointerId);
-      }, REPEAT_DELAY),
+      timer:
+        key === 'backspace'
+          ? setTimeout(() => {
+              this.repeat(event.pointerId);
+            }, REPEAT_DELAY)
+          : undefined,
     };
     this.presses.set(event.pointerId, press);
     this.updateTouchedKeys();
@@ -160,7 +165,9 @@ export class Keypad {
     }
     event.preventDefault();
     this.heldKeys.update((keys) => (keys.includes(key) ? keys : [...keys, key]));
-    this.keyPressed.emit(key);
+    if (!event.repeat || key === 'backspace') {
+      this.keyPressed.emit(key);
+    }
   }
 
   protected onKeyup(event: KeyboardEvent): void {
