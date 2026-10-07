@@ -2,7 +2,7 @@
   "name": "Slice of π",
   "short_name": "Slice of π",
   "description": "Learn the digits of π, one slice at a time.",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "portrait",
   "background_color": "#fff8ef",
   "theme_color": "#fff8ef",
