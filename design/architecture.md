@@ -4,7 +4,7 @@
 
 ## 1. Distribution: web first
 
-The game ships first as a **Progressive Web App (PWA)**: a website that can be installed to the home screen, opens full screen without browser bars, has its own icon and works offline.
+The game ships first as a **Progressive Web App (PWA)**: a website that can be installed to the home screen, opens full screen without browser bars and has its own icon. It deliberately has no offline mode: the installed app always loads the live site, so players are never stuck on an old version.
 
 Why:
 
@@ -21,7 +21,7 @@ When the game has players, we package the same web app as an Android app with **
 
 The app is built with **Angular** (modern style: standalone components, signals).
 
-Why: the game is mostly ordinary UI — screens, buttons, a keypad, transitions — which Angular handles well, and it's the framework the project owner knows best, so the code stays reviewable. Lighter frameworks would mainly bring a smaller first download, which matters little for an installed, cached PWA.
+Why: the game is mostly ordinary UI — screens, buttons, a keypad, transitions — which Angular handles well, and it's the framework the project owner knows best, so the code stays reviewable. Lighter frameworks would mainly bring a smaller first download, which matters little for a game players keep coming back to (the browser caches the downloaded code).
 
 ## 4. Rendering: DOM first
 
