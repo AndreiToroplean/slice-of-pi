@@ -1,0 +1,45 @@
+:host {
+  --cell: 0.65em;
+  display: block;
+  position: relative;
+  overflow: hidden;
+  height: 1.5em;
+  font-size: clamp(2.5rem, 14vw, 4.5rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Right-aligned on the center of the screen: its last cell is centered, and it extends to the left. */
+.tape {
+  position: absolute;
+  inset-block: 0;
+  right: calc(50% - var(--cell) / 2);
+  width: min(calc(var(--capacity) * var(--cell)), calc(50% + var(--cell) / 2));
+  mask-image: linear-gradient(to right, transparent var(--cell), #000 50%);
+}
+
+.digit {
+  position: absolute;
+  right: 0;
+  width: var(--cell);
+  line-height: 1.5;
+  text-align: center;
+  translate: calc(var(--offset) * var(--cell)) 0;
+  transition:
+    translate 200ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    scale 200ms cubic-bezier(0.3, 1.6, 0.6, 1),
+    opacity 150ms ease-out;
+}
+
+@starting-style {
+  .digit {
+    scale: 0.4;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .digit {
+    transition: none;
+  }
+}
