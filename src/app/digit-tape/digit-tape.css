@@ -28,20 +28,3 @@
   left: 0;
   text-align: center;
 }
-
-.newest {
-  transition:
-    scale 200ms cubic-bezier(0.3, 1.6, 0.6, 1),
-    opacity 150ms ease-out;
-
-  @starting-style {
-    scale: 0.4;
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .newest {
-    transition: none;
-  }
-}

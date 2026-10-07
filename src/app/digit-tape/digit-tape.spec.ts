@@ -136,7 +136,7 @@ describe('DigitTape', () => {
     expect(translateX(newest())).toBeCloseTo(center);
   });
 
-  it('marks only the newest digit, which pops in', async () => {
+  it('marks only the newest digit', async () => {
     await showSized('31415');
 
     expect(host.querySelectorAll('.newest')).toHaveLength(1);
