@@ -5,11 +5,9 @@ import { Play } from './play';
 describe('Play', () => {
   beforeEach(() => {
     FakeResizeObserver.install();
-    Object.defineProperty(HTMLElement.prototype, 'animate', { value: vi.fn(), configurable: true });
   });
 
   afterEach(() => {
-    Reflect.deleteProperty(HTMLElement.prototype, 'animate');
     vi.unstubAllGlobals();
   });
 

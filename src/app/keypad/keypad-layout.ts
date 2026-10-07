@@ -34,3 +34,24 @@ export const KEYPAD_LAYOUT: readonly KeyPosition[] = [
   { key: '0', row: 3, column: 1 },
   { key: 'backspace', row: 3, column: 2 },
 ];
+
+const ROWS = Math.max(...KEYPAD_LAYOUT.map((position) => position.row)) + 1;
+const COLUMNS = Math.max(...KEYPAD_LAYOUT.map((position) => position.column)) + 1;
+
+/**
+ * The key under a point `(x, y)` of a keypad occupying `rect`, or null if there is none (outside the keypad, or an empty
+ * cell). The keypad is split into equal rectangular cells, so the gaps between keys, their rounded corners and the
+ * keypad's padding all count as part of the nearest key.
+ */
+export function keyAt(
+  rect: Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>,
+  x: number,
+  y: number,
+): KeypadKey | null {
+  const column = Math.floor(((x - rect.left) / rect.width) * COLUMNS);
+  const row = Math.floor(((y - rect.top) / rect.height) * ROWS);
+  return (
+    KEYPAD_LAYOUT.find((position) => position.row === row && position.column === column)?.key ??
+    null
+  );
+}
