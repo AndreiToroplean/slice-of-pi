@@ -6,7 +6,7 @@
 }
 
 .tape {
-  align-self: center;
+  min-height: 0;
 }
 
 .keypad {
