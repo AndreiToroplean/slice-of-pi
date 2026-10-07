@@ -1,9 +1,10 @@
 /**
- * Geometry of the digit tape: typed digits lie on a grid of rows receding towards a horizon near the top of the screen.
+ * Geometry of the digit tape: typed digits lie on rows receding towards a horizon near the top of the screen.
  *
  * The main row is at the bottom, with the newest digit in its center column. Older digits run to the left and wrap onto
- * the row above, which is further away: every row has the same number of columns but is smaller than the one in front of
- * it, scaled around the vanishing point at the center of the screen, and fainter, as if seen through haze.
+ * the row above, which is further away: each row is smaller than the one in front of it, so it holds more digits, as
+ * many as it takes to span the screen. Rows are also fainter with distance, as if seen through haze that becomes opaque
+ * at a finite distance: rows beyond it are not drawn at all, so only a bounded number of digits is ever on screen.
  */
 
 /** Width of a digit cell relative to the font size. */
@@ -13,7 +14,7 @@ const LINE_HEIGHT_EM = 1.3;
 /** Main row font size: 14% of the screen width, within these bounds (px). */
 const MIN_FONT_SIZE = 40;
 const MAX_FONT_SIZE = 72;
-/** Fewest columns per row; always odd so that there is a center column. */
+/** Fewest columns on the main row; always odd so that there is a center column. */
 const MIN_COLUMNS = 5;
 /** Gap between the main row and the bottom of the tape, in main row heights. */
 const BOTTOM_MARGIN = 0.25;
@@ -22,11 +23,12 @@ const HORIZON = 0.04;
 /** Bounds on the size ratio between consecutive rows. */
 const MIN_ROW_RATIO = 0.5;
 const MAX_ROW_RATIO = 0.92;
-/** Haze density: opacity is `exp(-HAZE * distance)`, distance being 0 for the main row and 1 where rows are half size. */
+/** Haze density: light fades as `exp(-HAZE * distance)`, distance being 0 for the main row and 1 for half-size rows. */
 const HAZE = 0.3;
-/** Rows smaller or fainter than this are not drawn. */
+/** Fraction of light below which the haze is fully opaque, so that it reaches zero visibility at a finite distance. */
+const HAZE_CUTOFF = 0.03;
+/** Rows smaller than this are not drawn. */
 const MIN_VISIBLE_FONT_SIZE = 3;
-const MIN_VISIBLE_OPACITY = 0.03;
 /** Hard cap on the number of rows, whatever the screen size. */
 const MAX_ROWS = 40;
 
@@ -35,14 +37,18 @@ export interface RowGeometry {
   readonly index: number;
   /** Size relative to the main row. */
   readonly scale: number;
+  /** Number of digit cells on the row: enough to span the screen. */
+  readonly columns: number;
+  /** Number of cells on the rows between this one and the main row, exclusive (0 for the main and second rows). */
+  readonly cellsInFront: number;
   /** Vertical center of the row, in px from the top of the tape. */
   readonly centerY: number;
+  /** Between 0 and 1, never 0: rows the haze hides entirely are left out. */
   readonly opacity: number;
 }
 
 export interface TapeGeometry {
   readonly width: number;
-  readonly columns: number;
   /** Column of the newest digit on the main row. */
   readonly centerColumn: number;
   /** Main row cell size, in px; other rows are scaled from it. */
@@ -53,15 +59,21 @@ export interface TapeGeometry {
   readonly rows: readonly RowGeometry[];
 }
 
+/** Opacity of a row of the given scale: haze density over its distance, reaching exactly 0 at the cutoff. */
+export function hazeOpacity(scale: number): number {
+  const light = Math.exp(-HAZE * (1 / scale - 1));
+  return Math.max(0, (light - HAZE_CUTOFF) / (1 - HAZE_CUTOFF));
+}
+
 /** Lays out the rows for a tape of the given size (px). */
 export function tapeGeometry(width: number, height: number): TapeGeometry {
   const targetFontSize = Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, width * 0.14));
   const fittingColumns = Math.floor(width / (targetFontSize * CELL_WIDTH_EM));
-  const columns = Math.max(
+  const mainColumns = Math.max(
     MIN_COLUMNS,
     fittingColumns % 2 === 1 ? fittingColumns : fittingColumns - 1,
   );
-  const cellWidth = width / columns;
+  const cellWidth = width / mainColumns;
   const fontSize = cellWidth / CELL_WIDTH_EM;
   const lineHeight = fontSize * LINE_HEIGHT_EM;
 
@@ -72,51 +84,61 @@ export function tapeGeometry(width: number, height: number): TapeGeometry {
   const depth = Math.max(0, (mainCenterY - horizonY) / lineHeight - 0.5);
   const ratio = Math.min(MAX_ROW_RATIO, Math.max(MIN_ROW_RATIO, depth / (1 + depth)));
 
-  const rows: RowGeometry[] = [];
-  let centerY = mainCenterY;
-  for (let index = 0; index < MAX_ROWS; index++) {
-    const scale = ratio ** index;
-    const opacity = Math.exp(-HAZE * (1 / scale - 1));
-    if (index > 0) {
-      centerY -= (lineHeight * (scale / ratio + scale)) / 2;
-    }
-    if (
-      index > 0 &&
-      (fontSize * scale < MIN_VISIBLE_FONT_SIZE || opacity < MIN_VISIBLE_OPACITY || centerY < 0)
-    ) {
+  const rows: RowGeometry[] = [
+    { index: 0, scale: 1, columns: mainColumns, cellsInFront: 0, centerY: mainCenterY, opacity: 1 },
+  ];
+  for (let index = 1; index < MAX_ROWS; index++) {
+    const front = rows[index - 1];
+    if (front === undefined) {
       break;
     }
-    rows.push({ index, scale, centerY, opacity });
+    const scale = ratio ** index;
+    const opacity = hazeOpacity(scale);
+    const centerY = front.centerY - (lineHeight * (front.scale + scale)) / 2;
+    if (opacity === 0 || fontSize * scale < MIN_VISIBLE_FONT_SIZE || centerY < 0) {
+      break;
+    }
+    rows.push({
+      index,
+      scale,
+      columns: Math.ceil(width / (cellWidth * scale)),
+      // The main row only holds digits up to its center column; the rows behind it are full.
+      cellsInFront: index === 1 ? 0 : front.cellsInFront + front.columns,
+      centerY,
+      opacity,
+    });
   }
 
-  return { width, columns, centerColumn: (columns - 1) / 2, cellWidth, lineHeight, fontSize, rows };
-}
-
-/** A digit placed on a row. A digit wrapping between two rows is placed on both, each copy clipped by its row. */
-export interface PlacedDigit {
-  /** Position in the typed sequence (0-based). */
-  readonly position: number;
-  /** Column on the row, fractional while moving; from -1 to `columns`, exclusive, so possibly partly clipped. */
-  readonly column: number;
+  return { width, centerColumn: (mainColumns - 1) / 2, cellWidth, lineHeight, fontSize, rows };
 }
 
 /**
- * Places the digits of a sequence of `count` digits on each row, when the view is centered on position `head`
- * (fractional while moving). Only digits at least partly visible are placed, so the result is small however long the
- * sequence is.
+ * The run of digits drawn on a row: positions `first` to `last` (none if `first > last`), position p in column
+ * `p + offset`, fractional while moving. It includes digits only partly on the row, so a digit wrapping between two rows
+ * is drawn on both, each copy clipped by its row.
  */
-export function placeDigits(geometry: TapeGeometry, count: number, head: number): PlacedDigit[][] {
-  const { columns, centerColumn } = geometry;
+export interface RowPlacement {
+  readonly first: number;
+  readonly last: number;
+  readonly offset: number;
+}
+
+/**
+ * Places a sequence of `count` digits on the rows, when the view is centered on position `head` (fractional while
+ * moving). Only digits at least partly visible are placed, so the result is small however long the sequence is.
+ */
+export function placeRows(geometry: TapeGeometry, count: number, head: number): RowPlacement[] {
   return geometry.rows.map((row) => {
-    // Column of a position p on this row: centerColumn + p - head + row.index * columns.
-    const offset = centerColumn - head + row.index * columns;
-    const first = Math.max(0, Math.floor(-1 - offset) + 1);
-    const last = Math.min(count - 1, Math.ceil(columns - offset) - 1);
-    const placed: PlacedDigit[] = [];
-    for (let position = first; position <= last; position++) {
-      placed.push({ position, column: position + offset });
-    }
-    return placed;
+    // Older digits go left, then onto the row behind, filling it from its right end.
+    const offset =
+      row.index === 0
+        ? geometry.centerColumn - head
+        : geometry.centerColumn - head + row.cellsInFront + row.columns;
+    return {
+      first: Math.max(0, Math.floor(-1 - offset) + 1),
+      last: Math.min(count - 1, Math.ceil(row.columns - offset) - 1),
+      offset,
+    };
   });
 }
 

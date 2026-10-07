@@ -51,7 +51,7 @@ describe('DigitTape', () => {
 
   /** Rows as rendered, main row first. */
   function rows(): HTMLElement[] {
-    return Array.from(host.querySelectorAll<HTMLElement>('.row')).reverse();
+    return Array.from(host.querySelectorAll<HTMLElement>('.row'));
   }
 
   function rowText(row: HTMLElement | undefined): string {
@@ -65,6 +65,13 @@ describe('DigitTape', () => {
       (element as HTMLElement | null | undefined)?.style.transform ?? '',
     );
     return Number(match?.[1]);
+  }
+
+  /** Where a digit is drawn on its row, in px: its run's offset plus its place in the run. */
+  function digitX(digit: HTMLElement | null | undefined): number {
+    const run = digit?.parentElement;
+    const index = Array.from(run?.children ?? []).indexOf(digit as Element);
+    return translateX(run) + index * GEOMETRY.cellWidth;
   }
 
   function newest(): HTMLElement | null {
@@ -83,6 +90,17 @@ describe('DigitTape', () => {
     expect(FakeResizeObserver.instances[0]?.observed).toEqual([host]);
   });
 
+  it('moves only the runs of digits while sliding, keeping the digit elements', async () => {
+    await showSized('31415');
+    const before = Array.from(host.querySelectorAll('.digit'));
+
+    fixture.componentRef.setInput('digits', '314159');
+    await run(20);
+    const during = Array.from(host.querySelectorAll('.digit'));
+
+    expect(during.slice(0, before.length)).toEqual(before);
+  });
+
   it('draws one row per visible row of the geometry, sized to it', async () => {
     await showSized('');
 
@@ -96,12 +114,12 @@ describe('DigitTape', () => {
 
     expect(rowText(rows()[0])).toBe('31415');
     expect(newest()?.textContent).toBe('5');
-    expect(translateX(newest())).toBeCloseTo(GEOMETRY.centerColumn * GEOMETRY.cellWidth);
+    expect(digitX(newest())).toBeCloseTo(GEOMETRY.centerColumn * GEOMETRY.cellWidth);
   });
 
-  it('wraps older digits onto the rows behind', async () => {
-    const columns = GEOMETRY.columns;
-    const digits = '0123456789'.repeat(5);
+  it('wraps older digits onto the rows behind, each spanning the screen', async () => {
+    const columns = GEOMETRY.rows[1]?.columns ?? 0;
+    const digits = '0123456789'.repeat(10);
     await showSized(digits);
 
     const mainCount = GEOMETRY.centerColumn + 1;
@@ -115,12 +133,12 @@ describe('DigitTape', () => {
     fixture.componentRef.setInput('digits', '31415');
     await run(20);
     const center = GEOMETRY.centerColumn * GEOMETRY.cellWidth;
-    const midway = translateX(newest());
+    const midway = digitX(newest());
     expect(midway).toBeGreaterThan(center);
     expect(midway).toBeLessThan(center + GEOMETRY.cellWidth);
 
     await run(1000);
-    expect(translateX(newest())).toBeCloseTo(center);
+    expect(digitX(newest())).toBeCloseTo(center);
   });
 
   it('slides back when the newest digit is deleted', async () => {
@@ -130,10 +148,10 @@ describe('DigitTape', () => {
     await run(20);
     const center = GEOMETRY.centerColumn * GEOMETRY.cellWidth;
     expect(newest()?.textContent).toBe('1');
-    expect(translateX(newest())).toBeLessThan(center);
+    expect(digitX(newest())).toBeLessThan(center);
 
     await run(1000);
-    expect(translateX(newest())).toBeCloseTo(center);
+    expect(digitX(newest())).toBeCloseTo(center);
   });
 
   it('marks only the newest digit', async () => {
@@ -145,7 +163,7 @@ describe('DigitTape', () => {
   it('keeps only visible digits in the DOM however many are typed', async () => {
     await showSized('7'.repeat(100_000));
 
-    const visible = GEOMETRY.rows.length * (GEOMETRY.columns + 1);
+    const visible = GEOMETRY.rows.reduce((sum, row) => sum + row.columns + 1, 0);
     expect(host.querySelectorAll('.digit').length).toBeLessThanOrEqual(visible);
   });
 
@@ -189,9 +207,7 @@ describe('DigitTape', () => {
     /** Position the view is centered on, read from where a digit of the main row is drawn. */
     function head(): number {
       const digit = rows()[0]?.querySelector<HTMLElement>('.digit');
-      return (
-        Number(digit?.dataset['position']) - (translateX(digit) / CELL - GEOMETRY.centerColumn)
-      );
+      return Number(digit?.dataset['position']) - (digitX(digit) / CELL - GEOMETRY.centerColumn);
     }
 
     function pointer(type: string, clientX: number, init: PointerEventInit = {}): void {

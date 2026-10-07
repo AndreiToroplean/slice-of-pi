@@ -11,7 +11,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { approach, placeDigits, tapeGeometry } from './perspective';
+import { approach, placeRows, tapeGeometry } from './perspective';
 
 /** Time constant of the slide towards the newest digit, in ms. */
 const SLIDE_TIME_CONSTANT = 40;
@@ -43,28 +43,31 @@ interface Drag {
     '(document:keydown)': 'onKeydown($event)',
   },
   template: `
-    @if (view(); as view) {
-      <div class="rows" aria-hidden="true" [style.font-size.px]="view.geometry.fontSize">
-        @for (row of view.rows; track row.index) {
+    @if (geometry(); as geometry) {
+      <div class="rows" aria-hidden="true" [style.font-size.px]="geometry.fontSize">
+        @for (row of rows(); track row.index) {
           <div
             class="row"
             [style.top.px]="row.top"
-            [style.width.px]="view.geometry.width"
-            [style.height.px]="view.geometry.lineHeight"
-            [style.line-height.px]="view.geometry.lineHeight"
+            [style.left.px]="row.left"
+            [style.width.px]="row.width"
+            [style.height.px]="geometry.lineHeight"
+            [style.line-height.px]="geometry.lineHeight"
             [style.transform]="row.transform"
             [style.opacity]="row.opacity"
+            [style.z-index]="-row.index"
           >
-            @for (digit of row.digits; track digit.position) {
-              <span
-                class="digit"
-                [class.newest]="digit.position === newest()"
-                [attr.data-position]="digit.position"
-                [style.width.px]="view.geometry.cellWidth"
-                [style.transform]="digit.transform"
-                >{{ digits()[digit.position] }}</span
-              >
-            }
+            <div class="run" [style.transform]="runTransforms()[row.index]">
+              @for (digit of row.digits; track digit.position) {
+                <span
+                  class="digit"
+                  [class.newest]="digit.position === newest()"
+                  [attr.data-position]="digit.position"
+                  [style.width.px]="geometry.cellWidth"
+                  >{{ digit.digit }}</span
+                >
+              }
+            </div>
           </div>
         }
       </div>
@@ -85,27 +88,57 @@ export class DigitTape {
   private readonly head = signal(-1);
   private readonly size = signal<{ width: number; height: number } | null>(null);
 
-  protected readonly view = computed(() => {
+  protected readonly geometry = computed(() => {
     const size = this.size();
-    if (size === null) {
-      return null;
+    return size === null ? null : tapeGeometry(size.width, size.height);
+  });
+
+  /** Where each row's run of digits is, changing every frame while moving. */
+  private readonly placements = computed(() => {
+    const geometry = this.geometry();
+    return geometry === null ? [] : placeRows(geometry, this.digits().length, this.head());
+  });
+
+  /** Which digits each row holds, as `[first, last]` pairs; only changes when a digit enters or leaves a row. */
+  private readonly runs = computed(
+    () => this.placements().flatMap(({ first, last }) => [first, last]),
+    {
+      equal: (a, b) => a.length === b.length && a.every((value, i) => value === b[i]),
+    },
+  );
+
+  protected readonly rows = computed(() => {
+    const geometry = this.geometry();
+    if (geometry === null) {
+      return [];
     }
-    const geometry = tapeGeometry(size.width, size.height);
-    const placed = placeDigits(geometry, this.digits().length, this.head());
-    const rows = geometry.rows
-      .map((row, i) => ({
+    const digits = this.digits();
+    const runs = this.runs();
+    return geometry.rows.map((row) => {
+      const first = runs[2 * row.index] ?? 0;
+      const last = runs[2 * row.index + 1] ?? -1;
+      const width = row.columns * geometry.cellWidth;
+      return {
         index: row.index,
         top: row.centerY - geometry.lineHeight / 2,
+        left: (geometry.width - width) / 2,
+        width,
         transform: `scale(${String(row.scale)})`,
         opacity: row.opacity,
-        digits: (placed[i] ?? []).map(({ position, column }) => ({
-          position,
-          transform: `translateX(${String(column * geometry.cellWidth)}px)`,
+        digits: Array.from({ length: Math.max(0, last - first + 1) }, (_, i) => ({
+          position: first + i,
+          digit: digits.charAt(first + i),
         })),
-      }))
-      // Farthest rows first, so that nearer rows are drawn on top.
-      .reverse();
-    return { geometry, rows };
+      };
+    });
+  });
+
+  /** Moves each row's run of digits to its place; the only thing that changes every frame while moving. */
+  protected readonly runTransforms = computed(() => {
+    const cellWidth = this.geometry()?.cellWidth ?? 0;
+    return this.placements().map(
+      ({ first, offset }) => `translateX(${String((first + offset) * cellWidth)}px)`,
+    );
   });
 
   protected readonly summary = computed(() => {
@@ -167,7 +200,7 @@ export class DigitTape {
 
   protected drag(event: PointerEvent): void {
     const drag = this.currentDrag;
-    const cellWidth = this.view()?.geometry.cellWidth;
+    const cellWidth = this.geometry()?.cellWidth;
     if (drag?.pointerId !== event.pointerId || cellWidth === undefined) {
       return;
     }
@@ -186,7 +219,7 @@ export class DigitTape {
   }
 
   protected onWheel(event: WheelEvent): void {
-    const cellWidth = this.view()?.geometry.cellWidth;
+    const cellWidth = this.geometry()?.cellWidth;
     if (cellWidth === undefined || this.newest() < 0) {
       return;
     }

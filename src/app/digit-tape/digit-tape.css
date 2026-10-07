@@ -22,9 +22,14 @@
   transform-origin: center;
 }
 
-.digit {
+.run {
   position: absolute;
   top: 0;
   left: 0;
+  display: flex;
+}
+
+.digit {
+  flex: none;
   text-align: center;
 }
