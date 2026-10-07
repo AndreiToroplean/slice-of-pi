@@ -15,13 +15,33 @@ import { approach, placeDigits, tapeGeometry } from './perspective';
 
 /** Time constant of the slide towards the newest digit, in ms. */
 const SLIDE_TIME_CONSTANT = 40;
+/** How long after the last wheel event the view settles on a whole digit, in ms. */
+const WHEEL_SETTLE_DELAY = 150;
+
+interface Drag {
+  readonly pointerId: number;
+  readonly startX: number;
+  readonly startHead: number;
+}
 
 /**
  * Shows the typed digits on rows receding into the distance (see `perspective.ts`), the newest digit at the center of
  * the main row. Only the digits currently visible are in the DOM.
+ *
+ * The player can scroll back through the digits by dragging sideways, with a wheel or trackpad, or with the arrow,
+ * Home and End keys. Scrolling stops at the first and the newest digit. Typing a digit (any change to `digits`) slides
+ * back to the newest one.
  */
 @Component({
   selector: 'app-digit-tape',
+  host: {
+    '(pointerdown)': 'startDrag($event)',
+    '(pointermove)': 'drag($event)',
+    '(pointerup)': 'endDrag($event)',
+    '(pointercancel)': 'endDrag($event)',
+    '(wheel)': 'onWheel($event)',
+    '(document:keydown)': 'onKeydown($event)',
+  },
   template: `
     @if (view(); as view) {
       <div class="rows" aria-hidden="true" [style.font-size.px]="view.geometry.fontSize">
@@ -39,6 +59,7 @@ const SLIDE_TIME_CONSTANT = 40;
               <span
                 class="digit"
                 [class.newest]="digit.position === newest()"
+                [attr.data-position]="digit.position"
                 [style.width.px]="view.geometry.cellWidth"
                 [style.transform]="digit.transform"
                 >{{ digits()[digit.position] }}</span
@@ -96,6 +117,8 @@ export class DigitTape {
 
   private frame: number | null = null;
   private lastFrameTime: number | null = null;
+  private currentDrag: Drag | null = null;
+  private wheelSettleTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
@@ -124,7 +147,81 @@ export class DigitTape {
       if (this.frame !== null) {
         cancelAnimationFrame(this.frame);
       }
+      if (this.wheelSettleTimeout !== null) {
+        clearTimeout(this.wheelSettleTimeout);
+      }
     });
+  }
+
+  protected startDrag(event: PointerEvent): void {
+    if (!event.isPrimary || event.button !== 0 || this.newest() < 0) {
+      return;
+    }
+    (event.currentTarget as Element).setPointerCapture(event.pointerId);
+    this.currentDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startHead: this.head(),
+    };
+  }
+
+  protected drag(event: PointerEvent): void {
+    const drag = this.currentDrag;
+    const cellWidth = this.view()?.geometry.cellWidth;
+    if (drag?.pointerId !== event.pointerId || cellWidth === undefined) {
+      return;
+    }
+    // Content follows the finger: dragging right brings older digits into view.
+    const position = this.clamp(drag.startHead - (event.clientX - drag.startX) / cellWidth);
+    this.head.set(position);
+    this.target.set(position);
+  }
+
+  protected endDrag(event: PointerEvent): void {
+    if (this.currentDrag?.pointerId !== event.pointerId) {
+      return;
+    }
+    this.currentDrag = null;
+    this.target.set(Math.round(this.head()));
+  }
+
+  protected onWheel(event: WheelEvent): void {
+    const cellWidth = this.view()?.geometry.cellWidth;
+    if (cellWidth === undefined || this.newest() < 0) {
+      return;
+    }
+    event.preventDefault();
+    const delta = Math.abs(event.deltaX) >= Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+    const digits = event.deltaMode === WheelEvent.DOM_DELTA_PIXEL ? delta / cellWidth : delta;
+    this.target.update((target) => this.clamp(target + digits));
+    if (this.wheelSettleTimeout !== null) {
+      clearTimeout(this.wheelSettleTimeout);
+    }
+    this.wheelSettleTimeout = setTimeout(() => {
+      this.wheelSettleTimeout = null;
+      this.target.update((target) => Math.round(target));
+    }, WHEEL_SETTLE_DELAY);
+  }
+
+  protected onKeydown(event: KeyboardEvent): void {
+    if (event.ctrlKey || event.metaKey || event.altKey || this.newest() < 0) {
+      return;
+    }
+    const target = Math.round(this.target());
+    const next = {
+      ArrowLeft: target - 1,
+      ArrowRight: target + 1,
+      Home: 0,
+      End: this.newest(),
+    }[event.key];
+    if (next !== undefined) {
+      event.preventDefault();
+      this.target.set(this.clamp(next));
+    }
+  }
+
+  private clamp(position: number): number {
+    return Math.min(this.newest(), Math.max(0, position));
   }
 
   private startSliding(): void {

@@ -10,15 +10,23 @@ const GEOMETRY = tapeGeometry(WIDTH, HEIGHT);
 describe('DigitTape', () => {
   let fixture: ComponentFixture<DigitTape>;
   let host: HTMLElement;
+  let setPointerCapture: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     FakeResizeObserver.install();
+    // jsdom does not implement pointer capture.
+    setPointerCapture = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'setPointerCapture', {
+      value: setPointerCapture,
+      configurable: true,
+    });
     vi.useFakeTimers();
     fixture = TestBed.createComponent(DigitTape);
     host = fixture.nativeElement as HTMLElement;
   });
 
   afterEach(() => {
+    Reflect.deleteProperty(HTMLElement.prototype, 'setPointerCapture');
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
@@ -158,5 +166,183 @@ describe('DigitTape', () => {
 
     expect(FakeResizeObserver.instances[0]?.disconnected).toBe(true);
     expect(cancel).toHaveBeenCalled();
+  });
+
+  describe('scrolling', () => {
+    const DIGITS = '0123456789'.repeat(3);
+    const NEWEST = DIGITS.length - 1;
+    const CELL = GEOMETRY.cellWidth;
+
+    /** Position the view is centered on, read from where a digit of the main row is drawn. */
+    function head(): number {
+      const digit = rows()[0]?.querySelector<HTMLElement>('.digit');
+      return (
+        Number(digit?.dataset['position']) - (translateX(digit) / CELL - GEOMETRY.centerColumn)
+      );
+    }
+
+    function pointer(type: string, clientX: number, init: PointerEventInit = {}): void {
+      host.dispatchEvent(
+        new PointerEvent(type, {
+          clientX,
+          pointerId: 1,
+          isPrimary: true,
+          button: 0,
+          bubbles: true,
+          ...init,
+        }),
+      );
+    }
+
+    async function dragBy(cells: number, init: PointerEventInit = {}): Promise<void> {
+      pointer('pointerdown', 200, init);
+      pointer('pointermove', 200 + cells * CELL, init);
+      await run(0);
+    }
+
+    async function release(): Promise<void> {
+      pointer('pointerup', 0);
+      await run(1000);
+    }
+
+    function wheel(init: WheelEventInit): WheelEvent {
+      const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, ...init });
+      host.dispatchEvent(event);
+      return event;
+    }
+
+    function key(init: KeyboardEventInit): KeyboardEvent {
+      const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init });
+      document.dispatchEvent(event);
+      return event;
+    }
+
+    beforeEach(async () => {
+      await showSized(DIGITS);
+    });
+
+    it('follows a sideways drag exactly, dragging right bringing older digits into view', async () => {
+      await dragBy(2.5);
+
+      expect(head()).toBeCloseTo(NEWEST - 2.5);
+      expect(setPointerCapture).toHaveBeenCalledWith(1);
+    });
+
+    it('settles on the nearest whole digit when released', async () => {
+      await dragBy(2.4);
+      await release();
+
+      expect(head()).toBeCloseTo(NEWEST - 2);
+    });
+
+    it('drags back towards the newest digit', async () => {
+      await dragBy(5);
+      await release();
+      await dragBy(-3);
+      await release();
+
+      expect(head()).toBeCloseTo(NEWEST - 2);
+    });
+
+    it('stops at the first digit', async () => {
+      await dragBy(1000);
+
+      expect(head()).toBeCloseTo(0);
+    });
+
+    it('stops at the newest digit', async () => {
+      await dragBy(-1000);
+
+      expect(head()).toBeCloseTo(NEWEST);
+    });
+
+    it('ignores secondary pointers, other buttons and other pointers moving', async () => {
+      await dragBy(3, { isPrimary: false });
+      await dragBy(3, { button: 2 });
+      pointer('pointerdown', 200);
+      pointer('pointermove', 200 + 3 * CELL, { pointerId: 2 });
+      pointer('pointerup', 0, { pointerId: 2 });
+      await run(1000);
+
+      expect(head()).toBeCloseTo(NEWEST);
+    });
+
+    it('ignores drags while nothing is typed', async () => {
+      await show('');
+      await dragBy(3);
+      await release();
+
+      expect(setPointerCapture).not.toHaveBeenCalled();
+    });
+
+    it('slides back to the newest digit, quickly but smoothly, when a digit is typed', async () => {
+      await dragBy(10);
+      await release();
+
+      fixture.componentRef.setInput('digits', DIGITS + '0');
+      await run(30);
+      expect(head()).toBeGreaterThan(NEWEST - 10);
+      expect(head()).toBeLessThan(NEWEST + 1);
+
+      await run(1000);
+      expect(head()).toBeCloseTo(NEWEST + 1);
+    });
+
+    it('scrolls with a wheel or trackpad, then settles on a whole digit', async () => {
+      const event = wheel({ deltaX: -2.4 * CELL });
+      await run(1000);
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(head()).toBeCloseTo(NEWEST - 2);
+    });
+
+    it('scrolls with a vertical wheel too, and by lines', async () => {
+      wheel({ deltaY: -3, deltaMode: WheelEvent.DOM_DELTA_LINE });
+      wheel({ deltaY: 1, deltaMode: WheelEvent.DOM_DELTA_LINE });
+      await run(1000);
+
+      expect(head()).toBeCloseTo(NEWEST - 2);
+    });
+
+    it('drops a pending wheel settle when destroyed', () => {
+      wheel({ deltaX: -2.4 * CELL });
+      const clear = vi.spyOn(globalThis, 'clearTimeout');
+
+      fixture.destroy();
+
+      expect(clear).toHaveBeenCalled();
+    });
+
+    it('ignores the wheel while nothing is typed', async () => {
+      await show('');
+
+      expect(wheel({ deltaX: -100 }).defaultPrevented).toBe(false);
+    });
+
+    it('moves by one digit with the arrow keys and to either end with Home and End', async () => {
+      key({ key: 'ArrowLeft' });
+      key({ key: 'ArrowLeft' });
+      key({ key: 'ArrowRight' });
+      await run(1000);
+      expect(head()).toBeCloseTo(NEWEST - 1);
+
+      expect(key({ key: 'Home' }).defaultPrevented).toBe(true);
+      await run(1000);
+      expect(head()).toBeCloseTo(0);
+
+      key({ key: 'End' });
+      await run(1000);
+      expect(head()).toBeCloseTo(NEWEST);
+    });
+
+    it('ignores other keys, shortcuts, and keys while nothing is typed', async () => {
+      expect(key({ key: 'ArrowLeft', ctrlKey: true }).defaultPrevented).toBe(false);
+      expect(key({ key: 'ArrowUp' }).defaultPrevented).toBe(false);
+      await run(1000);
+      expect(head()).toBeCloseTo(NEWEST);
+
+      await show('');
+      expect(key({ key: 'Home' }).defaultPrevented).toBe(false);
+    });
   });
 });

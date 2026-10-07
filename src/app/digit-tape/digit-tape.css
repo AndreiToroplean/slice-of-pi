@@ -4,6 +4,15 @@
   overflow: hidden;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  /* Sideways drags scroll through the digits instead of panning or zooming the page. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+:host:active {
+  cursor: grabbing;
 }
 
 .row {
