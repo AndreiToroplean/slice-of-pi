@@ -2,4 +2,18 @@
   display: flex;
   flex-direction: column;
   height: 100dvh;
+  background: var(--background);
+}
+
+/* On wide screens, such as computers, the game keeps a phone's shape, centered. Phones always use the whole screen. */
+@media (min-aspect-ratio: 3 / 4) {
+  :host {
+    display: block;
+    background: var(--surround);
+  }
+
+  .app {
+    max-width: calc(100dvh * 9 / 19.5);
+    margin-inline: auto;
+  }
 }

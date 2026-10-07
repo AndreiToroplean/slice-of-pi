@@ -1,6 +1,8 @@
 :host {
   display: block;
   position: relative;
+  /* Rows stack with negative z-indices: keep them in front of the backgrounds of the page. */
+  isolation: isolate;
   overflow: hidden;
   font-weight: 700;
   font-variant-numeric: tabular-nums;

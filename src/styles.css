@@ -1,6 +1,8 @@
 :root {
   color-scheme: light;
   --background: #fff8ef;
+  /* Around the phone-shaped game on wide screens. */
+  --surround: #efe6da;
   --text: #2b2140;
   --key-background: #ffffff;
   --key-background-active: #f3ebff;
