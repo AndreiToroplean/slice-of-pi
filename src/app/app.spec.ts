@@ -1,23 +1,31 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { App } from './app';
+import { routes } from './app.routes';
 
 describe('App', () => {
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [App],
-    }).compileComponents();
+  beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
   });
 
   it('should create the app', () => {
     const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
+    expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('should render title', async () => {
+  it('renders a main landmark with a router outlet', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Slice of π');
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('main router-outlet')).not.toBeNull();
+  });
+});
+
+describe('routes', () => {
+  it('lazily loads the play screen at the root', async () => {
+    const root = routes.find((route) => route.path === '');
+    const component = await root?.loadComponent?.();
+    const { Play } = await import('./play/play');
+    expect(component).toBe(Play);
   });
 });
