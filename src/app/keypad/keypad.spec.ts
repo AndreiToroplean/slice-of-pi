@@ -1,10 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Digit } from '../digit';
 import { Keypad } from './keypad';
+import { KeypadKey } from './keypad-layout';
 
 describe('Keypad', () => {
   let fixture: ComponentFixture<Keypad>;
-  let pressed: Digit[];
+  let pressed: KeypadKey[];
   let animate: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
@@ -14,7 +14,7 @@ describe('Keypad', () => {
 
     fixture = TestBed.createComponent(Keypad);
     pressed = [];
-    fixture.componentInstance.digitPressed.subscribe((digit) => pressed.push(digit));
+    fixture.componentInstance.keyPressed.subscribe((key) => pressed.push(key));
     await fixture.whenStable();
   });
 
@@ -22,12 +22,12 @@ describe('Keypad', () => {
     Reflect.deleteProperty(HTMLElement.prototype, 'animate');
   });
 
-  function button(digit: Digit): HTMLButtonElement {
+  function button(key: KeypadKey): HTMLButtonElement {
     const element = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
-      `button[data-digit="${digit}"]`,
+      `button[data-key="${key}"]`,
     );
     if (element === null) {
-      throw new Error(`No key for ${digit}`);
+      throw new Error(`No key for ${key}`);
     }
     return element;
   }
@@ -42,19 +42,29 @@ describe('Keypad', () => {
     const labels = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
     ).map((key) => key.textContent.trim());
-    expect(labels).toEqual(['7', '8', '9', '4', '5', '6', '1', '2', '3', '0']);
+    expect(labels).toEqual(['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '']);
   });
 
   it('places each key in its grid cell', () => {
     expect([button('7').style.gridRow, button('7').style.gridColumn]).toEqual(['1', '1']);
     expect([button('0').style.gridRow, button('0').style.gridColumn]).toEqual(['4', '2']);
+    expect([button('backspace').style.gridRow, button('backspace').style.gridColumn]).toEqual([
+      '4',
+      '3',
+    ]);
   });
 
   it('is an accessible group of buttons', () => {
     const host = fixture.nativeElement as HTMLElement;
     expect(host.getAttribute('role')).toBe('group');
-    expect(host.getAttribute('aria-label')).toBe('Digit keypad');
+    expect(host.getAttribute('aria-label')).toBe('Keypad');
     expect(button('5').type).toBe('button');
+    expect(button('5').getAttribute('aria-label')).toBeNull();
+  });
+
+  it('shows backspace as an icon with an accessible name', () => {
+    expect(button('backspace').getAttribute('aria-label')).toBe('Delete last digit');
+    expect(button('backspace').querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('emits the digit of a clicked key and animates it', () => {
@@ -67,6 +77,22 @@ describe('Keypad', () => {
     expect(animate.mock.contexts[1]).toBe(button('1'));
   });
 
+  it('emits backspace when its key is clicked', () => {
+    button('backspace').click();
+
+    expect(pressed).toEqual(['backspace']);
+    expect(animate.mock.contexts[0]).toBe(button('backspace'));
+  });
+
+  it('emits backspace for the physical Backspace key, repeating while it is held', () => {
+    const event = keydown({ key: 'Backspace' });
+    keydown({ key: 'Backspace', repeat: true });
+
+    expect(pressed).toEqual(['backspace', 'backspace']);
+    expect(event.defaultPrevented).toBe(true);
+    expect(animate.mock.contexts[0]).toBe(button('backspace'));
+  });
+
   it('emits digits typed on a physical keyboard and animates their keys', () => {
     const event = keydown({ key: '4' });
 
@@ -77,7 +103,9 @@ describe('Keypad', () => {
 
   it.each<[string, KeyboardEventInit]>([
     ['a non-digit key', { key: 'a' }],
-    ['a held-down key repeating', { key: '4', repeat: true }],
+    ['a held-down digit repeating', { key: '4', repeat: true }],
+    ['the Delete key', { key: 'Delete' }],
+    ['a Ctrl shortcut with Backspace', { key: 'Backspace', ctrlKey: true }],
     ['a Ctrl shortcut', { key: '4', ctrlKey: true }],
     ['a Meta shortcut', { key: '4', metaKey: true }],
     ['an Alt shortcut', { key: '4', altKey: true }],

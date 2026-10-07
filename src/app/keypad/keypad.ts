@@ -1,6 +1,6 @@
 import { Component, ElementRef, output, viewChildren } from '@angular/core';
-import { Digit, isDigit } from '../digit';
-import { KEYPAD_LAYOUT } from './keypad-layout';
+import { isDigit } from '../digit';
+import { KEYPAD_LAYOUT, KeypadKey } from './keypad-layout';
 
 const PRESS_KEYFRAMES: Keyframe[] = [{ transform: 'scale(0.9)' }, { transform: 'scale(1)' }];
 const PRESS_TIMING: KeyframeAnimationOptions = {
@@ -9,56 +9,76 @@ const PRESS_TIMING: KeyframeAnimationOptions = {
 };
 
 /**
- * On-screen digit keypad. Digits can also be typed on a physical keyboard; both go through `press()`, the single place
- * where key effects are triggered.
+ * On-screen keypad: digits and backspace. They can also be typed on a physical keyboard; both go through `press()`,
+ * the single place where key effects are triggered.
  */
 @Component({
   selector: 'app-keypad',
   host: {
     role: 'group',
-    'aria-label': 'Digit keypad',
+    'aria-label': 'Keypad',
     '(document:keydown)': 'onKeydown($event)',
   },
   template: `
-    @for (key of keys; track key.digit) {
+    @for (position of keys; track position.key) {
       <button
         #keyButton
         type="button"
         class="key"
-        [attr.data-digit]="key.digit"
-        [style.grid-row]="key.row + 1"
-        [style.grid-column]="key.column + 1"
-        (click)="press(key.digit)"
+        [class.backspace]="position.key === 'backspace'"
+        [attr.data-key]="position.key"
+        [attr.aria-label]="position.key === 'backspace' ? 'Delete last digit' : null"
+        [style.grid-row]="position.row + 1"
+        [style.grid-column]="position.column + 1"
+        (click)="press(position.key)"
       >
-        {{ key.digit }}
+        @if (position.key === 'backspace') {
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8.5 5h11a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1-1.5 1.5h-11L3 12z" />
+            <path d="m11 9 6 6m0-6-6 6" />
+          </svg>
+        } @else {
+          {{ position.key }}
+        }
       </button>
     }
   `,
   styleUrl: './keypad.css',
 })
 export class Keypad {
-  readonly digitPressed = output<Digit>();
+  readonly keyPressed = output<KeypadKey>();
 
   protected readonly keys = KEYPAD_LAYOUT;
 
   private readonly keyButtons = viewChildren<ElementRef<HTMLButtonElement>>('keyButton');
 
-  protected press(digit: Digit): void {
-    this.keyButton(digit)?.animate(PRESS_KEYFRAMES, PRESS_TIMING);
-    this.digitPressed.emit(digit);
+  protected press(key: KeypadKey): void {
+    this.keyButton(key)?.animate(PRESS_KEYFRAMES, PRESS_TIMING);
+    this.keyPressed.emit(key);
   }
 
   protected onKeydown(event: KeyboardEvent): void {
-    if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !isDigit(event.key)) {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
       return;
     }
-    event.preventDefault();
-    this.press(event.key);
+    const key = keyFor(event);
+    if (key !== null) {
+      event.preventDefault();
+      this.press(key);
+    }
   }
 
-  private keyButton(digit: Digit): HTMLButtonElement | undefined {
+  private keyButton(key: KeypadKey): HTMLButtonElement | undefined {
     return this.keyButtons()
       .map((ref) => ref.nativeElement)
-      .find((button) => button.dataset['digit'] === digit);
+      .find((button) => button.dataset['key'] === key);
   }
+}
+
+/** The keypad key a physical key press stands for, if any. Holding backspace keeps deleting; holding a digit does not. */
+function keyFor(event: KeyboardEvent): KeypadKey | null {
+  if (event.key === 'Backspace') {
+    return 'backspace';
+  }
+  return !event.repeat && isDigit(event.key) ? event.key : null;
 }

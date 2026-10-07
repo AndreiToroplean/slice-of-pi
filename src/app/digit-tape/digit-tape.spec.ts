@@ -123,6 +123,19 @@ describe('DigitTape', () => {
     expect(translateX(newest())).toBeCloseTo(center);
   });
 
+  it('slides back when the newest digit is deleted', async () => {
+    await showSized('31415');
+
+    fixture.componentRef.setInput('digits', '3141');
+    await run(20);
+    const center = GEOMETRY.centerColumn * GEOMETRY.cellWidth;
+    expect(newest()?.textContent).toBe('1');
+    expect(translateX(newest())).toBeLessThan(center);
+
+    await run(1000);
+    expect(translateX(newest())).toBeCloseTo(center);
+  });
+
   it('marks only the newest digit, which pops in', async () => {
     await showSized('31415');
 

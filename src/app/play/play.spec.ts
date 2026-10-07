@@ -13,12 +13,12 @@ describe('Play', () => {
     vi.unstubAllGlobals();
   });
 
-  async function setUp(): Promise<{ host: HTMLElement; type: (digit: string) => Promise<void> }> {
+  async function setUp(): Promise<{ host: HTMLElement; type: (key: string) => Promise<void> }> {
     const fixture = TestBed.createComponent(Play);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
-    const type = async (digit: string): Promise<void> => {
-      host.querySelector<HTMLButtonElement>(`button[data-digit="${digit}"]`)?.click();
+    const type = async (key: string): Promise<void> => {
+      host.querySelector<HTMLButtonElement>(`button[data-key="${key}"]`)?.click();
       await fixture.whenStable();
     };
     return { host, type };
@@ -39,6 +39,28 @@ describe('Play', () => {
 
     expect(host.querySelector('app-digit-tape .visually-hidden')?.textContent).toBe(
       '5 digits typed, the last one is 5.',
+    );
+  });
+
+  it('deletes the last digit with backspace', async () => {
+    const { host, type } = await setUp();
+
+    for (const key of ['3', '1', '4', 'backspace', 'backspace', '5']) {
+      await type(key);
+    }
+
+    expect(host.querySelector('app-digit-tape .visually-hidden')?.textContent).toBe(
+      '2 digits typed, the last one is 5.',
+    );
+  });
+
+  it('does nothing on backspace when nothing is typed', async () => {
+    const { host, type } = await setUp();
+
+    await type('backspace');
+
+    expect(host.querySelector('app-digit-tape .visually-hidden')?.textContent).toBe(
+      'No digits typed yet.',
     );
   });
 });

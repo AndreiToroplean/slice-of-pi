@@ -33,3 +33,14 @@
   outline: 0.1875rem solid var(--focus-ring);
   outline-offset: 0.1875rem;
 }
+
+.backspace svg {
+  width: 2rem;
+  height: 2rem;
+  vertical-align: middle;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
