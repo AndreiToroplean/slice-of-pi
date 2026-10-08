@@ -1,0 +1,12 @@
+/* Development scripts, run directly by Node.js, which strips their types. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "types": ["node"]
+  },
+  "include": ["scripts/**/*.ts"],
+  "exclude": ["scripts/**/*.spec.ts"]
+}
