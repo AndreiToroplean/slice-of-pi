@@ -31,7 +31,8 @@ The play screen is centred on the group being typed, as in the chunk-centred moc
 - The slots are only a hint. When the player **pauses** between digits, the digits typed since the last pause become a group, whatever the hint said: typing three digits into five slots and pausing makes a group of three.
 - The group then **flies off** the typing area to join the **typed digits**, shown smaller.
 - The typed digits are laid out over a few rows, like text: each group is a **word**, separated from the next by a space, and rows wrap between words like text does.
-- Groups have **no minimum or maximum size**. A single digit typed between two long pauses is a group of one, and its constellation is a dot.
+- Groups have **no minimum size**: a single digit typed between two long pauses is a group of one, and its constellation is a dot.
+- Groups have a **maximum size of 10** (a parameter), so the typing area stays manageable. If the player types 10 digits without pausing, the group closes at 10.
 
 ## 4. Stats and detected groupings
 
@@ -50,11 +51,13 @@ The exact formula is an implementation detail, tuned with play testing.
 
 Boundaries are found from the timings of all runs, with **recent runs weighted more** so that a player who deliberately regroups some digits sees the game follow. The weighting is tuned with play testing.
 
+Each run's evidence is also weighted by **confidence**: how clearly that run's timings mark pauses at that place in π. A run with sharp pauses, much longer than the delays around them, says a lot about where the player's boundaries are. A run typed fast at a steady pace, where every digit takes about the same time, says almost nothing, and barely counts. So as a player gets faster and smoother, the groups found in their earlier, more rhythmic runs are kept rather than washed out by runs that show no pauses at all.
+
 No extra stickiness rule is needed: since groups come from all of a player's timings, one slow keystroke barely moves them. They may change a lot in the first runs, then stabilize as the player stabilizes on them.
 
 ### 4.3 When the hint follows the player
 
-The hint switches from the default to a detected boundary once the boundary shows up in **3 of the player's last 4 runs** that reached that place. Both numbers are parameters.
+The hint switches from the default to a detected boundary once the boundary shows up in **3 of the player's last 4 runs** that reached that place with a clear rhythm; runs without clear pauses there don't count either way. Both numbers are parameters.
 
 ## 5. Other layers
 
@@ -63,7 +66,7 @@ The hint switches from the default to a detected boundary once the boundary show
 
 ## 6. Open questions
 
-- **Breaking a hinted group.** What happens on screen when the player pauses before the hinted size, or types past it without pausing? With no maximum size, the slots must make room for extra digits.
+- **Breaking a hinted group.** What happens on screen when the player pauses before the hinted size, or types past it without pausing? Proposed: a slot is added for each extra digit, up to the maximum of 10.
 - **Conflicting groups.** What if boundaries from different runs overlap (e.g. 3+4 sometimes, 2+5 other times)?
 - **First digits.** The very first digit, and the "3." before the decimals, have no previous digit to time from.
 - **Sound and colors.** Do they attach to groups, or stay per digit?
