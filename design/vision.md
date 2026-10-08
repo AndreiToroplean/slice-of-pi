@@ -16,7 +16,7 @@ The feel we're after is that of the best gamified learning apps: colorful, joyfu
 
 1. **Everything serves memorization.** Every visual, sound or effect should give the player something to associate with a digit or group of digits. If a feature is only decoration, it doesn't belong.
 2. **Game-like, but tasteful.** Rewarding feedback, satisfying sounds, milestones — positive reinforcement. But never flashy or noisy to the point of being nauseating. Calm by default, celebratory at the right moments.
-3. **Personal and stable.** Parts of the experience are unique to each player (see the seed, §5.3). Once a player has learned with them, they must never change underneath them.
+3. **Personal and stable.** Parts of the experience are unique to each player (see the seed, §7). Once a player has learned with something, it must never change underneath them: anything derived (place colors, the sky, …) is frozen once stable, locked with golden tests, and only ever changed through a new versioned algorithm that existing players don't get.
 4. **Mobile-first.** The primary target is a phone, in the browser.
 5. **Built up incrementally.** The ideas below get implemented little by little; each layer should work on its own.
 6. **Actions trigger things.** What changes on screen should feel caused by the player: seasons turn because they progress through π, key colors change because they type (see [`colors.md`](colors.md)).
@@ -56,26 +56,13 @@ As the player types a group of 5 digits, the movement of their finger across the
 - Each new constellation is placed next to the previous ones in a random direction, but roughly towards the right, so the sky reads in order like a line of text.
 - Constellations have different sizes: some are drawn bigger than others, again with some randomness.
 - The sky is **3D**: the camera rotates to bring the new constellation into view, zooming in on small ones and out on big ones.
-- The randomness (placement, size, and anything else about the sky) comes from the **player seed** (§5.3), so it's stable and unique to each player: it's _their_ sky. It falls under the same rule as colors: once stable, it never changes.
+- The randomness (placement, size, and anything else about the sky) comes from the **player seed** (§7), so it's stable and unique to each player: it's _their_ sky.
 - The player can **open their sky** at any time just to look at their constellations and admire them, in 3D (possibly faked with CSS 3D transforms).
 - Later: players can **share their sky** with other people.
 
-### 5.3 Digit colors and the player seed
+### 5.3 Digit colors
 
-**Digit colors.** Each place in π gets a color, shown on the keypad before the player types it. The colors come from π itself: every digit key steps through one shared palette each time its digit comes up, so the colors are the **same for every player**. See [`colors.md`](colors.md).
-
-**The player seed.** Some things are unique to each player, starting with their sky (§5.2). Their randomness is **deterministically generated from a seed**, and every player has their own random seed. For now the seed is a constant in the code, the same for everyone; see [`colors.md`](colors.md) §4.
-
-Both are memorization aids the player learns with, and therefore precious:
-
-- **The player must keep their seed.** Losing it reshuffles everything derived from it. We need a way to persist, back up and restore it (e.g. show/export the seed, sync to an account).
-- **Derived output is frozen once stable.** From a given version onward, the mapping _place → color_ and anything derived from the seed must never change. Changing it would effectively wipe or corrupt players' memories.
-
-Implications for development:
-
-- Use our own explicitly specified, versioned PRNG and derivation algorithm — never platform randomness (e.g. `Math.random`) or a library whose output might change.
-- Lock the algorithms with golden tests (known places → known colors, known seed → known output) so any accidental change fails CI.
-- If a derivation ever needs to change, it's a new versioned algorithm, and existing players keep the old one.
+Each place in π gets a color, shown on its key before the player types it. The colors come from π itself, not from the seed, so they're the same for every player. See [`colors.md`](colors.md).
 
 ### 5.4 Seasons
 
@@ -101,3 +88,12 @@ This would bring simple 2D graphics into the game, in the same candy-like style.
 - Milestones should get sparser as the player goes further — roughly logarithmic. A candidate scale is 10, 20, 50, 100, 200, 500, 1000, … (exact values to be decided).
 - **Streaks** encourage coming back regularly.
 - Positive reinforcement throughout: correct digits feel good, errors are clear but not punishing in learn modes.
+
+## 7. The player seed
+
+Some things are unique to each player, starting with the layout of their sky (§5.2), the way a seed makes a generated world unique. Their randomness is **deterministically generated from the player seed**.
+
+- **For now, the seed is a constant in the code**, the same for every player.
+- **Later**, each player gets a random seed when they start, kept in their player data. Players shouldn't have to think about it, but they must never lose it: losing it reshuffles everything derived from it. We need a way to persist, back up and restore it (see `architecture.md` §5).
+- A menu may offer **"Reset my seed"**, but that button must look clearly dangerous.
+- Seed-derived output is stable (§3). We use our own explicitly specified, versioned PRNG, never platform randomness (e.g. `Math.random`) or a library whose output might change.

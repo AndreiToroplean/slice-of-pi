@@ -34,7 +34,7 @@ No full game engine: engines suit games that are mostly a world, and are awkward
 
 ## 5. Persistence and the seed
 
-The player seed must never be lost (see `vision.md` §5.3). On the web, browser storage can be cleared, so:
+The player seed must never be lost (see `vision.md` §7). On the web, browser storage can be cleared, so:
 
 - Request persistent storage from the browser.
 - Offer seed backup/export and restore from the start.
