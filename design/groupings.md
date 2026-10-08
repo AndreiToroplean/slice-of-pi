@@ -52,10 +52,10 @@ The model (Andrei, 2026-10-08), with its constants tuned by play testing:
 - **Local pace.** The player's pace at a digit is a **weighted average of the intervals around it**, the weights following a **normal distribution** centred on that digit, so the pace changes smoothly rather than jumping like a plain rolling window. The width of the distribution (in digits) is a constant. For performance the tail is cut off, e.g. at 3 standard deviations, so only a bounded number of digits is ever looked at.
 - **Local spread.** The **variance** of the intervals is computed with the same weights, giving a standard deviation of the intervals at that digit.
 - **Breaks.** An interval counts as a **break** when it's longer than the local pace by more than a **fraction of the local standard deviation**. That fraction is a constant. Breaks separate groups.
-- **Confidence.** The spread also tells how meaningful the breaks are at that place: a very small variance means a steady rhythm, which says almost nothing about groups, so **low variance means low confidence**. (Implementation note: the spread is probably best taken relative to the pace, so that a fast player's confidence isn't lowered just because all their intervals are short. We'll also likely need a floor so that tiny jitter in a very steady rhythm isn't counted as a break.)
+- **Confidence.** The spread also gives the **confidence** of each break, used to **filter out noise** when the groupings are computed from the aggregate (§4.2): a very small variance means a steady rhythm, where any break is likely just noise, so **low variance means low confidence** and such breaks barely count. (Implementation note: the spread is probably best taken relative to the pace, so that a fast player's confidence isn't lowered just because all their intervals are short.)
 - **Start of a run.** No pace is needed before the run starts: as soon as the player has typed two digits there's an interval, and the pace follows from the data of the run itself. (Using the pace of earlier runs over the coming digits as a starting point was considered and dropped.) What the game does with the very first intervals, while there are too few to judge, is still open (§6).
 
-**During a run** the game uses this to close groups on screen: it adjusts to the player's current pace in that run, and a group closes once the time since the last digit exceeds what would count as a break. Only the digits typed so far are known then. **After a run**, the analysis can look at the digits on both sides of each interval.
+**During a run**, the groups shown on screen are never based on that run alone: they're always the groupings of the **aggregate** (§4.2), which includes the current run so far. So for a player with many runs, the only way to cut a group short during a run is a break so long that it outweighs everything else in the aggregate; there's no point in doing that on purpose. For a new player, with no other runs, the aggregate is just the current run.
 
 ### 4.2 Combining runs
 
@@ -73,8 +73,6 @@ How exactly to combine the breaks of several runs is still to be designed. The i
 ### 4.3 When the hint follows the player
 
 The hint follows the player's detected groupings wherever the game is **confident enough** about them: below a **confidence threshold** (a constant), the hint switches back to the default of 5 at that place. That's also the case for a new player, with no data at all.
-
-(This replaces an earlier rule where the hint started following the player once a boundary showed up in 3 of their last 4 runs, and never went back to the default.)
 
 ### 4.4 Keeping the data
 
