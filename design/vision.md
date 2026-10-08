@@ -19,6 +19,7 @@ The feel we're after is that of the best gamified learning apps: colorful, joyfu
 3. **Personal and stable.** Parts of the experience are unique to each player (see the seed, §5.3). Once a player has learned with them, they must never change underneath them.
 4. **Mobile-first.** The primary target is a phone, in the browser.
 5. **Built up incrementally.** The ideas below get implemented little by little; each layer should work on its own.
+6. **Actions trigger things.** What changes on screen should feel caused by the player: seasons turn because they progress through π, keys change color because they type (see [`colors.md`](colors.md)).
 
 ## 4. Game modes
 
@@ -73,6 +74,8 @@ Implications for development:
 - Use our own explicitly specified, versioned PRNG and derivation algorithm — never platform randomness (e.g. `Math.random`) or a library whose output might change.
 - Lock the algorithm with golden tests (known seed → known colors for many positions) so any accidental change fails CI.
 - If a derivation ever needs to change, it's a new versioned algorithm, and existing players keep the old one.
+
+How colors show up while playing (keys filled with the color of the next occurrence of their digit), and the seed being a shared constant for now: see [`colors.md`](colors.md).
 
 ### 5.4 Seasons
 
