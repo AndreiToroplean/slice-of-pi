@@ -1,6 +1,6 @@
 # Slice of Pi — Personal Digit Groupings
 
-> Status: draft · Ideas from Andrei (2026-10-08), not yet agreed on. Records the idea and the open questions to settle before building it.
+> Status: draft · Ideas from Andrei (2026-10-08), with the decisions taken so far and the questions still open.
 
 ## 1. The idea
 
@@ -10,7 +10,7 @@ Why:
 
 - When people learn π, groups come to them naturally, and those groups aren't necessarily regular. A player who already knows digits in their own groups shouldn't have to relearn them in exact groups of five.
 - Digits often have natural groups that each player can spot: a group of three, a repeated digit, a pattern. Seeing those is personal and up to each player.
-- For a beginner, proposing groups (e.g. of five) may still help them learn. Whether to propose them, and how, is part of what to decide.
+- For a beginner, proposing groups of five may still help them learn, so five is the default hint until the player's own groups are known (§3).
 
 The game detects groupings from **how the player types**: the time it takes them to type each digit. Digits typed quickly one after another belong together; a pause between two digits is a boundary. Over runs, the player's typing rhythm reveals their own groups.
 
@@ -22,36 +22,50 @@ The main use case for now is a player who **already knows the digits** and can t
 
 The first version of this mode **stops at the first mistake**, so we don't have to handle mistakes in the middle of a group yet. More lenient modes, tolerating a wrong digit now and then, will come later and need their own design.
 
-## 3. First run: free-form groups
+## 3. Typing a group
 
-On the player's first run, no grouping is shown upfront. The player types as many digits as they want, at their own rhythm.
+The play screen is centred on the group being typed, as in the chunk-centred mockup from the visual design work.
 
-- Digits being typed appear in a **typing area**.
-- When the player **pauses** between digits, the digits typed since the last pause become a group.
-- The group then **flies off** the typing area to join the **typed digits**, shown smaller, as in the chunk-centred mockup from the visual design work.
+- The **typing area** shows **empty slots** for the upcoming group. The number of slots is the **hint**: the size of the group the game expects.
+- The hint is **5 by default**, until the player's stats reveal their own group at that place in π (§4). This is the same in every mode for now.
+- The slots are only a hint. When the player **pauses** between digits, the digits typed since the last pause become a group, whatever the hint said: typing three digits into five slots and pausing makes a group of three.
+- The group then **flies off** the typing area to join the **typed digits**, shown smaller.
 - The typed digits are laid out over a few rows, like text: each group is a **word**, separated from the next by a space, and rows wrap between words like text does.
+- Groups have **no minimum or maximum size**. A single digit typed between two long pauses is a group of one, and its constellation is a dot.
 
-## 4. Later runs: stats and detected groupings
+## 4. Stats and detected groupings
 
-From the second run on, the game relies on **statistics of the player's typing timings**, in the spirit of typing-test sites (e.g. the open-source Monkeytype) that record every keystroke's timing and show rich stats on it.
+The game keeps **statistics of the player's typing timings**, in the spirit of typing-test sites (e.g. the open-source Monkeytype) that record every keystroke's timing and show rich stats on it.
 
 - Every run records the **raw time each digit took to type**. Groupings formed during a run are never recorded; they're always derived from the raw timings.
-- The game uses those stats to **detect the player's groupings**.
-- Once it's **confident enough** that the player always uses a given grouping (a threshold is passed), the screen adapts: instead of letting the player type free-form, it **hints at the size of the upcoming group**. Once the group is typed, it flies off as before.
-- Where the game hasn't detected anything yet, typing stays free-form. Alternatively, it could still suggest a group of five; if the player types only three digits and pauses, those three become a group.
+- The game uses those stats to **detect the player's groupings**, and from them sets the hint (the number of empty slots) for each group.
 
-Groupings will vary from one run to another; the stats over many runs smooth that out. No extra stickiness rule is needed: since groups come from all of a player's timings, one slow keystroke barely moves them. They may change a lot in the first runs, then stabilize as the player stabilizes on them. Whether detection starts from the second run or only after more runs isn't decided yet.
+### 4.1 Pauses
 
-## 5. Open questions
+A pause is a delay that's long **for this player at this place in π**, compared with their local pace: the time they usually take for the digits around it. A player types the digits they know best faster than the last ones they know, so a fixed threshold, or one based on their overall pace, would cut the slow end into single digits. Typing one digit at a time slowly is just slow typing; a boundary is a delay clearly longer than the ones around it.
 
-- **Pause detection.** What counts as a pause? A fixed time, or relative to the player's own pace (e.g. much slower than their median time per digit, or than their usual time for that digit)? How does it adapt as the player gets faster?
-- **Aggregating runs.** How are timings combined across runs: all runs equally, recent runs weighted more, a sliding window? With all runs weighted equally, a player who deliberately changes a group after many runs would wait a long time for the game to follow; do older runs fade out?
-- **When detection starts.** From the second run, or after a minimum number of runs?
-- **Confidence threshold.** How many runs, and how consistent, before the game hints at a group? What happens when the player stops following a hinted group?
-- **Conflicting groups.** What if a detected group overlaps a different one from another run (e.g. 3+4 sometimes, 2+5 other times)?
-- **Group size limits.** Is there a minimum or maximum group size? What about a player who types steadily with no pauses, or pauses after every digit?
+The exact formula is an implementation detail, tuned with play testing.
+
+### 4.2 Combining runs
+
+Boundaries are found from the timings of all runs, with **recent runs weighted more** so that a player who deliberately regroups some digits sees the game follow. The weighting is tuned with play testing.
+
+No extra stickiness rule is needed: since groups come from all of a player's timings, one slow keystroke barely moves them. They may change a lot in the first runs, then stabilize as the player stabilizes on them.
+
+### 4.3 When the hint follows the player
+
+The hint switches from the default to a detected boundary once the boundary shows up in **3 of the player's last 4 runs** that reached that place. Both numbers are parameters.
+
+## 5. Other layers
+
+- **Constellations** are drawn for the player's own groups, whatever their size; a group of one is a dot.
+- **Seasons and milestones** stay counted in digits, independent of groups.
+
+## 6. Open questions
+
+- **Breaking a hinted group.** What happens on screen when the player pauses before the hinted size, or types past it without pausing? With no maximum size, the slots must make room for extra digits.
+- **Conflicting groups.** What if boundaries from different runs overlap (e.g. 3+4 sometimes, 2+5 other times)?
 - **First digits.** The very first digit, and the "3." before the decimals, have no previous digit to time from.
-- **Beginners.** Do we propose groups of five to new players, and how does that coexist with detection?
-- **Other layers.** How do constellations, colors and sound attach to groups of varying size? Do milestones and seasons (counted in digits) stay independent of groups?
+- **Sound and colors.** Do they attach to groups, or stay per digit?
 - **Stats screen.** What stats do we show the player, and how?
 - **Storage.** Raw timings per digit per run grow with play; how much do we keep, and do they need the same care as the seed?
