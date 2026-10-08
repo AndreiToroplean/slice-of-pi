@@ -19,7 +19,16 @@
 - `npm start` serves the app, `npm run build` builds it, `npm test` runs the unit tests once, `npm run test:coverage` adds a coverage report.
 - `npm run lint` runs ESLint (angular-eslint with the strict type-checked rules, including template accessibility rules). TypeScript runs with extra strict flags (see `tsconfig.json`). Don't loosen either; fix the code instead.
 - `npm run format` formats everything with Prettier; `npm run format:check` verifies it (vendored skills are ignored).
-- Run `npm run format:check`, `npm run lint`, `npm run build` and `npm test` before every commit.
+- Run `npm run check` before every commit. It runs the formatting check, the linter, the build and the unit tests, then prints how long each took against its time budget.
+
+## Time budgets
+
+The point is to spend our time developing, not waiting on checks. Checks come in two tiers:
+
+- Before every commit (`npm run check`): must stay fast. Budgets: 30s for the whole check, 10s for the unit tests, 300ms per test. They live in `scripts/check-timing.ts`.
+- Before opening a pull request (CI, see `.github/workflows/deploy.yml`): for checks worth keeping but too slow for every commit. Today it only adds the coverage report.
+
+Going over a budget only warns. When `npm run check` warns, say so in the reply and the pull request, and propose a fix: make the slow part faster, or move it to the pull request tier. Don't raise a budget without the owner's agreement.
 
 # Angular
 

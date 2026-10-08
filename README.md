@@ -18,6 +18,7 @@ npm run lint           # lint with ESLint
 npm test               # run unit tests (Vitest)
 npm run test:coverage  # unit tests with coverage report
 npm run build          # production build into dist/
+npm run check          # format check, lint, build and tests, timed against budgets
 ```
 
 Every push to `main` runs the formatting check, linter and tests and deploys the app to GitHub Pages (see `.github/workflows/deploy.yml`).
