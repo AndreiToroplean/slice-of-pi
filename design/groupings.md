@@ -85,6 +85,10 @@ A technical page shows the data the groupings come from:
 - **Every run, one above the other**, each as a graph of typing speed against the digit number, with **red vertical bars** at the breaks that split that run into groups.
 - At the bottom, **sticky**, the **aggregate**: aggregate speed, aggregate confidence, and the groupings determined from them, which are the ones used during play.
 
+### 4.6 Prototype
+
+[`prototypes/groupings-lab.html`](prototypes/groupings-lab.html) is a standalone prototype of all of the above (open it in a browser): the play screen with live groups from the aggregate, the stats page with example runs and your own, and sliders for every constant. It's plain HTML and JavaScript, separate from the app, kept as a reference until its features are ported to the game.
+
 ## 5. Other layers
 
 - **Constellations** are drawn for the player's own groups, whatever their size; a group of one is a dot.

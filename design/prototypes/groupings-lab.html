@@ -1,0 +1,1540 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Slice of Pi Groupings Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&family=Fredoka:wght@400;500;600&family=Lexend:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <style>
+      /* Layout: the live phone with its notes, then the technical stats page: parameters, one chart per run, and a sticky aggregate at the bottom. */
+      :root {
+        --bg: #f6f4fb;
+        --surface: #ffffff;
+        --fg: #221d33;
+        --muted: #625b78;
+        --faint: #9a93b2;
+        --line: #e2ddef;
+        --grid: #eeebf5;
+        --accent: #6a3fd1;
+        --series: #3b5bdb;
+        --pace: #8a83a3;
+        --break: #d42f45;
+        --conf: #6a3fd1;
+        --display: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif;
+        --body: 'Figtree', system-ui, sans-serif;
+        --mono: 'JetBrains Mono', ui-monospace, monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #15121f;
+          --surface: #1f1a2e;
+          --fg: #ece8f7;
+          --muted: #a79fbf;
+          --faint: #6f678a;
+          --line: #332c48;
+          --grid: #29233b;
+          --accent: #b39bff;
+          --series: #7d9bff;
+          --pace: #8f88a8;
+          --break: #ff6b7d;
+          --conf: #b39bff;
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #15121f;
+        --surface: #1f1a2e;
+        --fg: #ece8f7;
+        --muted: #a79fbf;
+        --faint: #6f678a;
+        --line: #332c48;
+        --grid: #29233b;
+        --accent: #b39bff;
+        --series: #7d9bff;
+        --pace: #8f88a8;
+        --break: #ff6b7d;
+        --conf: #b39bff;
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--body);
+        font-size: 16px;
+        line-height: 1.55;
+      }
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding-inline: 16px;
+        padding-block: 36px 0;
+        display: grid;
+        gap: 40px;
+      }
+      header {
+        display: grid;
+        gap: 10px;
+        max-width: 72ch;
+      }
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 600;
+      }
+      h1 {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: clamp(28px, 4.6vw, 40px);
+        line-height: 1.1;
+        margin: 0;
+        text-wrap: balance;
+      }
+      h2 {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 24px;
+        margin: 0;
+      }
+      h3 {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 18px;
+        margin: 0;
+      }
+      p {
+        margin: 0;
+      }
+      .lede {
+        color: var(--muted);
+        font-size: 17px;
+      }
+      .main {
+        display: grid;
+        grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+        gap: 40px;
+        align-items: start;
+      }
+      @media (max-width: 780px) {
+        .main {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .side {
+        display: grid;
+        gap: 20px;
+        min-width: 0;
+      }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 18px;
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .btn {
+        font: 500 14px var(--body);
+        color: var(--fg);
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 7px 14px;
+        cursor: pointer;
+      }
+      .btn:hover {
+        border-color: var(--accent);
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--surface);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      button:focus-visible,
+      input:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .small {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .notes {
+        margin: 0;
+        padding-left: 20px;
+        display: grid;
+        gap: 8px;
+        color: var(--muted);
+      }
+      .notes strong {
+        color: var(--fg);
+        font-weight: 600;
+      }
+      code {
+        font-family: var(--mono);
+        font-size: 0.88em;
+      }
+
+      /* ---------- The phone: a single committed look, so explicit colors ---------- */
+      .phone {
+        --sky1: #ffc0da;
+        --sky2: #93dcb4;
+        --ink: #2a1f3d;
+        width: 100%;
+        max-width: 360px;
+        aspect-ratio: 360 / 740;
+        justify-self: center;
+        position: relative;
+        overflow: hidden;
+        border-radius: 40px;
+        box-shadow:
+          0 0 0 9px #0f0c18,
+          0 22px 50px rgba(20, 10, 40, 0.28);
+        background: linear-gradient(172deg, var(--sky1), var(--sky2));
+        color: #fff;
+        font-family: 'Lexend', system-ui, sans-serif;
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .phone::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(
+          180deg,
+          rgba(40, 20, 60, 0.16),
+          transparent 30%,
+          transparent 55%,
+          rgba(30, 20, 60, 0.18)
+        );
+      }
+      .phone > * {
+        position: relative;
+      }
+      .status {
+        display: flex;
+        justify-content: space-between;
+        padding: 14px 22px 0;
+        font-size: 12px;
+        font-weight: 500;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      }
+      .status .count {
+        font-variant-numeric: tabular-nums;
+      }
+      .season {
+        display: grid;
+        justify-items: center;
+        gap: 3px;
+        padding: 14px 0 6px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+      }
+      .season .name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 24px;
+        font-weight: 500;
+      }
+      .season .name svg {
+        width: 22px;
+        height: 22px;
+        filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.18));
+      }
+      .season small {
+        font-size: 12px;
+        opacity: 0.92;
+        font-variant-numeric: tabular-nums;
+      }
+      .year {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+        width: 168px;
+        margin-top: 7px;
+      }
+      .year span {
+        height: 4px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.32);
+        overflow: hidden;
+      }
+      .year span i {
+        display: block;
+        height: 100%;
+        background: #fff;
+        border-radius: 4px;
+      }
+      .typed {
+        min-height: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column-reverse;
+        padding: 0 22px;
+        scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 38%);
+        mask-image: linear-gradient(to bottom, transparent, #000 38%);
+      }
+      .typed::-webkit-scrollbar {
+        display: none;
+      }
+      .words {
+        display: flex;
+        flex-wrap: wrap;
+        align-content: flex-end;
+        column-gap: 0.55em;
+        row-gap: 0.15em;
+        font-family: 'Fredoka', system-ui, sans-serif;
+        font-size: 23px;
+        font-weight: 500;
+        line-height: 1.35;
+        padding-bottom: 8px;
+        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+      }
+      .word {
+        display: inline-flex;
+        flex-wrap: wrap;
+      }
+      .word .dg {
+        display: inline-block;
+        width: 0.62em;
+        text-align: center;
+        position: relative;
+      }
+      .word .dg::after {
+        content: '';
+        position: absolute;
+        left: 18%;
+        right: 18%;
+        bottom: 0.06em;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--c);
+        opacity: 0.9;
+      }
+      .word.lead .dg::after {
+        display: none;
+      }
+      .word.pending {
+        visibility: hidden;
+      }
+
+      /* Slots: one row grows up to 10, then wraps onto new rows, one slot at a time. */
+      .typing {
+        display: grid;
+        justify-items: center;
+        padding: 6px 14px 12px;
+      }
+      .slots {
+        display: grid;
+        grid-template-columns: repeat(var(--cols), auto);
+        gap: 6px 4px;
+        justify-content: center;
+        min-height: 58px;
+        align-content: center;
+      }
+      .slot {
+        width: 42px;
+        height: 56px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        font-family: 'Fredoka', system-ui, sans-serif;
+        font-size: 34px;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.2);
+        box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.45);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+      }
+      .slots.dense .slot {
+        width: 27px;
+        height: 42px;
+        font-size: 24px;
+        border-radius: 9px;
+      }
+      .slot.filled {
+        background: var(--c);
+        color: var(--ink);
+        box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.14);
+        animation: pop 0.22s cubic-bezier(0.3, 1.6, 0.5, 1);
+      }
+      .slot.next {
+        box-shadow: inset 0 0 0 2px #fff;
+      }
+      .slot.wrong {
+        background: #ff5a6e;
+        color: #fff;
+        animation: shake 0.35s;
+      }
+      @keyframes pop {
+        from {
+          transform: scale(0.7);
+        }
+      }
+      @keyframes shake {
+        25% {
+          translate: -5px 0;
+        }
+        50% {
+          translate: 5px 0;
+        }
+        75% {
+          translate: -3px 0;
+        }
+      }
+      .keys {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 9px;
+        padding: 6px 18px 22px;
+      }
+      .keys button {
+        border: none;
+        font: inherit;
+        color: #fff;
+        cursor: pointer;
+        height: 60px;
+        border-radius: 20px;
+        font-size: 27px;
+        font-weight: 300;
+        background: rgba(255, 255, 255, 0.26);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+        -webkit-tap-highlight-color: transparent;
+        transition:
+          transform 0.08s,
+          background-color 0.15s;
+        display: grid;
+        place-items: center;
+      }
+      .keys button.down {
+        transform: scale(0.94);
+        background: rgba(255, 255, 255, 0.45);
+      }
+      .keys .empty {
+        visibility: hidden;
+      }
+      .keys .back svg {
+        width: 26px;
+        height: 26px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .keys svg.figure {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: visible;
+        z-index: 2;
+      }
+      .figure polyline {
+        fill: none;
+        stroke: #fff;
+        stroke-width: 3.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
+      }
+      .figure circle {
+        fill: #fff;
+        filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.9));
+      }
+      .figure.leaving {
+        animation: leave 0.5s ease-in forwards;
+      }
+      @keyframes leave {
+        to {
+          opacity: 0;
+          transform: translateY(-120px) scale(0.6);
+        }
+      }
+      .over {
+        position: absolute;
+        inset: auto 22px 46%;
+        z-index: 4;
+        background: rgba(255, 255, 255, 0.94);
+        color: var(--ink);
+        border-radius: 22px;
+        padding: 18px;
+        display: grid;
+        gap: 8px;
+        justify-items: center;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+      }
+      .over b {
+        font-size: 20px;
+        font-weight: 500;
+      }
+      .over span {
+        font-size: 14px;
+      }
+      .over button {
+        font:
+          500 14px 'Lexend',
+          sans-serif;
+        border: none;
+        border-radius: 999px;
+        padding: 8px 18px;
+        background: #2a1f3d;
+        color: #fff;
+        cursor: pointer;
+      }
+      .fly {
+        position: absolute;
+        z-index: 5;
+        margin: 0;
+        pointer-events: none;
+      }
+
+      /* ---------- Stats page ---------- */
+      .stats {
+        display: grid;
+        gap: 16px;
+      }
+      .stats-head {
+        display: grid;
+        gap: 6px;
+        max-width: 80ch;
+      }
+      .params {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 10px 22px;
+      }
+      .param {
+        display: grid;
+        gap: 2px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .param .top {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .param b {
+        font-family: var(--mono);
+        font-weight: 500;
+        color: var(--fg);
+      }
+      .param input {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        font-size: 13px;
+        color: var(--muted);
+        align-items: center;
+      }
+      .legend i {
+        display: inline-block;
+        width: 18px;
+        height: 0;
+        border-top: 2px solid;
+        vertical-align: middle;
+        margin-right: 6px;
+      }
+      .legend .k-int {
+        border-color: var(--series);
+      }
+      .legend .k-pace {
+        border-color: var(--pace);
+      }
+      .legend .k-thr {
+        border-color: var(--pace);
+        border-top-style: dashed;
+      }
+      .legend .k-brk {
+        border: none;
+        width: 2px;
+        height: 14px;
+        background: var(--break);
+      }
+      .legend .k-conf {
+        border: none;
+        width: 14px;
+        height: 10px;
+        background: var(--conf);
+        opacity: 0.35;
+        border-radius: 2px;
+      }
+      .runs {
+        display: grid;
+        gap: 10px;
+      }
+      .run {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 12px 6px;
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+      .run .meta {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: baseline;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .run .meta b {
+        color: var(--fg);
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .tag {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0 7px;
+      }
+      .tag.mine {
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      svg.chart {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+      .chart text {
+        font: 10px var(--mono);
+        fill: var(--faint);
+      }
+      .empty-note {
+        color: var(--muted);
+        font-size: 14px;
+        padding: 12px;
+        border: 1px dashed var(--line);
+        border-radius: 12px;
+      }
+      .aggregate {
+        position: sticky;
+        bottom: 0;
+        z-index: 5;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-bottom: none;
+        border-radius: 16px 16px 0 0;
+        padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -10px 30px rgba(20, 10, 40, 0.1);
+        display: grid;
+        gap: 6px;
+      }
+      .aggregate .meta {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: baseline;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .groups {
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.8;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 10px;
+        max-height: 5.6em;
+        overflow-y: auto;
+      }
+      .groups .g {
+        white-space: nowrap;
+        color: var(--fg);
+      }
+      .groups .g.low {
+        color: var(--faint);
+        text-decoration: underline dotted;
+      }
+      .tip {
+        position: fixed;
+        z-index: 20;
+        pointer-events: none;
+        background: var(--fg);
+        color: var(--bg);
+        font: 12px/1.45 var(--mono);
+        padding: 6px 9px;
+        border-radius: 8px;
+        white-space: pre;
+        display: none;
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <span class="eyebrow">Slice of Pi · groupings lab</span>
+        <h1>Groups from your rhythm, live</h1>
+        <p class="lede">
+          The play screen now closes groups with the timing model from the groupings doc, and every
+          run you play lands on the stats page below. The aggregate at the bottom of that page sets
+          the slots for your next run.
+        </p>
+      </header>
+
+      <div class="main">
+        <div class="phone" id="phone" role="group" aria-label="Play screen mockup">
+          <div class="status"><span>9:41</span><span class="count" id="count">π · 0</span></div>
+          <div class="season" id="season"></div>
+          <div class="typed" id="typed">
+            <div class="words" id="words" aria-hidden="true"></div>
+          </div>
+          <div class="typing"><div class="slots" id="slots" aria-hidden="true"></div></div>
+          <div class="keys" id="keys"></div>
+          <p class="visually-hidden" aria-live="polite" id="live"></p>
+        </div>
+
+        <div class="side">
+          <section class="panel" aria-labelledby="try-h">
+            <h3 id="try-h">Try it</h3>
+            <div class="row">
+              <button class="btn primary" id="play" type="button">Watch a run</button>
+              <button class="btn" id="end" type="button">End run</button>
+              <button class="btn" id="reset" type="button">Start over</button>
+            </div>
+            <p class="small">
+              Type π from memory on the phone (your keyboard works too). A wrong digit, or End run,
+              saves the run to the stats page. "Watch a run" plays 75 digits as a made-up player who
+              groups mostly in threes, in real time.
+            </p>
+          </section>
+          <section class="panel" aria-labelledby="new-h">
+            <h3 id="new-h">What changed since the last mockup</h3>
+            <ul class="notes">
+              <li>
+                <strong>No text under the slots</strong> and <strong>no season banner</strong>. The
+                season header and year bar stay as they were.
+              </li>
+              <li>
+                <strong>Groups are unbounded.</strong> Type past the hint and a slot is added per
+                digit; the row grows to 10, then a new row starts below.
+              </li>
+              <li>
+                <strong>Groups on screen follow the aggregate,</strong> current run included: a
+                group closes at a confident aggregate break, or when your wait is long enough to
+                make the aggregate break there. For a new player that's just your pace in this run
+                (local pace plus a fraction of its standard deviation; a fixed 0.9 s while there are
+                fewer than three intervals).
+              </li>
+              <li>
+                <strong>Slots follow the aggregate</strong> where it's confident enough, and show 5
+                everywhere else, as for a new player.
+              </li>
+            </ul>
+          </section>
+        </div>
+      </div>
+
+      <section class="stats" aria-labelledby="stats-h">
+        <div class="stats-head">
+          <span class="eyebrow">Stats page (technical)</span>
+          <h2 id="stats-h">Runs, breaks and the aggregate</h2>
+          <p class="small">
+            Each run is a chart of the time per digit (the inverse of speed, so pauses are peaks)
+            against the digit number. Red bars are the breaks found after the run, fainter where the
+            confidence is low. The four example runs are made up; your own runs are added under them
+            and kept in this browser.
+          </p>
+        </div>
+
+        <div class="panel">
+          <div class="row" style="justify-content: space-between">
+            <h3>Parameters</h3>
+            <div class="row">
+              <label class="small"
+                ><input type="checkbox" id="examples" checked /> Include example runs</label
+              >
+              <button class="btn" id="clear" type="button">Delete my runs</button>
+            </div>
+          </div>
+          <div class="params" id="params"></div>
+          <div class="legend">
+            <span><i class="k-int"></i>time per digit</span
+            ><span><i class="k-pace"></i>local pace</span
+            ><span><i class="k-thr"></i>break threshold</span>
+            <span><i class="k-brk"></i>break</span><span><i class="k-conf"></i>confidence</span>
+          </div>
+        </div>
+
+        <div class="runs" id="runs"></div>
+
+        <div class="aggregate" id="aggregate" aria-labelledby="agg-h"></div>
+      </section>
+    </div>
+    <div class="tip" id="tip"></div>
+
+    <script>
+      const DECIMALS =
+        '14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196442881097566593344612847564823378678316527120190914564856692346034861045432664821339360726024914127372458700660631558817488152092096282925409171536436789259036001133053054882046652138414695194151160943305727036575959195309218611738193261179310511854807446237996274956735188575272489122793818301194912983367336244065664308602139494639522473719070217986094370277053921717629317675238467481846766940513200056812714526356082778577134275778960917363717872146844090122495343014654958537105079227968925892354201995611212902196086403441815981362977477130996051870721134999999837297804995105973173281609631859502445945534690830264252230825334468503526193118817101000313783875288658753320838142061717766914730359825349042875546873115956286388235378759375195778185778053217122680661300192787661119590921642019';
+      const DEFAULT_HINT = 5,
+        ROW = 10;
+
+      // ---------- Parameters of the timing model (the constants we'd tune) ----------
+      const P = {
+        sigma: {
+          label: 'Window width σ (digits)',
+          v: 4,
+          min: 1,
+          max: 12,
+          step: 0.5,
+          note: 'Normal weights; cut off at 3σ',
+        },
+        k: { label: 'Break: pace + k·sd, k =', v: 0.8, min: 0.1, max: 2.5, step: 0.05 },
+        floor: { label: 'Break floor: at least pace ×', v: 1.35, min: 1, max: 3, step: 0.05 },
+        cvFull: { label: 'Full confidence at sd/pace =', v: 0.6, min: 0.1, max: 1.5, step: 0.05 },
+        recency: {
+          label: 'Recency: weight ×',
+          v: 0.7,
+          min: 0.3,
+          max: 1,
+          step: 0.05,
+          note: 'per run back in time',
+        },
+        evidence: { label: 'Evidence scale', v: 1.2, min: 0.2, max: 4, step: 0.1 },
+        threshold: {
+          label: 'Confidence threshold',
+          v: 0.45,
+          min: 0,
+          max: 1,
+          step: 0.05,
+          note: 'below it the hint is 5',
+        },
+      };
+      const MIN_INTERVALS = 3,
+        FALLBACK_PAUSE = 900,
+        TRUNC = 3;
+
+      /** Weighted pace and spread of the intervals around boundary i (causal: only earlier ones). d[j] is the time before digit j. */
+      function local(d, i, causal) {
+        const s = P.sigma.v,
+          w0 = Math.ceil(TRUNC * s);
+        let sw = 0,
+          sx = 0,
+          sxx = 0,
+          n = 0;
+        const hi = causal ? i - 1 : Math.min(d.length - 1, i + w0);
+        for (let j = Math.max(1, i - w0); j <= hi; j++) {
+          if (j === i) continue;
+          const w = Math.exp(-((j - i) ** 2) / (2 * s * s));
+          sw += w;
+          sx += w * d[j];
+          sxx += w * d[j] * d[j];
+          n++;
+        }
+        if (!sw) return { pace: NaN, sd: NaN, n: 0 };
+        const pace = sx / sw,
+          sd = Math.sqrt(Math.max(0, sxx / sw - pace * pace));
+        return { pace, sd, n };
+      }
+      const threshold = (l) => Math.max(l.pace + P.k.v * l.sd, l.pace * P.floor.v);
+      const confidence = (l) => Math.min(1, l.sd / l.pace / P.cvFull.v);
+
+      function intervals(times) {
+        return times.map((t, i) => (i === 0 ? NaN : t - times[i - 1]));
+      }
+
+      function analyze(run) {
+        const d = intervals(run.times),
+          out = [];
+        for (let i = 1; i < d.length; i++) {
+          const l = local(d, i, false),
+            early = l.n < MIN_INTERVALS;
+          const thr = early ? FALLBACK_PAUSE : threshold(l);
+          out[i] = {
+            d: d[i],
+            pace: early ? NaN : l.pace,
+            thr,
+            brk: d[i] > thr,
+            conf: early ? 0.5 : confidence(l),
+          };
+        }
+        return out;
+      }
+
+      function aggregate(runs, analyses) {
+        const len = Math.max(0, ...runs.map((r) => r.times.length)),
+          b = [];
+        for (let i = 1; i < len; i++) {
+          let sw = 0,
+            sr = 0,
+            sb = 0,
+            sp = 0,
+            spw = 0;
+          runs.forEach((r, ri) => {
+            const a = analyses[ri][i];
+            if (!a) return;
+            const rec = P.recency.v ** (runs.length - 1 - ri),
+              w = rec * a.conf;
+            sr += rec;
+            sw += w;
+            sb += w * (a.brk ? 1 : 0);
+            sp += rec * a.d;
+            spw += rec;
+          });
+          if (!spw) continue;
+          const score = sw ? sb / sw : 0;
+          const conf = Math.abs(2 * score - 1) * (1 - Math.exp(-sw / P.evidence.v));
+          b[i] = { brk: score > 0.5, score, conf, d: sp / spw };
+        }
+        // Groups: split at aggregate breaks; a group's confidence is the mean over its inner boundaries and its end.
+        const groups = [];
+        let start = 0;
+        for (let i = 1; i <= len; i++) {
+          if (i === len || b[i]?.brk) {
+            const end = i === len ? null : i;
+            const span = [];
+            for (let j = start + 1; j <= (end ?? len - 1); j++) if (b[j]) span.push(b[j].conf);
+            const conf = end === null ? 0 : span.reduce((x, y) => x + y, 0) / (span.length || 1);
+            groups.push({ start, size: i - start, conf, open: end === null });
+            start = i;
+          }
+        }
+        return { len, b, groups };
+      }
+
+      // ---------- Example runs: a made-up player, seeded so they're the same every time ----------
+      function mulberry32(a) {
+        return () => {
+          a |= 0;
+          a = (a + 0x6d2b79f5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      // Groups this player has in mind; the first 10 digits they type in one steady stream (no clear groups there).
+      const PLAYER = [
+        10, 3, 3, 2, 4, 3, 3, 3, 2, 3, 3, 4, 3, 3, 3, 2, 3, 3, 3, 4, 3, 3, 3, 4, 3, 2, 3, 3, 3, 3,
+        4, 2, 3,
+      ];
+      const PLAYER_BOUNDS = new Set();
+      {
+        let p = 0;
+        for (const s of PLAYER) {
+          p += s;
+          PLAYER_BOUNDS.add(p);
+        }
+      }
+      function playerInterval(i, rand, speed) {
+        if (i < 10) return speed * (115 + rand() * 20);
+        const base = speed * (150 + i * 1.6) * (0.85 + rand() * 0.3);
+        const pause = PLAYER_BOUNDS.has(i) ? rand() > 0.12 : rand() < 0.04;
+        return pause ? base * (2.4 + rand() * 1.6) : base;
+      }
+      function exampleRuns() {
+        const specs = [
+          [41, 1.25, 11],
+          [55, 1.12, 22],
+          [49, 1.05, 33],
+          [68, 0.95, 44],
+        ];
+        return specs.map(([n, speed, seed], k) => {
+          const rand = mulberry32(seed),
+            times = [0];
+          for (let i = 1; i < n; i++) times.push(times[i - 1] + playerInterval(i, rand, speed));
+          return { id: `ex${k}`, example: true, times };
+        });
+      }
+      const EXAMPLES = exampleRuns();
+      let myRuns = [];
+      try {
+        myRuns = JSON.parse(localStorage.getItem('sop-lab-runs') || '[]');
+      } catch {
+        myRuns = [];
+      }
+      const saveRuns = () => {
+        try {
+          localStorage.setItem('sop-lab-runs', JSON.stringify(myRuns));
+        } catch {}
+      };
+      let useExamples = true,
+        model = null;
+
+      function allRuns() {
+        return [...(useExamples ? EXAMPLES : []), ...myRuns];
+      }
+      function recompute() {
+        const runs = allRuns(),
+          analyses = runs.map(analyze);
+        model = { runs, analyses, agg: aggregate(runs, analyses) };
+        renderStats();
+        if (!cur) renderSlots();
+      }
+      /** Slots for a group starting at p: the distance to the next aggregate break, where the aggregate is confident enough. */
+      function hintAt(p) {
+        const g = model?.agg.groups.find((x) => x.start <= p && p < x.start + x.size);
+        if (!g || g.open || g.conf < P.threshold.v) return DEFAULT_HINT;
+        return g.start + g.size - p;
+      }
+
+      // ---------- Seasons (unchanged from the last mockup, minus the banner) ----------
+      const SEASONS = [
+        {
+          name: 'Spring',
+          early: ['#ffb3d1', '#7fd6a6'],
+          late: ['#ff9fc4', '#5fc993'],
+          icon: '<svg viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="6" r="3.6"/><circle cx="17.7" cy="10.2" r="3.6"/><circle cx="15.5" cy="17" r="3.6"/><circle cx="8.5" cy="17" r="3.6"/><circle cx="6.3" cy="10.2" r="3.6"/><circle cx="12" cy="12" r="2.6" fill="#ffd36b"/></svg>',
+        },
+        {
+          name: 'Summer',
+          early: ['#ffc35a', '#38b6ea'],
+          late: ['#ffab3d', '#1fa2df'],
+          icon: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.6" fill="#fff"/><path d="M12 1.8v2.8M12 19.4v2.8M1.8 12h2.8M19.4 12h2.8M4.8 4.8l2 2M17.2 17.2l2 2M4.8 19.2l2-2M17.2 6.8l2-2"/></svg>',
+        },
+        {
+          name: 'Autumn',
+          early: ['#ee8a45', '#9b4f86'],
+          late: ['#d9683a', '#7a3f78'],
+          icon: '<svg viewBox="0 0 24 24"><path fill="#fff" d="M20 3C10 3 4 8 4 15c0 2 .6 3.7 1.6 5 1-4 4-8 9-10-4 3-6.6 6.4-7.7 10.4C8.4 21.4 9.8 22 11.5 22 18 22 21 15 20 3z"/></svg>',
+        },
+        {
+          name: 'Winter',
+          early: ['#9bb4dc', '#46598f'],
+          late: ['#8299c9', '#30406f'],
+          icon: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M12 2l-2.5 2.5M12 2l2.5 2.5M12 22l-2.5-2.5M12 22l2.5-2.5"/></svg>',
+        },
+      ];
+      const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+      const mix = (a, b, t) =>
+        '#' +
+        hex(a)
+          .map((v, i) =>
+            Math.round(v + (hex(b)[i] - v) * t)
+              .toString(16)
+              .padStart(2, '0'),
+          )
+          .join('');
+      const smooth = (e0, e1, x) => {
+        const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+        return t * t * (3 - 2 * t);
+      };
+      function sky(n) {
+        const p = n % 100,
+          s = Math.floor(p / 25),
+          t = (p % 25) / 25,
+          cur = SEASONS[s],
+          next = SEASONS[(s + 1) % 4];
+        const w = smooth(0.8, 1, t),
+          drift = Math.min(1, t / 0.8);
+        return [0, 1].map((k) => mix(mix(cur.early[k], cur.late[k], drift), next.early[k], w));
+      }
+      function seedColor(pos) {
+        const x = Math.sin(pos * 12.9898 + 4.1) * 43758.5453;
+        return `hsl(${Math.round((x - Math.floor(x)) * 360)} 88% 74%)`;
+      }
+
+      // ---------- Play screen ----------
+      const $ = (id) => document.getElementById(id);
+      const phone = $('phone'),
+        wordsEl = $('words'),
+        slotsEl = $('slots'),
+        keysEl = $('keys'),
+        typedEl = $('typed');
+      const KEYS = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '', '0', '⌫'];
+      const BACK =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 5H9l-6 7 6 7h12z"/><path d="m12 9 6 6m0-6-6 6"/></svg>';
+      let typed = '',
+        cur = '',
+        times = [],
+        over = false,
+        timer = null,
+        autoplay = null,
+        wrongDigit = null;
+
+      keysEl.innerHTML =
+        KEYS.map((k) =>
+          k === ''
+            ? '<button class="empty" tabindex="-1" aria-hidden="true"></button>'
+            : `<button type="button" data-k="${k}" ${k === '⌫' ? 'class="back" aria-label="Delete"' : `aria-label="${k}"`}>${k === '⌫' ? BACK : k}</button>`,
+        ).join('') + '<svg class="figure" id="figure" aria-hidden="true"></svg>';
+      const groupStart = () => typed.length - cur.length;
+
+      function renderSky() {
+        const n = typed.length,
+          [a, b] = sky(n),
+          p = n % 100,
+          season = SEASONS[Math.floor(p / 25)];
+        phone.style.setProperty('--sky1', a);
+        phone.style.setProperty('--sky2', b);
+        const bars = [0, 1, 2, 3]
+          .map(
+            (q) =>
+              `<span><i style="width:${Math.min(100, Math.max(0, ((p - q * 25) / 25) * 100))}%"></i></span>`,
+          )
+          .join('');
+        $('season').innerHTML =
+          `<div class="name">${season.icon}<span>${season.name}</span></div><small>Year ${Math.floor(n / 100) + 1} · digit ${p} of 100</small><div class="year">${bars}</div>`;
+        $('count').textContent = `π · ${n}`;
+      }
+      function renderSlots() {
+        const start = groupStart(),
+          hint = hintAt(start),
+          count = Math.max(hint, cur.length + (wrongDigit ? 1 : 0));
+        let html = '';
+        for (let i = 0; i < count; i++) {
+          const ch = cur[i];
+          if (ch !== undefined)
+            html += `<div class="slot filled" style="--c:${seedColor(start + i)}">${ch}</div>`;
+          else if (wrongDigit && i === cur.length)
+            html += `<div class="slot wrong">${wrongDigit}</div>`;
+          else html += `<div class="slot${i === cur.length && !over ? ' next' : ''}"></div>`;
+        }
+        slotsEl.innerHTML = html;
+        slotsEl.style.setProperty('--cols', Math.min(count, ROW));
+        slotsEl.classList.toggle('dense', count > 6);
+      }
+      function keyCenter(d) {
+        const b = keysEl.querySelector(`[data-k="${d}"]`);
+        return [b.offsetLeft + b.offsetWidth / 2, b.offsetTop + b.offsetHeight / 2];
+      }
+      function renderFigure() {
+        const svg = $('figure'),
+          pts = [...cur].map(keyCenter);
+        svg.classList.remove('leaving');
+        svg.innerHTML =
+          (pts.length > 1 ? `<polyline points="${pts.map((p) => p.join(',')).join(' ')}"/>` : '') +
+          pts.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5"/>`).join('');
+      }
+      function resetWords() {
+        wordsEl.innerHTML =
+          '<span class="word lead"><span class="dg">3</span><span class="dg" style="width:.3em">.</span></span>';
+      }
+
+      function closeGroup() {
+        clearInterval(timer);
+        clearTimeout(timer);
+        timer = null;
+        if (!cur) return;
+        const start = groupStart(),
+          digits = cur,
+          word = document.createElement('span');
+        word.className = 'word pending';
+        word.innerHTML = [...digits]
+          .map((d, i) => `<span class="dg" style="--c:${seedColor(start + i)}">${d}</span>`)
+          .join('');
+        const fromRects = [...slotsEl.querySelectorAll('.slot.filled')].map((s) =>
+          s.getBoundingClientRect(),
+        );
+        wordsEl.append(word);
+        cur = '';
+        typedEl.scrollTop = typedEl.scrollHeight;
+        $('figure').classList.add('leaving');
+        renderSlots();
+        const host = phone.getBoundingClientRect(),
+          targets = [...word.children].map((c) => c.getBoundingClientRect());
+        const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let left = fromRects.length;
+        fromRects.forEach((r, i) => {
+          const t = targets[i],
+            el = document.createElement('div');
+          el.className = 'slot filled fly';
+          el.textContent = digits[i];
+          el.style.cssText = `--c:${seedColor(start + i)};left:${r.left - host.left}px;top:${r.top - host.top}px;width:${r.width}px;height:${r.height}px;font-size:${r.height * 0.6}px;animation:none`;
+          phone.append(el);
+          const dx = t.left + t.width / 2 - (r.left + r.width / 2),
+            dy = t.top + t.height / 2 - (r.top + r.height / 2),
+            sc = (t.height / r.height) * 0.85;
+          const anim = el.animate(
+            [
+              { transform: 'none', backgroundColor: seedColor(start + i), color: '#2a1f3d' },
+              {
+                transform: `translate(${dx}px, ${dy}px) scale(${sc})`,
+                backgroundColor: 'rgba(255,255,255,0)',
+                color: '#ffffff',
+                boxShadow: 'none',
+              },
+            ],
+            {
+              duration: reduce ? 0 : 480,
+              delay: reduce ? 0 : Math.min(i, 12) * 28,
+              easing: 'cubic-bezier(.5,0,.2,1)',
+              fill: 'forwards',
+            },
+          );
+          anim.onfinish = () => {
+            el.remove();
+            if (--left === 0) word.classList.remove('pending');
+          };
+        });
+        if (!fromRects.length) word.classList.remove('pending');
+      }
+
+      /** The aggregate with the current run included, as if the next digit were typed after waiting until `now`. */
+      function liveAggregate(now) {
+        if (!times.length) return null;
+        const t0 = times[0],
+          cur = { times: [...times, ...(now === undefined ? [] : [now])].map((t) => t - t0) };
+        const runs = [...allRuns(), cur];
+        return aggregate(runs, runs.map(analyze));
+      }
+      /** On-screen groups follow the aggregate (current run included): close at its confident breaks, or once the wait makes one. */
+      function armPause() {
+        clearInterval(timer);
+        timer = null;
+        if (!cur) return;
+        const n = typed.length,
+          known = liveAggregate()?.b[n] ?? model.agg.b[n];
+        if (known?.brk && known.conf >= P.threshold.v) {
+          timer = setTimeout(closeGroup, 140);
+          return;
+        }
+        timer = setInterval(() => {
+          if (liveAggregate(performance.now())?.b[n]?.brk) closeGroup();
+        }, 80);
+      }
+      function press(k) {
+        if (over) return;
+        if (k === '⌫') {
+          if (!cur) return;
+          cur = cur.slice(0, -1);
+          typed = typed.slice(0, -1);
+          times.pop();
+          renderSlots();
+          renderFigure();
+          renderSky();
+          armPause();
+          return;
+        }
+        const expected = DECIMALS[typed.length];
+        if (k !== expected) return endRun(k, expected);
+        cur += k;
+        typed += k;
+        times.push(performance.now());
+        renderSlots();
+        renderFigure();
+        renderSky();
+        armPause();
+        $('live').textContent = `${typed.length} digits`;
+      }
+
+      function saveRun() {
+        if (times.length < 3) return false;
+        const t0 = times[0];
+        myRuns.push({
+          id: `r${Date.now()}`,
+          example: false,
+          times: times.map((t) => Math.round(t - t0)),
+        });
+        saveRuns();
+        recompute();
+        return true;
+      }
+      function endRun(got, expected) {
+        stopAuto();
+        clearTimeout(timer);
+        closeGroupSilently();
+        over = true;
+        wrongDigit = got ?? null;
+        const saved = saveRun();
+        renderSlots();
+        const card = document.createElement('div');
+        card.className = 'over';
+        card.id = 'over';
+        card.innerHTML = `<b>${typed.length} digits</b>${expected ? `<span>Digit ${typed.length + 1} is ${expected}, not ${got}.</span>` : ''}<span>${saved ? 'Run added to the stats page.' : 'Too short to keep.'}</span><button type="button">Try again</button>`;
+        card.querySelector('button').addEventListener('click', reset);
+        phone.append(card);
+      }
+      function closeGroupSilently() {
+        if (!cur) return;
+        const start = groupStart(),
+          word = document.createElement('span');
+        word.className = 'word';
+        word.innerHTML = [...cur]
+          .map((d, i) => `<span class="dg" style="--c:${seedColor(start + i)}">${d}</span>`)
+          .join('');
+        wordsEl.append(word);
+        cur = '';
+        $('figure').innerHTML = '';
+      }
+      function reset() {
+        stopAuto();
+        clearTimeout(timer);
+        typed = '';
+        cur = '';
+        times = [];
+        over = false;
+        wrongDigit = null;
+        $('over')?.remove();
+        $('figure').innerHTML = '';
+        resetWords();
+        renderSlots();
+        renderSky();
+      }
+
+      function stopAuto() {
+        if (autoplay) {
+          clearTimeout(autoplay);
+          autoplay = null;
+        }
+        $('play').textContent = 'Watch a run';
+      }
+      function startAuto() {
+        reset();
+        $('play').textContent = 'Stop';
+        const rand = Math.random,
+          LIMIT = 75; // mockup-only randomness, for the simulated player
+        const step = () => {
+          press(DECIMALS[typed.length]);
+          if (over) return;
+          if (typed.length >= LIMIT) {
+            autoplay = setTimeout(() => endRun(), 1200);
+            return;
+          }
+          autoplay = setTimeout(step, playerInterval(typed.length, rand, 1));
+        };
+        autoplay = setTimeout(step, 300);
+      }
+
+      $('play').addEventListener('click', () => (autoplay ? stopAuto() : startAuto()));
+      $('end').addEventListener('click', () => {
+        if (!over && typed) endRun();
+      });
+      $('reset').addEventListener('click', reset);
+      keysEl.querySelectorAll('[data-k]').forEach((b) => {
+        b.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          b.classList.add('down');
+          press(b.dataset.k);
+        });
+        ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) =>
+          b.addEventListener(ev, () => b.classList.remove('down')),
+        );
+        b.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            press(b.dataset.k);
+          }
+        });
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest?.('input')) return;
+        if (/^[0-9]$/.test(e.key)) press(e.key);
+        else if (e.key === 'Backspace') press('⌫');
+      });
+
+      // ---------- Stats page rendering ----------
+      let W = 1000;
+      const PAD_L = 34,
+        PAD_R = 8;
+      function xScale(len) {
+        return (i) => PAD_L + (i / Math.max(1, len - 1)) * (W - PAD_L - PAD_R);
+      }
+      function yMaxOf(runs) {
+        const all = runs.flatMap((r) => intervals(r.times).slice(1)).sort((a, b) => a - b);
+        return Math.max(400, (all[Math.floor(all.length * 0.97)] ?? 600) * 1.15);
+      }
+      function path(points) {
+        return points
+          .filter(([, y]) => Number.isFinite(y))
+          .map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`)
+          .join('');
+      }
+
+      function chartSVG(series, len, yMax, opts) {
+        const H = opts.h,
+          top = 6,
+          bottom = opts.axis ? 16 : 6,
+          x = xScale(len),
+          y = (v) => top + (1 - Math.min(v, yMax) / yMax) * (H - top - bottom);
+        let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${opts.label}">`;
+        for (const v of [0, 500, 1000, 1500].filter((v) => v <= yMax))
+          s += `<line x1="${PAD_L}" x2="${W - PAD_R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)" stroke-width="1"/><text x="${PAD_L - 4}" y="${y(v) + 3}" text-anchor="end">${v ? v / 1000 + 's' : '0'}</text>`;
+        if (opts.conf)
+          s += `<path d="${path(series.map((p, i) => [x(i), y(0) - (p ? p.conf : 0) * (H - top - bottom) * 0.35]))}L${x(series.length - 1)},${y(0)}L${x(1)},${y(0)}Z" fill="var(--conf)" opacity=".18"/>`;
+        series.forEach((p, i) => {
+          if (p?.brk)
+            s += `<line x1="${x(i - 0.5)}" x2="${x(i - 0.5)}" y1="${top}" y2="${y(0)}" stroke="var(--break)" stroke-width="2.5" opacity="${(0.25 + 0.75 * p.conf).toFixed(2)}"/>`;
+        });
+        if (opts.thr)
+          s += `<path d="${path(series.map((p, i) => [x(i), p ? y(p.thr) : NaN]))}" fill="none" stroke="var(--pace)" stroke-width="1.2" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>`;
+        if (opts.pace)
+          s += `<path d="${path(series.map((p, i) => [x(i), p ? y(p.pace) : NaN]))}" fill="none" stroke="var(--pace)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`;
+        s += `<path d="${path(series.map((p, i) => [x(i), p ? y(p.d) : NaN]))}" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+        if (opts.axis)
+          for (let i = 0; i < len; i += 10)
+            s += `<text x="${x(i)}" y="${H - 3}" text-anchor="middle">${i + 1}</text>`;
+        return s + '</svg>';
+      }
+
+      function attachTip(el, series, len, describe) {
+        const tip = $('tip');
+        el.addEventListener('pointermove', (e) => {
+          const r = el.getBoundingClientRect(),
+            fx = ((e.clientX - r.left) / r.width) * W;
+          const i = Math.round(((fx - PAD_L) / (W - PAD_L - PAD_R)) * (len - 1));
+          const p = series[i];
+          if (!p) {
+            tip.style.display = 'none';
+            return;
+          }
+          tip.textContent = describe(i, p);
+          tip.style.display = 'block';
+          tip.style.left = `${Math.min(innerWidth - tip.offsetWidth - 8, e.clientX + 12)}px`;
+          tip.style.top = `${e.clientY - tip.offsetHeight - 10}px`;
+        });
+        el.addEventListener('pointerleave', () => {
+          tip.style.display = 'none';
+        });
+      }
+      const ms = (v) => `${Math.round(v)} ms`;
+
+      function renderStats() {
+        const { runs, analyses, agg } = model,
+          len = Math.max(agg.len, 10),
+          yMax = yMaxOf(runs.length ? runs : EXAMPLES);
+        const runsEl = $('runs');
+        W = Math.max(280, runsEl.clientWidth - 26);
+        runsEl.innerHTML = runs.length
+          ? ''
+          : '<p class="empty-note">No runs yet. Play one on the phone above, or include the example runs.</p>';
+        let exampleNo = 0,
+          mineNo = 0;
+        runs.forEach((run, ri) => {
+          const a = analyses[ri],
+            breaks = a.filter((p) => p?.brk).length,
+            total = (run.times.at(-1) / 1000).toFixed(1);
+          const rec = P.recency.v ** (runs.length - 1 - ri);
+          const div = document.createElement('div');
+          div.className = 'run';
+          const name = run.example ? `Example ${++exampleNo}` : `Your run ${++mineNo}`;
+          div.innerHTML =
+            `<div class="meta"><b>${name}</b><span class="tag${run.example ? '' : ' mine'}">${run.example ? 'example' : 'yours'}</span><span>${run.times.length} digits · ${total} s · ${breaks + 1} groups · weight ${rec.toFixed(2)}</span></div>` +
+            chartSVG(a, len, yMax, {
+              h: 92,
+              pace: true,
+              thr: true,
+              axis: ri === runs.length - 1,
+              label: `${name}: time per digit`,
+            });
+          runsEl.append(div);
+          attachTip(
+            div.querySelector('svg'),
+            a,
+            len,
+            (i, p) =>
+              `digit ${i + 1} (${DECIMALS[i]})\ntime ${ms(p.d)}\npace ${ms(p.pace)}\nthreshold ${ms(p.thr)}\n${p.brk ? 'BREAK before this digit' : 'no break'}\nconfidence ${p.conf.toFixed(2)}`,
+          );
+        });
+
+        const confident = agg.groups.filter((g) => !g.open && g.conf >= P.threshold.v);
+        const aggEl = $('aggregate');
+        aggEl.innerHTML =
+          `<div class="meta"><h3 id="agg-h">Aggregate</h3><span>${runs.length} runs · ${agg.groups.length} groups, ${confident.length} confident enough to set the hint</span></div>` +
+          chartSVG(agg.b, len, yMax, {
+            h: 84,
+            conf: true,
+            axis: true,
+            label: 'Aggregate: time per digit, confidence and breaks',
+          }) +
+          `<div class="groups" aria-label="Groupings used in play">${agg.groups
+            .map((g) => {
+              const low = g.open || g.conf < P.threshold.v;
+              return `<span class="g${low ? ' low' : ''}" title="confidence ${g.conf.toFixed(2)}${low ? ', hint 5 here' : ''}">${DECIMALS.slice(g.start, g.start + g.size)}</span>`;
+            })
+            .join('')}</div>` +
+          `<p class="small">Underlined dotted groups are below the confidence threshold: the hint is 5 there. Hover the charts for values.</p>`;
+        attachTip(
+          aggEl.querySelector('svg'),
+          agg.b,
+          len,
+          (i, p) =>
+            `digit ${i + 1} (${DECIMALS[i]})\nweighted time ${ms(p.d)}\nbreak score ${p.score.toFixed(2)}\n${p.brk ? 'BREAK' : 'no break'}\nconfidence ${p.conf.toFixed(2)}`,
+        );
+      }
+
+      // Parameter sliders
+      $('params').innerHTML = Object.entries(P)
+        .map(
+          ([
+            key,
+            p,
+          ]) => `<label class="param" for="p-${key}"><span class="top"><span>${p.label}</span><b id="v-${key}">${p.v}</b></span>
+  <input type="range" id="p-${key}" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.v}">${p.note ? `<span>${p.note}</span>` : ''}</label>`,
+        )
+        .join('');
+      for (const key of Object.keys(P)) {
+        $(`p-${key}`).addEventListener('input', (e) => {
+          P[key].v = Number(e.target.value);
+          $(`v-${key}`).textContent = P[key].v;
+          recompute();
+        });
+      }
+      $('examples').addEventListener('change', (e) => {
+        useExamples = e.target.checked;
+        recompute();
+      });
+      $('clear').addEventListener('click', () => {
+        myRuns = [];
+        saveRuns();
+        recompute();
+      });
+
+      recompute();
+      reset();
+      let lastWidth = $('runs').clientWidth;
+      addEventListener('resize', () => {
+        const w = $('runs').clientWidth;
+        if (w !== lastWidth) {
+          lastWidth = w;
+          renderStats();
+        }
+      });
+    </script>
+  </body>
+</html>
