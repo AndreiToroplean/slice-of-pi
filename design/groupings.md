@@ -40,12 +40,13 @@ From the second run on, the game relies on **statistics of the player's typing t
 - Once it's **confident enough** that the player always uses a given grouping (a threshold is passed), the screen adapts: instead of letting the player type free-form, it **hints at the size of the upcoming group**. Once the group is typed, it flies off as before.
 - Where the game hasn't detected anything yet, typing stays free-form. Alternatively, it could still suggest a group of five; if the player types only three digits and pauses, those three become a group.
 
-Groupings will vary from one run to another; the stats over many runs smooth that out.
+Groupings will vary from one run to another; the stats over many runs smooth that out. No extra stickiness rule is needed: since groups come from all of a player's timings, one slow keystroke barely moves them. They may change a lot in the first runs, then stabilize as the player stabilizes on them. Whether detection starts from the second run or only after more runs isn't decided yet.
 
 ## 5. Open questions
 
 - **Pause detection.** What counts as a pause? A fixed time, or relative to the player's own pace (e.g. much slower than their median time per digit, or than their usual time for that digit)? How does it adapt as the player gets faster?
-- **Aggregating runs.** How are timings combined across runs: all runs equally, recent runs weighted more, a sliding window? Do older runs fade out so a player can change their groups?
+- **Aggregating runs.** How are timings combined across runs: all runs equally, recent runs weighted more, a sliding window? With all runs weighted equally, a player who deliberately changes a group after many runs would wait a long time for the game to follow; do older runs fade out?
+- **When detection starts.** From the second run, or after a minimum number of runs?
 - **Confidence threshold.** How many runs, and how consistent, before the game hints at a group? What happens when the player stops following a hinted group?
 - **Conflicting groups.** What if a detected group overlaps a different one from another run (e.g. 3+4 sometimes, 2+5 other times)?
 - **Group size limits.** Is there a minimum or maximum group size? What about a player who types steadily with no pauses, or pauses after every digit?
