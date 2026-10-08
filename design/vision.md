@@ -37,6 +37,8 @@ Each layer adds an independent "channel" of information on top of the digits.
 
 Digits are grouped into **packets of 5**. Groups are visually linked as the player types, so π is perceived as a sequence of chunks rather than a flat stream. Most other layers build on this grouping.
 
+Under discussion: letting each player discover their own groups, detected from their typing rhythm, instead of imposing fixed groups of 5. See [`groupings.md`](groupings.md).
+
 ### 5.2 Keypad gesture patterns ("constellations")
 
 As the player types a group of 5 digits, the movement of their finger across the keypad traces a path. We draw that path as a **clean geometric figure**:
