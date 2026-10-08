@@ -49,15 +49,18 @@ The exact formula is an implementation detail, tuned with play testing.
 
 ### 4.2 Combining runs
 
-Boundaries are found from the timings of all runs, with **recent runs weighted more** so that a player who deliberately regroups some digits sees the game follow. The weighting is tuned with play testing.
+The groupings are always computed from **all of the player's stats**. There's no overriding: each run's timings just add to the stats, and the groupings follow from them. Each run's evidence at a given place in π is weighted by:
 
-Each run's evidence is also weighted by **confidence**: how clearly that run's timings mark pauses at that place in π. A run with sharp pauses, much longer than the delays around them, says a lot about where the player's boundaries are. A run typed fast at a steady pace, where every digit takes about the same time, says almost nothing, and barely counts. So as a player gets faster and smoother, the groups found in their earlier, more rhythmic runs are kept rather than washed out by runs that show no pauses at all.
+- **Recency:** recent runs weigh more, so a player who deliberately regroups some digits sees the game follow.
+- **Local confidence:** how clearly that run's timings mark pauses _at that place_. Sharp pauses, much longer than the delays around them, say a lot about where the player's boundaries are; digits typed fast at a steady pace, each taking about the same time, say almost nothing and barely count. Confidence is local because a single run can have a steady rhythm on the digits the player knows best and a very different one further on.
 
-No extra stickiness rule is needed: since groups come from all of a player's timings, one slow keystroke barely moves them. They may change a lot in the first runs, then stabilize as the player stabilizes on them.
+So as a player gets faster and smoother, the groups found where their timings were more rhythmic are kept rather than washed out. One slow keystroke barely moves anything, and groups may change a lot in the first runs, then stabilize as the player stabilizes on them. The weightings are tuned with play testing.
 
-### 4.3 When the hint follows the player
+All the judging (what counts as a pause, confidence, detected groupings) is local to each place in π.
 
-The hint switches from the default to a detected boundary once the boundary shows up in **3 of the player's last 4 runs** that reached that place with a clear rhythm; runs without clear pauses there don't count either way. Both numbers are parameters.
+### 4.3 When the hint starts following the player
+
+Until there's enough data, the hint is the default of 5. Once a boundary shows up in **3 of the player's last 4 runs** that reached that place, the game starts showing the player's own groupings there, and never goes back to the default. Both numbers are parameters.
 
 ## 5. Other layers
 
@@ -71,4 +74,4 @@ The hint switches from the default to a detected boundary once the boundary show
 - **First digits.** The very first digit, and the "3." before the decimals, have no previous digit to time from.
 - **Sound and colors.** Do they attach to groups, or stay per digit?
 - **Stats screen.** What stats do we show the player, and how?
-- **Storage.** Raw timings per digit per run grow with play; how much do we keep, and do they need the same care as the seed?
+- **Storage.** Raw timings per digit per run grow with play. At some point we may aggregate old stats to save space; to deal with later. Do they need the same care as the seed?
