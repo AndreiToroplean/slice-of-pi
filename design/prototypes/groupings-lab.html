@@ -303,38 +303,40 @@
         display: flex;
         flex-wrap: wrap;
         align-content: flex-end;
-        column-gap: 0.55em;
-        row-gap: 0.15em;
+        column-gap: 0.4em;
+        row-gap: 0.3em;
         font-family: 'Fredoka', system-ui, sans-serif;
-        font-size: 23px;
-        font-weight: 500;
+        font-size: 15px;
+        font-weight: 600;
         line-height: 1.35;
         padding-bottom: 8px;
         text-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
       }
+      /* A typed group is its slots joined together: only the outer corners of the word are rounded. */
       .word {
         display: inline-flex;
         flex-wrap: wrap;
+        border-radius: 0.3em;
+        overflow: hidden;
       }
+      /* A tile is a small slot: same font, weight and proportions (34px digits in 42 × 56px slots). */
       .word .dg {
         display: inline-block;
-        width: 0.62em;
+        width: 1.24em;
+        height: 1.65em;
+        line-height: 1.65em;
         text-align: center;
-        position: relative;
-      }
-      .word .dg::after {
-        content: '';
-        position: absolute;
-        left: 18%;
-        right: 18%;
-        bottom: 0.06em;
-        height: 2px;
-        border-radius: 2px;
         background: var(--c);
-        opacity: 0.9;
+        color: var(--ink-on);
+        text-shadow: none;
       }
-      .word.lead .dg::after {
-        display: none;
+      .word.lead {
+        border-radius: 0;
+      }
+      .word.lead .dg {
+        width: 0.7em;
+        background: none;
+        color: #fff;
       }
       .word.pending {
         visibility: hidden;
@@ -376,7 +378,7 @@
       }
       .slot.filled {
         background: var(--c);
-        color: var(--ink);
+        color: var(--slot-ink, var(--ink));
         box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.14);
         animation: pop 0.22s cubic-bezier(0.3, 1.6, 0.5, 1);
       }
@@ -435,6 +437,55 @@
       .keys button.down {
         transform: scale(0.94);
         background: rgba(255, 255, 255, 0.45);
+      }
+      /* Key color (colors.md): an accent at rest, a full splash while pressed. */
+      .keys button[data-k]:not(.back) {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+        padding-bottom: 6px;
+      }
+      /* The accent fills the bottom of the key. */
+      .keys button[data-k]:not(.back)::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 7px;
+        background: var(--accent, #fff);
+      }
+      /* While pressed, the whole key is filled at once with its color: no transition, no glow. */
+      .keys button[data-k]::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        display: none;
+        background: var(--fill);
+      }
+      .keys button.splash {
+        color: var(--fill-ink, #2a1f3d);
+        text-shadow: none;
+        font-weight: 500;
+        transition: none;
+      }
+      .keys button.splash::before {
+        display: block;
+      }
+      .keys button.splash::after {
+        display: none;
+      }
+      .palette {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      .palette span {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
       }
       .keys .empty {
         visibility: hidden;
@@ -753,10 +804,29 @@
               saves the run to the stats page. "Watch a run" plays 75 digits as a made-up player who
               groups mostly in threes, in real time.
             </p>
+            <div class="param">
+              <span>Palette: 10 colors, in the order every key steps through them</span>
+              <span class="palette" id="swatches" aria-hidden="true"></span>
+            </div>
           </section>
           <section class="panel" aria-labelledby="new-h">
-            <h3 id="new-h">What changed since the last mockup</h3>
+            <h3 id="new-h">What's in this version</h3>
             <ul class="notes">
+              <li>
+                <strong>Key colors come from π</strong> (<code>colors.md</code>): each digit key
+                shows, as an accent, the color its digit will get next. Pressing it fills the key
+                with that color at once, and on release the key shows its next color in the band at
+                its bottom. Keys start white, so the first occurrence of each digit is neutral. No
+                seed is involved, so everyone gets the same colors.
+              </li>
+              <li>
+                <strong>Typed groups keep their slots,</strong> joined into one word with only its
+                outer corners rounded, and the slots fly up to the typed digits in that form.
+              </li>
+              <li>
+                <strong>The palette</strong> has 10 colors. Every key steps through the same
+                palette, so the keypad drifts around the color wheel as you go.
+              </li>
               <li>
                 <strong>No text under the slots</strong> and <strong>no season banner</strong>. The
                 season header and year bar stay as they were.
@@ -1074,9 +1144,52 @@
           drift = Math.min(1, t / 0.8);
         return [0, 1].map((k) => mix(mix(cur.early[k], cur.late[k], drift), next.early[k], w));
       }
-      function seedColor(pos) {
-        const x = Math.sin(pos * 12.9898 + 4.1) * 43758.5453;
-        return `hsl(${Math.round((x - Math.floor(x)) * 360)} 88% 74%)`;
+
+      // ---------- Place colors from π (colors.md): no seed, the same for every player ----------
+      // Only the decimals count, since they're what the player types: the leading 3 has no color.
+      // Place p (p ≥ 1) is DECIMALS[p - 1].
+      const NEUTRAL = '#ffffff';
+      /** How many earlier decimals hold the same digit, by decimal index: 0 for the first occurrence, which is neutral. */
+      const OCCURRENCE = (() => {
+        const seen = {};
+        return [...DECIMALS].map((d) => (seen[d] = (seen[d] ?? -1) + 1));
+      })();
+      /** The palette: 10 solid colors around the color wheel, chosen to carry white digits (the yellow, less so). */
+      const PALETTE = [
+        '#e5484d', // red
+        '#f76b15', // orange
+        '#f5b800', // yellow
+        '#2f9e44', // green
+        '#0c9488', // teal
+        '#0b87c9', // sky
+        '#3b5bdb', // blue
+        '#7048e8', // violet
+        '#ae3ec9', // purple
+        '#e64980', // pink
+      ];
+      /** Color of decimal index i (place i + 1). */
+      function digitColor(i) {
+        const k = OCCURRENCE[i];
+        return k === 0 ? NEUTRAL : PALETTE[(k - 1) % PALETTE.length];
+      }
+      /** Ink that reads on a filled color: dark on the neutral white, white on palette colors. */
+      const inkOn = (color) => (color === NEUTRAL ? '#2a1f3d' : '#ffffff');
+      /** Key color: the color of the next occurrence of its digit after the places typed so far. */
+      function keyColor(d) {
+        const i = DECIMALS.indexOf(d, typed.length);
+        return i < 0 ? NEUTRAL : digitColor(i);
+      }
+      function renderKeys() {
+        keysEl.querySelectorAll('[data-k]').forEach((b) => {
+          if (b.dataset.k !== '⌫') b.style.setProperty('--accent', keyColor(b.dataset.k));
+        });
+      }
+      function showPalette() {
+        $('swatches').innerHTML = PALETTE.map((c) => `<span style="background:${c}"></span>`).join(
+          '',
+        );
+        renderKeys();
+        renderSlots();
       }
 
       // ---------- Play screen ----------
@@ -1130,7 +1243,7 @@
         for (let i = 0; i < count; i++) {
           const ch = cur[i];
           if (ch !== undefined)
-            html += `<div class="slot filled" style="--c:${seedColor(start + i)}">${ch}</div>`;
+            html += `<div class="slot filled" style="--c:${digitColor(start + i)};--slot-ink:${inkOn(digitColor(start + i))}">${ch}</div>`;
           else if (wrongDigit && i === cur.length)
             html += `<div class="slot wrong">${wrongDigit}</div>`;
           else html += `<div class="slot${i === cur.length && !over ? ' next' : ''}"></div>`;
@@ -1156,6 +1269,16 @@
           '<span class="word lead"><span class="dg">3</span><span class="dg" style="width:.3em">.</span></span>';
       }
 
+      function tileHTML(d, i) {
+        const c = digitColor(i);
+        return `<span class="dg" style="--c:${c};--ink-on:${inkOn(c)}">${d}</span>`;
+      }
+      /** Corner radii of the i-th of n joined tiles: only the word's outer corners are rounded. */
+      function tileCorners(i, n, r) {
+        const left = i === 0 ? r : 0,
+          right = i === n - 1 ? r : 0;
+        return [left, right, right, left];
+      }
       function closeGroup() {
         clearInterval(timer);
         clearTimeout(timer);
@@ -1165,9 +1288,7 @@
           digits = cur,
           word = document.createElement('span');
         word.className = 'word pending';
-        word.innerHTML = [...digits]
-          .map((d, i) => `<span class="dg" style="--c:${seedColor(start + i)}">${d}</span>`)
-          .join('');
+        word.innerHTML = [...digits].map((d, i) => tileHTML(d, start + i)).join('');
         const fromRects = [...slotsEl.querySelectorAll('.slot.filled')].map((s) =>
           s.getBoundingClientRect(),
         );
@@ -1185,18 +1306,30 @@
             el = document.createElement('div');
           el.className = 'slot filled fly';
           el.textContent = digits[i];
-          el.style.cssText = `--c:${seedColor(start + i)};left:${r.left - host.left}px;top:${r.top - host.top}px;width:${r.width}px;height:${r.height}px;font-size:${r.height * 0.6}px;animation:none`;
+          el.style.cssText = `--c:${digitColor(start + i)};--slot-ink:${inkOn(digitColor(start + i))};box-shadow:none;left:${r.left - host.left}px;top:${r.top - host.top}px;width:${r.width}px;height:${r.height}px;font-size:${r.height * 0.6}px;animation:none`;
           phone.append(el);
           const dx = t.left + t.width / 2 - (r.left + r.width / 2),
             dy = t.top + t.height / 2 - (r.top + r.height / 2),
-            sc = (t.height / r.height) * 0.85;
+            sx = t.width / r.width,
+            sy = t.height / r.height;
+          // The slot keeps its form and color, shrinking into its tile; its radii undo the scale so the
+          // word's outer corners land rounded and the inner ones square.
+          const radius = parseFloat(getComputedStyle(word).borderTopLeftRadius),
+            corners = tileCorners(i, digits.length, radius),
+            slotRadius =
+              parseFloat(
+                getComputedStyle(slotsEl.querySelector('.slot') ?? el).borderTopLeftRadius,
+              ) || 14;
           const anim = el.animate(
             [
-              { transform: 'none', backgroundColor: seedColor(start + i), color: '#2a1f3d' },
               {
-                transform: `translate(${dx}px, ${dy}px) scale(${sc})`,
-                backgroundColor: 'rgba(255,255,255,0)',
-                color: '#ffffff',
+                transform: 'none',
+                borderRadius: `${slotRadius}px`,
+                boxShadow: 'none',
+              },
+              {
+                transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`,
+                borderRadius: `${corners.map((c) => `${c / sx}px`).join(' ')} / ${corners.map((c) => `${c / sy}px`).join(' ')}`,
                 boxShadow: 'none',
               },
             ],
@@ -1238,6 +1371,17 @@
           if (liveAggregate(performance.now())?.b[n]?.brk) closeGroup();
         }, 80);
       }
+      /** Fills the key with the color the typed digit takes; it switches to its next accent on release. */
+      function splash(k, color) {
+        const b = keysEl.querySelector(`[data-k="${k}"]`);
+        b.style.setProperty('--fill', color);
+        b.style.setProperty('--fill-ink', inkOn(color));
+        b.classList.add('splash');
+        clearTimeout(b.splashTimer);
+        b.splashTimer = setTimeout(() => {
+          if (!b.classList.contains('down')) b.classList.remove('splash');
+        }, 180);
+      }
       function press(k) {
         if (over) return;
         if (k === '⌫') {
@@ -1245,6 +1389,7 @@
           cur = cur.slice(0, -1);
           typed = typed.slice(0, -1);
           times.pop();
+          renderKeys();
           renderSlots();
           renderFigure();
           renderSky();
@@ -1253,12 +1398,14 @@
         }
         const expected = DECIMALS[typed.length];
         if (k !== expected) return endRun(k, expected);
+        splash(k, digitColor(typed.length));
         cur += k;
         typed += k;
         times.push(performance.now());
         renderSlots();
         renderFigure();
         renderSky();
+        renderKeys();
         armPause();
         $('live').textContent = `${typed.length} digits`;
       }
@@ -1286,7 +1433,7 @@
         const card = document.createElement('div');
         card.className = 'over';
         card.id = 'over';
-        card.innerHTML = `<b>${typed.length} digits</b>${expected ? `<span>Digit ${typed.length + 1} is ${expected}, not ${got}.</span>` : ''}<span>${saved ? 'Run added to the stats page.' : 'Too short to keep.'}</span><button type="button">Try again</button>`;
+        card.innerHTML = `<b>${typed.length} places</b>${expected ? `<span>Place ${typed.length + 1} is ${expected}, not ${got}.</span>` : ''}<span>${saved ? 'Run added to the stats page.' : 'Too short to keep.'}</span><button type="button">Try again</button>`;
         card.querySelector('button').addEventListener('click', reset);
         phone.append(card);
       }
@@ -1295,9 +1442,7 @@
         const start = groupStart(),
           word = document.createElement('span');
         word.className = 'word';
-        word.innerHTML = [...cur]
-          .map((d, i) => `<span class="dg" style="--c:${seedColor(start + i)}">${d}</span>`)
-          .join('');
+        word.innerHTML = [...cur].map((d, i) => tileHTML(d, start + i)).join('');
         wordsEl.append(word);
         cur = '';
         $('figure').innerHTML = '';
@@ -1315,6 +1460,7 @@
         resetWords();
         renderSlots();
         renderSky();
+        renderKeys();
       }
 
       function stopAuto() {
@@ -1353,7 +1499,7 @@
           press(b.dataset.k);
         });
         ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) =>
-          b.addEventListener(ev, () => b.classList.remove('down')),
+          b.addEventListener(ev, () => b.classList.remove('down', 'splash')),
         );
         b.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -1468,7 +1614,7 @@
             a,
             len,
             (i, p) =>
-              `digit ${i + 1} (${DECIMALS[i]})\ntime ${ms(p.d)}\npace ${ms(p.pace)}\nthreshold ${ms(p.thr)}\n${p.brk ? 'BREAK before this digit' : 'no break'}\nconfidence ${p.conf.toFixed(2)}`,
+              `place ${i + 1} (${DECIMALS[i]})\ntime ${ms(p.d)}\npace ${ms(p.pace)}\nthreshold ${ms(p.thr)}\n${p.brk ? 'BREAK before this place' : 'no break'}\nconfidence ${p.conf.toFixed(2)}`,
           );
         });
 
@@ -1494,7 +1640,7 @@
           agg.b,
           len,
           (i, p) =>
-            `digit ${i + 1} (${DECIMALS[i]})\nweighted time ${ms(p.d)}\nbreak score ${p.score.toFixed(2)}\n${p.brk ? 'BREAK' : 'no break'}\nconfidence ${p.conf.toFixed(2)}`,
+            `place ${i + 1} (${DECIMALS[i]})\nweighted time ${ms(p.d)}\nbreak score ${p.score.toFixed(2)}\n${p.brk ? 'BREAK' : 'no break'}\nconfidence ${p.conf.toFixed(2)}`,
         );
       }
 
@@ -1527,6 +1673,7 @@
 
       recompute();
       reset();
+      showPalette();
       let lastWidth = $('runs').clientWidth;
       addEventListener('resize', () => {
         const w = $('runs').clientWidth;
