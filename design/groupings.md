@@ -32,7 +32,8 @@ The play screen is centred on the group being typed, as in the chunk-centred moc
 - The group then **flies off** the typing area to join the **typed digits**, shown smaller.
 - The typed digits are laid out over a few rows, like text: each group is a **word**, separated from the next by a space, and rows wrap between words like text does.
 - Groups have **no minimum size**: a single digit typed between two long pauses is a group of one, and its constellation is a dot.
-- Groups have a **maximum size of 10** (a parameter), so the typing area stays manageable. If the player types 10 digits without pausing, the group closes at 10.
+- Groups have **no maximum size** for now. If the player types past the hint without pausing, one slot is added per digit. The row of slots grows up to 10, then a new row starts below it, again one slot at a time, and so on. We'll see in play testing whether a bound is needed after all.
+- The typing area shows only the slots: no text under them (no "hint: 5" or similar).
 
 ## 4. Stats and detected groupings
 
@@ -45,7 +46,16 @@ The game keeps **statistics of the player's typing timings**, in the spirit of t
 
 A pause is a delay that's long **for this player at this place in π**, compared with their local pace: the time they usually take for the digits around it. A player types the digits they know best faster than the last ones they know, so a fixed threshold, or one based on their overall pace, would cut the slow end into single digits. Typing one digit at a time slowly is just slow typing; a boundary is a delay clearly longer than the ones around it.
 
-The exact formula is an implementation detail, tuned with play testing.
+The model (Andrei, 2026-10-08), with its constants tuned by play testing:
+
+- **Intervals.** What we measure is the interval between two consecutive digits: the time the player took to type a digit after the previous one. The speed is its inverse.
+- **Local pace.** The player's pace at a digit is a **weighted average of the intervals around it**, the weights following a **normal distribution** centred on that digit, so the pace changes smoothly rather than jumping like a plain rolling window. The width of the distribution (in digits) is a constant. For performance the tail is cut off, e.g. at 3 standard deviations, so only a bounded number of digits is ever looked at.
+- **Local spread.** The **variance** of the intervals is computed with the same weights, giving a standard deviation of the intervals at that digit.
+- **Breaks.** An interval counts as a **break** when it's longer than the local pace by more than a **fraction of the local standard deviation**. That fraction is a constant. Breaks separate groups.
+- **Confidence.** The spread also tells how meaningful the breaks are at that place: a very small variance means a steady rhythm, which says almost nothing about groups, so **low variance means low confidence**. (Implementation note: the spread is probably best taken relative to the pace, so that a fast player's confidence isn't lowered just because all their intervals are short. We'll also likely need a floor so that tiny jitter in a very steady rhythm isn't counted as a break.)
+- **Start of a run.** No pace is needed before the run starts: as soon as the player has typed two digits there's an interval, and the pace follows from the data of the run itself. (Using the pace of earlier runs over the coming digits as a starting point was considered and dropped.) What the game does with the very first intervals, while there are too few to judge, is still open (§6).
+
+**During a run** the game uses this to close groups on screen: it adjusts to the player's current pace in that run, and a group closes once the time since the last digit exceeds what would count as a break. Only the digits typed so far are known then. **After a run**, the analysis can look at the digits on both sides of each interval.
 
 ### 4.2 Combining runs
 
@@ -58,9 +68,24 @@ So as a player gets faster and smoother, the groups found where their timings we
 
 All the judging (what counts as a pause, confidence, detected groupings) is local to each place in π.
 
-### 4.3 When the hint starts following the player
+How exactly to combine the breaks of several runs is still to be designed. The inputs are each run's breaks and its local confidence, weighted by recency; the output is, at each place in π, whether there's a boundary there and how confident the game is about it. A first proposal, to try in the prototypes: at each place, a boundary score is the recency- and confidence-weighted share of runs that had a break there, and the aggregate confidence grows with the total weight of evidence and with how much the runs agree.
 
-Until there's enough data, the hint is the default of 5. Once a boundary shows up in **3 of the player's last 4 runs** that reached that place, the game starts showing the player's own groupings there, and never goes back to the default. Both numbers are parameters.
+### 4.3 When the hint follows the player
+
+The hint follows the player's detected groupings wherever the game is **confident enough** about them: below a **confidence threshold** (a constant), the hint switches back to the default of 5 at that place. That's also the case for a new player, with no data at all.
+
+(This replaces an earlier rule where the hint started following the player once a boundary showed up in 3 of their last 4 runs, and never went back to the default.)
+
+### 4.4 Keeping the data
+
+The raw timings of every run are recorded and **must never be lost**: they're what the player's groupings, and so their constellations, are made of. Like the seed, they need persistent storage, on the web and in the installed PWA alike. Where exactly they're stored is still to be decided.
+
+### 4.5 Stats page
+
+A technical page shows the data the groupings come from:
+
+- **Every run, one above the other**, each as a graph of typing speed against the digit number, with **red vertical bars** at the breaks that split that run into groups.
+- At the bottom, **sticky**, the **aggregate**: aggregate speed, aggregate confidence, and the groupings determined from them, which are the ones used during play.
 
 ## 5. Other layers
 
@@ -69,9 +94,8 @@ Until there's enough data, the hint is the default of 5. Once a boundary shows u
 
 ## 6. Open questions
 
-- **Breaking a hinted group.** What happens on screen when the player pauses before the hinted size, or types past it without pausing? Proposed: a slot is added for each extra digit, up to the maximum of 10.
 - **Conflicting groups.** What if boundaries from different runs overlap (e.g. 3+4 sometimes, 2+5 other times)?
-- **First digits.** The very first digit, and the "3." before the decimals, have no previous digit to time from.
+- **First digits.** The very first digit, and the "3." before the decimals, have no previous digit to time from. While a run has only a couple of intervals there's no pace or spread to judge breaks by yet.
 - **Sound and colors.** Do they attach to groups, or stay per digit?
-- **Stats screen.** What stats do we show the player, and how?
-- **Storage.** Raw timings per digit per run grow with play. At some point we may aggregate old stats to save space; to deal with later. Do they need the same care as the seed?
+- **Stats for players.** Beyond the technical stats page (§4.5), what stats do we show the player, and how?
+- **Storage.** Where to keep the raw timings (§4.4) so they're never lost. They grow with play; at some point we may aggregate old stats to save space, to deal with later.

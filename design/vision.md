@@ -56,6 +56,8 @@ As the player types a group of 5 digits, the movement of their finger across the
 - Constellations have different sizes: some are drawn bigger than others, again with some randomness.
 - The sky is **3D**: the camera rotates to bring the new constellation into view, zooming in on small ones and out on big ones.
 - The randomness (placement, size, and anything else about the sky) comes from the **player seed** (§5.3), so it's stable and unique to each player: it's _their_ sky. It falls under the same rule as colors: once stable, it never changes.
+- The player can **open their sky** at any time just to look at their constellations and admire them, in 3D (possibly faked with CSS 3D transforms).
+- Later: players can **share their sky** with other people.
 
 ### 5.3 Personal digit colors (the player seed)
 
