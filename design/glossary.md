@@ -14,7 +14,7 @@
 
 - **Keypad:** the grid of keys the player types on (`7 8 9 / 4 5 6 / 1 2 3 / _ 0 ⌫`).
 - **Key:** one button of the keypad: a **digit key** (0 to 9) or the **backspace key** (⌫). "Key 3" is the digit key for 3.
-- **Key color:** the color a digit key currently shows: the place color of the next occurrence of its digit. Keys start **neutral** (white or similar). See `colors.md`.
+- **Key color:** the color a digit key currently shows, as an **accent**: the place color of the next occurrence of its digit. Keys start **neutral** (white or similar). See `colors.md`.
 - **Typing area:** where the group being typed appears, as **slots** to fill.
 - **Slot:** an empty space in the typing area waiting for a digit.
 - **Hint:** the number of slots, i.e. the size of the group the game expects.
@@ -36,10 +36,11 @@
 - **Layer** (memory layer): one channel of cues on top of the digits: groups, constellations, colors, seasons, sound, world.
 - **Cue:** anything the player can associate with a digit or group to recall it.
 - **Constellation:** the figure traced on the keypad by the digits of a group, then placed in the sky.
-- **Place color:** the color of a place, derived from the seed. The first occurrence of each digit is neutral. See `colors.md`.
+- **Palette:** the shared sequence of colors, roughly around a color wheel, that every digit key steps through.
+- **Place color:** the color of a place, from the palette and how many times its digit came up before it; the same for every player. The first occurrence of each digit is neutral. See `colors.md`.
 - **Season / year:** 100 places make one year of four seasons; the theme drifts with them.
 
 ## Player
 
-- **Seed** (player seed): the number all of a player's random-looking but stable output derives from (place colors, the sky). **Seeded** means derived from the seed. For now, a constant shared by every player.
+- **Seed** (player seed): the number a player's unique, random-looking but stable output derives from, such as the layout of their sky. Not used for colors. **Seeded** means derived from the seed. For now, a constant shared by every player.
 - **Player data:** what must never be lost: the seed and the raw timings of every run.

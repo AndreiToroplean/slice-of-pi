@@ -19,7 +19,7 @@ The feel we're after is that of the best gamified learning apps: colorful, joyfu
 3. **Personal and stable.** Parts of the experience are unique to each player (see the seed, §5.3). Once a player has learned with them, they must never change underneath them.
 4. **Mobile-first.** The primary target is a phone, in the browser.
 5. **Built up incrementally.** The ideas below get implemented little by little; each layer should work on its own.
-6. **Actions trigger things.** What changes on screen should feel caused by the player: seasons turn because they progress through π, keys change color because they type (see [`colors.md`](colors.md)).
+6. **Actions trigger things.** What changes on screen should feel caused by the player: seasons turn because they progress through π, key colors change because they type (see [`colors.md`](colors.md)).
 
 ## 4. Game modes
 
@@ -60,22 +60,22 @@ As the player types a group of 5 digits, the movement of their finger across the
 - The player can **open their sky** at any time just to look at their constellations and admire them, in 3D (possibly faked with CSS 3D transforms).
 - Later: players can **share their sky** with other people.
 
-### 5.3 Personal digit colors (the player seed)
+### 5.3 Digit colors and the player seed
 
-Each digit position gets a color. The colors are random-looking but **deterministically generated from a seed**, and every player has their own random seed. So one player's 100th digit might be red while another's is yellow.
+**Digit colors.** Each place in π gets a color, shown on the keypad before the player types it. The colors come from π itself: every digit key steps through one shared palette each time its digit comes up, so the colors are the **same for every player**. See [`colors.md`](colors.md).
 
-This makes the color layer a personal memorization aid — and therefore precious:
+**The player seed.** Some things are unique to each player, starting with their sky (§5.2). Their randomness is **deterministically generated from a seed**, and every player has their own random seed. For now the seed is a constant in the code, the same for everyone; see [`colors.md`](colors.md) §4.
 
-- **The player must keep their seed.** Losing it scrambles all their colors and makes it very hard to get back on their feet. We need a way to persist, back up and restore it (e.g. show/export the seed, sync to an account).
-- **Seed-derived output is frozen once stable.** From a given version onward, the mapping _seed → colors_ (and anything else derived from the seed) must never change. Changing it would effectively wipe or corrupt players' memories.
+Both are memorization aids the player learns with, and therefore precious:
+
+- **The player must keep their seed.** Losing it reshuffles everything derived from it. We need a way to persist, back up and restore it (e.g. show/export the seed, sync to an account).
+- **Derived output is frozen once stable.** From a given version onward, the mapping _place → color_ and anything derived from the seed must never change. Changing it would effectively wipe or corrupt players' memories.
 
 Implications for development:
 
 - Use our own explicitly specified, versioned PRNG and derivation algorithm — never platform randomness (e.g. `Math.random`) or a library whose output might change.
-- Lock the algorithm with golden tests (known seed → known colors for many positions) so any accidental change fails CI.
+- Lock the algorithms with golden tests (known places → known colors, known seed → known output) so any accidental change fails CI.
 - If a derivation ever needs to change, it's a new versioned algorithm, and existing players keep the old one.
-
-How colors show up while playing (keys filled with the color of the next occurrence of their digit), and the seed being a shared constant for now: see [`colors.md`](colors.md).
 
 ### 5.4 Seasons
 
