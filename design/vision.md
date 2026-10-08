@@ -50,6 +50,13 @@ As the player types a group of 5 digits, the movement of their finger across the
 
 **Constellations — going further.** Internally, we categorize these symbols and pattern-match them to recognizable images, the way constellations are named after the figures they resemble. Ideally, when the symbol lifts off the keypad it **morphs** from the abstract geometric shape into a more representational, realistic image that resembles it. This creates a strong association of ideas: the group "is" that image.
 
+**Your sky.** The figure is drawn on top of the keypad as the player types the group. When the group is complete, it flies away into a **sky of realistic stars**, where it joins the constellations of the groups before it:
+
+- Each new constellation is placed next to the previous ones in a random direction, but roughly towards the right, so the sky reads in order like a line of text.
+- Constellations have different sizes: some are drawn bigger than others, again with some randomness.
+- The sky is **3D**: the camera rotates to bring the new constellation into view, zooming in on small ones and out on big ones.
+- The randomness (placement, size, and anything else about the sky) comes from the **player seed** (§5.3), so it's stable and unique to each player: it's _their_ sky. It falls under the same rule as colors: once stable, it never changes.
+
 ### 5.3 Personal digit colors (the player seed)
 
 Each digit position gets a color. The colors are random-looking but **deterministically generated from a seed**, and every player has their own random seed. So one player's 100th digit might be red while another's is yellow.
