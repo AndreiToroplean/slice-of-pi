@@ -327,7 +327,7 @@
         line-height: 1.65em;
         text-align: center;
         background: var(--c);
-        color: var(--ink-on);
+        color: #fff;
         text-shadow: none;
       }
       .word.lead {
@@ -378,7 +378,7 @@
       }
       .slot.filled {
         background: var(--c);
-        color: var(--slot-ink, var(--ink));
+        color: #fff;
         box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.14);
         animation: pop 0.22s cubic-bezier(0.3, 1.6, 0.5, 1);
       }
@@ -465,7 +465,7 @@
         background: var(--fill);
       }
       .keys button.splash {
-        color: var(--fill-ink, #2a1f3d);
+        color: #fff;
         text-shadow: none;
         font-weight: 500;
         transition: none;
@@ -816,8 +816,8 @@
                 <strong>Key colors come from π</strong> (<code>colors.md</code>): each digit key
                 shows, as an accent, the color its digit will get next. Pressing it fills the key
                 with that color at once, and on release the key shows its next color in the band at
-                its bottom. Keys start white, so the first occurrence of each digit is neutral. No
-                seed is involved, so everyone gets the same colors.
+                its bottom. With 10 colors for 10 keys, each key starts on its own color. No seed is
+                involved, so everyone gets the same colors.
               </li>
               <li>
                 <strong>Typed groups keep their slots,</strong> joined into one word with only its
@@ -1148,8 +1148,7 @@
       // ---------- Place colors from π (colors.md): no seed, the same for every player ----------
       // Only the decimals count, since they're what the player types: the leading 3 has no color.
       // Place p (p ≥ 1) is DECIMALS[p - 1].
-      const NEUTRAL = '#ffffff';
-      /** How many earlier decimals hold the same digit, by decimal index: 0 for the first occurrence, which is neutral. */
+      /** How many earlier decimals hold the same digit, by decimal index: 0 for the first occurrence. */
       const OCCURRENCE = (() => {
         const seen = {};
         return [...DECIMALS].map((d) => (seen[d] = (seen[d] ?? -1) + 1));
@@ -1167,17 +1166,14 @@
         '#ae3ec9', // purple
         '#e64980', // pink
       ];
+      /** Color of the k-th occurrence of digit d: key d starts on palette color d, so the keys start on 10 different colors. */
+      const occurrenceColor = (d, k) => PALETTE[(Number(d) + k) % PALETTE.length];
       /** Color of decimal index i (place i + 1). */
-      function digitColor(i) {
-        const k = OCCURRENCE[i];
-        return k === 0 ? NEUTRAL : PALETTE[(k - 1) % PALETTE.length];
-      }
-      /** Ink that reads on a filled color: dark on the neutral white, white on palette colors. */
-      const inkOn = (color) => (color === NEUTRAL ? '#2a1f3d' : '#ffffff');
+      const digitColor = (i) => occurrenceColor(DECIMALS[i], OCCURRENCE[i]);
       /** Key color: the color of the next occurrence of its digit after the places typed so far. */
       function keyColor(d) {
         const i = DECIMALS.indexOf(d, typed.length);
-        return i < 0 ? NEUTRAL : digitColor(i);
+        return i < 0 ? occurrenceColor(d, 0) : digitColor(i);
       }
       function renderKeys() {
         keysEl.querySelectorAll('[data-k]').forEach((b) => {
@@ -1243,7 +1239,7 @@
         for (let i = 0; i < count; i++) {
           const ch = cur[i];
           if (ch !== undefined)
-            html += `<div class="slot filled" style="--c:${digitColor(start + i)};--slot-ink:${inkOn(digitColor(start + i))}">${ch}</div>`;
+            html += `<div class="slot filled" style="--c:${digitColor(start + i)}">${ch}</div>`;
           else if (wrongDigit && i === cur.length)
             html += `<div class="slot wrong">${wrongDigit}</div>`;
           else html += `<div class="slot${i === cur.length && !over ? ' next' : ''}"></div>`;
@@ -1270,8 +1266,7 @@
       }
 
       function tileHTML(d, i) {
-        const c = digitColor(i);
-        return `<span class="dg" style="--c:${c};--ink-on:${inkOn(c)}">${d}</span>`;
+        return `<span class="dg" style="--c:${digitColor(i)}">${d}</span>`;
       }
       /** Corner radii of the i-th of n joined tiles: only the word's outer corners are rounded. */
       function tileCorners(i, n, r) {
@@ -1306,7 +1301,7 @@
             el = document.createElement('div');
           el.className = 'slot filled fly';
           el.textContent = digits[i];
-          el.style.cssText = `--c:${digitColor(start + i)};--slot-ink:${inkOn(digitColor(start + i))};box-shadow:none;left:${r.left - host.left}px;top:${r.top - host.top}px;width:${r.width}px;height:${r.height}px;font-size:${r.height * 0.6}px;animation:none`;
+          el.style.cssText = `--c:${digitColor(start + i)};box-shadow:none;left:${r.left - host.left}px;top:${r.top - host.top}px;width:${r.width}px;height:${r.height}px;font-size:${r.height * 0.6}px;animation:none`;
           phone.append(el);
           const dx = t.left + t.width / 2 - (r.left + r.width / 2),
             dy = t.top + t.height / 2 - (r.top + r.height / 2),
@@ -1375,7 +1370,6 @@
       function splash(k, color) {
         const b = keysEl.querySelector(`[data-k="${k}"]`);
         b.style.setProperty('--fill', color);
-        b.style.setProperty('--fill-ink', inkOn(color));
         b.classList.add('splash');
         clearTimeout(b.splashTimer);
         b.splashTimer = setTimeout(() => {

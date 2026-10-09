@@ -14,10 +14,10 @@ There's no seed and no random number generator behind key colors: **π's own dig
 
 - There's one **palette**: a sequence of colors, roughly going around a color wheel.
 - Every digit key steps through that same palette, in the same order: each time its digit comes up, the key moves on to the next color. When it reaches the end of the palette, it starts over.
-- Every key starts **neutral** (white or similar), so the first occurrence of each digit is neutral: the first 1, 4, 5, 9, 2, 6, 3, 8 and 7, all by place 13, and the first 0, only at place 32. Neutral never comes back after that.
+- With 10 colors for 10 keys, **each key starts on its own color**: key 0 on the first color of the palette, key 1 on the second, and so on, so the keypad always shows the whole palette, give or take a key running ahead or behind.
 - **Only the decimals count**, since they're what the player types: the leading 3 has no color and doesn't use up a step of key 3.
 
-So the color of a place depends on how many times its digit has come up before it. Since each digit makes up about a tenth of π, the keys move through the palette **roughly in sync**: the whole keypad drifts around the color wheel as the player advances, with a key running a little ahead or behind when its digit has come up more or less often lately. That's a feature, not something to design around.
+So the color of a place depends on how many times its digit has come up before it. Since each digit makes up about a tenth of π, the keys move through the palette **roughly in sync**, each one a step apart from the next: the whole keypad drifts around the color wheel as the player advances, with a key running a little ahead or behind when its digit has come up more or less often lately. That's a feature, not something to design around.
 
 **Shared colors are a feature too.** Every player sees the same colors, so players can talk about "the blue 7 around place 150", and someone playing on another player's phone still finds their colors.
 
