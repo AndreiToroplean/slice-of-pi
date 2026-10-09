@@ -14,18 +14,19 @@ There's no seed and no random number generator behind key colors: **π's own dig
 
 - There's one **palette**: a sequence of colors, roughly going around a color wheel.
 - Every digit key steps through that same palette, in the same order: each time its digit comes up, the key moves on to the next color. When it reaches the end of the palette, it starts over.
-- Every key starts **neutral** (white or similar), so the first occurrence of each digit is neutral: the leading 3, the first 1, 4, 5, 9, 2, 6, 8 and 7, all by place 13, and the first 0, only at place 32. Neutral never comes back after that.
+- Every key starts **neutral** (white or similar), so the first occurrence of each digit is neutral: the first 1, 4, 5, 9, 2, 6, 3, 8 and 7, all by place 13, and the first 0, only at place 32. Neutral never comes back after that.
+- **Only the decimals count**, since they're what the player types: the leading 3 has no color and doesn't use up a step of key 3.
 
 So the color of a place depends on how many times its digit has come up before it. Since each digit makes up about a tenth of π, the keys move through the palette **roughly in sync**: the whole keypad drifts around the color wheel as the player advances, with a key running a little ahead or behind when its digit has come up more or less often lately. That's a feature, not something to design around.
 
 **Shared colors are a feature too.** Every player sees the same colors, so players can talk about "the blue 7 around place 150", and someone playing on another player's phone still finds their colors.
 
-To settle while prototyping: how many colors the palette has, and making sure they look nice, especially next to one another. Like everything players learn with, the palette is frozen once stable (`vision.md` §3).
+The palette has **10 colors**: solid colors around the color wheel that carry white digits well (the yellow less so, which is fine). The current pick is in the prototype (`prototypes/groupings-lab.html`) and can still be tuned to look nice, especially next to one another. Like everything players learn with, the palette is frozen once stable (`vision.md` §3).
 
 ## 3. How keys show their color
 
-- **Accent at rest.** A key shows its color as an **accent** somewhere on the key, not as a full fill, which would be overwhelming and not nice to look at.
-- **Press:** the key shows its pressed look and **fills completely** with its color, like a splash. The typed digit takes that color and keeps it in the typed digits.
+- **Accent at rest.** A key shows its color as an **accent**, not as a full fill, which would be overwhelming and not nice to look at. In the prototype, the accent is a band across the bottom of the key.
+- **Press:** the key shows its pressed look and **fills completely** with its solid color, **all at once**: no transition and no glow, so it makes an impression. The typed digit takes that color and keeps it: in the slots and in the typed digits, it's shown in white on its color.
 - **Release:** the key switches to its **new accent**: the color of the next occurrence of its digit. It keeps that accent until the player types that digit again, since that's the only moment the color matters and the only moment it changes.
 
 So at any time, each digit key shows the color the player is about to give that digit. The exact look of the accent and of the splash is for a prototype.
