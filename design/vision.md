@@ -6,6 +6,8 @@
 
 Build the best game for memorizing the digits of π.
 
+What the game means, and why it's called Slice of Pi, is in [`meaning.md`](meaning.md).
+
 The core bet: **memory sticks better when digits come with extra sensory information.** Instead of a bare stream of numbers, every digit the player types is wrapped in layers of color, shape, sound and atmosphere. Each layer is a pattern on top of the digits that the player can lean on when recalling them — "3, 4, 4, 2… no wait, that was in summer, and we're in winter, so that can't be it."
 
 ## 2. Inspiration
@@ -97,3 +99,10 @@ Some things are unique to each player, starting with the layout of their sky (§
 - **Later**, each player gets a random seed when they start, kept in their player data. Players shouldn't have to think about it, but they must never lose it: losing it reshuffles everything derived from it. We need a way to persist, back up and restore it (see `architecture.md` §5).
 - A menu may offer **"Reset my seed"**, but that button must look clearly dangerous.
 - Seed-derived output is stable (§3). We use our own explicitly specified, versioned PRNG, never platform randomness (e.g. `Math.random`) or a library whose output might change.
+
+## 8. Wild ideas
+
+Ideas to pick from someday. None of them is planned yet.
+
+- **Digitless mode.** The digits don't show anywhere: no labels on the keys, no typed digits, only colors, constellations, seasons and sounds. The player learns π without ever seeing it, like a game of repeating sequences of lights and sounds (`meaning.md` §3).
+- **Start anywhere.** The player picks where in π to start, for example 100 digits from the millionth place on, and learns that slice (`meaning.md` §2).
