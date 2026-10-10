@@ -14,6 +14,7 @@ import { FLIGHT_DURATION } from '../flight/flight';
 import { routes } from '../app.routes';
 import { Menu } from '../menu/menu';
 import { PALETTE, placeColors } from '../place-colors/place-colors';
+import { RunRecorder } from '../runs/run-recorder';
 import { TypedDigits } from '../typed-digits/typed-digits';
 import { seasonAt } from '../seasons/seasons';
 import { Play } from './play';
@@ -191,6 +192,15 @@ describe('Play', () => {
 
       expect(keyColor(host, '1')).toBe(PALETTE[2]);
     });
+  });
+
+  it('records every key pressed in the run', async () => {
+    const record = vi.spyOn(TestBed.inject(RunRecorder), 'record');
+    const { type } = await setUp();
+
+    await typeAll(type, '14<4');
+
+    expect(record.mock.calls).toEqual([['1'], ['4'], ['backspace'], ['4']]);
   });
 
   describe('when a group is finished', () => {
