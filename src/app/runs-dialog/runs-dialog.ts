@@ -1,12 +1,4 @@
-import {
-  Component,
-  ElementRef,
-  inject,
-  InjectionToken,
-  model,
-  signal,
-  viewChild,
-} from '@angular/core';
+import { Component, ElementRef, inject, InjectionToken, signal, viewChild } from '@angular/core';
 import { backupFileName, readBackup, writeBackup } from '../runs/backup';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
 import { IS_PREVIEW, RunStore } from '../runs/run-store';
@@ -28,18 +20,18 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
 
 /**
  * The player's runs: how many are kept and how safe they are, with a backup file to save and restore. Opened from a
- * button in the corner of the play screen; `open` is true while the dialog is open.
+ * small button in a corner of the main menu.
  */
 @Component({
   selector: 'app-runs-dialog',
   template: `
-    <button type="button" class="open" aria-label="Your runs and backups" (click)="show()">
+    <button type="button" class="frosted open" aria-label="Your runs" (click)="show()">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="3" y="4" width="18" height="5" rx="1.5" />
         <path d="M5 9v9.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V9M10 13h4" />
       </svg>
     </button>
-    <dialog #dialog aria-labelledby="runs-title" (close)="open.set(false)">
+    <dialog #dialog class="card" aria-labelledby="runs-title">
       <h2 id="runs-title">Your runs</h2>
       <p>{{ count() }}</p>
       @if (readOnlyPreview()) {
@@ -56,31 +48,25 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
         }
         A backup file keeps them safe even then.
       </p>
-      <div class="actions">
-        <button type="button" (click)="save()">Save a backup</button>
-        @if (!readOnlyPreview()) {
-          <label class="button">
-            Restore a backup
-            <input
-              type="file"
-              accept=".json,application/json"
-              class="visually-hidden"
-              (change)="restore($event)"
-            />
-          </label>
-        }
-      </div>
+      <button type="button" class="candy" (click)="save()">Save a backup</button>
+      @if (!readOnlyPreview()) {
+        <label class="candy">
+          Restore a backup
+          <input
+            type="file"
+            accept=".json,application/json"
+            class="visually-hidden"
+            (change)="restore($event)"
+          />
+        </label>
+      }
       <p class="message" role="status">{{ message() }}</p>
-      <form method="dialog">
-        <button class="close">Close</button>
-      </form>
+      <button type="button" class="candy primary" (click)="close()">Close</button>
     </dialog>
   `,
   styleUrl: './runs-dialog.css',
 })
 export class RunsDialog {
-  readonly open = model(false);
-
   protected readonly count = signal('');
   protected readonly persisted = signal(false);
   /** Whether this is a preview that can't keep runs (see {@link RunStore}). */
@@ -96,9 +82,12 @@ export class RunsDialog {
 
   protected async show(): Promise<void> {
     this.message.set('');
-    this.open.set(true);
     this.dialog().nativeElement.showModal();
     await this.refresh();
+  }
+
+  protected close(): void {
+    this.dialog().nativeElement.close();
   }
 
   protected async save(): Promise<void> {

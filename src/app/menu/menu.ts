@@ -2,14 +2,16 @@ import { NgOptimizedImage } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Background } from '../background/background';
+import { RunsDialog } from '../runs-dialog/runs-dialog';
 import { seasonAt } from '../seasons/seasons';
 
-/** The main menu, where the app opens: the game's icon and name, and a button to play. */
+/** The main menu, where the app opens: the game's icon and name, a button to play, and the player's runs in a corner. */
 @Component({
   selector: 'app-menu',
-  imports: [NgOptimizedImage, RouterLink],
+  imports: [NgOptimizedImage, RouterLink, RunsDialog],
   host: { class: 'screen' },
   template: `
+    <app-runs-dialog />
     <div class="title">
       <img class="icon" ngSrc="icons/icon.svg" width="136" height="136" alt="" priority />
       <h1>

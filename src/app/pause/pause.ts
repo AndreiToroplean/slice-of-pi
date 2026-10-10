@@ -15,7 +15,7 @@ import { Router } from '@angular/router';
         <rect x="14" y="5" width="4" height="14" rx="1.5" />
       </svg>
     </button>
-    <dialog #dialog aria-labelledby="pause-title" (close)="paused.set(false)">
+    <dialog #dialog class="card" aria-labelledby="pause-title" (close)="paused.set(false)">
       <h2 id="pause-title">Paused</h2>
       <button type="button" class="candy primary" autofocus (click)="resume()">Resume</button>
       <button type="button" class="candy" (click)="restart.emit(); resume()">Restart</button>
