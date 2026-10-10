@@ -22,12 +22,15 @@
 
   /*
    * A typed digit's slot or tile. Each typed place sets its own color from the palette (`place-colors.ts`), with white
-   * digits; these are the look of the "3." lead, which has no place color.
+   * digits.
    */
-  --place-color: rgb(255 255 255 / 86%);
+  --place-color: var(--lead);
   --on-place-color: var(--ink);
   /* Digits on palette colors. */
   --on-palette: #ffffff;
+  /* The "π=3." lead, which has no place colors: white tiles, interlaced with a little greyer ones. */
+  --lead: #ffffff;
+  --lead-shade: #e4e0ea;
 
   --font-ui: 'Lexend', system-ui, sans-serif;
   --font-digits: 'Fredoka', system-ui, sans-serif;

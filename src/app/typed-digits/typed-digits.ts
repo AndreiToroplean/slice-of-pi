@@ -15,7 +15,7 @@ import { Glide, glideAt, glideEnd, glideTo } from './glide';
 export const SCROLL_DOWN_DURATION = 400;
 
 /**
- * The typed digits, after a "3." word: each finished group is a word of joined tiles, and rows wrap between words like
+ * The typed digits, after a "π=3." word: each finished group is a word of joined tiles, and rows wrap between words like
  * text (`groupings.md` §3). The newest words are at the bottom and the oldest fade out at the top; the player scrolls
  * up to see them, and typing glides back down.
  */
@@ -28,7 +28,10 @@ export const SCROLL_DOWN_DURATION = 400;
   },
   template: `
     <div class="words" aria-hidden="true">
-      <span class="lead"><span class="tile">3</span><span class="tile">.</span></span>
+      <span class="lead"
+        ><span class="tile">π</span><span class="tile shade">=</span><span class="tile">3</span
+        ><span class="tile shade">.</span></span
+      >
       @for (word of words(); track word.firstPlace) {
         <span class="word" [attr.data-first-place]="word.firstPlace">
           @for (digit of word.digits; track $index) {
