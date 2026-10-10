@@ -1,0 +1,94 @@
+:host {
+  /* Only a button and a dialog: they lay out on the play screen itself. */
+  display: contents;
+}
+
+/* The pause button, in the header's top right corner. */
+.pause-button {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.pause-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: currentColor;
+}
+
+/* A frosted card over the dimmed, blurred game. */
+dialog {
+  width: min(100% - 3rem, 18rem);
+  box-sizing: border-box;
+  padding: var(--space-3);
+  border: none;
+  border-radius: 1.75rem;
+  background: var(--frost);
+  -webkit-backdrop-filter: blur(var(--frost-blur));
+  backdrop-filter: blur(var(--frost-blur));
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 12px 40px rgb(30 20 60 / 30%);
+  color: var(--on-background);
+  gap: 0.875rem;
+  /* Opening, the card fades in and grows over the game as it dims and blurs; closing does the same backwards. */
+  opacity: 0;
+  scale: 0.85;
+  transition:
+    opacity var(--duration-dialog) var(--ease),
+    scale var(--duration-dialog) var(--ease),
+    overlay var(--duration-dialog) allow-discrete,
+    display var(--duration-dialog) allow-discrete;
+}
+
+dialog[open] {
+  display: grid;
+  opacity: 1;
+  scale: 1;
+
+  @starting-style {
+    opacity: 0;
+    scale: 0.85;
+  }
+}
+
+dialog::backdrop {
+  background: rgb(30 20 60 / 0%);
+  -webkit-backdrop-filter: blur(0);
+  backdrop-filter: blur(0);
+  transition:
+    background-color var(--duration-dialog) var(--ease),
+    backdrop-filter var(--duration-dialog) var(--ease),
+    -webkit-backdrop-filter var(--duration-dialog) var(--ease),
+    overlay var(--duration-dialog) allow-discrete,
+    display var(--duration-dialog) allow-discrete;
+}
+
+dialog[open]::backdrop {
+  background: rgb(30 20 60 / 30%);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+@starting-style {
+  dialog[open]::backdrop {
+    background: rgb(30 20 60 / 0%);
+    -webkit-backdrop-filter: blur(0);
+    backdrop-filter: blur(0);
+  }
+}
+
+h2 {
+  margin: 0 0 var(--space-1);
+  text-align: center;
+  font-family: var(--font-digits);
+  font-size: 1.75rem;
+  font-weight: 600;
+  text-shadow: var(--text-shadow-large);
+}

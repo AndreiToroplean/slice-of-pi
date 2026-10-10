@@ -9,11 +9,12 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { Meta } from '@angular/platform-browser';
+import { Background } from '../background/background';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from '../flight/flight';
 import { DEFAULT_HINT, groupDigits } from '../groups/groups';
 import { Keypad } from '../keypad/keypad';
 import { keyColors, placeColors } from '../place-colors/place-colors';
+import { Pause } from '../pause/pause';
 import { KeypadKey } from '../keypad/keypad-layout';
 import { SeasonHeader } from '../season-header/season-header';
 import { seasonAt } from '../seasons/seasons';
@@ -23,17 +24,15 @@ import { TypedDigits } from '../typed-digits/typed-digits';
 /**
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
  * flies up to the typed digits as a word, as the seasons go by. Each typed digit takes the color its key showed.
- * Backspace deletes the last digit, reopening the last word when the slots are empty.
+ * Backspace deletes the last digit, reopening the last word when the slots are empty. Pausing offers to restart the game
+ * or end it, back to the main menu.
  */
 @Component({
   selector: 'app-play',
-  imports: [Keypad, SeasonHeader, Slots, TypedDigits],
-  host: {
-    '[style.--background-top]': 'season().background[0]',
-    '[style.--background-bottom]': 'season().background[1]',
-  },
+  imports: [Keypad, Pause, SeasonHeader, Slots, TypedDigits],
+  host: { class: 'screen' },
   template: `
-    <h1 class="visually-hidden">Slice of π</h1>
+    <h1 class="visually-hidden">Slice of Pi</h1>
     <app-season-header [view]="season()" />
     <app-typed-digits [words]="grouping().words" [digits]="digits()" [colors]="placeColors()" />
     <app-slots
@@ -43,12 +42,16 @@ import { TypedDigits } from '../typed-digits/typed-digits';
       [hint]="hint"
     />
     <app-keypad class="keypad" [colors]="keyColors()" (keyPressed)="press($event)" />
+    <app-pause [(paused)]="paused" (restart)="restart()" />
   `,
   styleUrl: './play.css',
 })
 export class Play {
   /** The decimals typed so far: one character per digit, so even a very long sequence takes little memory. */
   protected readonly digits = signal('');
+
+  /** Whether the game is paused: keys typed on a keyboard meanwhile don't count. */
+  protected readonly paused = signal(false);
 
   protected readonly hint = DEFAULT_HINT;
   protected readonly grouping = computed(() => groupDigits(this.digits(), this.hint));
@@ -62,7 +65,7 @@ export class Play {
   /** Each key's color: the color its digit takes when typed next. */
   protected readonly keyColors = computed(() => keyColors(this.digits()));
 
-  /** The season, and the background colors, after the places typed so far. */
+  /** The season, and the background's colors, after the places typed so far. */
   protected readonly season = computed(() => seasonAt(this.digits().length));
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
@@ -72,14 +75,16 @@ export class Play {
   private flights: Animation[] = [];
 
   constructor() {
-    const meta = inject(Meta);
-    // The browser's bars around the game blend into the top of the background.
+    const background = inject(Background);
     effect(() => {
-      meta.updateTag({ name: 'theme-color', content: this.season().background[0] });
+      background.colors.set(this.season().background);
     });
   }
 
   protected press(key: KeypadKey): void {
+    if (this.paused()) {
+      return;
+    }
     if (key === 'backspace') {
       this.landFlights();
       this.digits.update((digits) => digits.slice(0, -1));
@@ -110,6 +115,12 @@ export class Play {
         { injector: this.injector },
       );
     }
+  }
+
+  /** Starts a new game: no digits typed, back to the first spring. */
+  protected restart(): void {
+    this.landFlights();
+    this.digits.set('');
   }
 
   /** Snapshots of the slots a group about to close fills, unless flights are off. */
