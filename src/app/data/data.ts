@@ -4,8 +4,10 @@ import { backupFileName, readBackup, writeBackup } from '../runs/backup';
 import { Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
 import { IS_PREVIEW, RunStore } from '../runs/run-store';
+import { GroupingSettings } from '../timing/grouping-settings';
+import { analyzeRun, RunPlace } from '../timing/timing-model';
 import { RunChart } from './run-chart';
-import { average, chartTop, digitTimes } from './run-charts';
+import { average, ChartBreak, chartTop, digitTimes } from './run-charts';
 
 /** Hands a file to the player, as a download. */
 export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void>('SAVE_FILE', {
@@ -72,14 +74,25 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
       } @else {
         <p>
           How long you took to type each digit, so pauses are peaks, along every place you've
-          reached.
+          reached. Each run's own pauses split it into groups.
         </p>
+        <ul class="legend">
+          <li><i class="time"></i>Time per digit</li>
+          <li><i class="pace"></i>Pace around it</li>
+          <li><i class="threshold"></i>Pause threshold</li>
+          <li><i class="break"></i>Break between groups</li>
+          <li><i class="trust"></i>Trust</li>
+        </ul>
         @for (chart of charts(); track chart.id) {
           <article class="panel">
             <h3>{{ chart.title }}</h3>
             <p class="meta">{{ chart.meta }}</p>
             <app-run-chart
               [values]="chart.times"
+              [pace]="chart.pace"
+              [threshold]="chart.threshold"
+              [breaks]="chart.breaks"
+              [trust]="chart.trust"
               [places]="places()"
               [top]="top()"
               [label]="'Time per digit, ' + chart.title"
@@ -111,14 +124,29 @@ export class Data {
   protected readonly readOnlyPreview = signal(false);
   protected readonly message = signal('');
 
+  private readonly settings = inject(GroupingSettings).settings;
   private readonly runs = signal<readonly Run[]>([]);
+  /** What the timing model makes of each run, oldest first. */
+  private readonly analyses = computed(() =>
+    this.runs().map((run) => analyzeRun(run.times, this.settings())),
+  );
   protected readonly charts = computed(() =>
-    this.runs().map((run) => ({
-      id: run.id,
-      title: dateAndTime.format(run.startedAt),
-      meta: `${plural(run.digits.length, 'digit')} in ${seconds(run.times.at(-1) ?? 0)}`,
-      times: digitTimes(run),
-    })),
+    this.runs().map((run, r) => {
+      const places = this.analyses()[r] ?? [];
+      const breaks = breaksOf(places);
+      return {
+        id: run.id,
+        title: dateAndTime.format(run.startedAt),
+        meta:
+          `${plural(run.digits.length, 'digit')} in ${seconds(run.times.at(-1) ?? 0)}` +
+          (run.digits.length > 0 ? ` · ${plural(breaks.length + 1, 'group')}` : ''),
+        times: digitTimes(run),
+        pace: places.map((place) => place?.pace),
+        threshold: places.map((place) => place?.threshold),
+        breaks,
+        trust: places.map((place) => place?.trust),
+      };
+    }),
   );
   /** Every chart spans the places of the longest run. */
   protected readonly places = computed(() =>
@@ -186,6 +214,12 @@ export class Data {
     );
     this.persisted.set(persisted);
   }
+}
+
+function breaksOf(places: readonly (RunPlace | undefined)[]): ChartBreak[] {
+  return places.flatMap((place, i) =>
+    place?.isBreak === true ? [{ place: i, strength: place.trust }] : [],
+  );
 }
 
 const dateAndTime = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });

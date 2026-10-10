@@ -42,6 +42,9 @@
   --lead: #ffffff;
   --lead-shade: #e4e0ea;
 
+  /* The breaks between groups on the charts of the player's data. */
+  --chart-break: #e8344e;
+
   /* Motion: one easing, one duration for dialogs and one for going between screens. */
   --ease: cubic-bezier(0.7, 0, 0.3, 1);
   --duration-dialog: 0.1s;

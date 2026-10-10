@@ -55,6 +55,43 @@ export function chartPath(values: Series, top: number): string {
   return path;
 }
 
+/** The height of the trust or confidence area, as a share of the chart's height, so it stays under most of the line. */
+export const AREA_SHARE = 0.35;
+
+/**
+ * An area rising from the bottom of the chart with a series of values from 0 to 1, such as the trust in a run's
+ * verdicts, as SVG path data like {@link chartPath}'s; places without a value break it.
+ */
+export function areaPath(values: Series): string {
+  const bottom = String(CHART_HEIGHT);
+  let path = '';
+  let last: number | undefined;
+  const close = (): void => {
+    if (last !== undefined) {
+      path += `L${String(last)} ${bottom}Z`;
+    }
+    last = undefined;
+  };
+  values.forEach((value, i) => {
+    if (value === undefined) {
+      close();
+      return;
+    }
+    const y = round(CHART_HEIGHT * (1 - AREA_SHARE * value));
+    path += last === undefined ? `M${String(i)} ${bottom}L${String(i)} ${y}` : `L${String(i)} ${y}`;
+    last = i;
+  });
+  close();
+  return path;
+}
+
+/** A break before a place, drawn the stronger the more it's trusted. */
+export interface ChartBreak {
+  readonly place: number;
+  /** From 0 to 1. */
+  readonly strength: number;
+}
+
 function round(value: number): string {
   return String(Math.round(value * 10) / 10);
 }

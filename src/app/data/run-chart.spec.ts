@@ -3,9 +3,17 @@ import { RunChart } from './run-chart';
 import { Series } from './run-charts';
 
 describe('RunChart', () => {
-  function setUp(values: Series, places: number, top: number): SVGSVGElement {
+  function setUp(
+    values: Series,
+    places: number,
+    top: number,
+    model: Partial<Record<'pace' | 'threshold' | 'trust' | 'breaks', unknown>> = {},
+  ): SVGSVGElement {
     const fixture = TestBed.createComponent(RunChart);
     fixture.componentRef.setInput('values', values);
+    for (const [name, value] of Object.entries(model)) {
+      fixture.componentRef.setInput(name, value);
+    }
     fixture.componentRef.setInput('places', places);
     fixture.componentRef.setInput('top', top);
     fixture.componentRef.setInput('label', 'Time per digit');
@@ -38,6 +46,44 @@ describe('RunChart', () => {
       '75',
       '50',
       '25',
+    ]);
+  });
+
+  it('draws only the time per digit when given nothing else', () => {
+    const svg = setUp([undefined, 500], 2, 1000);
+
+    expect(svg.querySelectorAll('path')).toHaveLength(1);
+    expect(svg.querySelector('.break')).toBeNull();
+  });
+
+  it('adds the pace, the pause threshold and the trust', () => {
+    const svg = setUp([undefined, 500], 2, 1000, {
+      pace: [undefined, 250],
+      threshold: [undefined, 400],
+      trust: [undefined, 1],
+    });
+
+    expect(svg.querySelector('.pace')?.getAttribute('d')).toBe('M1 75h0');
+    expect(svg.querySelector('.threshold')?.getAttribute('d')).toBe('M1 60h0');
+    expect(svg.querySelector('.trust')?.getAttribute('d')).toBe('M1 100L1 65L1 100Z');
+  });
+
+  it('draws each break between its place and the one before, the stronger the more trusted', () => {
+    const svg = setUp([undefined, 500, 900], 3, 1000, {
+      breaks: [
+        { place: 2, strength: 1 },
+        { place: 1, strength: 0 },
+      ],
+    });
+
+    expect(
+      Array.from(svg.querySelectorAll('.break'), (bar) => [
+        bar.getAttribute('x1'),
+        bar.getAttribute('stroke-opacity'),
+      ]),
+    ).toEqual([
+      ['1.5', '1'],
+      ['0.5', '0.25'],
     ]);
   });
 });
