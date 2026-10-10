@@ -76,7 +76,7 @@ The hint follows the player's detected groupings wherever the game is **confiden
 
 ### 4.4 Keeping the data
 
-The raw timings of every run are recorded and **must never be lost**: they're what the player's groupings, and so their constellations, are made of. Like the seed, they need persistent storage, on the web and in the installed PWA alike. Where exactly they're stored is still to be decided.
+The raw timings of every run are recorded and **must never be lost**: they're what the player's groupings, and so their constellations, are made of. Like the seed, they're kept in the player data (`architecture.md` §5). A run records every key pressed, backspaces included, with its time; the digits a run ends with and their times are replayed from those.
 
 ### 4.5 Stats page
 
@@ -100,4 +100,4 @@ A technical page shows the data the groupings come from:
 - **First digits.** The very first digit, and the "3." before the decimals, have no previous digit to time from. While a run has only a couple of intervals there's no pace or spread to judge breaks by yet.
 - **Sound and colors.** Do they attach to groups, or stay per digit?
 - **Stats for players.** Beyond the technical stats page (§4.5), what stats do we show the player, and how?
-- **Storage.** Where to keep the raw timings (§4.4) so they're never lost. They grow with play; at some point we may aggregate old stats to save space, to deal with later.
+- **Growing data.** The raw timings (§4.4) grow with play; at some point we may aggregate old stats to save space, to deal with later.
