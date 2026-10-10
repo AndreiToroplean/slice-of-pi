@@ -69,3 +69,78 @@ h1 {
 .candy {
   font-size: 1.5rem;
 }
+
+/* A small frosted button, in the top right corner, opening the overflow menu. */
+.more {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.more svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: currentColor;
+}
+
+/* The overflow menu: a frosted dropdown under its button, that fades in and grows from its corner. */
+.dropdown {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  min-width: 10rem;
+  padding: var(--space-1);
+  border: none;
+  border-radius: 1.125rem;
+  background: var(--frost);
+  -webkit-backdrop-filter: blur(var(--frost-blur));
+  backdrop-filter: blur(var(--frost-blur));
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 8px 28px rgb(30 20 60 / 25%);
+  color: var(--on-background);
+  transform-origin: top right;
+  opacity: 0;
+  scale: 0.85;
+  transition:
+    opacity var(--duration-dialog) var(--ease),
+    scale var(--duration-dialog) var(--ease),
+    overlay var(--duration-dialog) allow-discrete,
+    display var(--duration-dialog) allow-discrete;
+}
+
+.dropdown:popover-open {
+  opacity: 1;
+  scale: 1;
+
+  @starting-style {
+    opacity: 0;
+    scale: 0.85;
+  }
+}
+
+.dropdown a {
+  display: block;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+  text-shadow: var(--text-shadow);
+  font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dropdown a:active {
+  background: var(--frost-pressed);
+}
+
+.dropdown a:focus-visible {
+  outline: 0.1875rem solid var(--focus-ring);
+  outline-offset: -0.1875rem;
+}

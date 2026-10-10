@@ -1,6 +1,5 @@
-import { Location } from '@angular/common';
-import { Component, ElementRef, inject, model, output, viewChild } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, ElementRef, model, output, viewChild } from '@angular/core';
+import { injectBackToMenu } from '../menu/back-to-menu';
 
 /**
  * The pause button, and the dialog it opens over the game: resume, restart the game, or end it, back to the main
@@ -30,8 +29,7 @@ export class Pause {
   /** The player chose to restart the game. */
   readonly restart = output();
 
-  private readonly router = inject(Router);
-  private readonly location = inject(Location);
+  private readonly backToMenu = injectBackToMenu();
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
   protected pause(): void {
@@ -43,21 +41,11 @@ export class Pause {
     this.dialog().nativeElement.close();
   }
 
-  /**
-   * Back to the main menu. The history holds at most the main menu and the game over it, so that going back from the
-   * game leads to the main menu, and from the main menu out of the app: when the game was started from the main menu,
-   * ending it goes back to it, and otherwise the main menu takes the game's place. The dialog finishes closing first,
-   * so that it doesn't linger over the screens' transition.
-   */
+  /** Back to the main menu. The dialog finishes closing first, so that it doesn't linger over the screens' transition. */
   protected async endGame(): Promise<void> {
     const dialog = this.dialog().nativeElement;
     dialog.close();
     await Promise.all(dialog.getAnimations().map(async (animation) => animation.finished));
-    const previous = this.router.lastSuccessfulNavigation()?.previousNavigation;
-    if (previous?.finalUrl?.toString() === '/') {
-      this.location.back();
-    } else {
-      void this.router.navigateByUrl('/', { replaceUrl: true });
-    }
+    this.backToMenu();
   }
 }

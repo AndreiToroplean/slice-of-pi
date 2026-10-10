@@ -1,4 +1,5 @@
-import { Component, ElementRef, inject, InjectionToken, signal, viewChild } from '@angular/core';
+import { Component, inject, InjectionToken, signal } from '@angular/core';
+import { injectBackToMenu } from '../menu/back-to-menu';
 import { backupFileName, readBackup, writeBackup } from '../runs/backup';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
 import { IS_PREVIEW, RunStore } from '../runs/run-store';
@@ -19,20 +20,21 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
 });
 
 /**
- * The player's runs: how many are kept and how safe they are, with a backup file to save and restore. Opened from a
- * small button in a corner of the main menu.
+ * The player's data, opened from the main menu's overflow menu: how many runs are kept and how safe they are, with a
+ * backup file to save and restore.
  */
 @Component({
-  selector: 'app-runs-dialog',
+  selector: 'app-data',
+  host: { class: 'screen' },
   template: `
-    <button type="button" class="frosted open" aria-label="Your runs" (click)="show()">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="3" y="4" width="18" height="5" rx="1.5" />
-        <path d="M5 9v9.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V9M10 13h4" />
-      </svg>
-    </button>
-    <dialog #dialog class="card" aria-labelledby="runs-title">
-      <h2 id="runs-title">Your runs</h2>
+    <header>
+      <button type="button" class="frosted back" aria-label="Back" (click)="back()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+      </button>
+      <h1>Your data</h1>
+    </header>
+    <section class="panel" aria-labelledby="backup-title">
+      <h2 id="backup-title">Backup</h2>
       <p>{{ count() }}</p>
       @if (readOnlyPreview()) {
         <p>
@@ -48,46 +50,41 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
         }
         A backup file keeps them safe even then.
       </p>
-      <button type="button" class="candy" (click)="save()">Save a backup</button>
-      @if (!readOnlyPreview()) {
-        <label class="candy">
-          Restore a backup
-          <input
-            type="file"
-            accept=".json,application/json"
-            class="visually-hidden"
-            (change)="restore($event)"
-          />
-        </label>
-      }
+      <div class="buttons">
+        <button type="button" class="candy" (click)="save()">Save a backup</button>
+        @if (!readOnlyPreview()) {
+          <label class="candy">
+            Restore a backup
+            <input
+              type="file"
+              accept=".json,application/json"
+              class="visually-hidden"
+              (change)="restore($event)"
+            />
+          </label>
+        }
+      </div>
       <p class="message" role="status">{{ message() }}</p>
-      <button type="button" class="candy primary" (click)="close()">Close</button>
-    </dialog>
+    </section>
   `,
-  styleUrl: './runs-dialog.css',
+  styleUrl: './data.css',
 })
-export class RunsDialog {
+export class Data {
   protected readonly count = signal('');
   protected readonly persisted = signal(false);
   /** Whether this is a preview that can't keep runs (see {@link RunStore}). */
   protected readonly readOnlyPreview = signal(false);
   protected readonly message = signal('');
+  protected readonly back = injectBackToMenu();
 
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
   private readonly clock = inject(RUN_CLOCK);
   private readonly saveFile = inject(SAVE_FILE);
   private readonly preview = inject(IS_PREVIEW);
-  private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
-  protected async show(): Promise<void> {
-    this.message.set('');
-    this.dialog().nativeElement.showModal();
-    await this.refresh();
-  }
-
-  protected close(): void {
-    this.dialog().nativeElement.close();
+  constructor() {
+    void this.refresh();
   }
 
   protected async save(): Promise<void> {

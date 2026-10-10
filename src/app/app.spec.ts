@@ -50,6 +50,13 @@ describe('routes', () => {
     expect(component).toBe(Play);
   });
 
+  it("lazily loads the player's data", async () => {
+    const data = routes.find((route) => route.path === 'data');
+    const component = await data?.loadComponent?.();
+    const { Data } = await import('./data/data');
+    expect(component).toBe(Data);
+  });
+
   it('sends unknown addresses to the main menu', () => {
     expect(routes.find((route) => route.path === '**')?.redirectTo).toBe('');
   });
@@ -70,7 +77,11 @@ describe('zoom', () => {
     expect([...transitionTo('play')]).toEqual(['zoom-in']);
   });
 
-  it('zooms out when a game ends', () => {
+  it("zooms in when the player's data opens", () => {
+    expect([...transitionTo('data')]).toEqual(['zoom-in']);
+  });
+
+  it('zooms out back to the main menu', () => {
     expect([...transitionTo('')]).toEqual(['zoom-out']);
   });
 

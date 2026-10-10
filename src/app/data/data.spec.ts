@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
 import { IDBFactory } from 'fake-indexeddb';
 import { BACKUP_KIND, readBackup, writeBackup } from '../runs/backup';
 import { addDigit, newRun, Run, RUN_FORMAT } from '../runs/run';
@@ -14,21 +15,15 @@ import {
   RUNS,
   STORAGE_MANAGER,
 } from '../runs/run-store';
-import { installDialogs, uninstallDialogs } from '../../testing/fake-dialogs';
-import { RunsDialog, SAVE_FILE } from './runs-dialog';
+import { Data, SAVE_FILE } from './data';
 
-describe('RunsDialog', () => {
+describe('Data', () => {
   const first = addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250);
   const second = addDigit(newRun('b', 2_000), '1', 0);
   let saved: { name: string; text: string }[];
 
   beforeEach(() => {
-    installDialogs();
     saved = [];
-  });
-
-  afterEach(() => {
-    uninstallDialogs();
   });
 
   async function setUp(
@@ -46,6 +41,7 @@ describe('RunsDialog', () => {
     }
     TestBed.configureTestingModule({
       providers: [
+        provideRouter([]),
         { provide: INDEXED_DB, useValue: indexedDb },
         { provide: IS_PREVIEW, useValue: preview },
         {
@@ -69,7 +65,7 @@ describe('RunsDialog', () => {
     for (const run of runs) {
       await TestBed.inject(RunStore).save(run);
     }
-    const fixture = TestBed.createComponent(RunsDialog);
+    const fixture = TestBed.createComponent(Data);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
     // Waits for the database to answer and the view to show it.
@@ -80,6 +76,8 @@ describe('RunsDialog', () => {
           throw new Error('Not ready yet');
         }
       });
+    // The page reads the runs as it opens.
+    await until(() => host.querySelector('section p')?.textContent.trim() !== '');
     return { host, until };
   }
 
@@ -102,16 +100,8 @@ describe('RunsDialog', () => {
     });
   }
 
-  async function openDialog(
-    host: HTMLElement,
-    until: (ready: () => boolean) => Promise<void>,
-  ): Promise<void> {
-    host.querySelector<HTMLButtonElement>('button.open')?.click();
-    await until(() => host.querySelector('dialog p')?.textContent.trim() !== '');
-  }
-
   function text(host: HTMLElement): string {
-    return host.querySelector('dialog')?.textContent.replace(/\s+/g, ' ').trim() ?? '';
+    return host.textContent.replace(/\s+/g, ' ').trim();
   }
 
   function message(host: HTMLElement): string | undefined {
@@ -145,59 +135,33 @@ describe('RunsDialog', () => {
     await until(() => message(host) !== '');
   }
 
-  it('is closed at first, behind a labelled button', async () => {
+  it('says there are no runs yet', async () => {
     const { host } = await setUp();
 
-    expect(host.querySelector('dialog')?.open).toBe(false);
-    expect(host.querySelector('button.open')?.getAttribute('aria-label')).toBe('Your runs');
-  });
-
-  it('opens on the button, and says there are no runs yet', async () => {
-    const { host, until } = await setUp();
-
-    await openDialog(host, until);
-
-    expect(host.querySelector('dialog')?.open).toBe(true);
     expect(text(host)).toContain('No runs kept yet.');
   });
 
   it('counts the runs kept', async () => {
-    const { host, until } = await setUp([first, second]);
-
-    await openDialog(host, until);
+    const { host } = await setUp([first, second]);
 
     expect(text(host)).toContain('2 runs kept on this device.');
   });
 
   it('says when the browser may delete the runs', async () => {
-    const { host, until } = await setUp([first]);
-
-    await openDialog(host, until);
+    const { host } = await setUp([first]);
 
     expect(text(host)).toContain('1 run kept on this device.');
     expect(text(host)).toContain('may delete them when your device runs low on space');
   });
 
   it('says when the browser keeps the runs', async () => {
-    const { host, until } = await setUp([first], true);
-
-    await openDialog(host, until);
+    const { host } = await setUp([first], true);
 
     expect(text(host)).toContain("keeps them until this site's data is cleared");
   });
 
-  it('closes with its close button', async () => {
-    const { host, until } = await setUp();
-    await openDialog(host, until);
-
-    button(host, 'Close').click();
-
-    expect(host.querySelector('dialog')?.open).toBe(false);
-  });
-
   it('saves a backup of every run, named after the date', async () => {
     const { host, until } = await setUp([first, second]);
-    await openDialog(host, until);
 
     button(host, 'Save a backup').click();
     await until(() => message(host) !== '');
@@ -209,7 +173,6 @@ describe('RunsDialog', () => {
 
   it('restores the runs of a backup that are not kept yet', async () => {
     const { host, until } = await setUp([first]);
-    await openDialog(host, until);
 
     await choose(host, until, writeBackup([first, second], 0));
 
@@ -220,7 +183,6 @@ describe('RunsDialog', () => {
 
   it('says when every run of a backup is already kept', async () => {
     const { host, until } = await setUp([first]);
-    await openDialog(host, until);
 
     await choose(host, until, writeBackup([first], 0));
 
@@ -229,7 +191,6 @@ describe('RunsDialog', () => {
 
   it('says how many runs of a backup could not be read', async () => {
     const { host, until } = await setUp();
-    await openDialog(host, until);
 
     await choose(
       host,
@@ -242,7 +203,6 @@ describe('RunsDialog', () => {
 
   it('turns down a file that is not a backup', async () => {
     const { host, until } = await setUp();
-    await openDialog(host, until);
 
     await choose(host, until, 'not a backup');
 
@@ -251,9 +211,7 @@ describe('RunsDialog', () => {
   });
 
   it('says when a preview keeps no runs, and offers no restore', async () => {
-    const { host, until } = await setUp([], false, true, RUN_FORMAT + 1);
-
-    await openDialog(host, until);
+    const { host } = await setUp([], false, true, RUN_FORMAT + 1);
 
     expect(text(host)).toContain(
       "This preview of the game stores runs in a different format from the main game, so it doesn't keep any.",
@@ -263,22 +221,19 @@ describe('RunsDialog', () => {
   });
 
   it('says nothing about previews in the main game', async () => {
-    const { host, until } = await setUp();
-
-    await openDialog(host, until);
+    const { host } = await setUp();
 
     expect(text(host)).not.toContain('preview');
     expect(host.querySelector('input[type="file"]')).not.toBeNull();
   });
 
-  it('clears the message when opened again', async () => {
-    const { host, until } = await setUp();
-    await openDialog(host, until);
-    await choose(host, until, 'not a backup');
-    host.querySelector('dialog')?.close();
+  it('goes back to the main menu', async () => {
+    const { host } = await setUp();
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
 
-    await openDialog(host, until);
+    host.querySelector<HTMLButtonElement>('button.back')?.click();
 
-    expect(message(host)).toBe('');
+    expect(navigate).toHaveBeenCalledWith('/', { replaceUrl: true });
   });
 });

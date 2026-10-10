@@ -9,5 +9,9 @@ export const routes: Routes = [
     path: 'play',
     loadComponent: () => import('./play/play').then((m) => m.Play),
   },
+  {
+    path: 'data',
+    loadComponent: () => import('./data/data').then((m) => m.Data),
+  },
   { path: '**', redirectTo: '' },
 ];
