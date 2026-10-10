@@ -10,11 +10,15 @@ on:
 permissions:
   contents: read
 
+# One group per pull request, so a newer push or the close cancels its runs. Not keyed on github.ref alone: once a pull
+# request is merged, its close event runs with the base branch as github.ref and would cancel main's deploy.
 concurrency:
-  group: pages-${{ github.ref }}
+  group: pages-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
+  # Pushes to main (and manual runs on it) publish the site root.
+  MAIN: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
   # Pull requests from this repository get a preview; forks can't push to gh-pages.
   PREVIEW: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
   PR: ${{ github.event.number }}
@@ -37,7 +41,7 @@ jobs:
       - run: npm run build -- --base-href "/${{ github.event.repository.name }}/${{ env.PREVIEW == 'true' && format('pr-{0}/', env.PR) || '' }}"
       # Serve the app for unknown paths too, so client-side routes survive a reload.
       - run: cp dist/slice-of-pi/browser/index.html dist/slice-of-pi/browser/404.html
-      - if: github.ref == 'refs/heads/main' || env.PREVIEW == 'true'
+      - if: env.MAIN == 'true' || env.PREVIEW == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: site
@@ -46,7 +50,7 @@ jobs:
   # GitHub Pages serves the gh-pages branch, which scripts/publish-pages.ts keeps up to date.
   publish:
     needs: build
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    if: (github.event_name != 'pull_request' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -63,7 +67,7 @@ jobs:
       - run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898333+github-actions[bot]@users.noreply.github.com'
-      - if: github.ref == 'refs/heads/main'
+      - if: env.MAIN == 'true'
         run: node scripts/publish-pages.ts main "$RUNNER_TEMP/site"
       - if: env.PREVIEW == 'true'
         run: node scripts/publish-pages.ts preview "$PR" "$RUNNER_TEMP/site"
