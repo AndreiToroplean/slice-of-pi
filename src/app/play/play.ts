@@ -14,6 +14,7 @@ import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from '../flight/flight';
 import { DEFAULT_HINT, groupDigits } from '../groups/groups';
 import { Keypad } from '../keypad/keypad';
 import { RunRecorder } from '../runs/run-recorder';
+import { RunsDialog } from '../runs-dialog/runs-dialog';
 import { KeypadKey } from '../keypad/keypad-layout';
 import { SeasonHeader } from '../season-header/season-header';
 import { seasonAt } from '../seasons/seasons';
@@ -27,7 +28,7 @@ import { TypedDigits } from '../typed-digits/typed-digits';
  */
 @Component({
   selector: 'app-play',
-  imports: [Keypad, SeasonHeader, Slots, TypedDigits],
+  imports: [Keypad, RunsDialog, SeasonHeader, Slots, TypedDigits],
   host: {
     '[style.--background-top]': 'season().background[0]',
     '[style.--background-bottom]': 'season().background[1]',
@@ -35,6 +36,7 @@ import { TypedDigits } from '../typed-digits/typed-digits';
   template: `
     <h1 class="visually-hidden">Slice of π</h1>
     <app-season-header [view]="season()" />
+    <app-runs-dialog class="runs" [(open)]="runsOpen" />
     <app-typed-digits [words]="grouping().words" [digits]="digits()" />
     <app-slots class="slots" [digits]="grouping().current" [hint]="hint" />
     <app-keypad class="keypad" (keyPressed)="press($event)" />
@@ -47,6 +49,9 @@ export class Play {
 
   protected readonly hint = DEFAULT_HINT;
   protected readonly grouping = computed(() => groupDigits(this.digits(), this.hint));
+
+  /** Whether the runs dialog is open, in which case keys don't type. */
+  protected readonly runsOpen = signal(false);
 
   /** The season, and the background colors, after the places typed so far. */
   protected readonly season = computed(() => seasonAt(this.digits().length));
@@ -67,6 +72,9 @@ export class Play {
   }
 
   protected press(key: KeypadKey): void {
+    if (this.runsOpen()) {
+      return;
+    }
     this.recorder.record(key);
     if (key === 'backspace') {
       this.landFlights();

@@ -5,6 +5,7 @@ import {
   installAnimations,
   uninstallAnimations,
 } from '../../testing/fake-animations';
+import { installDialogs } from '../../testing/dialogs';
 import { FLIGHT_DURATION } from '../flight/flight';
 import { RunRecorder } from '../runs/run-recorder';
 import { TypedDigits } from '../typed-digits/typed-digits';
@@ -134,6 +135,21 @@ describe('Play', () => {
     await typeAll(type, '14<4');
 
     expect(record.mock.calls).toEqual([['1'], ['4'], ['backspace'], ['4']]);
+  });
+
+  it('does not type while the runs dialog is open', async () => {
+    installDialogs();
+    const record = vi.spyOn(TestBed.inject(RunRecorder), 'record');
+    const { host, type } = await setUp();
+
+    host.querySelector<HTMLButtonElement>('app-runs-dialog button.open')?.click();
+    await typeAll(type, '14');
+    expect(slots(host)).toEqual(['', '', '', '', '']);
+
+    host.querySelector('dialog')?.close();
+    await typeAll(type, '1');
+    expect(slots(host)).toEqual(['1', '', '', '', '']);
+    expect(record.mock.calls).toEqual([['1']]);
   });
 
   describe('when a group is finished', () => {
