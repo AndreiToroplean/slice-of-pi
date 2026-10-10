@@ -21,8 +21,14 @@ export interface SlotSnapshot {
   readonly fontSize: number;
 }
 
-/** How long each slot takes to fly into its tile, in ms. */
+/** How long each slot takes to press in before it flies, in ms. */
+export const PRESS_DURATION = 70;
+/** How long each slot then takes to fly into its tile, in ms. */
 export const FLIGHT_DURATION = 480;
+/** The thickness of a filled slot: the dark band along its bottom (see `slots.css`), in pixels. */
+export const SLOT_DEPTH = 4;
+const SLOT_EDGE = `inset 0 -${String(SLOT_DEPTH)}px 0 rgb(0 0 0 / 14%)`;
+const PRESS_EASING = 'cubic-bezier(0.3, 0, 0.5, 1)';
 /** Each slot leaves this long after the one before it, in ms. */
 export const FLIGHT_STAGGER = 28;
 /** Slots past this many leave together with the last staggered one, so long groups don't trail on. */
@@ -37,8 +43,10 @@ export function tileCorners(index: number, length: number, radius: number): Corn
 }
 
 /**
- * The flight of a slot into its tile: it keeps its form and color, moving and shrinking onto the tile. Its radii undo
- * the scale, so that it lands with the tile's corners: rounded on the outside of the word, square inside it.
+ * The flight of a slot into its tile. First it presses in like a button: its face moves down over its thickness, the
+ * dark band along its bottom, which it then no longer has. Then it keeps its form and color, moving and shrinking onto
+ * the tile. Its radii undo the scale, so that it lands with the tile's corners: rounded on the outside of the word,
+ * square inside it.
  */
 export function flightKeyframes(
   from: Box,
@@ -51,11 +59,26 @@ export function flightKeyframes(
   const sx = to.width / from.width;
   const sy = to.height / from.height;
   const radii = (scale: number): string => corners.map((c) => `${String(c / scale)}px`).join(' ');
+  // Pressed, its face covers the bottom of the slot, where the band was: as wide, as tall, and lower by the depth.
+  const pressedScale = (from.height - SLOT_DEPTH) / from.height;
   return [
-    { transform: 'none', borderRadius: `${String(slotRadius)}px` },
+    {
+      transform: 'none',
+      borderRadius: `${String(slotRadius)}px`,
+      boxShadow: SLOT_EDGE,
+      easing: PRESS_EASING,
+    },
+    {
+      offset: PRESS_DURATION / (PRESS_DURATION + FLIGHT_DURATION),
+      transform: `translate(0px, ${String(SLOT_DEPTH / 2)}px) scale(1, ${String(pressedScale)})`,
+      borderRadius: `${String(slotRadius)}px / ${String(slotRadius / pressedScale)}px`,
+      boxShadow: 'inset 0 0 0 rgb(0 0 0 / 0%)',
+      easing: FLIGHT_EASING,
+    },
     {
       transform: `translate(${String(dx)}px, ${String(dy)}px) scale(${String(sx)}, ${String(sy)})`,
       borderRadius: `${radii(sx)} / ${radii(sy)}`,
+      boxShadow: 'inset 0 0 0 rgb(0 0 0 / 0%)',
     },
   ];
 }
@@ -63,9 +86,8 @@ export function flightKeyframes(
 /** Timing of the `index`-th slot's flight. */
 export function flightTiming(index: number): KeyframeAnimationOptions {
   return {
-    duration: FLIGHT_DURATION,
+    duration: PRESS_DURATION + FLIGHT_DURATION,
     delay: Math.min(index, MOST_STAGGERED) * FLIGHT_STAGGER,
-    easing: FLIGHT_EASING,
     // Backwards too: a slot waiting for its turn to leave must already look like the slot, not like a bare copy.
     fill: 'both',
   };

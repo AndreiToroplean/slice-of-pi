@@ -236,7 +236,7 @@ describe('Play', () => {
       await typeAll(type, '14159');
 
       expect(scrollDown).toHaveBeenCalledWith(FLIGHT_DURATION);
-      expect(animations[0]?.keyframes[1]?.['transform']).toMatch(/^translate\(0px, -50px\)/);
+      expect(animations[0]?.keyframes[2]?.['transform']).toMatch(/^translate\(0px, -50px\)/);
     });
 
     it('lands the flights at once on backspace', async () => {

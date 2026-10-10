@@ -1,5 +1,7 @@
 import {
   FLIGHT_DURATION,
+  PRESS_DURATION,
+  SLOT_DEPTH,
   FLIGHT_STAGGER,
   flightKeyframes,
   flightTiming,
@@ -24,22 +26,36 @@ describe('flightKeyframes', () => {
   const slot = { left: 100, top: 500, width: 40, height: 60 };
   const tile = { left: 20, top: 100, width: 20, height: 24 };
 
-  it('starts on the slot, with its radius', () => {
-    expect(flightKeyframes(slot, tile, 14, [0, 0, 0, 0])[0]).toEqual({
+  it('starts on the slot, with its radius and its thickness', () => {
+    expect(flightKeyframes(slot, tile, 14, [0, 0, 0, 0])[0]).toMatchObject({
       transform: 'none',
       borderRadius: '14px',
+      boxShadow: `inset 0 -${String(SLOT_DEPTH)}px 0 rgb(0 0 0 / 14%)`,
+    });
+  });
+
+  it('first presses in: its face moves down over its thickness, which is gone', () => {
+    const [, pressed] = flightKeyframes(slot, tile, 14, [0, 0, 0, 0]);
+
+    expect(SLOT_DEPTH).toBe(4);
+    // The face covers the bottom 56 of the slot's 60 pixels: its center moves down by 2.
+    expect(pressed).toMatchObject({
+      offset: PRESS_DURATION / (PRESS_DURATION + FLIGHT_DURATION),
+      transform: `translate(0px, 2px) scale(1, ${String(56 / 60)})`,
+      borderRadius: `14px / ${String(14 / (56 / 60))}px`,
+      boxShadow: 'inset 0 0 0 rgb(0 0 0 / 0%)',
     });
   });
 
   it('lands centered on the tile, scaled to its size', () => {
-    const [, end] = flightKeyframes(slot, tile, 14, [0, 0, 0, 0]);
+    const [, , end] = flightKeyframes(slot, tile, 14, [0, 0, 0, 0]);
 
     // Centers: the slot's at (120, 530), the tile's at (30, 112).
     expect(end?.['transform']).toBe('translate(-90px, -418px) scale(0.5, 0.4)');
   });
 
   it("lands with the tile's corners, undoing the scale", () => {
-    const [, end] = flightKeyframes(slot, tile, 14, [4, 0, 0, 4]);
+    const [, , end] = flightKeyframes(slot, tile, 14, [4, 0, 0, 4]);
 
     expect(end?.['borderRadius']).toBe('8px 0px 0px 8px / 10px 0px 0px 10px');
   });
@@ -48,7 +64,7 @@ describe('flightKeyframes', () => {
 describe('flightTiming', () => {
   it('lets each slot leave a little after the one before it', () => {
     expect(flightTiming(0)).toMatchObject({
-      duration: FLIGHT_DURATION,
+      duration: PRESS_DURATION + FLIGHT_DURATION,
       delay: 0,
       fill: 'both',
     });
