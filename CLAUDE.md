@@ -5,6 +5,7 @@
 - Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages and pull request titles, e.g. `feat: add a backspace key` or `docs: describe the seasons layer`.
 - Commit and push every change as soon as it's made; the owner reviews on GitHub. Amending and force-pushing to fix things afterwards is fine.
 - When a pull request changes what players see or hear, ask for a preview: right after opening it, add the line `Preview: https://andreitoroplean.github.io/slice-of-pi/pr-<number>/` to its description, with its number. Leave it out of other pull requests (CI, docs, refactors). See `design/architecture.md` §1.
+- Every pull request description includes a high-level Mermaid sequence diagram (a `mermaid` code block starting with `sequenceDiagram`) showing how its changes work: the actors involved (player, components, browser, CI, …) and the messages between them. Keep it to the essentials. Skip it only when nothing runs, as in docs-only pull requests.
 
 # Skills
 
