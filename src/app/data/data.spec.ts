@@ -16,6 +16,7 @@ import {
   RUNS,
   STORAGE_MANAGER,
 } from '../runs/run-store';
+import { DeveloperMode } from '../developer/developer-mode';
 import { Data, SAVE_FILE } from './data';
 
 describe('Data', () => {
@@ -38,6 +39,7 @@ describe('Data', () => {
     persisted = false,
     preview = false,
     mainFormat?: number,
+    developer = false,
   ): Promise<{
     host: HTMLElement;
     until: (ready: () => boolean) => Promise<void>;
@@ -71,6 +73,9 @@ describe('Data', () => {
     });
     for (const run of runs) {
       await TestBed.inject(RunStore).save(run);
+    }
+    if (developer) {
+      await TestBed.inject(DeveloperMode).set(true);
     }
     const fixture = TestBed.createComponent(Data);
     await fixture.whenStable();
@@ -293,6 +298,26 @@ describe('Data', () => {
       '4 groups, 3 sure enough to set the hint; dotted ones get the default of 5',
     );
     expect(host.querySelectorAll('.summary .break')).toHaveLength(3);
+  });
+
+  it('offers the grouping settings only in developer mode', async () => {
+    const { host } = await setUp([grouped]);
+
+    expect(host.querySelector('app-grouping-settings-panel')).toBeNull();
+  });
+
+  it('regroups as the grouping settings change', async () => {
+    const { host, until } = await setUp([grouped], false, false, undefined, true);
+    const slider = host.querySelector<HTMLInputElement>('#setting-minimumPause');
+
+    if (slider === null) {
+      throw new Error('No slider');
+    }
+    slider.value = '3';
+    slider.dispatchEvent(new Event('input'));
+    await until(() => host.querySelectorAll('.groups li').length === 1);
+
+    expect(host.querySelector('.groups li')?.textContent.trim()).toBe('141592653589');
   });
 
   it('spans every chart over the places of the longest run', async () => {

@@ -3,8 +3,10 @@ import { IDBFactory } from 'fake-indexeddb';
 import { PALETTE } from '../place-colors/place-colors';
 import { INDEXED_DB, IS_PREVIEW, RunStore } from '../runs/run-store';
 import { backgroundsFrom, SEASON_BACKGROUNDS } from '../seasons/seasons';
+import { DEFAULT_TIMING_SETTINGS } from '../timing/timing-model';
 import { DeveloperMode } from './developer-mode';
 import {
+  groupingText,
   paletteText,
   parseTweaks,
   SEASON_STARTS,
@@ -18,6 +20,7 @@ describe('Tweaks', () => {
   let indexedDb: IDBFactory;
   const palette = PALETTE.map((color, i) => (i === 3 ? '#123456' : color));
   const seasons = { ...SEASON_STARTS, autumn: ['#000000', '#ffffff'] as const };
+  const grouping = { ...DEFAULT_TIMING_SETTINGS, halfLife: 2 ** 4.5 };
 
   beforeEach(() => {
     indexedDb = new IDBFactory();
@@ -83,6 +86,16 @@ describe('Tweaks', () => {
     expect(tweaks.values()).toEqual({ seasons });
   });
 
+  it('applies the tuned grouping settings only while developer mode is on, and keeps them', async () => {
+    const tweaks = await load();
+    await tweaks.setGrouping(grouping);
+
+    expect(tweaks.grouping()).toBe(DEFAULT_TIMING_SETTINGS);
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.grouping()).toEqual(grouping);
+    expect((await load()).values()).toEqual({ grouping });
+  });
+
   describe('as text', () => {
     it('lists the key colors, saying when they are the game’s own', () => {
       expect(paletteText(PALETTE).split('\n')[0]).toBe(
@@ -107,6 +120,31 @@ describe('Tweaks', () => {
         ].join('\n'),
       );
     });
+  });
+
+  it('lists the grouping settings, marking those that changed', () => {
+    expect(groupingText(grouping)).toBe(
+      [
+        'Grouping settings (DEFAULT_TIMING_SETTINGS in timing-model.ts):',
+        '  neighborhood: 4',
+        '  pauseMargin: 0.8',
+        '  minimumPause: 1.35',
+        '  fullTrustUnevenness: 0.6',
+        '  halfLife: 22.63 (changed)',
+        '  evidenceNeeded: 1.2',
+        '  hintConfidence: 0.45',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves out stored grouping settings that are missing one or would divide by 0', () => {
+    expect(parseTweaks({ format: TWEAKS_FORMAT, grouping })).toEqual({ grouping });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, grouping: { ...grouping, halfLife: 0 } })).toEqual(
+      {},
+    );
+    expect(
+      parseTweaks({ format: TWEAKS_FORMAT, grouping: { ...grouping, neighborhood: undefined } }),
+    ).toEqual({});
   });
 
   it('reads the tweaks stored in a format it knows, leaving out what is not valid', async () => {
