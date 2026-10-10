@@ -31,8 +31,10 @@ export const DATABASE_NAME = 'slice-of-pi';
  * (`RUN_FORMAT`). Pull request previews share the site's storage, so a newer layout must keep the stores older code
  * reads; older code then still opens the database at its newer version.
  */
-export const DATABASE_VERSION = 2;
+export const DATABASE_VERSION = 3;
 export const RUNS = 'runs';
+/** The player's settings, by name, each in its own format (such as `developer-mode.ts`). */
+export const SETTINGS = 'settings';
 /** Facts about the stored data, by key. */
 export const META = 'meta';
 /** Under {@link META}: the run format of the main game that last opened the database, as `{ format }`. */
@@ -45,7 +47,7 @@ interface Database {
 }
 
 /**
- * Keeps the player's runs in IndexedDB, and asks the browser to keep that storage safe from eviction. Where IndexedDB
+ * Keeps the player's runs, and their settings, in IndexedDB, and asks the browser to keep that storage safe from eviction. Where IndexedDB
  * is missing or fails to open, nothing is stored and there are no runs.
  *
  * Pull request previews share the main game's storage (`architecture.md` §5). The main game notes its run format in
@@ -116,6 +118,29 @@ export class RunStore {
       .sort((a, b) => a.startedAt - b.startedAt);
   }
 
+  /** A setting, as stored, or `undefined` where there is none. */
+  async setting(name: string): Promise<unknown> {
+    const database = (await this.open())?.database;
+    if (database?.objectStoreNames.contains(SETTINGS) !== true) {
+      return undefined;
+    }
+    return result(database.transaction(SETTINGS).objectStore(SETTINGS).get(name));
+  }
+
+  /**
+   * Saves a setting. Settings follow the runs: they're only kept where the runs are, so a preview never leaves a
+   * setting the main game can't read.
+   */
+  async saveSetting(name: string, value: unknown): Promise<void> {
+    const database = await this.openForWriting();
+    if (database === undefined) {
+      return;
+    }
+    const transaction = database.transaction(SETTINGS, 'readwrite');
+    transaction.objectStore(SETTINGS).put(value, name);
+    await completion(transaction);
+  }
+
   /** Whether runs are kept: not where IndexedDB is missing, nor in a preview whose run format isn't the main game's. */
   async writable(): Promise<boolean> {
     return (await this.open())?.writable ?? false;
@@ -179,8 +204,10 @@ async function openLayout(indexedDb: IDBFactory | undefined): Promise<IDBDatabas
       if (!request.result.objectStoreNames.contains(RUNS)) {
         request.result.createObjectStore(RUNS, { keyPath: 'id' });
       }
-      if (!request.result.objectStoreNames.contains(META)) {
-        request.result.createObjectStore(META);
+      for (const store of [META, SETTINGS]) {
+        if (!request.result.objectStoreNames.contains(store)) {
+          request.result.createObjectStore(store);
+        }
       }
     };
     return await result(request);

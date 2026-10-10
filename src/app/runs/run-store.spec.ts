@@ -197,6 +197,37 @@ describe('RunStore', () => {
     expect(await store.runs()).toEqual([first, second]);
   });
 
+  describe('settings', () => {
+    it('keeps settings by name, for the next visit', async () => {
+      const store = storeWith();
+      expect(await store.setting('colors')).toBeUndefined();
+
+      await store.saveSetting('colors', { format: 1, red: '#ff0000' });
+      await store.saveSetting('colors', { format: 1, red: '#ee0000' });
+      TestBed.resetTestingModule();
+
+      expect(await storeWith().setting('colors')).toEqual({ format: 1, red: '#ee0000' });
+    });
+
+    it('keeps none without IndexedDB', async () => {
+      const store = storeWith({ indexedDb: undefined });
+
+      await store.saveSetting('colors', 1);
+
+      expect(await store.setting('colors')).toBeUndefined();
+    });
+
+    it('has none in a database an older version of the game opened at a newer layout', async () => {
+      const database = await openDirectly(DATABASE_VERSION + 1, (upgraded) => {
+        upgraded.createObjectStore(RUNS, { keyPath: 'id' });
+        upgraded.createObjectStore(META);
+      });
+      database.close();
+
+      expect(await storeWith().setting('colors')).toBeUndefined();
+    });
+  });
+
   describe('in a pull request preview', () => {
     /** Reads what the main game noted about its run format. */
     async function mainFormat(): Promise<unknown> {
@@ -249,8 +280,10 @@ describe('RunStore', () => {
 
       await preview.save(second);
       await preview.delete(first.id);
+      await preview.saveSetting('colors', 1);
 
       expect(await preview.writable()).toBe(false);
+      expect(await preview.setting('colors')).toBeUndefined();
       expect(await preview.addRuns([second])).toBe(0);
       expect(await preview.runs()).toEqual([first]);
       expect(await mainFormat()).toEqual({ format: RUN_FORMAT - 1 });

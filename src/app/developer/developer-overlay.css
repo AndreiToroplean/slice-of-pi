@@ -1,0 +1,60 @@
+/* Over the whole screen, under the dragged button, letting touches through. */
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  /* Above the main menu's title, so as not to cover it. */
+  padding: 16vh var(--space-3) var(--space-3);
+  pointer-events: none;
+  background: rgb(30 20 60 / 0%);
+  transition: background var(--duration-screen) var(--ease);
+}
+
+:host(.shown) {
+  background: rgb(30 20 60 / 25%);
+}
+
+.message {
+  max-width: 16rem;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-digits);
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-wrap: balance;
+  text-shadow: var(--text-shadow-large);
+  opacity: 0;
+  transition: opacity var(--duration-screen) var(--ease);
+}
+
+:host(.shown) .message {
+  opacity: 1;
+}
+
+/* A dashed ring, centered on its point, that fills in when the button is over it. */
+.target {
+  position: fixed;
+  box-sizing: border-box;
+  translate: -50% -50%;
+  border: 0.1875rem dashed var(--on-background);
+  border-radius: 50%;
+  opacity: 0;
+  scale: 0.6;
+  transition:
+    opacity var(--duration-screen) var(--ease),
+    scale var(--duration-screen) var(--ease),
+    background var(--duration-dialog) var(--ease);
+}
+
+.target.shown {
+  opacity: 1;
+  scale: 1;
+}
+
+.target.reached {
+  background: var(--frost-pressed);
+  scale: 1.15;
+}

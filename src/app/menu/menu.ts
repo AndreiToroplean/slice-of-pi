@@ -2,6 +2,8 @@ import { NgOptimizedImage } from '@angular/common';
 import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Background } from '../background/background';
+import { DeveloperGesture } from '../developer/developer-gesture';
+import { DeveloperOverlay } from '../developer/developer-overlay';
 import { seasonAt } from '../seasons/seasons';
 
 /**
@@ -10,10 +12,20 @@ import { seasonAt } from '../seasons/seasons';
  */
 @Component({
   selector: 'app-menu',
-  imports: [NgOptimizedImage, RouterLink],
+  imports: [NgOptimizedImage, RouterLink, DeveloperGesture, DeveloperOverlay],
   host: { class: 'screen' },
   template: `
-    <button #more type="button" class="frosted more" aria-label="More" popovertarget="more-menu">
+    <!-- Holding it opens developer mode's secret gesture. -->
+    <app-developer-overlay [gesture]="gesture" />
+    <button
+      #more
+      #gesture="developerGesture"
+      appDeveloperGesture
+      type="button"
+      class="frosted more"
+      aria-label="More"
+      popovertarget="more-menu"
+    >
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="5.5" r="2" />
         <circle cx="12" cy="12" r="2" />
