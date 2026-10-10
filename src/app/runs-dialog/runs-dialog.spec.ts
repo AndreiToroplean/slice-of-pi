@@ -1,15 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { BACKUP_KIND, readBackup, writeBackup } from '../runs/backup';
-import { addKey, newRun, Run } from '../runs/run';
+import { addDigit, newRun, Run } from '../runs/run';
 import { RUN_CLOCK } from '../runs/run-recorder';
 import { INDEXED_DB, RunStore, STORAGE_MANAGER } from '../runs/run-store';
 import { installDialogs } from '../../testing/dialogs';
 import { RunsDialog, SAVE_FILE } from './runs-dialog';
 
 describe('RunsDialog', () => {
-  const first = addKey(addKey(newRun('a', 1_000), '1', 0), '4', 250);
-  const second = addKey(newRun('b', 2_000), '1', 0);
+  const first = addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250);
+  const second = addDigit(newRun('b', 2_000), '1', 0);
   let saved: { name: string; text: string }[];
 
   beforeEach(() => {

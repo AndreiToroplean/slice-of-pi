@@ -41,6 +41,17 @@ export class RunStore {
     await completion(transaction);
   }
 
+  /** Deletes a run. */
+  async delete(id: string): Promise<void> {
+    const database = await this.open();
+    if (database === undefined) {
+      return;
+    }
+    const transaction = database.transaction(RUNS, 'readwrite');
+    transaction.objectStore(RUNS).delete(id);
+    await completion(transaction);
+  }
+
   /** Adds the runs not stored yet, such as those of a backup, leaving the runs already stored as they are. */
   async addRuns(runs: readonly Run[]): Promise<number> {
     const database = await this.open();

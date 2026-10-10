@@ -8,6 +8,7 @@ describe('RunRecorder', () => {
   let time: number;
   let ids: number;
   let saves: Run[];
+  let deletes: string[];
   let persist: ReturnType<typeof vi.fn<() => Promise<boolean>>>;
   /** Saves hold until released, when set. */
   let held: (() => void)[] | undefined;
@@ -17,6 +18,7 @@ describe('RunRecorder', () => {
     time = 5_000;
     ids = 0;
     saves = [];
+    deletes = [];
     held = undefined;
     failing = false;
     persist = vi.fn(() => Promise.resolve(true));
@@ -42,6 +44,10 @@ describe('RunRecorder', () => {
               }
               saves.push(run);
             },
+            delete: (id: string) => {
+              deletes.push(id);
+              return Promise.resolve();
+            },
             persist,
           },
         },
@@ -60,13 +66,13 @@ describe('RunRecorder', () => {
     }
   }
 
-  /** The last save of each run, in order of their first save. */
+  /** The last save of each run not deleted, in order of their first save. */
   function stored(): Run[] {
     const runs = new Map<string, Run>();
     for (const run of saves) {
       runs.set(run.id, run);
     }
-    return [...runs.values()];
+    return [...runs.values()].filter((run) => !deletes.includes(run.id));
   }
 
   it('saves the run after every key', async () => {
@@ -77,25 +83,45 @@ describe('RunRecorder', () => {
     press(recorder, '4');
     await recorder.saved();
 
-    expect(saves.map((run) => run.keys)).toEqual(['1', '14']);
+    expect(saves.map((run) => run.digits)).toEqual(['1', '14']);
     expect(stored()).toEqual([
       {
         format: RUN_FORMAT,
         id: 'run-1',
         startedAt: 1_760_000_005_000,
-        keys: '14',
+        digits: '14',
         times: [0, 200],
       },
     ]);
   });
 
-  it('records backspaces with the digits', async () => {
+  it('leaves no trace of a deleted digit: the next interval runs from the backspace', async () => {
     const recorder = TestBed.inject(RunRecorder);
 
-    press(recorder, '15<4');
+    // 1 at 0, 4 at 200, a wrong 5 at 400, backspace at 900, 1 at 1200.
+    press(recorder, '14', 200);
+    press(recorder, '5', 500);
+    press(recorder, '<', 300);
+    press(recorder, '1');
     await recorder.saved();
 
-    expect(stored()).toMatchObject([{ keys: '15<4', times: [0, 200, 400, 600] }]);
+    // As if 1 had come 300ms after 4, with no mistake.
+    expect(stored()).toMatchObject([{ digits: '141', times: [0, 200, 500] }]);
+  });
+
+  it('takes the clock back one digit per backspace', async () => {
+    const recorder = TestBed.inject(RunRecorder);
+
+    // 1 at 0, 4 at 300, 1 at 500, backspaces at 1000 and 1100, 4 at 1500.
+    press(recorder, '1', 300);
+    press(recorder, '4', 200);
+    press(recorder, '1', 500);
+    press(recorder, '<', 100);
+    press(recorder, '<', 400);
+    press(recorder, '4');
+    await recorder.saved();
+
+    expect(stored()).toMatchObject([{ digits: '14', times: [0, 400] }]);
   });
 
   it('starts a run only with a digit', async () => {
@@ -104,19 +130,25 @@ describe('RunRecorder', () => {
     press(recorder, '<<1');
     await recorder.saved();
 
-    expect(stored()).toMatchObject([{ keys: '1', times: [0], startedAt: 1_760_000_005_400 }]);
+    expect(stored()).toMatchObject([{ digits: '1', times: [0], startedAt: 1_760_000_005_400 }]);
   });
 
-  it('ends the run when every digit is deleted, and starts a new one with the next digit', async () => {
+  it('deletes the run when every digit is deleted, and starts a new one with the next digit', async () => {
     const recorder = TestBed.inject(RunRecorder);
 
     press(recorder, '14<<<');
     press(recorder, '14');
     await recorder.saved();
 
-    expect(stored()).toMatchObject([
-      { id: 'run-1', keys: '14<<', times: [0, 200, 400, 600] },
-      { id: 'run-2', keys: '14', times: [0, 200], startedAt: 1_760_000_006_000 },
+    expect(deletes).toEqual(['run-1']);
+    expect(stored()).toEqual([
+      {
+        format: RUN_FORMAT,
+        id: 'run-2',
+        startedAt: 1_760_000_006_000,
+        digits: '14',
+        times: [0, 200],
+      },
     ]);
   });
 
@@ -149,7 +181,7 @@ describe('RunRecorder', () => {
     release();
     await saved;
 
-    expect(saves.map((run) => run.keys)).toEqual(['1', '1415']);
+    expect(saves.map((run) => run.digits)).toEqual(['1', '1415']);
   });
 
   it('keeps recording when a save fails', async () => {
@@ -164,6 +196,6 @@ describe('RunRecorder', () => {
     await recorder.saved();
 
     expect(error).toHaveBeenCalledOnce();
-    expect(stored()).toMatchObject([{ keys: '14' }]);
+    expect(stored()).toMatchObject([{ digits: '14' }]);
   });
 });

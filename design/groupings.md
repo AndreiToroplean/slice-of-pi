@@ -76,7 +76,7 @@ The hint follows the player's detected groupings wherever the game is **confiden
 
 ### 4.4 Keeping the data
 
-The raw timings of every run are recorded and **must never be lost**: they're what the player's groupings, and so their constellations, are made of. Like the seed, they're kept in the player data (`architecture.md` §5). A run records every key pressed, backspaces included, with its time; the digits a run ends with and their times are replayed from those.
+The raw timings of every run are recorded and **must never be lost**: they're what the player's groupings, and so their constellations, are made of. Like the seed, they're kept in the player data (`architecture.md` §5). A run records each digit typed and when. Backspace leaves no trace: it deletes the last digit's record and takes the clock back to when the digit before it was typed, so the next digit's interval runs from the backspace, as if the player had typed the run without the mistake.
 
 ### 4.5 Stats page
 

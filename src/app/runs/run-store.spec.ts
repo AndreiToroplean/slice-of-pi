@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
-import { addKey, newRun, RUN_FORMAT } from './run';
+import { addDigit, newRun, RUN_FORMAT } from './run';
 import {
   DATABASE_NAME,
   DATABASE_VERSION,
@@ -65,8 +65,8 @@ describe('RunStore', () => {
     });
   }
 
-  const first = addKey(addKey(newRun('a', 1_000), '1', 0), '4', 250);
-  const second = addKey(newRun('b', 2_000), '1', 0);
+  const first = addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250);
+  const second = addDigit(newRun('b', 2_000), '1', 0);
 
   it('has no runs at first', async () => {
     expect(await storeWith().runs()).toEqual([]);
@@ -85,10 +85,20 @@ describe('RunStore', () => {
     const store = storeWith();
 
     await store.save(first);
-    const longer = addKey(first, 'backspace', 600);
+    const longer = addDigit(first, '1', 600);
     await store.save(longer);
 
     expect(await store.runs()).toEqual([longer]);
+  });
+
+  it('deletes a run', async () => {
+    const store = storeWith();
+    await store.save(first);
+    await store.save(second);
+
+    await store.delete(first.id);
+
+    expect(await store.runs()).toEqual([second]);
   });
 
   it('keeps the runs for the next visit', async () => {
@@ -135,7 +145,7 @@ describe('RunStore', () => {
     const store = storeWith();
     await store.save(first);
 
-    const changed = addKey(first, '1', 400);
+    const changed = addDigit(first, '1', 400);
     expect(await store.addRuns([changed, second])).toBe(1);
     expect(await store.addRuns([second])).toBe(0);
     expect(await store.runs()).toEqual([first, second]);
@@ -145,6 +155,7 @@ describe('RunStore', () => {
     const store = storeWith({ indexedDb: undefined });
 
     await store.save(first);
+    await store.delete(first.id);
 
     expect(await store.addRuns([first])).toBe(0);
     expect(await store.runs()).toEqual([]);
