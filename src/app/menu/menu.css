@@ -81,6 +81,22 @@ h1 {
   height: 2.75rem;
   padding: 0;
   border-radius: 50%;
+  z-index: 2;
+  /* Held and dragged for developer mode's gesture: no scrolling, selecting or long-press menu. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition:
+    scale 0.08s,
+    background-color 0.15s,
+    translate var(--duration-screen) var(--ease);
+}
+
+/* Follows the finger, without lagging behind. */
+.more.dragged {
+  scale: 1.15;
+  transition: scale var(--duration-dialog) var(--ease);
 }
 
 .more svg {
