@@ -154,6 +154,20 @@ describe('RunRecorder', () => {
     ]);
   });
 
+  it('starts a new run with the next digit once a run is ended', async () => {
+    const recorder = TestBed.inject(RunRecorder);
+
+    press(recorder, '14');
+    recorder.end();
+    press(recorder, '<1');
+    await recorder.saved();
+
+    expect(stored()).toMatchObject([
+      { id: 'run-1', digits: '14', backspaces: [] },
+      { id: 'run-2', digits: '1', times: [0] },
+    ]);
+  });
+
   it('asks for persistent storage when a run starts', async () => {
     const recorder = TestBed.inject(RunRecorder);
 

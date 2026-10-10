@@ -27,8 +27,8 @@ export const RUN_CLOCK = new InjectionToken<RunClock>('RUN_CLOCK', {
  * Backspace leaves no trace (see {@link Run}): it deletes the last digit's record and takes the clock back to when the
  * digit before it was typed, so the next digit's interval runs from the backspace.
  *
- * A run starts with the first digit typed. Deleting every digit deletes the run, as if it had never started, and the
- * next digit starts a new one. For now runs have no other end, until the game checks the digits (`groupings.md` §2).
+ * A run starts with the first digit typed and ends when the game restarts or ends. Deleting every digit deletes the run,
+ * as if it had never started, and the next digit starts a new one.
  */
 @Service()
 export class RunRecorder {
@@ -69,6 +69,11 @@ export class RunRecorder {
     }
     this.run = addDigit(this.run, key, now - this.start - this.rewound);
     this.queue(this.run);
+  }
+
+  /** Ends the current run, as kept so far: the next digit starts a new run. */
+  end(): void {
+    this.run = undefined;
   }
 
   /** Resolves once every key recorded so far is saved. */
