@@ -91,6 +91,7 @@ describe('RunRecorder', () => {
         startedAt: 1_760_000_005_000,
         digits: '14',
         times: [0, 200],
+        backspaces: [],
       },
     ]);
   });
@@ -106,7 +107,7 @@ describe('RunRecorder', () => {
     await recorder.saved();
 
     // As if 1 had come 300ms after 4, with no mistake.
-    expect(stored()).toMatchObject([{ digits: '141', times: [0, 200, 500] }]);
+    expect(stored()).toMatchObject([{ digits: '141', times: [0, 200, 500], backspaces: [3] }]);
   });
 
   it('takes the clock back one digit per backspace', async () => {
@@ -121,7 +122,7 @@ describe('RunRecorder', () => {
     press(recorder, '4');
     await recorder.saved();
 
-    expect(stored()).toMatchObject([{ digits: '14', times: [0, 400] }]);
+    expect(stored()).toMatchObject([{ digits: '14', times: [0, 400], backspaces: [3, 2] }]);
   });
 
   it('starts a run only with a digit', async () => {
@@ -148,6 +149,7 @@ describe('RunRecorder', () => {
         startedAt: 1_760_000_006_000,
         digits: '14',
         times: [0, 200],
+        backspaces: [],
       },
     ]);
   });

@@ -15,6 +15,7 @@ describe('run', () => {
       startedAt: 1_760_000_000_000,
       digits: '',
       times: [],
+      backspaces: [],
     });
   });
 
@@ -25,11 +26,27 @@ describe('run', () => {
     expect(run.times).toEqual([0, 212, 531]);
   });
 
-  it('removes the last digit and its time', () => {
+  it('removes the last digit and its time, and records the place of the backspace apart', () => {
     const run = removeDigit(play(['1', 0], ['5', 212]));
 
     expect(run.digits).toBe('1');
     expect(run.times).toEqual([0]);
+    expect(run.backspaces).toEqual([2]);
+  });
+
+  it('records every backspace, even several at one place', () => {
+    let run = play(['1', 0], ['4', 200], ['5', 400]);
+    run = removeDigit(run);
+    run = addDigit(run, '7', 500);
+    run = removeDigit(run);
+    run = removeDigit(run);
+
+    expect(run.digits).toBe('1');
+    expect(run.backspaces).toEqual([3, 3, 2]);
+  });
+
+  it('records no backspace when there is no digit to delete', () => {
+    expect(removeDigit(empty)).toBe(empty);
   });
 
   it('leaves the run it changes unchanged', () => {
@@ -42,7 +59,7 @@ describe('run', () => {
   });
 
   describe('parseRun', () => {
-    const run = play(['1', 0], ['4', 212], ['1', 531]);
+    const run = removeDigit(play(['1', 0], ['4', 212], ['1', 531], ['9', 700]));
 
     it('reads a valid run', () => {
       expect(parseRun(JSON.parse(JSON.stringify(run)))).toEqual(run);
@@ -69,6 +86,10 @@ describe('run', () => {
       ['an infinite time', { ...run, times: [0, 212, Infinity] }],
       ['a negative time', { ...run, times: [-5, 212, 531] }],
       ['times going back', { ...run, times: [0, 531, 212] }],
+      ['no backspaces', { ...run, backspaces: undefined }],
+      ['a backspace at place 0', { ...run, backspaces: [0] }],
+      ['a backspace between places', { ...run, backspaces: [1.5] }],
+      ['a backspace that is not a number', { ...run, backspaces: ['4'] }],
     ])('rejects %s', (_, value) => {
       expect(parseRun(value)).toBeUndefined();
     });
