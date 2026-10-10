@@ -48,3 +48,8 @@
 
 - **Seed** (player seed): what makes a player's sky, and anything else unique to them, unique. **Seeded** means derived from the seed. See `vision.md` §7.
 - **Player data:** what must never be lost: the seed and the raw timings of every run.
+
+## Developer
+
+- **Developer mode:** a hidden mode for tuning the game, turned on and off by holding the main menu's ⋮ button for 5 seconds, then dragging it onto the target that appears at the bottom of the screen. It adds a Developer section to the ⋮ menu, with a page per thing to tune.
+- **Tweaks:** values tuned in developer mode, such as the key colors and the seasons' colors. They're kept with the player data and apply to the game only while developer mode is on. "Copy all tweaks" copies those that differ from the game's, to be written into the code.
