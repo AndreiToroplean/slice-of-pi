@@ -44,3 +44,10 @@
   padding: var(--space-1) var(--space-3) 1.375rem;
   box-sizing: border-box;
 }
+
+/* In the top corner, over the header. */
+.runs {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+}

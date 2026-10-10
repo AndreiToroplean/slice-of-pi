@@ -1,0 +1,314 @@
+import { TestBed } from '@angular/core/testing';
+import { IDBFactory } from 'fake-indexeddb';
+import { addDigit, newRun, RUN_FORMAT } from './run';
+import {
+  DATABASE_NAME,
+  DATABASE_VERSION,
+  INDEXED_DB,
+  IS_PREVIEW,
+  isPreviewPath,
+  MAIN_FORMAT,
+  META,
+  RunStore,
+  RUNS,
+  STORAGE_MANAGER,
+} from './run-store';
+
+describe('RunStore', () => {
+  let indexedDb: IDBFactory;
+
+  beforeEach(() => {
+    indexedDb = new IDBFactory();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function storeWith(
+    providers: {
+      indexedDb?: IDBFactory | undefined;
+      storage?: StorageManager | undefined;
+      preview?: boolean;
+    } = {},
+  ): RunStore {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: IS_PREVIEW, useValue: providers.preview ?? false },
+        {
+          provide: INDEXED_DB,
+          useValue: 'indexedDb' in providers ? providers.indexedDb : indexedDb,
+        },
+        { provide: STORAGE_MANAGER, useValue: providers.storage },
+      ],
+    });
+    return TestBed.inject(RunStore);
+  }
+
+  /** Opens the database as another tab, or another version of the game, would. */
+  function openDirectly(
+    version?: number,
+    upgrade?: (database: IDBDatabase) => void,
+  ): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDb.open(DATABASE_NAME, version);
+      request.onupgradeneeded = () => upgrade?.(request.result);
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+      request.onerror = () => {
+        reject(new Error('open failed'));
+      };
+    });
+  }
+
+  function put(database: IDBDatabase, records: unknown[]): Promise<void> {
+    return new Promise((resolve) => {
+      const transaction = database.transaction(RUNS, 'readwrite');
+      for (const record of records) {
+        transaction.objectStore(RUNS).put(record);
+      }
+      transaction.oncomplete = () => {
+        resolve();
+      };
+    });
+  }
+
+  const first = addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250);
+  const second = addDigit(newRun('b', 2_000), '1', 0);
+
+  it('has no runs at first', async () => {
+    expect(await storeWith().runs()).toEqual([]);
+  });
+
+  it('keeps the runs saved, oldest first', async () => {
+    const store = storeWith();
+
+    await store.save(second);
+    await store.save(first);
+
+    expect(await store.runs()).toEqual([first, second]);
+  });
+
+  it('replaces an earlier save of the same run', async () => {
+    const store = storeWith();
+
+    await store.save(first);
+    const longer = addDigit(first, '1', 600);
+    await store.save(longer);
+
+    expect(await store.runs()).toEqual([longer]);
+  });
+
+  it('deletes a run', async () => {
+    const store = storeWith();
+    await store.save(first);
+    await store.save(second);
+
+    await store.delete(first.id);
+
+    expect(await store.runs()).toEqual([second]);
+  });
+
+  it('keeps the runs for the next visit', async () => {
+    await storeWith().save(first);
+    TestBed.resetTestingModule();
+
+    expect(await storeWith().runs()).toEqual([first]);
+  });
+
+  it('skips records it cannot read, and leaves them in the database', async () => {
+    const store = storeWith();
+    await store.save(first);
+    const database = await openDirectly();
+    const future = { ...second, format: RUN_FORMAT + 1, rhythm: [] };
+    await put(database, [future, { id: 'broken' }]);
+    database.close();
+
+    expect(await store.runs()).toEqual([first]);
+    const after = await openDirectly();
+    const count = await new Promise<number>((resolve) => {
+      const request = after.transaction(RUNS).objectStore(RUNS).count();
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+    });
+    expect(count).toBe(3);
+  });
+
+  it('opens a database a newer version of the game upgraded', async () => {
+    const database = await openDirectly(DATABASE_VERSION + 1, (upgraded) => {
+      upgraded.createObjectStore(RUNS, { keyPath: 'id' });
+      upgraded.createObjectStore(META);
+      upgraded.createObjectStore('future');
+    });
+    await put(database, [first]);
+    database.close();
+
+    const store = storeWith();
+    await store.save(second);
+
+    expect(await store.runs()).toEqual([first, second]);
+  });
+
+  it('adds the runs not stored yet, leaving the stored ones as they are', async () => {
+    const store = storeWith();
+    await store.save(first);
+
+    const changed = addDigit(first, '1', 400);
+    expect(await store.addRuns([changed, second])).toBe(1);
+    expect(await store.addRuns([second])).toBe(0);
+    expect(await store.runs()).toEqual([first, second]);
+  });
+
+  it('keeps nothing without IndexedDB', async () => {
+    const store = storeWith({ indexedDb: undefined });
+
+    await store.save(first);
+    await store.delete(first.id);
+
+    expect(await store.addRuns([first])).toBe(0);
+    expect(await store.runs()).toEqual([]);
+  });
+
+  it('keeps nothing when the database fails to open', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(indexedDb, 'open').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+    const store = storeWith();
+
+    await store.save(first);
+
+    expect(await store.runs()).toEqual([]);
+    expect(error).toHaveBeenCalledOnce();
+  });
+
+  it('opens a database of an older layout, adding the stores it lacks', async () => {
+    const database = await openDirectly(1, (created) => {
+      created.createObjectStore(RUNS, { keyPath: 'id' });
+    });
+    await put(database, [first]);
+    database.close();
+
+    const store = storeWith();
+    await store.save(second);
+
+    expect(await store.runs()).toEqual([first, second]);
+  });
+
+  describe('in a pull request preview', () => {
+    /** Reads what the main game noted about its run format. */
+    async function mainFormat(): Promise<unknown> {
+      const database = await openDirectly();
+      const value = await new Promise((resolve) => {
+        const request = database.transaction(META).objectStore(META).get(MAIN_FORMAT);
+        request.onsuccess = () => {
+          resolve(request.result);
+        };
+      });
+      database.close();
+      return value;
+    }
+
+    async function noteMainFormat(format: number): Promise<void> {
+      const database = await openDirectly();
+      await new Promise<void>((resolve) => {
+        const transaction = database.transaction(META, 'readwrite');
+        transaction.objectStore(META).put({ format }, MAIN_FORMAT);
+        transaction.oncomplete = () => {
+          resolve();
+        };
+      });
+      database.close();
+    }
+
+    it('lets the main game note its run format', async () => {
+      const store = storeWith();
+
+      expect(await store.writable()).toBe(true);
+      expect(await mainFormat()).toEqual({ format: RUN_FORMAT });
+    });
+
+    it("uses the main game's runs, and keeps runs, when its run format is the main game's", async () => {
+      await storeWith().save(first);
+      TestBed.resetTestingModule();
+      const preview = storeWith({ preview: true });
+
+      await preview.save(second);
+
+      expect(await preview.writable()).toBe(true);
+      expect(await preview.runs()).toEqual([first, second]);
+    });
+
+    it("reads the main game's runs but writes nothing when its run format is not the main game's", async () => {
+      await storeWith().save(first);
+      TestBed.resetTestingModule();
+      await noteMainFormat(RUN_FORMAT - 1);
+      const preview = storeWith({ preview: true });
+
+      await preview.save(second);
+      await preview.delete(first.id);
+
+      expect(await preview.writable()).toBe(false);
+      expect(await preview.addRuns([second])).toBe(0);
+      expect(await preview.runs()).toEqual([first]);
+      expect(await mainFormat()).toEqual({ format: RUN_FORMAT - 1 });
+    });
+
+    it('keeps runs when the main game has never opened the database', async () => {
+      const preview = storeWith({ preview: true });
+
+      await preview.save(first);
+
+      expect(await preview.writable()).toBe(true);
+      expect(await preview.runs()).toEqual([first]);
+      expect(await mainFormat()).toBeUndefined();
+    });
+
+    it('is told apart from the main game by its path', () => {
+      expect(isPreviewPath('/slice-of-pi/pr-13/')).toBe(true);
+      expect(isPreviewPath('/slice-of-pi/')).toBe(false);
+      expect(isPreviewPath('/')).toBe(false);
+      expect(isPreviewPath('/slice-of-pi/pr-13/play')).toBe(false);
+    });
+  });
+
+  describe('persistent storage', () => {
+    const persist = vi.fn<() => Promise<boolean>>();
+
+    function storageManager(persisted: boolean, granted: boolean): StorageManager {
+      persist.mockReset().mockResolvedValue(granted);
+      return {
+        persisted: () => Promise.resolve(persisted),
+        persist,
+      } as Partial<StorageManager> as StorageManager;
+    }
+
+    it('asks the browser to keep the storage', async () => {
+      const store = storeWith({ storage: storageManager(false, true) });
+
+      expect(await store.persist()).toBe(true);
+      expect(persist).toHaveBeenCalledOnce();
+    });
+
+    it('gives whether the browser agreed', async () => {
+      expect(await storeWith({ storage: storageManager(false, false) }).persist()).toBe(false);
+    });
+
+    it('does not ask again once the storage is persistent', async () => {
+      const store = storeWith({ storage: storageManager(true, true) });
+
+      expect(await store.persisted()).toBe(true);
+      expect(await store.persist()).toBe(true);
+      expect(persist).not.toHaveBeenCalled();
+    });
+
+    it('is not persistent where the browser cannot make it so', async () => {
+      const store = storeWith({ storage: undefined });
+
+      expect(await store.persisted()).toBe(false);
+      expect(await store.persist()).toBe(false);
+    });
+  });
+});
