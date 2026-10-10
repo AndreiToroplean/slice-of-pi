@@ -11,6 +11,13 @@ import { seasonAt } from '../seasons/seasons';
 import { Play } from './play';
 
 describe('Play', () => {
+  // Compiles the play screen once, before its tests, so that the first one doesn't pay for it.
+  beforeAll(async () => {
+    const fixture = TestBed.createComponent(Play);
+    await fixture.whenStable();
+    TestBed.resetTestingModule();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
