@@ -20,6 +20,7 @@ import { RunRecorder } from '../runs/run-recorder';
 import { KeypadKey } from '../keypad/keypad-layout';
 import { SeasonHeader } from '../season-header/season-header';
 import { seasonAt } from '../seasons/seasons';
+import { Tweaks } from '../developer/tweaks';
 import { Slots } from '../slots/slots';
 import { TypedDigits } from '../typed-digits/typed-digits';
 
@@ -53,6 +54,9 @@ export class Play {
   /** The decimals typed so far: one character per digit, so even a very long sequence takes little memory. */
   protected readonly digits = signal('');
 
+  /** The colors tuned in developer mode, or the game's own. */
+  private readonly tweaks = inject(Tweaks);
+
   /** Whether the game is paused: keys typed on a keyboard meanwhile don't count. */
   protected readonly paused = signal(false);
 
@@ -60,16 +64,20 @@ export class Play {
   protected readonly grouping = computed(() => groupDigits(this.digits(), this.hint));
 
   /** The color of each typed place (`colors.md`). */
-  protected readonly placeColors = computed(() => placeColors(this.digits()));
+  protected readonly placeColors = computed(() =>
+    placeColors(this.digits(), this.tweaks.palette()),
+  );
   /** The colors of the digits of the group being typed. */
   protected readonly currentColors = computed(() =>
     this.placeColors().slice(this.digits().length - this.grouping().current.length),
   );
   /** Each key's color: the color its digit takes when typed next. */
-  protected readonly keyColors = computed(() => keyColors(this.digits()));
+  protected readonly keyColors = computed(() => keyColors(this.digits(), this.tweaks.palette()));
 
   /** The season, and the background's colors, after the places typed so far. */
-  protected readonly season = computed(() => seasonAt(this.digits().length));
+  protected readonly season = computed(() =>
+    seasonAt(this.digits().length, this.tweaks.seasonBackgrounds()),
+  );
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);

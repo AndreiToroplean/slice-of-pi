@@ -16,7 +16,9 @@ import { Menu } from '../menu/menu';
 import { PALETTE, placeColors } from '../place-colors/place-colors';
 import { RunRecorder } from '../runs/run-recorder';
 import { TypedDigits } from '../typed-digits/typed-digits';
-import { seasonAt } from '../seasons/seasons';
+import { backgroundsFrom, seasonAt } from '../seasons/seasons';
+import { DeveloperMode } from '../developer/developer-mode';
+import { Tweaks } from '../developer/tweaks';
 import { Play } from './play';
 
 describe('Play', () => {
@@ -176,6 +178,19 @@ describe('Play', () => {
       expect(keyColor(host, '1')).toBe(PALETTE[3]);
     });
 
+    it('uses the key colors tuned in developer mode', async () => {
+      const tuned = PALETTE.map((_, i) => `#00000${String(i)}`);
+      await TestBed.inject(Tweaks).setPalette(tuned);
+      await TestBed.inject(DeveloperMode).set(true);
+      const { host, type } = await setUp();
+      expect(keyColor(host, '1')).toBe('#000001');
+
+      await typeAll(type, '1');
+
+      expect(placeColorsShown(host, 'app-slots .slot')).toEqual(['#000001']);
+      expect(keyColor(host, '1')).toBe('#000002');
+    });
+
     it('keeps the colors of the digits in their words and in the group being typed', async () => {
       const { host, type } = await setUp();
 
@@ -296,6 +311,20 @@ describe('Play', () => {
     expect(TestBed.inject(Background).colors()).toEqual(seasonAt(0).background);
     expect(host.querySelector('app-season-header .place')?.textContent.trim()).toBe(
       'Year 1 · digit 0 of 100',
+    );
+  });
+
+  it('uses the season colors tuned in developer mode', async () => {
+    const black = ['#000000', '#000000'] as const;
+    const seasons = { spring: black, summer: black, autumn: black, winter: black };
+    await TestBed.inject(Tweaks).setSeasons(seasons);
+    await TestBed.inject(DeveloperMode).set(true);
+    const { type } = await setUp();
+
+    await type('1');
+
+    expect(TestBed.inject(Background).colors()).toEqual(
+      seasonAt(1, backgroundsFrom(seasons)).background,
     );
   });
 

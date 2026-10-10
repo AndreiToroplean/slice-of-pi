@@ -110,9 +110,23 @@ describe('frozen colors', () => {
   });
 
   it('keeps the colors of the first 50 places of π', () => {
-    expect(placeColors(DECIMALS).map((color) => PALETTE.indexOf(color))).toEqual([
+    expect(
+      placeColors(DECIMALS).map((color) =>
+        PALETTE.findIndex((paletteColor) => paletteColor === color),
+      ),
+    ).toEqual([
       1, 4, 2, 5, 9, 2, 6, 6, 3, 7, 8, 0, 7, 1, 4, 3, 5, 9, 5, 7, 4, 8, 6, 6, 7, 0, 8, 5, 8, 2, 8,
       0, 6, 1, 2, 7, 3, 3, 9, 4, 9, 4, 9, 5, 6, 0, 0, 9, 5, 1,
     ]);
+  });
+});
+
+describe('with a tuned palette', () => {
+  const tuned = PALETTE.map((_, i) => `#00000${String(i)}`);
+
+  it('steps through that palette instead', () => {
+    expect(occurrenceColor('7', 4, tuned)).toBe('#000001');
+    expect(placeColors('1415', tuned)).toEqual(['#000001', '#000004', '#000002', '#000005']);
+    expect(keyColors('11', tuned)['1']).toBe('#000003');
   });
 });

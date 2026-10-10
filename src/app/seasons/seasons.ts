@@ -11,8 +11,13 @@ export const PLACES_PER_SEASON = PLACES_PER_YEAR / SEASONS.length;
 /** A pair of background colors, top then bottom, as `#rrggbb`. */
 export type BackgroundColors = readonly [top: string, bottom: string];
 
-/** Each season's background at its start and once it has drifted, just before it turns into the next season. */
-const BACKGROUNDS: Record<Season, { early: BackgroundColors; late: BackgroundColors }> = {
+/** Each season's background at its start (`early`) and once it has drifted, just before it turns into the next season. */
+export type SeasonBackgrounds = Readonly<
+  Record<Season, { readonly early: BackgroundColors; readonly late: BackgroundColors }>
+>;
+
+/** The seasons' backgrounds, unless tuned in developer mode. */
+export const SEASON_BACKGROUNDS: SeasonBackgrounds = {
   spring: { early: ['#ffb3d1', '#7fd6a6'], late: ['#ff9fc4', '#5fc993'] },
   summer: { early: ['#ffc35a', '#38b6ea'], late: ['#ffab3d', '#1fa2df'] },
   autumn: { early: ['#ee8a45', '#9b4f86'], late: ['#d9683a', '#7a3f78'] },
@@ -41,7 +46,10 @@ export interface SeasonView {
  * the next season's early colors over its last 20%. The colors are decorative and free to tune; what must not change
  * is the structure: a year is 100 places, split into four equal seasons.
  */
-export function seasonAt(places: number): SeasonView {
+export function seasonAt(
+  places: number,
+  backgrounds: SeasonBackgrounds = SEASON_BACKGROUNDS,
+): SeasonView {
   const placeInYear = places % PLACES_PER_YEAR;
   const index = Math.floor(placeInYear / PLACES_PER_SEASON);
   const season = seasonByIndex(index);
@@ -49,8 +57,8 @@ export function seasonAt(places: number): SeasonView {
   const t = (placeInYear % PLACES_PER_SEASON) / PLACES_PER_SEASON;
   const drift = Math.min(1, t / TURN_START);
   const turn = smoothstep(TURN_START, 1, t);
-  const { early, late } = BACKGROUNDS[season];
-  const target = BACKGROUNDS[next].early;
+  const { early, late } = backgrounds[season];
+  const target = backgrounds[next].early;
   const color = (k: 0 | 1): string => mix(mix(early[k], late[k], drift), target[k], turn);
   return {
     season,
@@ -81,15 +89,45 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
 export function mix(a: string, b: string, t: number): string {
   const from = channels(a);
   const to = channels(b);
-  return `#${from
-    .map((value, i) =>
-      Math.round(value + ((to[i] ?? value) - value) * t)
-        .toString(16)
-        .padStart(2, '0'),
-    )
-    .join('')}`;
+  return hex(from.map((value, i) => value + ((to[i] ?? value) - value) * t));
 }
 
 function channels(color: string): number[] {
   return [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
+}
+
+/**
+ * The seasons' backgrounds from their starting colors only: each season drifts from them as far, channel by channel, as
+ * it does in {@link SEASON_BACKGROUNDS}.
+ */
+export function backgroundsFrom(
+  early: Readonly<Record<Season, BackgroundColors>>,
+): SeasonBackgrounds {
+  const drift = (season: Season, k: 0 | 1): string => {
+    const start = channels(early[season][k]);
+    const from = channels(SEASON_BACKGROUNDS[season].early[k]);
+    const to = channels(SEASON_BACKGROUNDS[season].late[k]);
+    return hex(start.map((value, i) => value + (to[i] ?? 0) - (from[i] ?? 0)));
+  };
+  const season = (name: Season): { early: BackgroundColors; late: BackgroundColors } => ({
+    early: early[name],
+    late: [drift(name, 0), drift(name, 1)],
+  });
+  return {
+    spring: season('spring'),
+    summer: season('summer'),
+    autumn: season('autumn'),
+    winter: season('winter'),
+  };
+}
+
+/** A `#rrggbb` color from its channels, each kept between 0 and 255. */
+function hex(values: readonly number[]): string {
+  return `#${values
+    .map((value) =>
+      Math.min(255, Math.max(0, Math.round(value)))
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')}`;
 }
