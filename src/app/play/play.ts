@@ -15,6 +15,7 @@ import { DEFAULT_HINT, groupDigits } from '../groups/groups';
 import { Keypad } from '../keypad/keypad';
 import { keyColors, placeColors } from '../place-colors/place-colors';
 import { Pause } from '../pause/pause';
+import { RunRecorder } from '../runs/run-recorder';
 import { KeypadKey } from '../keypad/keypad-layout';
 import { SeasonHeader } from '../season-header/season-header';
 import { seasonAt } from '../seasons/seasons';
@@ -25,7 +26,7 @@ import { TypedDigits } from '../typed-digits/typed-digits';
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
  * flies up to the typed digits as a word, as the seasons go by. Each typed digit takes the color its key showed.
  * Backspace deletes the last digit, reopening the last word when the slots are empty. Pausing offers to restart the game
- * or end it, back to the main menu.
+ * or end it, back to the main menu. Every key is recorded, with its time, in the player's runs.
  */
 @Component({
   selector: 'app-play',
@@ -70,6 +71,7 @@ export class Play {
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
+  private readonly recorder = inject(RunRecorder);
   private readonly typedDigits = viewChild.required(TypedDigits);
   /** Slots flying into their word. */
   private flights: Animation[] = [];
@@ -85,6 +87,7 @@ export class Play {
     if (this.paused()) {
       return;
     }
+    this.recorder.record(key);
     if (key === 'backspace') {
       this.landFlights();
       this.digits.update((digits) => digits.slice(0, -1));
