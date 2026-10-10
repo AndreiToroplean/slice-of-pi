@@ -10,6 +10,10 @@ describe('Menu', () => {
     TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   async function setUp(): Promise<HTMLElement> {
     const fixture = TestBed.createComponent(Menu);
     await fixture.whenStable();
@@ -39,12 +43,37 @@ describe('Menu', () => {
     expect(TestBed.inject(Background).colors()).toEqual(seasonAt(0).background);
   });
 
-  it("opens the player's runs from a button in a corner", async () => {
+  it("has an overflow menu in a corner, with a link to the player's data", async () => {
     const host = await setUp();
 
-    expect(host.querySelector('app-runs-dialog button.open')?.getAttribute('aria-label')).toBe(
-      'Your runs',
-    );
+    const more = host.querySelector('button.more');
+    expect(more?.getAttribute('aria-label')).toBe('More');
+    const dropdown = host.querySelector(`#${more?.getAttribute('popovertarget') ?? ''}`);
+    expect(dropdown?.hasAttribute('popover')).toBe(true);
+    const links = Array.from(dropdown?.querySelectorAll('a') ?? [], (link) => [
+      link.textContent.trim(),
+      link.getAttribute('href'),
+    ]);
+    expect(links).toEqual([['Your data', '/data']]);
+  });
+
+  it('opens the overflow menu just under its button', async () => {
+    const fixture = TestBed.createComponent(Menu);
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+    const more = host.querySelector('button.more');
+    const dropdown = host.querySelector<HTMLElement>('.dropdown');
+    if (more === null || dropdown === null) {
+      throw new Error('No overflow menu');
+    }
+    more.getBoundingClientRect = () => new DOMRect(300, 10, 44, 44);
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(360);
+
+    dropdown.dispatchEvent(new Event('beforetoggle'));
+    await fixture.whenStable();
+
+    expect(dropdown.style.top).toBe('60px');
+    expect(dropdown.style.right).toBe('16px');
   });
 
   it('starts a game with the play button', async () => {
