@@ -123,6 +123,12 @@ describe('Menu', () => {
       await fixture.whenStable();
 
       expect(developerSection(host)?.querySelector('h2')?.textContent).toBe('Developer');
+      expect(
+        Array.from(developerSection(host)?.querySelectorAll('a') ?? [], (link) => [
+          link.textContent.trim(),
+          link.getAttribute('href'),
+        ]),
+      ).toEqual([['Key colors', '/developer/key-colors']]);
     });
 
     it('copies all tweaks, and says so for a moment', async () => {

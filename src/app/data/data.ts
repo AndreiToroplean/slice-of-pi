@@ -1,5 +1,5 @@
 import { Component, computed, inject, InjectionToken, signal } from '@angular/core';
-import { injectBackToMenu } from '../menu/back-to-menu';
+import { PageHeader } from '../page-header/page-header';
 import { backupFileName, readBackup, writeBackup } from '../runs/backup';
 import { Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
@@ -28,15 +28,10 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
  */
 @Component({
   selector: 'app-data',
-  imports: [RunChart],
+  imports: [PageHeader, RunChart],
   host: { class: 'screen' },
   template: `
-    <header>
-      <button type="button" class="frosted back" aria-label="Back" (click)="back()">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
-      </button>
-      <h1>Your data</h1>
-    </header>
+    <app-page-header title="Your data" />
     <section class="panel" aria-labelledby="backup-title">
       <h2 id="backup-title">Backup</h2>
       <p>{{ count() }}</p>
@@ -115,7 +110,6 @@ export class Data {
   /** Whether this is a preview that can't keep runs (see {@link RunStore}). */
   protected readonly readOnlyPreview = signal(false);
   protected readonly message = signal('');
-  protected readonly back = injectBackToMenu();
 
   private readonly runs = signal<readonly Run[]>([]);
   protected readonly charts = computed(() =>

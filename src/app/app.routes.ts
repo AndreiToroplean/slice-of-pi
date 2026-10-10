@@ -13,5 +13,9 @@ export const routes: Routes = [
     path: 'data',
     loadComponent: () => import('./data/data').then((m) => m.Data),
   },
+  {
+    path: 'developer/key-colors',
+    loadComponent: () => import('./developer/key-colors').then((m) => m.KeyColors),
+  },
   { path: '**', redirectTo: '' },
 ];
