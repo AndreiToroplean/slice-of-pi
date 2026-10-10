@@ -41,6 +41,23 @@ export class RunStore {
     await completion(transaction);
   }
 
+  /** Adds the runs not stored yet, such as those of a backup, leaving the runs already stored as they are. */
+  async addRuns(runs: readonly Run[]): Promise<number> {
+    const database = await this.open();
+    if (database === undefined) {
+      return 0;
+    }
+    const transaction = database.transaction(RUNS, 'readwrite');
+    const store = transaction.objectStore(RUNS);
+    const stored = new Set(await result(store.getAllKeys()));
+    const added = runs.filter((run) => !stored.has(run.id));
+    for (const run of added) {
+      store.add(run);
+    }
+    await completion(transaction);
+    return added.length;
+  }
+
   /**
    * Every run stored in a format this version of the game knows, oldest first. Records in other formats are left in
    * the database, untouched.
