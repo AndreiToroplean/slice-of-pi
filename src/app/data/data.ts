@@ -5,9 +5,9 @@ import { Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
 import { IS_PREVIEW, RunStore } from '../runs/run-store';
 import { GroupingSettings } from '../timing/grouping-settings';
-import { analyzeRun, RunPlace } from '../timing/timing-model';
+import { aggregate, analyzeRun, isConfident } from '../timing/timing-model';
 import { RunChart } from './run-chart';
-import { average, ChartBreak, chartTop, digitTimes } from './run-charts';
+import { ChartBreak, chartTop, digitTimes } from './run-charts';
 
 /** Hands a file to the player, as a download. */
 export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void>('SAVE_FILE', {
@@ -81,7 +81,7 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
           <li><i class="pace"></i>Pace around it</li>
           <li><i class="threshold"></i>Pause threshold</li>
           <li><i class="break"></i>Break between groups</li>
-          <li><i class="trust"></i>Trust</li>
+          <li><i class="trust"></i>Trust, or confidence for all runs</li>
         </ul>
         @for (chart of charts(); track chart.id) {
           <article class="panel">
@@ -101,16 +101,23 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
         }
         <article class="panel summary">
           <h3>All runs</h3>
-          <p class="meta">Average time per digit</p>
+          <p class="meta">{{ aggregateMeta() }}</p>
           <app-run-chart
-            [values]="averageTimes()"
+            [values]="aggregateChart().times"
+            [breaks]="aggregateChart().breaks"
+            [trust]="aggregateChart().confidence"
             [places]="places()"
             [top]="top()"
-            label="Average time per digit, over all runs"
+            label="Time per digit over all runs, recent ones weighing more, with the breaks they agree on"
           />
           <p class="axis" aria-hidden="true">
             <span>Place 1</span><span>Place {{ places() }}</span>
           </p>
+          <ul class="groups" aria-label="Your groups">
+            @for (group of groups(); track group.start) {
+              <li [class.unsure]="!group.confident">{{ group.digits }}</li>
+            }
+          </ul>
         </article>
       }
     </section>
@@ -153,9 +160,36 @@ export class Data {
     Math.max(1, ...this.runs().map((run) => run.digits.length)),
   );
   protected readonly top = computed(() => chartTop(this.charts().map((chart) => chart.times)));
-  protected readonly averageTimes = computed(() =>
-    average(this.charts().map((chart) => chart.times)),
+  /** The runs' verdicts combined: the groups the game plays with. */
+  private readonly aggregate = computed(() => aggregate(this.analyses(), this.settings()));
+  protected readonly aggregateChart = computed(() => {
+    const places = this.aggregate().places;
+    return {
+      times: places.map((place) => place?.time),
+      breaks: places.flatMap((place, i) =>
+        place?.isBreak === true ? [{ place: i, strength: place.confidence }] : [],
+      ),
+      confidence: places.map((place) => place?.confidence),
+    };
+  });
+  /** Every run types the digits of π, so the longest one has the digits of every group. */
+  private readonly digits = computed(() =>
+    this.runs().reduce(
+      (longest, run) => (run.digits.length > longest.length ? run.digits : longest),
+      '',
+    ),
   );
+  protected readonly groups = computed(() =>
+    this.aggregate().groups.map((group) => ({
+      start: group.start,
+      digits: this.digits().slice(group.start, group.start + group.size),
+      confident: isConfident(group, this.settings()),
+    })),
+  );
+  protected readonly aggregateMeta = computed(() => {
+    const confident = this.groups().filter((group) => group.confident).length;
+    return `${plural(this.groups().length, 'group')}, ${String(confident)} sure enough to set the hint; dotted ones get the default of 5`;
+  });
 
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
@@ -216,7 +250,9 @@ export class Data {
   }
 }
 
-function breaksOf(places: readonly (RunPlace | undefined)[]): ChartBreak[] {
+function breaksOf(
+  places: readonly ({ isBreak: boolean; trust: number } | undefined)[],
+): ChartBreak[] {
   return places.flatMap((place, i) =>
     place?.isBreak === true ? [{ place: i, strength: place.trust }] : [],
   );

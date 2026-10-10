@@ -1,5 +1,5 @@
 import { addDigit, newRun, Run } from '../runs/run';
-import { areaPath, average, CHART_HEIGHT, chartPath, chartTop, digitTimes } from './run-charts';
+import { areaPath, CHART_HEIGHT, chartPath, chartTop, digitTimes } from './run-charts';
 
 describe('run charts', () => {
   function runAt(times: number[]): Run {
@@ -13,21 +13,6 @@ describe('run charts', () => {
 
     it('gives nothing for a run without digits', () => {
       expect(digitTimes(newRun('run', 0))).toEqual([]);
-    });
-  });
-
-  describe('average', () => {
-    it('averages each place over the series that reach it', () => {
-      expect(
-        average([
-          [undefined, 300, 200],
-          [undefined, 100],
-        ]),
-      ).toEqual([undefined, 200, 200]);
-    });
-
-    it('gives nothing without series', () => {
-      expect(average([])).toEqual([]);
     });
   });
 

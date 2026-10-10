@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { IDBFactory } from 'fake-indexeddb';
+import { Digit } from '../digit';
 import { BACKUP_KIND, readBackup, writeBackup } from '../runs/backup';
 import { addDigit, newRun, Run, RUN_FORMAT } from '../runs/run';
 import { RUN_CLOCK } from '../runs/run-recorder';
@@ -20,6 +21,12 @@ import { Data, SAVE_FILE } from './data';
 describe('Data', () => {
   const first = addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250);
   const second = addDigit(newRun('b', 2_000), '1', 0);
+  // Groups of 3: 200 ms between digits, 700 ms before every fourth.
+  const grouped = Array.from('141592653589').reduce(
+    (run, digit, i) =>
+      addDigit(run, digit as Digit, i === 0 ? 0 : (run.times.at(-1) ?? 0) + (i % 3 ? 200 : 700)),
+    newRun('c', 3_000),
+  );
   let saved: { name: string; text: string }[];
 
   beforeEach(() => {
@@ -245,7 +252,7 @@ describe('Data', () => {
     expect(Array.from(host.querySelectorAll('.runs .meta'), (meta) => meta.textContent)).toEqual([
       '2 digits in 0.3 s · 1 group',
       '1 digit in 0.0 s · 1 group',
-      'Average time per digit',
+      '1 group, 0 sure enough to set the hint; dotted ones get the default of 5',
     ]);
     const labels = Array.from(host.querySelectorAll('app-run-chart svg'), (svg) =>
       svg.getAttribute('aria-label'),
@@ -253,16 +260,11 @@ describe('Data', () => {
     expect(labels).toEqual([
       `Time per digit, ${format.format(1_000)}`,
       `Time per digit, ${format.format(2_000)}`,
-      'Average time per digit, over all runs',
+      'Time per digit over all runs, recent ones weighing more, with the breaks they agree on',
     ]);
   });
 
   it('marks the breaks of each run on its chart, and counts its groups', async () => {
-    // Groups of 3: 200 ms between digits, 700 ms before every fourth.
-    const grouped = Array.from({ length: 12 }, (_, i) => i).reduce(
-      (run, i) => addDigit(run, '1', i === 0 ? 0 : (run.times.at(-1) ?? 0) + (i % 3 ? 200 : 700)),
-      newRun('c', 3_000),
-    );
     const { host } = await setUp([grouped]);
 
     const chart = host.querySelector('.runs article app-run-chart');
@@ -271,6 +273,26 @@ describe('Data', () => {
     ).toEqual(['2.5', '5.5', '8.5']);
     expect(chart?.querySelector('.pace')).not.toBeNull();
     expect(host.querySelector('.runs .meta')?.textContent).toBe('12 digits in 3.7 s · 4 groups');
+  });
+
+  it('shows the groups of all runs, dotted where the hint keeps its default', async () => {
+    const { host } = await setUp([grouped]);
+
+    expect(
+      Array.from(host.querySelectorAll('.groups li'), (group) => [
+        group.textContent.trim(),
+        group.classList.contains('unsure'),
+      ]),
+    ).toEqual([
+      ['141', false],
+      ['592', false],
+      ['653', false],
+      ['589', true],
+    ]);
+    expect(host.querySelector('.summary .meta')?.textContent).toBe(
+      '4 groups, 3 sure enough to set the hint; dotted ones get the default of 5',
+    );
+    expect(host.querySelectorAll('.summary .break')).toHaveLength(3);
   });
 
   it('spans every chart over the places of the longest run', async () => {

@@ -11,15 +11,6 @@ export function digitTimes(run: Run): Series {
   return run.times.map((time, i) => (i === 0 ? undefined : time - (run.times[i - 1] ?? 0)));
 }
 
-/** The average of the series at each place, over those that have a value there. */
-export function average(series: readonly Series[]): Series {
-  const length = Math.max(0, ...series.map((values) => values.length));
-  return Array.from({ length }, (_, i) => {
-    const values = series.flatMap((values) => values[i] ?? []);
-    return values.length === 0 ? undefined : values.reduce((a, b) => a + b, 0) / values.length;
-  });
-}
-
 /**
  * The time at the top of the charts, in milliseconds, the same for every chart so that they compare: whole seconds,
  * enough for nearly every digit. The longest pauses are cut off, so they don't flatten everything else.
