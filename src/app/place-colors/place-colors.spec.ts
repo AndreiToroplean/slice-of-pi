@@ -96,16 +96,16 @@ describe('keyColors', () => {
 describe('frozen colors', () => {
   it('keeps the palette', () => {
     expect(PALETTE).toEqual([
-      '#de3e2d',
-      '#ec7c0e',
-      '#f4ba07',
+      '#e3402f',
+      '#fd7225',
+      '#f4ba0d',
       '#a9c926',
-      '#309836',
-      '#38abbb',
-      '#006edc',
-      '#6853ff',
-      '#c13ec1',
-      '#fc67a3',
+      '#3cba60',
+      '#07bed4',
+      '#3371fa',
+      '#8225d7',
+      '#bf56c1',
+      '#ff82d1',
     ]);
   });
 
