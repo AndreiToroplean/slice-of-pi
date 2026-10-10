@@ -2,10 +2,10 @@
   flex: 1;
   min-height: 0;
   position: relative;
-  /* The background and everything on it: header, tape and keypad. */
+  /* The background and everything on it: header, typed digits, slots and keypad. Slots fly over all of them. */
   isolation: isolate;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   background: linear-gradient(172deg, var(--background-top), var(--background-bottom));
   /*
    * Each digit eases the background towards its new colors. A new digit restarts the transition from wherever the
@@ -34,8 +34,8 @@
   );
 }
 
-.tape {
-  min-height: 0;
+.slots {
+  padding: var(--space-1) 0.875rem 0.75rem;
 }
 
 .keypad {

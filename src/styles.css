@@ -17,11 +17,22 @@
   --frost-pressed: rgb(255 255 255 / 45%);
   --frost-highlight: rgb(255 255 255 / 45%);
   --frost-blur: 10px;
+  /* Empty slots in the typing area. */
+  --frost-slot: rgb(255 255 255 / 20%);
+
+  /*
+   * A typed digit's slot or tile. One color for every place until each place gets its own color (`colors.md`), which
+   * will set these per place.
+   */
+  --place-color: rgb(255 255 255 / 86%);
+  --on-place-color: var(--ink);
 
   --font-ui: 'Lexend', system-ui, sans-serif;
   --font-digits: 'Fredoka', system-ui, sans-serif;
 
   --radius-key: 1.25rem;
+  --radius-slot: 0.875rem;
+  --radius-slot-dense: 0.5625rem;
   --space-1: 0.375rem;
   --space-2: 0.5625rem;
   --space-3: 1.125rem;
@@ -60,6 +71,20 @@ body {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* A filled slot flying into its word (see `flight.ts`), over the whole play screen. */
+.flying-slot {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  pointer-events: none;
+  background: var(--place-color);
+  color: var(--on-place-color);
+  font-family: var(--font-digits);
+  font-weight: 600;
 }
 
 @media (prefers-reduced-motion: reduce) {
