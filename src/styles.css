@@ -12,6 +12,16 @@
   --text-shadow-large: 0 2px 10px rgb(0 0 0 / 18%);
   --focus-ring: #ffffff;
 
+  /* Candy buttons (`.candy`): a face, the text on it, and a darker edge below it. */
+  --candy: #ffffff;
+  --on-candy: var(--ink);
+  --candy-edge: #d9cfe0;
+  --candy-primary: #ffc35a;
+  --candy-primary-edge: #e3962b;
+  --candy-danger: #d63b41;
+  --on-candy-danger: #ffffff;
+  --candy-danger-edge: #a1262c;
+
   /* Frosted surfaces over the background, such as keys. */
   --frost: rgb(255 255 255 / 26%);
   --frost-pressed: rgb(255 255 255 / 45%);
@@ -26,6 +36,11 @@
    */
   --place-color: rgb(255 255 255 / 86%);
   --on-place-color: var(--ink);
+
+  /* Motion: one easing, one duration for dialogs and one for going between screens. */
+  --ease: cubic-bezier(0.7, 0, 0.3, 1);
+  --duration-dialog: 0.1s;
+  --duration-screen: 0.175s;
 
   --font-ui: 'Lexend', system-ui, sans-serif;
   --font-digits: 'Fredoka', system-ui, sans-serif;
@@ -43,7 +58,7 @@
   font-size-adjust: from-font;
 }
 
-/* The season background's colors, registered as colors so the background can transition between them (see play.css). */
+/* The season background's colors, registered as colors so the background can transition between them (see `.season-background`). */
 @property --background-top {
   syntax: '<color>';
   inherits: false;
@@ -71,6 +86,174 @@ body {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* The season background behind the screens (see `background.ts`), from its `--background-top` and `--background-bottom` colors. */
+.season-background {
+  position: relative;
+  /* The background and everything on it. */
+  isolation: isolate;
+  background: linear-gradient(172deg, var(--background-top), var(--background-bottom));
+  /*
+   * Each digit eases the background towards its new colors. A new digit restarts the transition from wherever the
+   * colors are, so the background glides along at any typing pace, trailing by a fraction of a second at most.
+   */
+  transition:
+    --background-top 0.8s ease-out,
+    --background-bottom 0.8s ease-out;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Shade the top and bottom of the background a little, behind a screen's header and its controls. */
+.season-background::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgb(40 20 60 / 16%),
+    transparent 30%,
+    transparent 55%,
+    rgb(30 20 60 / 18%)
+  );
+}
+
+/* A frosted button over the background, like the keys: the background shows through, blurred. */
+.frosted {
+  border: none;
+  background: var(--frost);
+  -webkit-backdrop-filter: blur(var(--frost-blur));
+  backdrop-filter: blur(var(--frost-blur));
+  box-shadow: inset 0 1px 0 var(--frost-highlight);
+  color: var(--on-background);
+  text-shadow: var(--text-shadow);
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition:
+    scale 0.08s,
+    background-color 0.15s;
+}
+
+.frosted:active {
+  scale: 0.96;
+  background: var(--frost-pressed);
+}
+
+/* A big, colorful button with a thick edge, that sinks when pressed: white, `.primary` or `.danger`. */
+.candy {
+  display: block;
+  padding: 0.75rem;
+  border: none;
+  border-radius: var(--radius-key);
+  background: var(--candy);
+  box-shadow:
+    0 0.3125rem 0 var(--candy-edge),
+    0 0.5rem 1.25rem rgb(40 20 60 / 18%);
+  color: var(--on-candy);
+  text-align: center;
+  text-decoration: none;
+  font-family: var(--font-digits);
+  font-size: 1.25rem;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition:
+    translate 0.08s,
+    box-shadow 0.08s;
+}
+
+.candy.primary {
+  --candy: var(--candy-primary);
+  --candy-edge: var(--candy-primary-edge);
+}
+
+.candy.danger {
+  --candy: var(--candy-danger);
+  --on-candy: var(--on-candy-danger);
+  --candy-edge: var(--candy-danger-edge);
+}
+
+.candy:active {
+  translate: 0 0.25rem;
+  box-shadow:
+    0 0.0625rem 0 var(--candy-edge),
+    0 0.25rem 0.75rem rgb(40 20 60 / 18%);
+}
+
+.frosted:focus-visible,
+.candy:focus-visible {
+  outline: 0.1875rem solid var(--focus-ring);
+  outline-offset: 0.25rem;
+}
+
+/*
+ * Going between the main menu and the game (see `app.config.ts`), the screens cross-fade while zooming: in when a game
+ * starts, out when it ends. The background stays in place, only easing its colors.
+ */
+.screen {
+  view-transition-name: screen;
+}
+
+::view-transition-image-pair(screen) {
+  overflow: hidden;
+}
+
+::view-transition-old(screen),
+::view-transition-new(screen) {
+  animation-duration: var(--duration-screen);
+  animation-timing-function: var(--ease);
+}
+
+html:active-view-transition-type(zoom-in) {
+  &::view-transition-old(screen) {
+    animation-name: zoom-in-out;
+  }
+
+  &::view-transition-new(screen) {
+    animation-name: zoom-in-in;
+  }
+}
+
+html:active-view-transition-type(zoom-out) {
+  &::view-transition-old(screen) {
+    animation-name: zoom-out-out;
+  }
+
+  &::view-transition-new(screen) {
+    animation-name: zoom-out-in;
+  }
+}
+
+@keyframes zoom-in-out {
+  to {
+    opacity: 0;
+    scale: 1.25;
+  }
+}
+
+@keyframes zoom-in-in {
+  from {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
+@keyframes zoom-out-out {
+  to {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
+@keyframes zoom-out-in {
+  from {
+    opacity: 0;
+    scale: 1.25;
+  }
 }
 
 /* A filled slot flying into its word (see `flight.ts`), over the whole play screen. */

@@ -1,3 +1,7 @@
-<main class="app">
+<main
+  class="app season-background"
+  [style.--background-top]="background.colors()[0]"
+  [style.--background-bottom]="background.colors()[1]"
+>
   <router-outlet />
 </main>
