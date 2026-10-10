@@ -43,7 +43,10 @@ function publish(change: SiteChange, build: string | undefined): boolean {
     mkdirSync(site);
     const current = fetchCurrent();
     if (current !== undefined) {
-      execFileSync('tar', ['-x', '-C', site], { input: git(['archive', current]) });
+      // Through a file: the site outgrows the output a child process may buffer.
+      const archive = join(work, 'site.tar');
+      git(['archive', '--output', archive, current]);
+      execFileSync('tar', ['-x', '-f', archive, '-C', site]);
     }
 
     for (const entry of entriesToRemove(readdirSync(site), change)) {
