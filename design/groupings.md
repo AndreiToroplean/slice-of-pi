@@ -61,14 +61,14 @@ The model (Andrei, 2026-10-08), with its constants tuned by play testing:
 
 The groupings are always computed from **all of the player's stats**. There's no overriding: each run's timings just add to the stats, and the groupings follow from them. Each run's evidence at a given place in π is weighted by:
 
-- **Recency:** recent runs weigh more, so a player who deliberately regroups some digits sees the game follow.
+- **Recency:** recent runs weigh more, so a player who deliberately regroups some digits sees the game follow. A run's weight halves every **half-life**, counted in runs (16 by default), so the groups build up over many runs while a very old pattern fades out.
 - **Local confidence:** how clearly that run's timings mark pauses _at that place_. Sharp pauses, much longer than the delays around them, say a lot about where the player's boundaries are; digits typed fast at a steady pace, each taking about the same time, say almost nothing and barely count. Confidence is local because a single run can have a steady rhythm on the digits the player knows best and a very different one further on.
 
 So as a player gets faster and smoother, the groups found where their timings were more rhythmic are kept rather than washed out. One slow keystroke barely moves anything, and groups may change a lot in the first runs, then stabilize as the player stabilizes on them. The weightings are tuned with play testing.
 
 All the judging (what counts as a pause, confidence, detected groupings) is local to each place in π.
 
-How exactly to combine the breaks of several runs is still to be designed. The inputs are each run's breaks and its local confidence, weighted by recency; the output is, at each place in π, whether there's a boundary there and how confident the game is about it. A first proposal, to try in the prototypes: at each place, a boundary score is the recency- and confidence-weighted share of runs that had a break there, and the aggregate confidence grows with the total weight of evidence and with how much the runs agree.
+How the runs combine (`src/app/timing/timing-model.ts`): at each place, every run that reached it votes break or not, weighted by recency and by its local confidence (its trust). The aggregate has a boundary where the weighted share of break votes is over half, and its confidence there is the runs' agreement times the amount of evidence, which grows with the total weight of the votes and saturates.
 
 ### 4.3 When the hint follows the player
 
@@ -84,6 +84,9 @@ A technical page shows the data the groupings come from:
 
 - **Every run, one above the other**, each as a graph of typing speed against the digit number, with **red vertical bars** at the breaks that split that run into groups.
 - At the bottom, **sticky**, the **aggregate**: aggregate speed, aggregate confidence, and the groupings determined from them, which are the ones used during play.
+- **Sliders for every setting** of the timing model, each with a help button saying what it is, why it works that way and what moving it does to the groups, so the settings can be tuned against real runs. They're only shown in developer mode, and the values tuned there are tweaks (`glossary.md`).
+
+It's the "Your data" page, opened from the main menu's overflow menu.
 
 ### 4.6 Prototype
 
