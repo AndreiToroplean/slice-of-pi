@@ -165,6 +165,85 @@ describe('TypedDigits', () => {
       expect(frameAt(host, 300)).toBe(0);
     });
 
+    /** Typed digits at the bottom, whose words are as tall as `height()`. */
+    async function sized(
+      height: () => number,
+    ): Promise<{ fixture: ComponentFixture<TypedDigits>; words: HTMLElement }> {
+      const fixture = TestBed.createComponent(TypedDigits);
+      const host = fixture.nativeElement as HTMLElement;
+      Object.defineProperty(host, 'scrollTop', { get: () => 0, set: () => undefined });
+      fixture.componentRef.setInput('words', groupDigits('1415').words);
+      fixture.componentRef.setInput('digits', '1415');
+      fixture.componentRef.setInput('colors', placeColors('1415'));
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        return this.classList.contains('words') ? height() : 0;
+      });
+      await fixture.whenStable();
+      const words = host.querySelector<HTMLElement>('.words');
+      if (words === null) {
+        throw new Error('No words');
+      }
+      return { fixture, words };
+    }
+
+    /** How much lower than their place the words are drawn, in pixels. */
+    function lowered(words: HTMLElement): number {
+      return Number(/^0 (.+)px$/.exec(words.style.translate)?.[1] ?? 0);
+    }
+
+    it('slides a new row of words in, rather than pushing the words up at once', async () => {
+      let height = 100;
+      const { fixture, words } = await sized(() => height);
+
+      height = 120;
+      await type(fixture, '14159');
+
+      expect(lowered(words)).toBe(20);
+      const positions = [100, 200, 300].map((at) => {
+        frameAt(words, at);
+        return lowered(words);
+      });
+      expect(positions).toEqual([...positions].sort((a, b) => b - a));
+      expect(positions[1]).toBeCloseTo(10);
+      frameAt(words, SCROLL_DOWN_DURATION);
+      expect(words.style.translate).toBe('');
+    });
+
+    it('says how far a new row has left to slide, so that what flies to it can aim for where it will be', async () => {
+      let height = 100;
+      const { fixture, words } = await sized(() => height);
+      height = 120;
+      await type(fixture, '14159');
+      frameAt(words, 200);
+
+      expect(fixture.componentInstance.scrollDown(100)).toBeCloseTo(10);
+    });
+
+    it("doesn't move when the words don't grow, or shrink", async () => {
+      let height = 100;
+      const { fixture, words } = await sized(() => height);
+
+      await type(fixture, '14159');
+      expect(words.style.translate).toBe('');
+
+      height = 80;
+      await type(fixture, '1415');
+      expect(words.style.translate).toBe('');
+    });
+
+    it('shows a new row at once when the player prefers reduced motion', async () => {
+      vi.stubGlobal('matchMedia', () => ({ matches: true }));
+      let height = 100;
+      const { fixture, words } = await sized(() => height);
+
+      height = 120;
+      await type(fixture, '14159');
+
+      expect(words.style.translate).toBe('');
+    });
+
     it('jumps down at once when the player prefers reduced motion', async () => {
       vi.stubGlobal('matchMedia', () => ({ matches: true }));
       const { fixture, host } = await scrolledUp(300);

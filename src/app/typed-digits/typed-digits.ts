@@ -7,6 +7,7 @@ import {
   inject,
   input,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { Word } from '../groups/groups';
 import { Glide, glideAt, glideEnd, glideTo } from './glide';
@@ -27,7 +28,7 @@ export const SCROLL_DOWN_DURATION = 400;
     tabindex: '0',
   },
   template: `
-    <div class="words" aria-hidden="true">
+    <div #wordsElement class="words" aria-hidden="true">
       <span class="lead"
         ><span class="tile">π</span><span class="tile shade">=</span><span class="tile">3</span
         ><span class="tile shade">.</span></span
@@ -62,13 +63,22 @@ export class TypedDigits {
   });
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly wordsElement = viewChild.required<ElementRef<HTMLElement>>('wordsElement');
+  /** The scroll position's glide down to the newest words. */
   private glide: Glide | null = null;
+  /** The glide of how much lower than their place the words are drawn, back to 0, as a new row slides in. */
+  private lift: Glide | null = null;
   private frame: number | null = null;
+  /** How tall the words were when last rendered, in pixels. */
+  private height: number | null = null;
 
   constructor() {
     afterRenderEffect(() => {
       this.digits();
-      untracked(() => this.scrollDown(SCROLL_DOWN_DURATION));
+      untracked(() => {
+        this.holdInPlace();
+        this.scrollDown(SCROLL_DOWN_DURATION);
+      });
     });
     inject(DestroyRef).onDestroy(() => {
       if (this.frame !== null) {
@@ -84,14 +94,40 @@ export class TypedDigits {
    */
   scrollDown(duration: number): number {
     const now = performance.now();
+    const time = prefersReducedMotion() ? 0 : duration;
+    const lifted = this.lift === null ? 0 : glideAt(this.lift, now).position;
+    if (this.lift !== null) {
+      this.lift = glideTo(this.lift, lifted, 0, now, time);
+    }
     const position = this.glide === null ? this.host.scrollTop : glideAt(this.glide, now).position;
     const bottom = this.bottom();
-    if (this.glide === null && Math.abs(bottom - position) < 0.5) {
-      return 0;
+    if (this.glide !== null || Math.abs(bottom - position) >= 0.5) {
+      this.glide = glideTo(this.glide, position, bottom, now, time);
     }
-    this.glide = glideTo(this.glide, position, bottom, now, prefersReducedMotion() ? 0 : duration);
     this.step(now);
-    return bottom - position;
+    return bottom - position + lifted;
+  }
+
+  /**
+   * Keeps the words where they were on screen when a new row starts below them: the words grow at the bottom, which
+   * pushes them all up at once. Drawing them lower by as much, then gliding them back up, slides the new row in.
+   */
+  private holdInPlace(): void {
+    const height = this.wordsElement().nativeElement.offsetHeight;
+    const grown = this.height === null ? 0 : height - this.height;
+    this.height = height;
+    if (grown <= 0 || prefersReducedMotion()) {
+      return;
+    }
+    const now = performance.now();
+    const state = this.lift === null ? { position: 0, speed: 0 } : glideAt(this.lift, now);
+    this.lift = {
+      from: state.position + grown,
+      speed: state.speed,
+      to: 0,
+      start: now,
+      duration: SCROLL_DOWN_DURATION,
+    };
   }
 
   /** Where the scroll position is when scrolled all the way down. */
@@ -104,14 +140,21 @@ export class TypedDigits {
   }
 
   private step(time: number): void {
-    const glide = this.glide;
-    if (glide === null) {
-      return;
+    if (this.glide !== null) {
+      this.host.scrollTop = glideAt(this.glide, time).position;
+      if (time >= glideEnd(this.glide)) {
+        this.glide = null;
+      }
     }
-    this.host.scrollTop = glideAt(glide, time).position;
-    if (time >= glideEnd(glide)) {
-      this.glide = null;
-    } else {
+    if (this.lift !== null) {
+      const lifted = glideAt(this.lift, time).position;
+      this.wordsElement().nativeElement.style.translate =
+        lifted === 0 ? '' : `0 ${String(lifted)}px`;
+      if (time >= glideEnd(this.lift)) {
+        this.lift = null;
+      }
+    }
+    if (this.glide !== null || this.lift !== null) {
       this.frame ??= requestAnimationFrame((next) => {
         this.frame = null;
         this.step(next);
