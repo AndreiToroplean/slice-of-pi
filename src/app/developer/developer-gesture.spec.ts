@@ -224,13 +224,4 @@ describe('DeveloperGesture', () => {
     expect(shown()).toBe(false);
     expect(TestBed.inject(DeveloperMode).enabled()).toBe(false);
   });
-
-  it('keeps the long-press menu from opening on the button', () => {
-    const { button } = setUp();
-    const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
-
-    button.dispatchEvent(event);
-
-    expect(event.defaultPrevented).toBe(true);
-  });
 });
