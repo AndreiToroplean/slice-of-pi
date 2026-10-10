@@ -1,10 +1,10 @@
 import { BACKUP_FORMAT, BACKUP_KIND, backupFileName, readBackup, writeBackup } from './backup';
-import { addKey, newRun, RUN_FORMAT } from './run';
+import { addDigit, newRun, RUN_FORMAT } from './run';
 
 describe('backup', () => {
   const runs = [
-    addKey(addKey(newRun('a', 1_000), '1', 0), '4', 250),
-    addKey(newRun('b', 2_000), '1', 0),
+    addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250),
+    addDigit(newRun('b', 2_000), '1', 0),
   ];
 
   it('writes every run in a versioned file', () => {

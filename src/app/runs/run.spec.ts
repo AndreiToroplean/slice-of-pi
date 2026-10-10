@@ -1,64 +1,48 @@
-import { addKey, newRun, parseRun, Run, RUN_FORMAT, typedRun } from './run';
+import { Digit } from '../digit';
+import { addDigit, newRun, parseRun, removeDigit, Run, RUN_FORMAT } from './run';
 
 describe('run', () => {
   const empty = newRun('run-1', 1_760_000_000_000);
 
-  function play(...presses: [Parameters<typeof addKey>[1], number][]): Run {
-    return presses.reduce((run, [key, time]) => addKey(run, key, time), empty);
+  function play(...digits: [Digit, number][]): Run {
+    return digits.reduce((run, [digit, time]) => addDigit(run, digit, time), empty);
   }
 
-  it('starts with no keys', () => {
+  it('starts with no digits', () => {
     expect(empty).toEqual({
       format: RUN_FORMAT,
       id: 'run-1',
       startedAt: 1_760_000_000_000,
-      keys: '',
+      digits: '',
       times: [],
     });
   });
 
-  it('records every key and when it was pressed, in whole milliseconds', () => {
-    const run = play(['1', 0], ['4', 212.4], ['backspace', 530.6], ['4', 801]);
+  it('records every digit and when it was typed, in whole milliseconds', () => {
+    const run = play(['1', 0], ['4', 212.4], ['1', 530.6]);
 
-    expect(run.keys).toBe('14<4');
-    expect(run.times).toEqual([0, 212, 531, 801]);
+    expect(run.digits).toBe('141');
+    expect(run.times).toEqual([0, 212, 531]);
   });
 
-  it('leaves the run it adds to unchanged', () => {
-    addKey(empty, '1', 0);
+  it('removes the last digit and its time', () => {
+    const run = removeDigit(play(['1', 0], ['5', 212]));
 
-    expect(empty.keys).toBe('');
-    expect(empty.times).toEqual([]);
+    expect(run.digits).toBe('1');
+    expect(run.times).toEqual([0]);
   });
 
-  describe('typedRun', () => {
-    it('gives the digits typed and when each was typed', () => {
-      expect(typedRun(play(['1', 0], ['4', 200], ['1', 390]))).toEqual({
-        digits: '141',
-        times: [0, 200, 390],
-      });
-    });
+  it('leaves the run it changes unchanged', () => {
+    const run = play(['1', 0]);
+    addDigit(run, '4', 200);
+    removeDigit(run);
 
-    it('drops the digits deleted with backspace, with their times', () => {
-      expect(
-        typedRun(play(['1', 0], ['5', 200], ['backspace', 600], ['4', 900], ['1', 1100])),
-      ).toEqual({ digits: '141', times: [0, 900, 1100] });
-    });
-
-    it('ignores backspace when nothing is typed', () => {
-      expect(typedRun(play(['backspace', 0], ['1', 300]))).toEqual({
-        digits: '1',
-        times: [300],
-      });
-    });
-
-    it('gives nothing for a run without keys', () => {
-      expect(typedRun(empty)).toEqual({ digits: '', times: [] });
-    });
+    expect(run.digits).toBe('1');
+    expect(run.times).toEqual([0]);
   });
 
   describe('parseRun', () => {
-    const run = play(['1', 0], ['4', 212], ['backspace', 531]);
+    const run = play(['1', 0], ['4', 212], ['1', 531]);
 
     it('reads a valid run', () => {
       expect(parseRun(JSON.parse(JSON.stringify(run)))).toEqual(run);
@@ -77,9 +61,9 @@ describe('run', () => {
       ['a numeric id', { ...run, id: 1 }],
       ['a negative start', { ...run, startedAt: -1 }],
       ['a start that is not a number', { ...run, startedAt: '2026-10-10' }],
-      ['a key that is neither a digit nor backspace', { ...run, keys: '1x<' }],
-      ['keys that are not a string', { ...run, keys: ['1', '4', '<'] }],
-      ['fewer times than keys', { ...run, times: [0, 212] }],
+      ['a character that is not a digit', { ...run, digits: '1<1' }],
+      ['digits that are not a string', { ...run, digits: ['1', '4', '1'] }],
+      ['fewer times than digits', { ...run, times: [0, 212] }],
       ['times that are not an array', { ...run, times: '0,212,531' }],
       ['a time that is not a number', { ...run, times: [0, '212', 531] }],
       ['an infinite time', { ...run, times: [0, 212, Infinity] }],
