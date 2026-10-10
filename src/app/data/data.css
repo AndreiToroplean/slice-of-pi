@@ -139,3 +139,23 @@ h3 {
     opacity: 0.3;
   }
 }
+
+/* The groups of all runs, as words of digits; those the hint doesn't follow yet are dotted. */
+.groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.625rem;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-digits);
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+
+  & .unsure {
+    opacity: 0.6;
+    text-decoration: underline dotted;
+    text-underline-offset: 0.25em;
+  }
+}
