@@ -21,4 +21,4 @@ npm run build          # production build into dist/
 npm run check          # format check, lint, build and tests, timed against budgets
 ```
 
-Every push to `main` runs the formatting check, linter and tests and deploys the app to GitHub Pages (see `.github/workflows/deploy.yml`).
+Every push to `main` and every pull request runs the checks (see `.github/workflows/deploy.yml`). `main` is deployed to GitHub Pages, and each pull request gets a preview linked from a comment on it.
