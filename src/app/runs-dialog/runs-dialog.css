@@ -1,0 +1,111 @@
+/* A small frosted button, like the keys. */
+.open {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--frost);
+  -webkit-backdrop-filter: blur(var(--frost-blur));
+  backdrop-filter: blur(var(--frost-blur));
+  box-shadow: inset 0 1px 0 var(--frost-highlight);
+  color: var(--on-background);
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+.open svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 18%));
+}
+
+.open:focus-visible {
+  outline: 0.1875rem solid var(--focus-ring);
+  outline-offset: 0.125rem;
+}
+
+dialog {
+  width: min(100% - 2rem, 22rem);
+  box-sizing: border-box;
+  padding: 1.25rem;
+  border: none;
+  border-radius: var(--radius-key);
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  box-shadow: 0 10px 40px rgb(30 20 60 / 30%);
+}
+
+dialog::backdrop {
+  background: rgb(30 20 60 / 30%);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+p {
+  margin: 0 0 0.5rem;
+}
+
+.actions {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.actions button,
+.button,
+.close {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 1rem;
+  border: none;
+  border-radius: 0.75rem;
+  font: inherit;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+}
+
+.actions button,
+.button {
+  background: var(--ink);
+  color: #fff;
+}
+
+.close {
+  margin-top: 0.25rem;
+  background: rgb(42 31 61 / 8%);
+  color: var(--ink);
+}
+
+.message:empty {
+  display: none;
+}
+
+.message {
+  margin-top: 0.75rem;
+  font-weight: 500;
+}
+
+button:focus-visible,
+.button:has(input:focus-visible) {
+  outline: 0.1875rem solid var(--ink);
+  outline-offset: 0.125rem;
+}
