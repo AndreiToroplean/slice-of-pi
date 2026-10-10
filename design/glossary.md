@@ -25,7 +25,7 @@
 
 ## Play
 
-- **Run:** one attempt, from the start of π until the player stops or makes a mistake.
+- **Run:** one attempt, from the start of π until the player stops or makes a mistake. Until the game checks the digits, a run ends when the player deletes every digit typed, or leaves the game.
 - **Learn mode / challenge mode:** the two families of modes: guided practice, and typing from memory.
 - **Interval:** the time between typing one digit and the next.
 - **Pace:** the player's local typing speed around a place, from the intervals around it.

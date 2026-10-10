@@ -34,11 +34,13 @@ Most of the game is made of **regular DOM elements** animated with CSS and the W
 
 No full game engine: engines suit games that are mostly a world, and are awkward for an app that is mostly screens, text and menus.
 
-## 5. Persistence and the seed
+## 5. Player data
 
-The player seed must never be lost (see `vision.md` §7). On the web, browser storage can be cleared, so:
+The player data (the seed and the raw timings of every run, see `vision.md` §7 and `groupings.md` §4.4) must never be lost. Decided with Andrei on 2026-10-10:
 
-- Request persistent storage from the browser.
-- Offer seed backup/export and restore from the start.
-- A Capacitor build can later use native storage for extra safety.
-- Pull request previews share the main site's origin, and with it its storage. Store data with a format version so a preview can't corrupt real progress.
+- **IndexedDB** holds it, in the `slice-of-pi` database: one record per run, saved after every key, so leaving the game at any moment loses nothing (`src/app/runs/`). The seed will join it when it exists.
+- **Persistent storage** is requested from the browser when the first run starts, so the browser doesn't evict the data when the device runs low on space. Browsers decide on their own; the runs dialog says whether it was granted.
+- **A backup file** the player saves and restores from the runs dialog, from the start: browser storage can always be cleared by the player, so a file is the only copy kept outside the browser. Restoring adds the runs not kept yet and never changes those already kept. Saving a backup is manual for now.
+- **Versioned records.** Runs and backup files carry a format version, and the database layout has its own version, only ever adding stores. Code leaves records in a format it doesn't know untouched. This matters because pull request previews share the main site's origin, and with it its storage, so a preview must never corrupt real progress.
+- **No sync** between devices until the game has players: it would need a server and accounts.
+- On iPhone, an app installed to the home screen keeps its own storage, separate from Safari's.
