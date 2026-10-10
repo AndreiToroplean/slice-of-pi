@@ -227,6 +227,56 @@ describe('Data', () => {
     expect(host.querySelector('input[type="file"]')).not.toBeNull();
   });
 
+  it('says when there are no runs to chart', async () => {
+    const { host } = await setUp();
+
+    expect(host.querySelector('.runs')?.textContent).toContain(
+      'None yet: each game you play shows up here.',
+    );
+    expect(host.querySelector('app-run-chart')).toBeNull();
+  });
+
+  it('charts each run, oldest first, then all of them', async () => {
+    const { host } = await setUp([second, first]);
+
+    const titles = Array.from(host.querySelectorAll('.runs h3'), (title) => title.textContent);
+    const format = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    expect(titles).toEqual([format.format(1_000), format.format(2_000), 'All runs']);
+    expect(Array.from(host.querySelectorAll('.runs .meta'), (meta) => meta.textContent)).toEqual([
+      '2 digits in 0.3 s',
+      '1 digit in 0.0 s',
+      'Average time per digit',
+    ]);
+    const labels = Array.from(host.querySelectorAll('app-run-chart svg'), (svg) =>
+      svg.getAttribute('aria-label'),
+    );
+    expect(labels).toEqual([
+      `Time per digit, ${format.format(1_000)}`,
+      `Time per digit, ${format.format(2_000)}`,
+      'Average time per digit, over all runs',
+    ]);
+  });
+
+  it('spans every chart over the places of the longest run', async () => {
+    const { host } = await setUp([first, second]);
+
+    const viewBoxes = Array.from(host.querySelectorAll('app-run-chart svg'), (svg) =>
+      svg.getAttribute('viewBox'),
+    );
+    expect(viewBoxes).toEqual(['0 0 1 100', '0 0 1 100', '0 0 1 100']);
+    expect(
+      Array.from(host.querySelectorAll('.summary .axis span'), (span) => span.textContent),
+    ).toEqual(['Place 1', 'Place 2']);
+  });
+
+  it('charts the runs of a backup once restored', async () => {
+    const { host, until } = await setUp();
+
+    await choose(host, until, writeBackup([first], 0));
+
+    expect(host.querySelectorAll('app-run-chart')).toHaveLength(2);
+  });
+
   it('goes back to the main menu', async () => {
     const { host } = await setUp();
     const router = TestBed.inject(Router);
