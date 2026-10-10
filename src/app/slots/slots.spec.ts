@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
+import { placeColors } from '../place-colors/place-colors';
 import { Slots } from './slots';
 
 describe('Slots', () => {
   async function render(digits: string, hint = 5): Promise<HTMLElement> {
     const fixture = TestBed.createComponent(Slots);
     fixture.componentRef.setInput('digits', digits);
+    fixture.componentRef.setInput('colors', placeColors(digits));
     fixture.componentRef.setInput('hint', hint);
     await fixture.whenStable();
     return fixture.nativeElement as HTMLElement;
@@ -37,6 +39,16 @@ describe('Slots', () => {
       'slot filled',
       'slot next',
       'slot',
+    ]);
+  });
+
+  it('shows each filled slot in its color, and the empty ones in none', async () => {
+    const host = await render('141');
+
+    expect(slots(host).map((slot) => slot.style.getPropertyValue('--place-color'))).toEqual([
+      ...placeColors('141'),
+      '',
+      '',
     ]);
   });
 

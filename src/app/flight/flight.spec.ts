@@ -3,8 +3,10 @@ import {
   FLIGHT_STAGGER,
   flightKeyframes,
   flightTiming,
+  flyIntoWord,
   tileCorners,
 } from './flight';
+import { installAnimations, uninstallAnimations } from '../../testing/fake-animations';
 
 describe('tileCorners', () => {
   it('rounds only the outer corners of a word', () => {
@@ -56,5 +58,41 @@ describe('flightTiming', () => {
   it('stops staggering after 12 slots, so long groups land together', () => {
     expect(flightTiming(12).delay).toBe(12 * FLIGHT_STAGGER);
     expect(flightTiming(30).delay).toBe(12 * FLIGHT_STAGGER);
+  });
+});
+
+describe('flyIntoWord', () => {
+  afterEach(() => {
+    uninstallAnimations();
+    document.body.replaceChildren();
+  });
+
+  it("flies each slot in its tile's colors, even the slot of the digit just typed, still empty", () => {
+    installAnimations();
+    const word = document.createElement('span');
+    for (const [digit, background] of [
+      ['1', 'rgb(229, 72, 77)'],
+      ['4', 'rgb(12, 148, 136)'],
+    ] as const) {
+      const tile = document.createElement('span');
+      tile.textContent = digit;
+      tile.style.backgroundColor = background;
+      tile.style.color = 'rgb(255, 255, 255)';
+      word.append(tile);
+    }
+    document.body.append(word);
+    const slot = { box: { left: 0, top: 0, width: 40, height: 60 }, radius: 14, fontSize: 34 };
+
+    flyIntoWord(document.body, [slot, slot], word);
+
+    expect(
+      Array.from(document.querySelectorAll<HTMLElement>('.flying-slot'), (copy) => [
+        copy.style.backgroundColor,
+        copy.style.color,
+      ]),
+    ).toEqual([
+      ['rgb(229, 72, 77)', 'rgb(255, 255, 255)'],
+      ['rgb(12, 148, 136)', 'rgb(255, 255, 255)'],
+    ]);
   });
 });

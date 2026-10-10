@@ -13,6 +13,7 @@ import { Meta } from '@angular/platform-browser';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from '../flight/flight';
 import { DEFAULT_HINT, groupDigits } from '../groups/groups';
 import { Keypad } from '../keypad/keypad';
+import { keyColors, placeColors } from '../place-colors/place-colors';
 import { KeypadKey } from '../keypad/keypad-layout';
 import { SeasonHeader } from '../season-header/season-header';
 import { seasonAt } from '../seasons/seasons';
@@ -21,8 +22,8 @@ import { TypedDigits } from '../typed-digits/typed-digits';
 
 /**
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
- * flies up to the typed digits as a word, as the seasons go by. Backspace deletes the last digit, reopening the last
- * word when the slots are empty.
+ * flies up to the typed digits as a word, as the seasons go by. Each typed digit takes the color its key showed.
+ * Backspace deletes the last digit, reopening the last word when the slots are empty.
  */
 @Component({
   selector: 'app-play',
@@ -34,9 +35,14 @@ import { TypedDigits } from '../typed-digits/typed-digits';
   template: `
     <h1 class="visually-hidden">Slice of π</h1>
     <app-season-header [view]="season()" />
-    <app-typed-digits [words]="grouping().words" [digits]="digits()" />
-    <app-slots class="slots" [digits]="grouping().current" [hint]="hint" />
-    <app-keypad class="keypad" (keyPressed)="press($event)" />
+    <app-typed-digits [words]="grouping().words" [digits]="digits()" [colors]="placeColors()" />
+    <app-slots
+      class="slots"
+      [digits]="grouping().current"
+      [colors]="currentColors()"
+      [hint]="hint"
+    />
+    <app-keypad class="keypad" [colors]="keyColors()" (keyPressed)="press($event)" />
   `,
   styleUrl: './play.css',
 })
@@ -46,6 +52,15 @@ export class Play {
 
   protected readonly hint = DEFAULT_HINT;
   protected readonly grouping = computed(() => groupDigits(this.digits(), this.hint));
+
+  /** The color of each typed place (`colors.md`). */
+  protected readonly placeColors = computed(() => placeColors(this.digits()));
+  /** The colors of the digits of the group being typed. */
+  protected readonly currentColors = computed(() =>
+    this.placeColors().slice(this.digits().length - this.grouping().current.length),
+  );
+  /** Each key's color: the color its digit takes when typed next. */
+  protected readonly keyColors = computed(() => keyColors(this.digits()));
 
   /** The season, and the background colors, after the places typed so far. */
   protected readonly season = computed(() => seasonAt(this.digits().length));

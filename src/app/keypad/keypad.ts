@@ -1,11 +1,13 @@
-import { Component, DestroyRef, ElementRef, inject, output, signal } from '@angular/core';
-import { isDigit } from '../digit';
+import { Component, DestroyRef, ElementRef, inject, input, output, signal } from '@angular/core';
+import { Digit, isDigit } from '../digit';
 import { KEYPAD_LAYOUT, KeypadKey, keyAt } from './keypad-layout';
 
 /** How long a key must be held before it starts repeating, in ms. */
 export const REPEAT_DELAY = 400;
 /** Time between repeats while a key is held, in ms. */
 export const REPEAT_INTERVAL = 70;
+/** How long a digit key stays filled with its color at least, however short the press, in ms. */
+export const SPLASH_DURATION = 150;
 
 /** A touch (or mouse press) in progress on a key. */
 interface Press {
@@ -28,7 +30,8 @@ interface Press {
  *
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
  * repeats it.
- * Keys being pressed, by touch or keyboard, are shown pressed. The buttons themselves still work with the keyboard and
+ * Keys being pressed, by touch or keyboard, are shown pressed. Each digit key shows its color as an accent; pressing it
+ * fills it with that color at once, for at least `SPLASH_DURATION` (`colors.md` §3). The buttons themselves still work with the keyboard and
  * assistive technology (Enter or Space on a focused key).
  */
 @Component({
@@ -39,7 +42,7 @@ interface Press {
     '(pointerdown)': 'onPointerDown($event)',
     '(pointermove)': 'onPointerMove($event)',
     '(pointerup)': 'onPointerUp($event)',
-    '(pointercancel)': 'cancelPress($event.pointerId)',
+    '(pointercancel)': 'abandonPress($event.pointerId)',
     '(document:keydown)': 'onKeydown($event)',
     '(document:keyup)': 'onKeyup($event)',
     '(window:blur)': 'heldKeys.set([])',
@@ -51,6 +54,9 @@ interface Press {
         class="key"
         [class.backspace]="position.key === 'backspace'"
         [class.pressed]="isPressed(position.key)"
+        [class.splash]="splashColor(position.key) !== null"
+        [style.--key-color]="position.key === 'backspace' ? null : colors()[position.key]"
+        [style.--splash-color]="splashColor(position.key)"
         [attr.data-key]="position.key"
         [attr.aria-label]="position.key === 'backspace' ? 'Delete last digit' : null"
         [style.grid-row]="position.row + 1"
@@ -71,6 +77,8 @@ interface Press {
   styleUrl: './keypad.css',
 })
 export class Keypad {
+  /** Each digit key's color: the color its digit takes when typed next. */
+  readonly colors = input.required<Readonly<Record<Digit, string>>>();
   readonly keyPressed = output<KeypadKey>();
 
   protected readonly keys = KEYPAD_LAYOUT;
@@ -81,6 +89,11 @@ export class Keypad {
   protected readonly touchedKeys = signal<readonly KeypadKey[]>([]);
   /** Touches in progress, by pointer. */
   private readonly presses = new Map<number, Press>();
+  /** The color each digit key was filled with when last pressed: the color its digit takes. */
+  private readonly splashColors = signal<Partial<Record<Digit, string>>>({});
+  /** Digit keys pressed less than `SPLASH_DURATION` ago, which stay filled even once released. */
+  private readonly splashing = signal<readonly Digit[]>([]);
+  private readonly splashTimers = new Map<Digit, ReturnType<typeof setTimeout>>();
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
@@ -89,11 +102,22 @@ export class Keypad {
       for (const press of this.presses.values()) {
         clearTimeout(press.timer);
       }
+      for (const timer of this.splashTimers.values()) {
+        clearTimeout(timer);
+      }
     });
   }
 
   protected isPressed(key: KeypadKey): boolean {
     return this.heldKeys().includes(key) || this.touchedKeys().includes(key);
+  }
+
+  /** The color a digit key is filled with while pressed, and shortly after, or `null` when it isn't. */
+  protected splashColor(key: KeypadKey): string | null {
+    if (key === 'backspace' || !(this.isPressed(key) || this.splashing().includes(key))) {
+      return null;
+    }
+    return this.splashColors()[key] ?? null;
   }
 
   protected onPointerDown(event: PointerEvent): void {
@@ -120,12 +144,13 @@ export class Keypad {
     };
     this.presses.set(event.pointerId, press);
     this.updateTouchedKeys();
+    this.splash(key);
   }
 
   protected onPointerMove(event: PointerEvent): void {
     const press = this.presses.get(event.pointerId);
     if (press !== undefined && this.keyAt(event) !== press.key) {
-      this.cancelPress(event.pointerId);
+      this.abandonPress(event.pointerId);
     }
   }
 
@@ -140,8 +165,17 @@ export class Keypad {
     }
   }
 
+  /** Ends a touch without typing its key, and without leaving its key filled. */
+  protected abandonPress(pointerId: number): void {
+    const press = this.presses.get(pointerId);
+    if (press !== undefined) {
+      this.cancelPress(pointerId);
+      this.endSplash(press.key);
+    }
+  }
+
   /** Ends a touch without typing its key. */
-  protected cancelPress(pointerId: number): void {
+  private cancelPress(pointerId: number): void {
     const press = this.presses.get(pointerId);
     if (press === undefined) {
       return;
@@ -165,6 +199,9 @@ export class Keypad {
     }
     event.preventDefault();
     this.heldKeys.update((keys) => (keys.includes(key) ? keys : [...keys, key]));
+    if (!event.repeat) {
+      this.splash(key);
+    }
     if (!event.repeat || key === 'backspace') {
       this.keyPressed.emit(key);
     }
@@ -187,6 +224,32 @@ export class Keypad {
       this.repeat(pointerId);
     }, REPEAT_INTERVAL);
     this.keyPressed.emit(press.key);
+  }
+
+  /** Fills a digit key with its color: the color its digit takes when typed now. */
+  private splash(key: KeypadKey): void {
+    if (key === 'backspace') {
+      return;
+    }
+    const color = this.colors()[key];
+    this.splashColors.update((colors) => ({ ...colors, [key]: color }));
+    this.splashing.update((keys) => (keys.includes(key) ? keys : [...keys, key]));
+    clearTimeout(this.splashTimers.get(key));
+    this.splashTimers.set(
+      key,
+      setTimeout(() => {
+        this.endSplash(key);
+      }, SPLASH_DURATION),
+    );
+  }
+
+  private endSplash(key: KeypadKey): void {
+    if (key === 'backspace') {
+      return;
+    }
+    clearTimeout(this.splashTimers.get(key));
+    this.splashTimers.delete(key);
+    this.splashing.update((keys) => keys.filter((splashing) => splashing !== key));
   }
 
   private updateTouchedKeys(): void {

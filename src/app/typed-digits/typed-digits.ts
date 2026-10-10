@@ -32,7 +32,9 @@ export const SCROLL_DOWN_DURATION = 400;
       @for (word of words(); track word.firstPlace) {
         <span class="word" [attr.data-first-place]="word.firstPlace">
           @for (digit of word.digits; track $index) {
-            <span class="tile">{{ digit }}</span>
+            <span class="tile" [style.--place-color]="colors()[word.firstPlace - 1 + $index]">{{
+              digit
+            }}</span>
           }
         </span>
       }
@@ -46,6 +48,8 @@ export class TypedDigits {
   readonly words = input.required<readonly Word[]>();
   /** The digits typed so far, including those of the group being typed. */
   readonly digits = input.required<string>();
+  /** The place colors of the digits typed so far: place p's is at index p - 1. */
+  readonly colors = input.required<readonly string[]>();
 
   protected readonly summary = computed(() => {
     const digits = this.digits();
