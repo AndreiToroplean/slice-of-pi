@@ -131,11 +131,22 @@ describe('RunStore', () => {
     expect(await store.runs()).toEqual([first, second]);
   });
 
+  it('adds the runs not stored yet, leaving the stored ones as they are', async () => {
+    const store = storeWith();
+    await store.save(first);
+
+    const changed = addKey(first, '1', 400);
+    expect(await store.addRuns([changed, second])).toBe(1);
+    expect(await store.addRuns([second])).toBe(0);
+    expect(await store.runs()).toEqual([first, second]);
+  });
+
   it('keeps nothing without IndexedDB', async () => {
     const store = storeWith({ indexedDb: undefined });
 
     await store.save(first);
 
+    expect(await store.addRuns([first])).toBe(0);
     expect(await store.runs()).toEqual([]);
   });
 
