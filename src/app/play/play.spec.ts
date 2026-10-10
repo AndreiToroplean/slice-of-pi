@@ -61,10 +61,12 @@ describe('Play', () => {
     expect(host.querySelector('h1')?.textContent).toBe('Slice of π');
   });
 
-  it('starts with the "3." lead, no words and 5 empty slots', async () => {
+  it('starts with the "π=3." lead, no words and 5 empty slots', async () => {
     const { host } = await setUp();
 
-    expect(host.querySelector('app-typed-digits .lead')?.textContent.replace(/\s/g, '')).toBe('3.');
+    expect(host.querySelector('app-typed-digits .lead')?.textContent.replace(/\s/g, '')).toBe(
+      'π=3.',
+    );
     expect(words(host)).toEqual([]);
     expect(slots(host)).toEqual(['', '', '', '', '']);
     expect(summary(host)).toBe('No digits typed yet.');

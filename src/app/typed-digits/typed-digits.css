@@ -39,7 +39,7 @@
   text-shadow: 0 1px 8px rgb(0 0 0 / 16%);
 }
 
-/* A word, and the "3." before the first one, is its slots joined together: only its outer corners are rounded. */
+/* A word, and the "π=3." before the first one, is its slots joined together: only its outer corners are rounded. */
 .word,
 .lead {
   display: inline-flex;
@@ -48,9 +48,19 @@
   overflow: hidden;
 }
 
-/* The digits of a word are white on their place colors; the lead keeps the look of place 0. */
+/* The digits of a word are white on their place colors. */
 .word {
   --on-place-color: var(--on-palette);
+}
+
+/* The lead has no place colors: white tiles, every other one a little greyer, so it doesn't look like one blob. */
+.lead {
+  --place-color: var(--lead);
+  --on-place-color: var(--ink);
+}
+
+.lead .shade {
+  --place-color: var(--lead-shade);
 }
 
 /* A tile is a small slot: same font, weight and proportions. */

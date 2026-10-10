@@ -19,12 +19,15 @@ describe('TypedDigits', () => {
     );
   }
 
-  it('starts with "3." as a word of two tiles, and no other words', async () => {
+  it('starts with "π=3." as a word of four tiles, every other one shaded, and no other words', async () => {
     const host = await render('');
 
     expect(
       Array.from(host.querySelectorAll('.lead .tile'), (tile) => tile.textContent.trim()),
-    ).toEqual(['3', '.']);
+    ).toEqual(['π', '=', '3', '.']);
+    expect(
+      Array.from(host.querySelectorAll('.lead .tile'), (tile) => tile.classList.contains('shade')),
+    ).toEqual([false, true, false, true]);
     expect(words(host)).toEqual([]);
   });
 
@@ -48,7 +51,7 @@ describe('TypedDigits', () => {
       Array.from(host.querySelectorAll<HTMLElement>('.lead .tile'), (tile) =>
         tile.style.getPropertyValue('--place-color'),
       ),
-    ).toEqual(['', '']);
+    ).toEqual(['', '', '', '']);
   });
 
   it('marks each word with the place of its first digit', async () => {
