@@ -9,6 +9,7 @@ import {
   SeasonBackgrounds,
   SEASONS,
 } from '../seasons/seasons';
+import { DEFAULT_TIMING_SETTINGS, TimingSettings } from '../timing/timing-model';
 import { DeveloperMode } from './developer-mode';
 
 /** The name of the tweaks setting in the store. */
@@ -25,6 +26,8 @@ export interface TweakValues {
   readonly palette?: Palette;
   /** The seasons' starting colors, for {@link SEASON_BACKGROUNDS}. */
   readonly seasons?: SeasonStarts;
+  /** The settings of the timing model, for {@link DEFAULT_TIMING_SETTINGS}. */
+  readonly grouping?: TimingSettings;
 }
 
 /** The game's own starting colors of each season. */
@@ -36,7 +39,7 @@ export const SEASON_STARTS: SeasonStarts = Object.fromEntries(
  * The game's values as tuned in developer mode: they apply to the whole game while developer mode is on, and the
  * game's own values apply otherwise. Kept with the player's data, so they survive turning developer mode off and on.
  * The game's own values never change here: tuned values go into the code once the owner is happy with them, from the
- * text each page copies ({@link paletteText}, {@link seasonsText}).
+ * text each page copies ({@link paletteText}, {@link seasonsText}, {@link groupingText}).
  */
 @Service()
 export class Tweaks {
@@ -61,6 +64,12 @@ export class Tweaks {
       ? backgroundsFrom(seasons)
       : SEASON_BACKGROUNDS;
   });
+  /** The settings of the timing model the game uses. */
+  readonly grouping = computed(() =>
+    this.developerMode.enabled()
+      ? (this.tweaks().grouping ?? DEFAULT_TIMING_SETTINGS)
+      : DEFAULT_TIMING_SETTINGS,
+  );
 
   constructor() {
     this.loaded = this.store.setting(TWEAKS).then((stored) => {
@@ -73,12 +82,17 @@ export class Tweaks {
 
   /** Tunes the key colors; `undefined` brings back the game's. */
   setPalette(palette: Palette | undefined): Promise<void> {
-    return this.save(tweakValues(palette, this.tweaks().seasons));
+    return this.save(tweakValues({ ...this.tweaks(), palette }));
   }
 
   /** Tunes the seasons' starting colors; `undefined` brings back the game's. */
   setSeasons(seasons: SeasonStarts | undefined): Promise<void> {
-    return this.save(tweakValues(this.tweaks().palette, seasons));
+    return this.save(tweakValues({ ...this.tweaks(), seasons }));
+  }
+
+  /** Tunes the settings of the timing model; `undefined` brings back the game's. */
+  setGrouping(grouping: TimingSettings | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), grouping }));
   }
 
   private async save(next: TweakValues): Promise<void> {
@@ -108,6 +122,27 @@ export function seasonsText(seasons: SeasonStarts): string {
   ].join('\n');
 }
 
+/** The settings of the timing model as text to hand back so they go into the code, marking those that differ. */
+export function groupingText(settings: TimingSettings): string {
+  return [
+    'Grouping settings (DEFAULT_TIMING_SETTINGS in timing-model.ts):',
+    ...SETTING_KEYS.map((key) => {
+      const value = settings[key];
+      const changed = value !== DEFAULT_TIMING_SETTINGS[key];
+      return `  ${key}: ${String(Number(value.toPrecision(4)))}${changed ? ' (changed)' : ''}`;
+    }),
+  ].join('\n');
+}
+
+const SETTING_KEYS = Object.keys(DEFAULT_TIMING_SETTINGS) as (keyof TimingSettings)[];
+/** The settings the timing model divides by, which can't be 0. */
+const POSITIVE_SETTINGS: readonly (keyof TimingSettings)[] = [
+  'neighborhood',
+  'fullTrustUnevenness',
+  'halfLife',
+  'evidenceNeeded',
+];
+
 /** The tweaks in a stored setting, leaving out what isn't valid. A format this version doesn't know gives none. */
 export function parseTweaks(stored: unknown): TweakValues {
   if (
@@ -120,18 +155,42 @@ export function parseTweaks(stored: unknown): TweakValues {
   }
   const palette = 'palette' in stored ? stored.palette : undefined;
   const seasons = 'seasons' in stored ? stored.seasons : undefined;
-  return tweakValues(
-    isPalette(palette) ? palette : undefined,
-    isSeasonStarts(seasons) ? seasons : undefined,
-  );
+  const grouping = 'grouping' in stored ? stored.grouping : undefined;
+  return tweakValues({
+    palette: isPalette(palette) ? palette : undefined,
+    seasons: isSeasonStarts(seasons) ? seasons : undefined,
+    grouping: isTimingSettings(grouping) ? grouping : undefined,
+  });
 }
 
 /** Tweaks, leaving out those that are `undefined`. */
-function tweakValues(palette: Palette | undefined, seasons: SeasonStarts | undefined): TweakValues {
+function tweakValues({
+  palette,
+  seasons,
+  grouping,
+}: {
+  readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
+}): TweakValues {
   return {
     ...(palette === undefined ? {} : { palette }),
     ...(seasons === undefined ? {} : { seasons }),
+    ...(grouping === undefined ? {} : { grouping }),
   };
+}
+
+function isTimingSettings(value: unknown): value is TimingSettings {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    SETTING_KEYS.every((key) => {
+      const setting: unknown = (value as Record<string, unknown>)[key];
+      return (
+        typeof setting === 'number' &&
+        Number.isFinite(setting) &&
+        (POSITIVE_SETTINGS.includes(key) ? setting > 0 : setting >= 0)
+      );
+    })
+  );
 }
 
 function isColor(value: unknown): value is string {

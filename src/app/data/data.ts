@@ -1,11 +1,13 @@
 import { Component, computed, inject, InjectionToken, signal } from '@angular/core';
+import { DeveloperMode } from '../developer/developer-mode';
+import { Tweaks } from '../developer/tweaks';
 import { PageHeader } from '../page-header/page-header';
 import { backupFileName, readBackup, writeBackup } from '../runs/backup';
 import { Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
 import { IS_PREVIEW, RunStore } from '../runs/run-store';
-import { GroupingSettings } from '../timing/grouping-settings';
 import { aggregate, analyzeRun, isConfident } from '../timing/timing-model';
+import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { RunChart } from './run-chart';
 import { ChartBreak, chartTop, digitTimes } from './run-charts';
 
@@ -26,11 +28,12 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
 
 /**
  * The player's data, opened from the main menu's overflow menu: how many runs are kept and how safe they are, with a
- * backup file to save and restore, then a chart of each run and, sticking to the bottom, one of them all.
+ * backup file to save and restore, then a chart of each run and, sticking to the bottom, one of them all. In
+ * developer mode, the settings of the timing model can be tuned between the two.
  */
 @Component({
   selector: 'app-data',
-  imports: [PageHeader, RunChart],
+  imports: [GroupingSettingsPanel, PageHeader, RunChart],
   host: { class: 'screen' },
   template: `
     <app-page-header title="Your data" />
@@ -67,6 +70,9 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
       </div>
       <p class="message" role="status">{{ message() }}</p>
     </section>
+    @if (developerMode()) {
+      <app-grouping-settings-panel />
+    }
     <section class="runs" aria-labelledby="runs-title">
       <h2 id="runs-title">Your runs</h2>
       @if (charts().length === 0) {
@@ -131,7 +137,9 @@ export class Data {
   protected readonly readOnlyPreview = signal(false);
   protected readonly message = signal('');
 
-  private readonly settings = inject(GroupingSettings).settings;
+  /** In developer mode, the settings of the timing model can be tuned here. */
+  protected readonly developerMode = inject(DeveloperMode).enabled;
+  private readonly settings = inject(Tweaks).grouping;
   private readonly runs = signal<readonly Run[]>([]);
   /** What the timing model makes of each run, oldest first. */
   private readonly analyses = computed(() =>
