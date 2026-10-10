@@ -11,7 +11,7 @@ The reference for steps 1 to 7 is the prototype in [`prototypes/groupings-lab.ht
 3. **Group screen.** Replace the perspective rows (the tape) with the typing area of slots and the typed digits laid out as words (`groupings.md` §3), with fixed groups of 5 for now. No text under the slots. Groups have no maximum size: past the hint, slots are added one at a time, rows of up to 10. This also removes the slowest unit test, which keeps the pre-commit check over budget.
 4. **Player data.** Record the raw timings of every run in storage that's never lost, on the web and in the installed PWA (`groupings.md` §4.4): IndexedDB, with persistent storage requested from the browser, plus saving and restoring a backup file (`architecture.md` §5).
 5. **Timing model.** Intervals, pace, spread, breaks, confidence and the aggregate (`groupings.md` §4.1 to §4.3), as a pure TypeScript module with thorough tests. Its constants live in one place, to be tuned by play testing.
-6. **Stats page.** The technical page of `groupings.md` §4.5: every run's chart with its breaks, and the sticky aggregate.
+6. **Stats page.** The technical page of `groupings.md` §4.5: every run's chart with its breaks, and the sticky aggregate. It grows from the "Your runs" section of the "Your data" page, which already charts each run's time per digit over the places of the longest run, with a sticky chart of their average.
 7. **Live groups.** Groups on screen follow the aggregate, current run included, and the hint follows the player where the aggregate is confident enough (`groupings.md` §4.1 and §4.3).
 
 ## Later

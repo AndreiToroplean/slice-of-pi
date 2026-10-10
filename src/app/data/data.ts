@@ -1,8 +1,11 @@
-import { Component, inject, InjectionToken, signal } from '@angular/core';
+import { Component, computed, inject, InjectionToken, signal } from '@angular/core';
 import { injectBackToMenu } from '../menu/back-to-menu';
 import { backupFileName, readBackup, writeBackup } from '../runs/backup';
+import { Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
 import { IS_PREVIEW, RunStore } from '../runs/run-store';
+import { RunChart } from './run-chart';
+import { average, chartTop, digitTimes } from './run-charts';
 
 /** Hands a file to the player, as a download. */
 export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void>('SAVE_FILE', {
@@ -21,10 +24,11 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
 
 /**
  * The player's data, opened from the main menu's overflow menu: how many runs are kept and how safe they are, with a
- * backup file to save and restore.
+ * backup file to save and restore, then a chart of each run and, sticking to the bottom, one of them all.
  */
 @Component({
   selector: 'app-data',
+  imports: [RunChart],
   host: { class: 'screen' },
   template: `
     <header>
@@ -66,6 +70,42 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
       </div>
       <p class="message" role="status">{{ message() }}</p>
     </section>
+    <section class="runs" aria-labelledby="runs-title">
+      <h2 id="runs-title">Your runs</h2>
+      @if (charts().length === 0) {
+        <p>None yet: each game you play shows up here.</p>
+      } @else {
+        <p>
+          How long you took to type each digit, so pauses are peaks, along every place you've
+          reached.
+        </p>
+        @for (chart of charts(); track chart.id) {
+          <article class="panel">
+            <h3>{{ chart.title }}</h3>
+            <p class="meta">{{ chart.meta }}</p>
+            <app-run-chart
+              [values]="chart.times"
+              [places]="places()"
+              [top]="top()"
+              [label]="'Time per digit, ' + chart.title"
+            />
+          </article>
+        }
+        <article class="panel summary">
+          <h3>All runs</h3>
+          <p class="meta">Average time per digit</p>
+          <app-run-chart
+            [values]="averageTimes()"
+            [places]="places()"
+            [top]="top()"
+            label="Average time per digit, over all runs"
+          />
+          <p class="axis" aria-hidden="true">
+            <span>Place 1</span><span>Place {{ places() }}</span>
+          </p>
+        </article>
+      }
+    </section>
   `,
   styleUrl: './data.css',
 })
@@ -76,6 +116,24 @@ export class Data {
   protected readonly readOnlyPreview = signal(false);
   protected readonly message = signal('');
   protected readonly back = injectBackToMenu();
+
+  private readonly runs = signal<readonly Run[]>([]);
+  protected readonly charts = computed(() =>
+    this.runs().map((run) => ({
+      id: run.id,
+      title: dateAndTime.format(run.startedAt),
+      meta: `${plural(run.digits.length, 'digit')} in ${seconds(run.times.at(-1) ?? 0)}`,
+      times: digitTimes(run),
+    })),
+  );
+  /** Every chart spans the places of the longest run. */
+  protected readonly places = computed(() =>
+    Math.max(1, ...this.runs().map((run) => run.digits.length)),
+  );
+  protected readonly top = computed(() => chartTop(this.charts().map((chart) => chart.times)));
+  protected readonly averageTimes = computed(() =>
+    average(this.charts().map((chart) => chart.times)),
+  );
 
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
@@ -125,6 +183,7 @@ export class Data {
       this.store.persisted(),
       this.store.writable(),
     ]);
+    this.runs.set(runs);
     this.readOnlyPreview.set(this.preview && !writable);
     this.count.set(
       runs.length === 0
@@ -133,6 +192,12 @@ export class Data {
     );
     this.persisted.set(persisted);
   }
+}
+
+const dateAndTime = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+
+function seconds(milliseconds: number): string {
+  return `${(milliseconds / 1000).toFixed(1)} s`;
 }
 
 function plural(count: number, noun: string): string {
