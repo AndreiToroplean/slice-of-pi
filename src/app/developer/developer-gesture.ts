@@ -68,7 +68,6 @@ export const MESSAGES = {
     '(pointerup)': 'up($event)',
     '(pointercancel)': 'cancel()',
     '(click)': 'click($event)',
-    '(contextmenu)': '$event.preventDefault()',
   },
 })
 export class DeveloperGesture {

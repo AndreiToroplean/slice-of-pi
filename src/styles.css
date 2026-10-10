@@ -108,6 +108,7 @@ body {
     --background-bottom 0.8s ease-out;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* Shade the top and bottom of the background a little, behind a screen's header and its controls. */

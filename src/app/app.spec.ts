@@ -27,6 +27,16 @@ describe('App', () => {
     expect(main?.style.getPropertyValue('--background-bottom')).toBe(seasonAt(30).background[1]);
   });
 
+  it('keeps the long-press menu from opening anywhere', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+
+    document.body.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
   it('renders a main landmark with a router outlet', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
