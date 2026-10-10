@@ -14,7 +14,7 @@ import {
   RUNS,
   STORAGE_MANAGER,
 } from '../runs/run-store';
-import { installDialogs } from '../../testing/dialogs';
+import { installDialogs, uninstallDialogs } from '../../testing/fake-dialogs';
 import { RunsDialog, SAVE_FILE } from './runs-dialog';
 
 describe('RunsDialog', () => {
@@ -27,6 +27,10 @@ describe('RunsDialog', () => {
     saved = [];
   });
 
+  afterEach(() => {
+    uninstallDialogs();
+  });
+
   async function setUp(
     runs: Run[] = [],
     persisted = false,
@@ -34,7 +38,6 @@ describe('RunsDialog', () => {
     mainFormat?: number,
   ): Promise<{
     host: HTMLElement;
-    dialog: RunsDialog;
     until: (ready: () => boolean) => Promise<void>;
   }> {
     const indexedDb = new IDBFactory();
@@ -77,7 +80,7 @@ describe('RunsDialog', () => {
           throw new Error('Not ready yet');
         }
       });
-    return { host, dialog: fixture.componentInstance, until };
+    return { host, until };
   }
 
   /** Notes the main game's run format, as the main game does when it opens the database. */
@@ -146,18 +149,15 @@ describe('RunsDialog', () => {
     const { host } = await setUp();
 
     expect(host.querySelector('dialog')?.open).toBe(false);
-    expect(host.querySelector('button.open')?.getAttribute('aria-label')).toBe(
-      'Your runs and backups',
-    );
+    expect(host.querySelector('button.open')?.getAttribute('aria-label')).toBe('Your runs');
   });
 
   it('opens on the button, and says there are no runs yet', async () => {
-    const { host, dialog, until } = await setUp();
+    const { host, until } = await setUp();
 
     await openDialog(host, until);
 
     expect(host.querySelector('dialog')?.open).toBe(true);
-    expect(dialog.open()).toBe(true);
     expect(text(host)).toContain('No runs kept yet.');
   });
 
@@ -186,13 +186,13 @@ describe('RunsDialog', () => {
     expect(text(host)).toContain("keeps them until this site's data is cleared");
   });
 
-  it('closes, and says so', async () => {
-    const { host, dialog, until } = await setUp();
+  it('closes with its close button', async () => {
+    const { host, until } = await setUp();
     await openDialog(host, until);
 
-    host.querySelector('dialog')?.close();
+    button(host, 'Close').click();
 
-    expect(dialog.open()).toBe(false);
+    expect(host.querySelector('dialog')?.open).toBe(false);
   });
 
   it('saves a backup of every run, named after the date', async () => {

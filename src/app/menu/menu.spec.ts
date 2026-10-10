@@ -39,10 +39,18 @@ describe('Menu', () => {
     expect(TestBed.inject(Background).colors()).toEqual(seasonAt(0).background);
   });
 
+  it("opens the player's runs from a button in a corner", async () => {
+    const host = await setUp();
+
+    expect(host.querySelector('app-runs-dialog button.open')?.getAttribute('aria-label')).toBe(
+      'Your runs',
+    );
+  });
+
   it('starts a game with the play button', async () => {
     const host = await setUp();
 
-    const play = host.querySelector('a');
+    const play = host.querySelector('a.candy');
     expect(play?.textContent.trim()).toBe('Play');
     expect(play?.getAttribute('href')).toBe('/play');
   });
