@@ -3,11 +3,23 @@ import { provideRouter } from '@angular/router';
 import { routes } from '../app.routes';
 import { Background } from '../background/background';
 import { seasonAt } from '../seasons/seasons';
-import { Menu } from './menu';
+import { DeveloperMode } from '../developer/developer-mode';
+import { Tweaks } from '../developer/tweaks';
+import { PALETTE } from '../place-colors/place-colors';
+import { INDEXED_DB } from '../runs/run-store';
+import { backgroundsFrom } from '../seasons/seasons';
+import { COPIED_MS, Menu, WRITE_CLIPBOARD } from './menu';
 
 describe('Menu', () => {
+  const writeClipboard = vi.fn<(text: string) => Promise<void>>();
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter(routes),
+        { provide: INDEXED_DB, useValue: undefined },
+        { provide: WRITE_CLIPBOARD, useValue: writeClipboard },
+      ],
+    });
   });
 
   afterEach(() => {
@@ -82,5 +94,80 @@ describe('Menu', () => {
     const play = host.querySelector('a.candy');
     expect(play?.textContent.trim()).toBe('Play');
     expect(play?.getAttribute('href')).toBe('/play');
+  });
+
+  describe('in developer mode', () => {
+    const seasons = {
+      spring: ['#000000', '#111111'],
+      summer: ['#000000', '#111111'],
+      autumn: ['#000000', '#111111'],
+      winter: ['#000000', '#111111'],
+    } as const;
+
+    afterEach(() => {
+      vi.useRealTimers();
+      writeClipboard.mockReset();
+    });
+
+    function developerSection(host: HTMLElement): Element | null {
+      return host.querySelector('.dropdown [role="group"]');
+    }
+
+    it('has no developer section until developer mode is on', async () => {
+      const fixture = TestBed.createComponent(Menu);
+      await fixture.whenStable();
+      const host = fixture.nativeElement as HTMLElement;
+      expect(developerSection(host)).toBeNull();
+
+      await TestBed.inject(DeveloperMode).set(true);
+      await fixture.whenStable();
+
+      expect(developerSection(host)?.querySelector('h2')?.textContent).toBe('Developer');
+    });
+
+    it('copies all tweaks, and says so for a moment', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
+      writeClipboard.mockResolvedValue();
+      await TestBed.inject(DeveloperMode).set(true);
+      await TestBed.inject(Tweaks).setPalette(PALETTE.map(() => '#000000'));
+      const fixture = TestBed.createComponent(Menu);
+      await fixture.whenStable();
+      const host = fixture.nativeElement as HTMLElement;
+      const copy = developerSection(host)?.querySelector('button');
+      expect(copy?.textContent.trim()).toBe('Copy all tweaks');
+
+      copy?.click();
+      await fixture.whenStable();
+
+      expect(writeClipboard).toHaveBeenCalledWith(TestBed.inject(Tweaks).exportText());
+      expect(copy?.textContent.trim()).toBe('Copied');
+      vi.advanceTimersByTime(COPIED_MS);
+      await fixture.whenStable();
+      expect(copy?.textContent.trim()).toBe('Copy all tweaks');
+    });
+
+    it("says when the clipboard can't be written", async () => {
+      writeClipboard.mockRejectedValue(new Error('denied'));
+      await TestBed.inject(DeveloperMode).set(true);
+      const fixture = TestBed.createComponent(Menu);
+      await fixture.whenStable();
+      const copy = developerSection(fixture.nativeElement as HTMLElement)?.querySelector('button');
+
+      copy?.click();
+      await fixture.whenStable();
+
+      expect(copy?.textContent.trim()).toBe("Couldn't copy");
+    });
+
+    it('starts on the tuned background of a new game', async () => {
+      await TestBed.inject(DeveloperMode).set(true);
+      await TestBed.inject(Tweaks).setSeasons(seasons);
+
+      await setUp();
+
+      expect(TestBed.inject(Background).colors()).toEqual(
+        seasonAt(0, backgroundsFrom(seasons)).background,
+      );
+    });
   });
 });

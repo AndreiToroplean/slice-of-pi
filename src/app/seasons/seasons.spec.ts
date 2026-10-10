@@ -1,4 +1,11 @@
-import { mix, PLACES_PER_SEASON, PLACES_PER_YEAR, seasonAt } from './seasons';
+import {
+  backgroundsFrom,
+  mix,
+  PLACES_PER_SEASON,
+  PLACES_PER_YEAR,
+  SEASON_BACKGROUNDS,
+  seasonAt,
+} from './seasons';
 
 describe('seasonAt', () => {
   it('starts in spring of year 1', () => {
@@ -61,5 +68,46 @@ describe('mix', () => {
     expect(mix('#000000', '#ffffff', 1)).toBe('#ffffff');
     expect(mix('#000000', '#ffffff', 0.5)).toBe('#808080');
     expect(mix('#ff0010', '#00ff10', 0.25)).toBe('#bf4010');
+  });
+});
+
+describe('backgroundsFrom', () => {
+  it("gives back the game's backgrounds from their starting colors", () => {
+    const starts = {
+      spring: SEASON_BACKGROUNDS.spring.early,
+      summer: SEASON_BACKGROUNDS.summer.early,
+      autumn: SEASON_BACKGROUNDS.autumn.early,
+      winter: SEASON_BACKGROUNDS.winter.early,
+    };
+
+    expect(backgroundsFrom(starts)).toEqual(SEASON_BACKGROUNDS);
+  });
+
+  it('drifts each season from new starting colors as far as the game does, within the colors there are', () => {
+    const starts = {
+      spring: ['#808080', '#ffffff'],
+      summer: ['#000000', '#000000'],
+      autumn: SEASON_BACKGROUNDS.autumn.early,
+      winter: SEASON_BACKGROUNDS.winter.early,
+    } as const;
+
+    const backgrounds = backgroundsFrom(starts);
+
+    // Spring's top drifts by 0, -20 and -13 on each channel, and its bottom by -32, -13 and -19.
+    expect(backgrounds.spring).toEqual({ early: starts.spring, late: ['#806c73', '#dff2ec'] });
+    expect(backgrounds.summer.late).toEqual(['#000000', '#000000']);
+    expect(backgroundsFrom(starts).autumn).toEqual(SEASON_BACKGROUNDS.autumn);
+  });
+
+  it('is used by seasonAt', () => {
+    const backgrounds = backgroundsFrom({
+      spring: ['#000000', '#000000'],
+      summer: ['#000000', '#000000'],
+      autumn: ['#000000', '#000000'],
+      winter: ['#000000', '#000000'],
+    });
+
+    expect(seasonAt(0, backgrounds).background).toEqual(['#000000', '#000000']);
+    expect(seasonAt(0).background).toEqual(SEASON_BACKGROUNDS.spring.early);
   });
 });

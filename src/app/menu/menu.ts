@@ -1,10 +1,30 @@
 import { NgOptimizedImage } from '@angular/common';
-import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  effect,
+  ElementRef,
+  inject,
+  InjectionToken,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Background } from '../background/background';
 import { DeveloperGesture } from '../developer/developer-gesture';
+import { DeveloperMode } from '../developer/developer-mode';
 import { DeveloperOverlay } from '../developer/developer-overlay';
+import { Tweaks } from '../developer/tweaks';
 import { seasonAt } from '../seasons/seasons';
+
+/** Puts text on the clipboard. */
+export const WRITE_CLIPBOARD = new InjectionToken<(text: string) => Promise<void>>(
+  'WRITE_CLIPBOARD',
+  { factory: () => (text) => navigator.clipboard.writeText(text) },
+);
+
+/** How long "Copied" shows on the copy button. */
+export const COPIED_MS = 2000;
+const COPY_LABEL = 'Copy all tweaks';
 
 /**
  * The main menu, where the app opens: the game's icon and name and a button to play, with more in an overflow menu in a
@@ -43,6 +63,12 @@ import { seasonAt } from '../seasons/seasons';
       (beforetoggle)="placeDropdown()"
     >
       <a routerLink="/data">Your data</a>
+      @if (developerMode.enabled()) {
+        <div class="section" role="group" aria-labelledby="developer-title">
+          <h2 id="developer-title">Developer</h2>
+          <button type="button" (click)="void copyTweaks()">{{ copyLabel() }}</button>
+        </div>
+      }
     </nav>
     <div class="title">
       <img class="icon" ngSrc="icons/icon.svg" width="136" height="136" alt="" priority />
@@ -76,12 +102,33 @@ export class Menu {
   protected readonly lines = [['Slice', 'of'], ['Pi']];
   /** Where the dropdown opens, from the top right corner of the window, just under its button. */
   protected readonly dropdownAt = signal({ top: 0, right: 0 });
+  protected readonly developerMode = inject(DeveloperMode);
+  protected readonly copyLabel = signal(COPY_LABEL);
+
+  private readonly tweaks = inject(Tweaks);
+  private readonly writeClipboard = inject(WRITE_CLIPBOARD);
 
   private readonly more = viewChild.required<ElementRef<HTMLButtonElement>>('more');
 
   constructor() {
     // The background of a new game, so that playing starts on the same colors.
-    inject(Background).colors.set(seasonAt(0).background);
+    const background = inject(Background);
+    effect(() => {
+      background.colors.set(seasonAt(0, this.tweaks.seasonBackgrounds()).background);
+    });
+  }
+
+  /** Copies the tweaks made in developer mode, to hand them back so they go into the code. */
+  protected async copyTweaks(): Promise<void> {
+    try {
+      await this.writeClipboard(this.tweaks.exportText());
+      this.copyLabel.set('Copied');
+    } catch {
+      this.copyLabel.set("Couldn't copy");
+    }
+    setTimeout(() => {
+      this.copyLabel.set(COPY_LABEL);
+    }, COPIED_MS);
   }
 
   /** Puts the dropdown under its button. It opens in the top layer, positioned against the window. */
