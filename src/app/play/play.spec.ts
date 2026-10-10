@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+import { Meta } from '@angular/platform-browser';
 import { FakeResizeObserver } from '../../testing/fake-resize-observer';
+import { seasonAt } from '../seasons/seasons';
 import { Play } from './play';
 
 describe('Play', () => {
@@ -59,6 +61,38 @@ describe('Play', () => {
 
     expect(host.querySelector('app-digit-tape .visually-hidden')?.textContent).toBe(
       'No digits typed yet.',
+    );
+  });
+
+  it('starts with the spring background and header', async () => {
+    const { host } = await setUp();
+
+    expect(host.style.getPropertyValue('--background-top')).toBe(seasonAt(0).background[0]);
+    expect(host.style.getPropertyValue('--background-bottom')).toBe(seasonAt(0).background[1]);
+    expect(host.querySelector('app-season-header .place')?.textContent.trim()).toBe(
+      'Year 1 · digit 0 of 100',
+    );
+  });
+
+  it('moves through the seasons as digits are typed, and back with backspace', async () => {
+    const { host, type } = await setUp();
+
+    for (let i = 0; i < 25; i++) {
+      await type('1');
+    }
+
+    expect(host.querySelector('app-season-header .name')?.textContent.trim()).toBe('Summer');
+    expect(host.style.getPropertyValue('--background-top')).toBe(seasonAt(25).background[0]);
+    expect(TestBed.inject(Meta).getTag('name="theme-color"')?.content).toBe(
+      seasonAt(25).background[0],
+    );
+
+    await type('backspace');
+
+    expect(host.querySelector('app-season-header .name')?.textContent.trim()).toBe('Spring');
+    expect(host.style.getPropertyValue('--background-top')).toBe(seasonAt(24).background[0]);
+    expect(TestBed.inject(Meta).getTag('name="theme-color"')?.content).toBe(
+      seasonAt(24).background[0],
     );
   });
 });

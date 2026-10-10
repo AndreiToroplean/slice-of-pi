@@ -1,18 +1,48 @@
+/* Design tokens. The play screen sits on the season background (see `seasons.ts`), so its text and keys are white. */
 :root {
   color-scheme: light;
-  --background: #fff8ef;
+
   /* Around the phone-shaped game on wide screens. */
   --surround: #efe6da;
-  --text: #2b2140;
-  --key-background: #ffffff;
-  --key-background-active: #f3ebff;
-  --key-shadow: #d9cdea;
-  --key-color: #2b2140;
-  --focus-ring: #6a3fd1;
+  /* Text on the season background. */
+  --on-background: #ffffff;
+  /* Dark text, for surfaces drawn over the background. */
+  --ink: #2a1f3d;
+  --text-shadow: 0 1px 6px rgb(0 0 0 / 15%);
+  --text-shadow-large: 0 2px 10px rgb(0 0 0 / 18%);
+  --focus-ring: #ffffff;
 
-  background: var(--background);
-  color: var(--text);
-  font-family: system-ui, sans-serif;
+  /* Frosted surfaces over the background, such as keys. */
+  --frost: rgb(255 255 255 / 26%);
+  --frost-pressed: rgb(255 255 255 / 45%);
+  --frost-highlight: rgb(255 255 255 / 45%);
+  --frost-blur: 10px;
+
+  --font-ui: 'Lexend', system-ui, sans-serif;
+  --font-digits: 'Fredoka', system-ui, sans-serif;
+
+  --radius-key: 1.25rem;
+  --space-1: 0.375rem;
+  --space-2: 0.5625rem;
+  --space-3: 1.125rem;
+
+  background: var(--surround);
+  color: var(--on-background);
+  font-family: var(--font-ui);
+  font-size-adjust: from-font;
+}
+
+/* The season background's colors, registered as colors so the background can transition between them (see play.css). */
+@property --background-top {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: #ffb3d1;
+}
+
+@property --background-bottom {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: #7fd6a6;
 }
 
 html,
@@ -30,4 +60,13 @@ body {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

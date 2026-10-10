@@ -4,8 +4,8 @@
   "description": "Learn the digits of π, one slice at a time.",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#fff8ef",
-  "theme_color": "#fff8ef",
+  "background_color": "#ffb3d1",
+  "theme_color": "#ffb3d1",
   "scope": "./",
   "start_url": "./",
   "icons": [
