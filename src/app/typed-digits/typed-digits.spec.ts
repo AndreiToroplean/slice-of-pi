@@ -221,26 +221,44 @@ describe('TypedDigits', () => {
       expect(fixture.componentInstance.scrollDown(100)).toBeCloseTo(10);
     });
 
-    it("doesn't move when the words don't grow, or shrink", async () => {
-      let height = 100;
+    it('slides the last row out when the words shrink, the same way back', async () => {
+      let height = 120;
       const { fixture, words } = await sized(() => height);
-
       await type(fixture, '14159');
-      expect(words.style.translate).toBe('');
 
-      height = 80;
+      height = 100;
       await type(fixture, '1415');
+
+      expect(lowered(words)).toBe(-20);
+      const positions = [100, 200, 300].map((at) => {
+        frameAt(words, at);
+        return lowered(words);
+      });
+      expect(positions).toEqual([...positions].sort((a, b) => a - b));
+      expect(positions[1]).toBeCloseTo(-10);
+      frameAt(words, SCROLL_DOWN_DURATION);
       expect(words.style.translate).toBe('');
     });
 
-    it('shows a new row at once when the player prefers reduced motion', async () => {
+    it("doesn't move when the words don't grow", async () => {
+      const { fixture, words } = await sized(() => 100);
+
+      await type(fixture, '14159');
+
+      expect(words.style.translate).toBe('');
+    });
+
+    it('shows or hides a row at once when the player prefers reduced motion', async () => {
       vi.stubGlobal('matchMedia', () => ({ matches: true }));
       let height = 100;
       const { fixture, words } = await sized(() => height);
 
       height = 120;
       await type(fixture, '14159');
+      expect(words.style.translate).toBe('');
 
+      height = 100;
+      await type(fixture, '1415');
       expect(words.style.translate).toBe('');
     });
 
