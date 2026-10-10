@@ -1,9 +1,19 @@
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { BACKUP_KIND, readBackup, writeBackup } from '../runs/backup';
-import { addDigit, newRun, Run } from '../runs/run';
+import { addDigit, newRun, Run, RUN_FORMAT } from '../runs/run';
 import { RUN_CLOCK } from '../runs/run-recorder';
-import { INDEXED_DB, RunStore, STORAGE_MANAGER } from '../runs/run-store';
+import {
+  DATABASE_NAME,
+  DATABASE_VERSION,
+  INDEXED_DB,
+  IS_PREVIEW,
+  MAIN_FORMAT,
+  META,
+  RunStore,
+  RUNS,
+  STORAGE_MANAGER,
+} from '../runs/run-store';
 import { installDialogs } from '../../testing/dialogs';
 import { RunsDialog, SAVE_FILE } from './runs-dialog';
 
@@ -20,14 +30,21 @@ describe('RunsDialog', () => {
   async function setUp(
     runs: Run[] = [],
     persisted = false,
+    preview = false,
+    mainFormat?: number,
   ): Promise<{
     host: HTMLElement;
     dialog: RunsDialog;
     until: (ready: () => boolean) => Promise<void>;
   }> {
+    const indexedDb = new IDBFactory();
+    if (mainFormat !== undefined) {
+      await noteMainFormat(indexedDb, mainFormat);
+    }
     TestBed.configureTestingModule({
       providers: [
-        { provide: INDEXED_DB, useValue: new IDBFactory() },
+        { provide: INDEXED_DB, useValue: indexedDb },
+        { provide: IS_PREVIEW, useValue: preview },
         {
           provide: STORAGE_MANAGER,
           useValue: { persisted: () => Promise.resolve(persisted) },
@@ -61,6 +78,25 @@ describe('RunsDialog', () => {
         }
       });
     return { host, dialog: fixture.componentInstance, until };
+  }
+
+  /** Notes the main game's run format, as the main game does when it opens the database. */
+  function noteMainFormat(indexedDb: IDBFactory, format: number): Promise<void> {
+    return new Promise((resolve) => {
+      const request = indexedDb.open(DATABASE_NAME, DATABASE_VERSION);
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore(RUNS, { keyPath: 'id' });
+        request.result.createObjectStore(META);
+      };
+      request.onsuccess = () => {
+        const transaction = request.result.transaction(META, 'readwrite');
+        transaction.objectStore(META).put({ format }, MAIN_FORMAT);
+        transaction.oncomplete = () => {
+          request.result.close();
+          resolve();
+        };
+      };
+    });
   }
 
   async function openDialog(
@@ -212,6 +248,27 @@ describe('RunsDialog', () => {
 
     expect(message(host)).toBe('This file is not a Slice of π backup.');
     expect(await TestBed.inject(RunStore).runs()).toEqual([]);
+  });
+
+  it('says when a preview keeps no runs, and offers no restore', async () => {
+    const { host, until } = await setUp([], false, true, RUN_FORMAT + 1);
+
+    await openDialog(host, until);
+
+    expect(text(host)).toContain(
+      "This preview of the game stores runs in a different format from the main game, so it doesn't keep any.",
+    );
+    expect(host.querySelector('input[type="file"]')).toBeNull();
+    expect(button(host, 'Save a backup')).toBeTruthy();
+  });
+
+  it('says nothing about previews in the main game', async () => {
+    const { host, until } = await setUp();
+
+    await openDialog(host, until);
+
+    expect(text(host)).not.toContain('preview');
+    expect(host.querySelector('input[type="file"]')).not.toBeNull();
   });
 
   it('clears the message when opened again', async () => {
