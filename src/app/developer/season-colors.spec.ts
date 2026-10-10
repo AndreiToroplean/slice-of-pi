@@ -88,6 +88,14 @@ describe('SeasonColors', () => {
     expect(input(host, 'Summer bottom').value).toBe(SEASON_STARTS.summer[1]);
   });
 
+  it('copies its colors from a button in its top bar', async () => {
+    const { host } = await setUp();
+
+    expect(host.querySelector('app-page-header app-copy-values button')?.textContent.trim()).toBe(
+      'Copy hyperparameter values',
+    );
+  });
+
   it('starts on the colors tuned before', async () => {
     const tuned = { ...SEASON_STARTS, spring: ['#000000', '#ffffff'] as const };
     await TestBed.inject(Tweaks).setSeasons(tuned);

@@ -138,16 +138,8 @@ h1 {
   }
 }
 
-.dropdown a,
-.dropdown button {
+.dropdown a {
   display: block;
-  box-sizing: border-box;
-  width: 100%;
-  border: none;
-  background: none;
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
   color: inherit;
@@ -157,13 +149,11 @@ h1 {
   -webkit-tap-highlight-color: transparent;
 }
 
-.dropdown a:active,
-.dropdown button:active {
+.dropdown a:active {
   background: var(--frost-pressed);
 }
 
-.dropdown a:focus-visible,
-.dropdown button:focus-visible {
+.dropdown a:focus-visible {
   outline: 0.1875rem solid var(--focus-ring);
   outline-offset: -0.1875rem;
 }

@@ -117,6 +117,14 @@ describe('KeyColors', () => {
     expect(words.slice(0, 3)).toEqual(['π=3.', '14159', '26535']);
   });
 
+  it('copies its colors from a button in its top bar', async () => {
+    const { host } = await setUp();
+
+    expect(host.querySelector('app-page-header app-copy-values button')?.textContent.trim()).toBe(
+      'Copy hyperparameter values',
+    );
+  });
+
   it("shows a season's starting background behind the page", async () => {
     const { host, stable } = await setUp();
     const background = TestBed.inject(Background).colors;

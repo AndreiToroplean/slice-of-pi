@@ -36,7 +36,7 @@ export const SEASON_STARTS: SeasonStarts = Object.fromEntries(
  * The game's values as tuned in developer mode: they apply to the whole game while developer mode is on, and the
  * game's own values apply otherwise. Kept with the player's data, so they survive turning developer mode off and on.
  * The game's own values never change here: tuned values go into the code once the owner is happy with them, from the
- * text {@link exportText} gives.
+ * text each page copies ({@link paletteText}, {@link seasonsText}).
  */
 @Service()
 export class Tweaks {
@@ -81,37 +81,31 @@ export class Tweaks {
     return this.save(tweakValues(this.tweaks().palette, seasons));
   }
 
-  /** The tuned values that differ from the game's, as text to hand back so they go into the code. */
-  exportText(): string {
-    const { palette, seasons } = this.tweaks();
-    const lines: string[] = [];
-    if (palette?.some((color, i) => color !== PALETTE[i]) === true) {
-      lines.push(
-        'Key colors (PALETTE in place-colors.ts), keys 0 to 9:',
-        ...palette.map((color, i) => `  ${String(i)}: ${color}`),
-      );
-    }
-    const changedSeasons = SEASONS.filter((season) =>
-      seasons?.[season].some((color, k) => color !== SEASON_STARTS[season][k]),
-    );
-    if (seasons !== undefined && changedSeasons.length > 0) {
-      lines.push(
-        'Season colors (early colors in SEASON_BACKGROUNDS in seasons.ts), top then bottom:',
-        ...changedSeasons.map(
-          (season) => `  ${season}: ${seasons[season][0]}, ${seasons[season][1]}`,
-        ),
-      );
-    }
-    return lines.length === 0
-      ? "Slice of Pi tweaks: none, the game's values are unchanged."
-      : ['Slice of Pi tweaks', ...lines].join('\n');
-  }
-
   private async save(next: TweakValues): Promise<void> {
     this.changed = true;
     this.tweaks.set(next);
     await this.store.saveSetting(TWEAKS, { format: TWEAKS_FORMAT, ...next });
   }
+}
+
+/** Key colors as text to hand back so they go into the code, saying whether they differ from the game's. */
+export function paletteText(palette: Palette): string {
+  const changed = palette.some((color, i) => color !== PALETTE[i]);
+  return [
+    `Key colors (PALETTE in place-colors.ts), keys 0 to 9${changed ? '' : ", the game's own"}:`,
+    ...palette.map((color, i) => `  ${String(i)}: ${color}`),
+  ].join('\n');
+}
+
+/** The seasons' starting colors as text to hand back so they go into the code, marking those that differ. */
+export function seasonsText(seasons: SeasonStarts): string {
+  return [
+    'Season colors (early colors in SEASON_BACKGROUNDS in seasons.ts), top then bottom:',
+    ...SEASONS.map((season) => {
+      const changed = seasons[season].some((color, k) => color !== SEASON_STARTS[season][k]);
+      return `  ${season}: ${seasons[season][0]}, ${seasons[season][1]}${changed ? ' (changed)' : ''}`;
+    }),
+  ].join('\n');
 }
 
 /** The tweaks in a stored setting, leaving out what isn't valid. A format this version doesn't know gives none. */

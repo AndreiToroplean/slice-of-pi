@@ -3,7 +3,8 @@ import { Background } from '../background/background';
 import { PageHeader } from '../page-header/page-header';
 import { SEASON_NAMES, SeasonHeader } from '../season-header/season-header';
 import { backgroundsFrom, PLACES_PER_YEAR, Season, seasonAt, SEASONS } from '../seasons/seasons';
-import { SEASON_STARTS, SeasonStarts, Tweaks } from './tweaks';
+import { CopyValues } from './copy-values';
+import { SEASON_STARTS, SeasonStarts, seasonsText, Tweaks } from './tweaks';
 
 /** Which of a season's colors: the top of the screen, or the bottom. */
 const ENDS = [
@@ -17,10 +18,12 @@ const ENDS = [
  */
 @Component({
   selector: 'app-season-colors',
-  imports: [PageHeader, SeasonHeader],
+  imports: [CopyValues, PageHeader, SeasonHeader],
   host: { class: 'screen' },
   template: `
-    <app-page-header title="Season colors" />
+    <app-page-header title="Season colors">
+      <app-copy-values [text]="copyText()" />
+    </app-page-header>
     <app-season-header [view]="view()" />
     <div class="seasons">
       @for (season of seasons; track season) {
@@ -79,6 +82,8 @@ export class SeasonColors {
       this.starts()[season].some((color, k) => color !== SEASON_STARTS[season][k]),
     ),
   );
+  /** The colors as text, to hand back so they go into the code. */
+  protected readonly copyText = computed(() => seasonsText(this.starts()));
   protected readonly view = computed(() => seasonAt(this.place(), backgroundsFrom(this.starts())));
 
   constructor() {

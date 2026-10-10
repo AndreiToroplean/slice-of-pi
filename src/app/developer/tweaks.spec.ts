@@ -4,7 +4,15 @@ import { PALETTE } from '../place-colors/place-colors';
 import { INDEXED_DB, IS_PREVIEW, RunStore } from '../runs/run-store';
 import { backgroundsFrom, SEASON_BACKGROUNDS } from '../seasons/seasons';
 import { DeveloperMode } from './developer-mode';
-import { parseTweaks, SEASON_STARTS, Tweaks, TWEAKS, TWEAKS_FORMAT } from './tweaks';
+import {
+  paletteText,
+  parseTweaks,
+  SEASON_STARTS,
+  seasonsText,
+  Tweaks,
+  TWEAKS,
+  TWEAKS_FORMAT,
+} from './tweaks';
 
 describe('Tweaks', () => {
   let indexedDb: IDBFactory;
@@ -75,32 +83,27 @@ describe('Tweaks', () => {
     expect(tweaks.values()).toEqual({ seasons });
   });
 
-  describe('exportText', () => {
-    it('says when nothing differs from the game', async () => {
-      const tweaks = await load();
-      expect(tweaks.exportText()).toBe(
-        "Slice of Pi tweaks: none, the game's values are unchanged.",
+  describe('as text', () => {
+    it('lists the key colors, saying when they are the game’s own', () => {
+      expect(paletteText(PALETTE).split('\n')[0]).toBe(
+        "Key colors (PALETTE in place-colors.ts), keys 0 to 9, the game's own:",
       );
-
-      await tweaks.setPalette(PALETTE);
-      await tweaks.setSeasons(SEASON_STARTS);
-      expect(tweaks.exportText()).toBe(
-        "Slice of Pi tweaks: none, the game's values are unchanged.",
+      expect(paletteText(palette)).toBe(
+        [
+          'Key colors (PALETTE in place-colors.ts), keys 0 to 9:',
+          ...palette.map((color, i) => `  ${String(i)}: ${color}`),
+        ].join('\n'),
       );
     });
 
-    it('lists the whole palette, and only the seasons that differ', async () => {
-      const tweaks = await load();
-      await tweaks.setPalette(palette);
-      await tweaks.setSeasons(seasons);
-
-      expect(tweaks.exportText()).toBe(
+    it("lists every season's colors, marking those that changed", () => {
+      expect(seasonsText(seasons)).toBe(
         [
-          'Slice of Pi tweaks',
-          'Key colors (PALETTE in place-colors.ts), keys 0 to 9:',
-          ...palette.map((color, i) => `  ${String(i)}: ${color}`),
           'Season colors (early colors in SEASON_BACKGROUNDS in seasons.ts), top then bottom:',
-          '  autumn: #000000, #ffffff',
+          `  spring: ${SEASON_STARTS.spring[0]}, ${SEASON_STARTS.spring[1]}`,
+          `  summer: ${SEASON_STARTS.summer[0]}, ${SEASON_STARTS.summer[1]}`,
+          '  autumn: #000000, #ffffff (changed)',
+          `  winter: ${SEASON_STARTS.winter[0]}, ${SEASON_STARTS.winter[1]}`,
         ].join('\n'),
       );
     });

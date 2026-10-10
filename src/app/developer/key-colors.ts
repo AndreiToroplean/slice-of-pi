@@ -5,7 +5,8 @@ import { PALETTE, placeColors } from '../place-colors/place-colors';
 import { SEASON_NAMES } from '../season-header/season-header';
 import { Season, SEASONS } from '../seasons/seasons';
 import { closestPairs, contrastWithWhite, hexToOklch, Oklch, oklchToHex } from './color-math';
-import { SEASON_STARTS, Tweaks } from './tweaks';
+import { CopyValues } from './copy-values';
+import { paletteText, SEASON_STARTS, Tweaks } from './tweaks';
 
 /** The palette's colors, by name, in key order. */
 export const COLOR_NAMES = [
@@ -49,10 +50,12 @@ const SLIDERS = [
  */
 @Component({
   selector: 'app-key-colors',
-  imports: [PageHeader],
+  imports: [CopyValues, PageHeader],
   host: { class: 'screen' },
   template: `
-    <app-page-header title="Key colors" />
+    <app-page-header title="Key colors">
+      <app-copy-values [text]="copyText()" />
+    </app-page-header>
     <section class="panel" aria-labelledby="closest-title">
       <h2 id="closest-title">Closest pairs</h2>
       <p>
@@ -185,6 +188,8 @@ export class KeyColors {
 
   protected readonly hexes = computed(() => this.oklch().map(oklchToHex));
   protected readonly tuned = computed(() => this.hexes().some((color, i) => color !== PALETTE[i]));
+  /** The colors as text, to hand back so they go into the code. */
+  protected readonly copyText = computed(() => paletteText(this.hexes()));
   private readonly pairs = computed(() => closestPairs(this.hexes()));
   protected readonly closest = computed(() => this.pairs().slice(0, 6));
   protected readonly colors = computed(() =>
