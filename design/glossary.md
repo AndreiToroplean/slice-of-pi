@@ -18,7 +18,7 @@
 - **Typing area:** where the group being typed appears, as **slots** to fill.
 - **Slot:** an empty space in the typing area waiting for a digit.
 - **Hint:** the number of slots, i.e. the size of the group the game expects.
-- **Typed digits:** the digits typed so far in the run, shown smaller. In the current prototype, the rows of digits receding to a horizon (the `DigitTape` component, or **tape**).
+- **Typed digits:** the digits typed so far in the run, shown smaller above the typing area: after a "3." lead, each finished group is a **word** of joined tiles, and rows wrap between words like text (the `TypedDigits` component).
 - **Background:** the season-colored gradient behind the whole play screen. Never call it the sky.
 - **Season header:** the top of the play screen: the season's icon and name, the year and place in it ("Year 1 · digit 42 of 100"), and the **year bar**, one part per season.
 - **Sky:** the 3D night sky of stars where the player's constellations collect. Only this, never the background.
