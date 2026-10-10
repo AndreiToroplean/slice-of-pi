@@ -1,9 +1,10 @@
 import { Digit } from '../digit';
 
 /**
- * The format of run records. Stored runs and backup files carry it, so code that finds a record in a format it doesn't
- * know (written by a newer version of the game, or a pull request preview sharing the site's storage) leaves it alone
- * rather than misreading it. Bump it whenever the shape of a run changes, and keep reading the older formats.
+ * The format of run records. Stored runs and backup files carry it. Bump it whenever the shape of a run changes, and
+ * migrate the older formats in {@link parseRun}, one step per version (`architecture.md` §5). Code that finds a record
+ * in a newer format than it knows (written by a pull request preview sharing the site's storage) leaves it alone
+ * rather than misreading it.
  */
 export const RUN_FORMAT = 1;
 
@@ -57,7 +58,10 @@ export function removeDigit(run: Run): Run {
   };
 }
 
-/** Reads a run from untrusted data (storage, a backup file): the run if it's a valid run in a known format. */
+/**
+ * Reads a run from untrusted data (storage, a backup file): the run if it's a valid run in a known format. Format 1 is
+ * the only one so far; migrations from older formats will go here.
+ */
 export function parseRun(value: unknown): Run | undefined {
   if (typeof value !== 'object' || value === null) {
     return undefined;
