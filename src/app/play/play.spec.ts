@@ -366,6 +366,17 @@ describe('Play', () => {
       expect(slots(host)).toEqual(['1', '', '', '', '']);
     });
 
+    it('ends the run when it restarts', async () => {
+      const end = vi.spyOn(TestBed.inject(RunRecorder), 'end');
+      const { host, stable } = await setUp();
+
+      pauseItem(host, 'Pause').click();
+      pauseItem(host, 'Restart').click();
+      await stable();
+
+      expect(end).toHaveBeenCalledOnce();
+    });
+
     it('restarts during a flight, landing it at once', async () => {
       const animations = installAnimations();
       vi.stubGlobal('matchMedia', () => ({ matches: false }));
@@ -426,6 +437,16 @@ describe('Play', () => {
       expect(TestBed.inject(Router).url).toBe('/');
       expect(harness.routeDebugElement?.componentInstance).toBeInstanceOf(Menu);
       expect(location.urlChanges.at(-1)).toBe('replace: /');
+    });
+
+    it('ends the run when the game ends', async () => {
+      const harness = await RouterTestingHarness.create('/play');
+      const end = vi.spyOn(TestBed.inject(RunRecorder), 'end');
+
+      await endGame(harness);
+      await harness.fixture.whenStable();
+
+      expect(end).toHaveBeenCalledOnce();
     });
   });
 });
