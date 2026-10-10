@@ -66,7 +66,7 @@ export class TypedDigits {
   private readonly wordsElement = viewChild.required<ElementRef<HTMLElement>>('wordsElement');
   /** The scroll position's glide down to the newest words. */
   private glide: Glide | null = null;
-  /** The glide of how much lower than their place the words are drawn, back to 0, as a new row slides in. */
+  /** The glide of how much lower than their place the words are drawn, back to 0, as a row slides in or out. */
   private lift: Glide | null = null;
   private frame: number | null = null;
   /** How tall the words were when last rendered, in pixels. */
@@ -109,14 +109,15 @@ export class TypedDigits {
   }
 
   /**
-   * Keeps the words where they were on screen when a new row starts below them: the words grow at the bottom, which
-   * pushes them all up at once. Drawing them lower by as much, then gliding them back up, slides the new row in.
+   * Keeps the words where they were on screen when a row starts or ends below them: the words grow or shrink at the
+   * bottom, which pushes them all up or down at once. Drawing them lower (or higher) by as much, then gliding them back,
+   * slides the row in (or out).
    */
   private holdInPlace(): void {
     const height = this.wordsElement().nativeElement.offsetHeight;
     const grown = this.height === null ? 0 : height - this.height;
     this.height = height;
-    if (grown <= 0 || prefersReducedMotion()) {
+    if (grown === 0 || prefersReducedMotion()) {
       return;
     }
     const now = performance.now();
