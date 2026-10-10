@@ -4,6 +4,7 @@
 - Don't mention commercial apps or companies (e.g. other apps we take inspiration from) anywhere in the repo: docs, code, CLAUDE.md, commit messages. Describe them generically instead. Open-source projects (e.g. F-Droid) and the tools and platforms we actually use (e.g. Angular) are fine.
 - Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages and pull request titles, e.g. `feat: add a backspace key` or `docs: describe the seasons layer`.
 - Commit and push every change as soon as it's made; the owner reviews on GitHub. Amending and force-pushing to fix things afterwards is fine.
+- When a pull request changes what players see or hear, ask for a preview: right after opening it, add the line `Preview: https://andreitoroplean.github.io/slice-of-pi/pr-<number>/` to its description, with its number. Leave it out of other pull requests (CI, docs, refactors). See `design/architecture.md` §1.
 
 # Skills
 

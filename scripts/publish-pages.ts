@@ -59,6 +59,16 @@ function publish(change: SiteChange, build: string | undefined): boolean {
     git(['--work-tree', site, 'add', '--all', '.'], env);
     const tree = git(['write-tree'], env).toString().trim();
     const message = commitMessage(change, process.env['GITHUB_SHA']);
+    if (
+      current !== undefined &&
+      tree ===
+        git(['rev-parse', `${current}^{tree}`])
+          .toString()
+          .trim()
+    ) {
+      console.log(`${message}: nothing to change on ${BRANCH}.`);
+      return true;
+    }
     const commit = git(['commit-tree', tree, '-m', message]).toString().trim();
 
     try {

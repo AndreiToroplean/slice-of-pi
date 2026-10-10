@@ -13,7 +13,7 @@ Why:
 - **Installing outside the Play Store is a weak channel.** Most people see it as dangerous, and Android is moving towards requiring developer verification even for apps installed outside the Play Store (enforced from September 2026 in a few countries, globally planned for 2027), which threatens alternative app stores like F-Droid.
 - **Development loop.** The app can be run and checked in a browser directly while developing, and tried on a phone immediately.
 
-The site is served by GitHub Pages from the `gh-pages` branch (Settings → Pages → Source: "Deploy from a branch", `gh-pages`, `/ (root)`), which the deploy workflow maintains with `scripts/publish-pages.ts`: `main` at the root and a preview of each open pull request under `pr-<number>/`, so changes can be tried on a phone before merging. The web app manifest is scoped to its own directory, so an installed preview never takes over the installed main app.
+The site is served by GitHub Pages from the `gh-pages` branch (Settings → Pages → Source: "Deploy from a branch", `gh-pages`, `/ (root)`), which the deploy workflow maintains with `scripts/publish-pages.ts`: `main` at the root and previews of pull requests under `pr-<number>/`, so changes can be tried on a phone before merging. Previews are opt-in: a pull request gets one while its description contains a line `Preview: https://andreitoroplean.github.io/slice-of-pi/pr-<number>/`. Removing the line or closing the pull request deletes the preview. The web app manifest is scoped to its own directory, so an installed preview never takes over the installed main app.
 
 ## 2. Path to the Play Store
 

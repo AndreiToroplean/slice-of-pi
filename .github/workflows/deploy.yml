@@ -4,28 +4,41 @@ on:
   push:
     branches: [main]
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened, edited, closed]
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# One group per pull request, so a newer push or the close cancels its runs. Not keyed on github.ref alone: once a pull
-# request is merged, its close event runs with the base branch as github.ref and would cancel main's deploy.
-concurrency:
-  group: pages-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
-env:
-  # Pushes to main (and manual runs on it) publish the site root.
-  MAIN: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
-  # Pull requests from this repository get a preview; forks can't push to gh-pages.
-  PREVIEW: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-  PR: ${{ github.event.number }}
-
 jobs:
+  # Decides what this run does: check the app, publish main or a pull request's preview, or remove a preview. Previews
+  # are opt-in: see planRun in scripts/pages.ts.
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      publish: ${{ steps.plan.outputs.publish }}
+      remove: ${{ steps.plan.outputs.remove }}
+      base-href: ${{ steps.plan.outputs.base-href }}
+    steps:
+      # A closed pull request's merge ref may be gone, so run main's scripts for it.
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.action == 'closed' && github.event.repository.default_branch || '' }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - id: plan
+        run: node scripts/plan-pages.ts
+
   build:
-    if: github.event.action != 'closed'
+    needs: plan
+    if: needs.plan.outputs.build == 'true'
+    # A newer push or edit cancels the pull request's running build. Grouped by pull request number rather than
+    # github.ref: once a pull request is merged, its events run with the base branch as github.ref.
+    concurrency:
+      group: build-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -37,11 +50,10 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run test:coverage
-      # Main lives at the root of the Pages site, each pull request's preview under pr-<number>/.
-      - run: npm run build -- --base-href "/${{ github.event.repository.name }}/${{ env.PREVIEW == 'true' && format('pr-{0}/', env.PR) || '' }}"
+      - run: npm run build -- --base-href "${{ needs.plan.outputs.base-href }}"
       # Serve the app for unknown paths too, so client-side routes survive a reload.
       - run: cp dist/slice-of-pi/browser/index.html dist/slice-of-pi/browser/404.html
-      - if: env.MAIN == 'true' || env.PREVIEW == 'true'
+      - if: needs.plan.outputs.publish != ''
         uses: actions/upload-artifact@v4
         with:
           name: site
@@ -49,12 +61,13 @@ jobs:
 
   # GitHub Pages serves the gh-pages branch, which scripts/publish-pages.ts keeps up to date.
   publish:
-    needs: build
-    if: (github.event_name != 'pull_request' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    needs: [plan, build]
+    if: needs.plan.outputs.publish != ''
+    concurrency:
+      group: pages-${{ github.event.pull_request.number || github.ref }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -67,35 +80,27 @@ jobs:
       - run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898333+github-actions[bot]@users.noreply.github.com'
-      - if: env.MAIN == 'true'
+      - if: needs.plan.outputs.publish == 'main'
         run: node scripts/publish-pages.ts main "$RUNNER_TEMP/site"
-      - if: env.PREVIEW == 'true'
-        run: node scripts/publish-pages.ts preview "$PR" "$RUNNER_TEMP/site"
-      - if: env.PREVIEW == 'true'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            await require('./scripts/preview-comment.cjs')({ github, context, state: 'published' });
+      - if: needs.plan.outputs.publish == 'preview'
+        run: node scripts/publish-pages.ts preview "${{ github.event.number }}" "$RUNNER_TEMP/site"
 
   unpublish:
-    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    needs: plan
+    if: needs.plan.outputs.remove == 'true'
+    concurrency:
+      group: pages-${{ github.event.pull_request.number || github.ref }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
     steps:
-      # A closed pull request's merge ref may be gone, so run main's scripts.
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.event.action == 'closed' && github.event.repository.default_branch || '' }}
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
       - run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898333+github-actions[bot]@users.noreply.github.com'
-      - run: node scripts/publish-pages.ts remove "$PR"
-      - uses: actions/github-script@v8
-        with:
-          script: |
-            await require('./scripts/preview-comment.cjs')({ github, context, state: 'removed' });
+      - run: node scripts/publish-pages.ts remove "${{ github.event.number }}"
