@@ -3,7 +3,7 @@ import { slotLayout } from './slot-layout';
 
 /**
  * The typing area: the slots of the group being typed, filled with its digits so far, the next one outlined
- * (`groupings.md` §3). There is no text under the slots. Hidden from assistive technology: the typed digits say what
+ * (`groupings.md` §3), each in its place color. There is no text under the slots. Hidden from assistive technology: the typed digits say what
  * was typed.
  */
 @Component({
@@ -15,9 +15,13 @@ import { slotLayout } from './slot-layout';
   },
   template: `
     @for (slot of slots(); track $index) {
-      <span class="slot" [class.filled]="slot !== null" [class.next]="$index === digits().length">{{
-        slot
-      }}</span>
+      <span
+        class="slot"
+        [class.filled]="slot !== null"
+        [class.next]="$index === digits().length"
+        [style.--place-color]="colors()[$index]"
+        >{{ slot }}</span
+      >
     }
   `,
   styleUrl: './slots.css',
@@ -25,6 +29,8 @@ import { slotLayout } from './slot-layout';
 export class Slots {
   /** The digits typed so far in the group being typed. */
   readonly digits = input.required<string>();
+  /** Their place colors, in the same order. */
+  readonly colors = input.required<readonly string[]>();
   /** How many digits the group is expected to have. */
   readonly hint = input.required<number>();
 

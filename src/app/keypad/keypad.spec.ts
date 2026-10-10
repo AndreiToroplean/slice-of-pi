@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Keypad, REPEAT_DELAY, REPEAT_INTERVAL } from './keypad';
+import { isDigit } from '../digit';
+import { keyColors, PALETTE } from '../place-colors/place-colors';
+import { Keypad, REPEAT_DELAY, REPEAT_INTERVAL, SPLASH_DURATION } from './keypad';
 import { KeypadKey } from './keypad-layout';
 
 /** Center of each key's cell on the 300 × 400 keypad used here (100 × 100 cells). */
@@ -38,7 +40,12 @@ describe('Keypad', () => {
       DOMRect.fromRect({ x: 0, y: 0, width: 300, height: 400 }),
     );
     typed = [];
-    fixture.componentInstance.keyPressed.subscribe((key) => typed.push(key));
+    // Like the play screen, each digit typed moves its key on to its next color.
+    fixture.componentRef.setInput('colors', keyColors(''));
+    fixture.componentInstance.keyPressed.subscribe((key) => {
+      typed.push(key);
+      fixture.componentRef.setInput('colors', keyColors(typed.filter(isDigit).join('')));
+    });
     await vi.advanceTimersByTimeAsync(0);
     fixture.detectChanges();
   });
@@ -422,6 +429,100 @@ describe('Keypad', () => {
       button('6').dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
 
       expect(typed).toEqual(['6']);
+    });
+  });
+
+  describe('colors', () => {
+    function accent(key: KeypadKey): string {
+      fixture.detectChanges();
+      return button(key).style.getPropertyValue('--key-color');
+    }
+
+    /** The color a key is filled with, or `null` when it isn't. */
+    function splash(key: KeypadKey): string | null {
+      fixture.detectChanges();
+      return button(key).classList.contains('splash')
+        ? button(key).style.getPropertyValue('--splash-color')
+        : null;
+    }
+
+    it('shows each digit key its color as an accent, and backspace none', () => {
+      expect(['0', '1', '9'].map((key) => accent(key as KeypadKey))).toEqual([
+        PALETTE[0],
+        PALETTE[1],
+        PALETTE[9],
+      ]);
+      expect(accent('backspace')).toBe('');
+    });
+
+    it('fills a key with its color as soon as it is touched', () => {
+      down('3');
+
+      expect(splash('3')).toBe(PALETTE[3]);
+      expect(splash('4')).toBeNull();
+    });
+
+    it('keeps the color the digit took once released, for a moment, then shows the next accent', () => {
+      tap('3');
+
+      expect(accent('3')).toBe(PALETTE[4]);
+      expect(splash('3')).toBe(PALETTE[3]);
+
+      vi.advanceTimersByTime(SPLASH_DURATION - 1);
+      expect(splash('3')).toBe(PALETTE[3]);
+
+      vi.advanceTimersByTime(1);
+      expect(splash('3')).toBeNull();
+    });
+
+    it('stays filled while held for longer', () => {
+      down('3');
+      vi.advanceTimersByTime(SPLASH_DURATION * 3);
+
+      expect(splash('3')).toBe(PALETTE[3]);
+
+      up('3');
+      expect(splash('3')).toBeNull();
+    });
+
+    it('fills a key tapped again quickly with its new color', () => {
+      tap('3');
+      vi.advanceTimersByTime(SPLASH_DURATION / 2);
+      down('3');
+
+      expect(splash('3')).toBe(PALETTE[4]);
+    });
+
+    it('empties a key at once when the finger slides off it or the browser cancels the touch', () => {
+      down('5');
+      pointer('pointermove', CENTERS['6']);
+      expect(splash('5')).toBeNull();
+
+      down('9');
+      pointer('pointercancel', CENTERS['9']);
+      expect(splash('9')).toBeNull();
+    });
+
+    it('fills a key typed on a physical keyboard with the color its digit took', () => {
+      keyboard('keydown', { key: '7' });
+
+      expect(accent('7')).toBe(PALETTE[8]);
+      expect(splash('7')).toBe(PALETTE[7]);
+
+      keyboard('keydown', { key: '7', repeat: true });
+      expect(splash('7')).toBe(PALETTE[7]);
+
+      vi.advanceTimersByTime(SPLASH_DURATION);
+      keyboard('keyup', { key: '7' });
+      expect(splash('7')).toBeNull();
+    });
+
+    it('never fills backspace', () => {
+      down('backspace');
+      expect(splash('backspace')).toBeNull();
+
+      keyboard('keydown', { key: 'Backspace' });
+      expect(splash('backspace')).toBeNull();
     });
   });
 });

@@ -37,6 +37,41 @@
   background: var(--frost-pressed);
 }
 
+/* Key color (`colors.md` §3): a digit key shows its color as an accent across its bottom. */
+.key:not(.backspace) {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding-bottom: 0.375rem;
+}
+
+.key:not(.backspace)::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 0.4375rem;
+  background: var(--key-color);
+}
+
+/* While pressed, the key is filled with its color all at once, and emptied all at once: no transition and no glow. */
+.key.splash {
+  color: var(--on-palette);
+  text-shadow: none;
+  font-weight: 500;
+}
+
+.key.splash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--splash-color);
+}
+
+.key.splash::after {
+  display: none;
+}
+
 .key:focus-visible {
   outline: 0.1875rem solid var(--focus-ring);
   outline-offset: 0.125rem;

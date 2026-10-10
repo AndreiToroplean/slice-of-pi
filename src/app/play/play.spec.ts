@@ -6,6 +6,7 @@ import {
   uninstallAnimations,
 } from '../../testing/fake-animations';
 import { FLIGHT_DURATION } from '../flight/flight';
+import { PALETTE, placeColors } from '../place-colors/place-colors';
 import { TypedDigits } from '../typed-digits/typed-digits';
 import { seasonAt } from '../seasons/seasons';
 import { Play } from './play';
@@ -124,6 +125,54 @@ describe('Play', () => {
 
     expect(slots(host)).toEqual(['', '', '', '', '']);
     expect(summary(host)).toBe('No digits typed yet.');
+  });
+
+  describe('colors', () => {
+    function keyColor(host: HTMLElement, key: string): string | undefined {
+      return host
+        .querySelector<HTMLElement>(`button[data-key="${key}"]`)
+        ?.style.getPropertyValue('--key-color');
+    }
+
+    function placeColorsShown(host: HTMLElement, selector: string): string[] {
+      return Array.from(host.querySelectorAll<HTMLElement>(selector), (element) =>
+        element.style.getPropertyValue('--place-color'),
+      ).filter((color) => color !== '');
+    }
+
+    it('gives each typed digit the color its key showed, and moves the key on to its next color', async () => {
+      const { host, type } = await setUp();
+      expect(keyColor(host, '1')).toBe(PALETTE[1]);
+
+      await typeAll(type, '1');
+      expect(placeColorsShown(host, 'app-slots .slot')).toEqual([PALETTE[1]]);
+      expect(keyColor(host, '1')).toBe(PALETTE[2]);
+
+      await typeAll(type, '41');
+      expect(placeColorsShown(host, 'app-slots .slot')).toEqual([
+        PALETTE[1],
+        PALETTE[4],
+        PALETTE[2],
+      ]);
+      expect(keyColor(host, '1')).toBe(PALETTE[3]);
+    });
+
+    it('keeps the colors of the digits in their words and in the group being typed', async () => {
+      const { host, type } = await setUp();
+
+      await typeAll(type, '1415926');
+
+      expect(placeColorsShown(host, 'app-typed-digits .word .tile')).toEqual(placeColors('14159'));
+      expect(placeColorsShown(host, 'app-slots .slot')).toEqual(placeColors('1415926').slice(5));
+    });
+
+    it('gives a key its color back when its digit is deleted', async () => {
+      const { host, type } = await setUp();
+
+      await typeAll(type, '141<');
+
+      expect(keyColor(host, '1')).toBe(PALETTE[2]);
+    });
   });
 
   describe('when a group is finished', () => {

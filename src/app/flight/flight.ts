@@ -125,6 +125,10 @@ export function flyIntoWord(
       borderRadius: `${String(slot.radius)}px`,
       fontSize: `${String(slot.fontSize)}px`,
     });
+    // In its tile's colors: the slot of the digit typed last is snapshotted before that digit fills it.
+    const colors = getComputedStyle(tile);
+    copy.style.background = colors.backgroundColor;
+    copy.style.color = colors.color;
     const at = boxIn(layer, tile);
     const to = { ...at, top: at.top - rise };
     tile.style.visibility = 'hidden';

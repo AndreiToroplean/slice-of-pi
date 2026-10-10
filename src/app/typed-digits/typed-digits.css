@@ -48,6 +48,11 @@
   overflow: hidden;
 }
 
+/* The digits of a word are white on their place colors; the lead keeps the look of place 0. */
+.word {
+  --on-place-color: var(--on-palette);
+}
+
 /* A tile is a small slot: same font, weight and proportions. */
 .tile {
   display: inline-block;
