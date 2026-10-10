@@ -6,6 +6,7 @@ import {
   uninstallAnimations,
 } from '../../testing/fake-animations';
 import { FLIGHT_DURATION } from '../flight/flight';
+import { RunRecorder } from '../runs/run-recorder';
 import { TypedDigits } from '../typed-digits/typed-digits';
 import { seasonAt } from '../seasons/seasons';
 import { Play } from './play';
@@ -124,6 +125,15 @@ describe('Play', () => {
 
     expect(slots(host)).toEqual(['', '', '', '', '']);
     expect(summary(host)).toBe('No digits typed yet.');
+  });
+
+  it('records every key pressed in the run', async () => {
+    const record = vi.spyOn(TestBed.inject(RunRecorder), 'record');
+    const { type } = await setUp();
+
+    await typeAll(type, '14<4');
+
+    expect(record.mock.calls).toEqual([['1'], ['4'], ['backspace'], ['4']]);
   });
 
   describe('when a group is finished', () => {

@@ -13,6 +13,7 @@ import { Meta } from '@angular/platform-browser';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from '../flight/flight';
 import { DEFAULT_HINT, groupDigits } from '../groups/groups';
 import { Keypad } from '../keypad/keypad';
+import { RunRecorder } from '../runs/run-recorder';
 import { KeypadKey } from '../keypad/keypad-layout';
 import { SeasonHeader } from '../season-header/season-header';
 import { seasonAt } from '../seasons/seasons';
@@ -22,7 +23,7 @@ import { TypedDigits } from '../typed-digits/typed-digits';
 /**
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
  * flies up to the typed digits as a word, as the seasons go by. Backspace deletes the last digit, reopening the last
- * word when the slots are empty.
+ * word when the slots are empty. Every key is recorded, with its time, in the player's runs.
  */
 @Component({
   selector: 'app-play',
@@ -52,6 +53,7 @@ export class Play {
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
+  private readonly recorder = inject(RunRecorder);
   private readonly typedDigits = viewChild.required(TypedDigits);
   /** Slots flying into their word. */
   private flights: Animation[] = [];
@@ -65,6 +67,7 @@ export class Play {
   }
 
   protected press(key: KeypadKey): void {
+    this.recorder.record(key);
     if (key === 'backspace') {
       this.landFlights();
       this.digits.update((digits) => digits.slice(0, -1));
