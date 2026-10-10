@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
 
 permissions:
@@ -13,8 +14,14 @@ concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Pull requests from this repository get a preview; forks can't push to gh-pages.
+  PREVIEW: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+  PR: ${{ github.event.number }}
+
 jobs:
   build:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -26,24 +33,65 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run test:coverage
-      - run: npm run build -- --base-href "/${{ github.event.repository.name }}/"
+      # Main lives at the root of the Pages site, each pull request's preview under pr-<number>/.
+      - run: npm run build -- --base-href "/${{ github.event.repository.name }}/${{ env.PREVIEW == 'true' && format('pr-{0}/', env.PR) || '' }}"
       # Serve the app for unknown paths too, so client-side routes survive a reload.
       - run: cp dist/slice-of-pi/browser/index.html dist/slice-of-pi/browser/404.html
-      - if: github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v4
+      - if: github.ref == 'refs/heads/main' || env.PREVIEW == 'true'
+        uses: actions/upload-artifact@v4
         with:
+          name: site
           path: dist/slice-of-pi/browser
 
-  deploy:
-    if: github.ref == 'refs/heads/main'
+  # GitHub Pages serves the gh-pages branch, which scripts/publish-pages.ts keeps up to date.
+  publish:
     needs: build
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      contents: write
+      pull-requests: write
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@v5
+        with:
+          name: site
+          path: ${{ runner.temp }}/site
+      - run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898333+github-actions[bot]@users.noreply.github.com'
+      - if: github.ref == 'refs/heads/main'
+        run: node scripts/publish-pages.ts main "$RUNNER_TEMP/site"
+      - if: env.PREVIEW == 'true'
+        run: node scripts/publish-pages.ts preview "$PR" "$RUNNER_TEMP/site"
+      - if: env.PREVIEW == 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await require('./scripts/preview-comment.cjs')({ github, context, state: 'published' });
+
+  unpublish:
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # A closed pull request's merge ref may be gone, so run main's scripts.
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898333+github-actions[bot]@users.noreply.github.com'
+      - run: node scripts/publish-pages.ts remove "$PR"
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            await require('./scripts/preview-comment.cjs')({ github, context, state: 'removed' });

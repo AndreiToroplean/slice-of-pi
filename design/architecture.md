@@ -13,6 +13,8 @@ Why:
 - **Installing outside the Play Store is a weak channel.** Most people see it as dangerous, and Android is moving towards requiring developer verification even for apps installed outside the Play Store (enforced from September 2026 in a few countries, globally planned for 2027), which threatens alternative app stores like F-Droid.
 - **Development loop.** The app can be run and checked in a browser directly while developing, and tried on a phone immediately.
 
+The site is served by GitHub Pages from the `gh-pages` branch (Settings → Pages → Source: "Deploy from a branch", `gh-pages`, `/ (root)`), which the deploy workflow maintains with `scripts/publish-pages.ts`: `main` at the root and a preview of each open pull request under `pr-<number>/`, so changes can be tried on a phone before merging. The web app manifest is scoped to its own directory, so an installed preview never takes over the installed main app.
+
 ## 2. Path to the Play Store
 
 When the game has players, we package the same web app as an Android app with **Capacitor**, which wraps a web app into a native shell and gives access to native features (durable storage, haptics, …). No rewrite needed. A fully native app remains a possible later migration if the game grows enough to justify it.
@@ -39,3 +41,4 @@ The player seed must never be lost (see `vision.md` §7). On the web, browser st
 - Request persistent storage from the browser.
 - Offer seed backup/export and restore from the start.
 - A Capacitor build can later use native storage for extra safety.
+- Pull request previews share the main site's origin, and with it its storage. Store data with a format version so a preview can't corrupt real progress.
