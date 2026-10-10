@@ -47,9 +47,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint
-      - run: npm run test:coverage
+      # Pull requests are rebased onto main and checked before merging, so main only builds.
+      - if: needs.plan.outputs.publish != 'main'
+        run: npm run format:check
+      - if: needs.plan.outputs.publish != 'main'
+        run: npm run lint
+      - if: needs.plan.outputs.publish != 'main'
+        run: npm run test:coverage
       - run: npm run build -- --base-href "${{ needs.plan.outputs.base-href }}"
       # Serve the app for unknown paths too, so client-side routes survive a reload.
       - run: cp dist/slice-of-pi/browser/index.html dist/slice-of-pi/browser/404.html
