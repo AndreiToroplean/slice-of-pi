@@ -21,7 +21,7 @@ So the color of a place depends on how many times its digit has come up before i
 
 **Shared colors are a feature too.** Every player sees the same colors, so players can talk about "the blue 7 around place 150", and someone playing on another player's phone still finds their colors.
 
-The palette has **10 colors**: red, orange, yellow, lime, green, teal, blue, violet, purple and pink, solid colors around the color wheel that carry white digits and look distinct next to one another. They were tuned by measuring how different each pair looks (ΔE 2000; the closest pair, blue and violet, is about 15 apart). Like everything players learn with, the palette is frozen (`vision.md` §3): it lives in `src/app/place-colors/place-colors.ts`, pinned by golden tests.
+The palette has **10 colors**: red, orange, yellow, lime, green, teal, blue, violet, purple and pink, solid colors around the color wheel that carry white digits and look distinct next to one another. They were tuned by measuring how different each pair looks (ΔE 2000; the closest pair, red and orange, is about 16 apart). Like everything players learn with, the palette is frozen (`vision.md` §3): it lives in `src/app/place-colors/place-colors.ts`, pinned by golden tests.
 
 ## 3. How keys show their color
 

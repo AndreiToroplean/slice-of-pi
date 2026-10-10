@@ -6,16 +6,16 @@ import { Digit, DIGITS, isDigit } from '../digit';
  * frozen: golden tests pin them.
  */
 export const PALETTE = [
-  '#de3e2d', // red
-  '#ec7c0e', // orange
-  '#f4ba07', // yellow
+  '#e3402f', // red
+  '#fd7225', // orange
+  '#f4ba0d', // yellow
   '#a9c926', // lime
-  '#309836', // green
-  '#38abbb', // teal
-  '#006edc', // blue
-  '#6853ff', // violet
-  '#c13ec1', // purple
-  '#fc67a3', // pink
+  '#3cba60', // green
+  '#07bed4', // teal
+  '#3371fa', // blue
+  '#8225d7', // violet
+  '#bf56c1', // purple
+  '#ff82d1', // pink
 ] as const;
 
 export type PaletteColor = (typeof PALETTE)[number];
