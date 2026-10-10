@@ -3,8 +3,8 @@ import { provideRouter } from '@angular/router';
 import { Background } from '../background/background';
 import { PALETTE } from '../place-colors/place-colors';
 import { INDEXED_DB } from '../runs/run-store';
-import { hexToOklch, oklchToHex } from './color-math';
-import { COLOR_NAMES, contrastNeeded, KeyColors } from './key-colors';
+import { hexToHsl, hslToHex } from './color-math';
+import { KeyColors } from './key-colors';
 import { SEASON_STARTS, Tweaks } from './tweaks';
 
 describe('KeyColors', () => {
@@ -20,101 +20,111 @@ describe('KeyColors', () => {
     return { host: fixture.nativeElement as HTMLElement, stable: () => fixture.whenStable() };
   }
 
-  function swatches(host: HTMLElement): string[] {
-    return Array.from(host.querySelectorAll<HTMLElement>('.swatch'), (swatch) =>
-      swatch.style.getPropertyValue('--place-color'),
-    );
+  /** The key colors along the top of the grid, as shown. */
+  function columns(host: HTMLElement): string[] {
+    return Array.from(host.querySelectorAll<HTMLElement>('button.head'), (head) =>
+      head.style.getPropertyValue('--place-color'),
+    ).slice(0, PALETTE.length);
   }
 
-  function slider(host: HTMLElement, label: string): HTMLInputElement {
-    const input = host.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`);
-    if (input === null) {
-      throw new Error(`No slider ${label}`);
+  function key(host: HTMLElement, name: string): HTMLButtonElement {
+    const button = host.querySelector<HTMLButtonElement>(`button.head[aria-label="${name}"]`);
+    if (button === null) {
+      throw new Error(`No ${name}`);
     }
-    return input;
+    return button;
   }
 
-  it("starts on the game's colors, one row of sliders each", async () => {
+  async function slide(
+    host: HTMLElement,
+    name: string,
+    channel: string,
+    value: number,
+    stable: () => Promise<void>,
+  ): Promise<void> {
+    const input = host.querySelector<HTMLInputElement>(`input[aria-label="${name} ${channel}"]`);
+    if (input === null) {
+      throw new Error(`No ${channel} slider for ${name}`);
+    }
+    input.value = String(value);
+    input.dispatchEvent(new Event('input'));
+    await stable();
+  }
+
+  it("draws every pair of the game's colors, and of each with the digits' white", async () => {
     const { host } = await setUp();
 
-    expect(swatches(host)).toEqual(PALETTE);
-    expect(host.querySelectorAll('input[type="range"]')).toHaveLength(30);
-    expect(Number(slider(host, 'teal hue').value)).toBeCloseTo(hexToOklch(PALETTE[5])[2], 0);
+    expect(columns(host)).toEqual(PALETTE);
+    // 11 by 11: the 10 key colors and white.
+    expect(host.querySelectorAll('.grid .pair')).toHaveLength(121);
+    expect(host.querySelectorAll('.grid .head.white')).toHaveLength(2);
+    expect(host.querySelectorAll('.grid .pair.close')).toHaveLength(0);
   });
 
-  it('starts on the colors tuned before', async () => {
-    const tuned = PALETTE.map((color, i) => (i === 0 ? '#aa2222' : color));
-    await TestBed.inject(Tweaks).setPalette(tuned);
-
-    const { host } = await setUp();
-
-    expect(swatches(host)).toEqual(tuned);
-  });
-
-  it('tunes a color, keeping the tuned palette, then brings back the game’s', async () => {
+  it('starts with key 0 in the color picker, and selects another key', async () => {
     const { host, stable } = await setUp();
-    const hue = slider(host, 'red hue');
-    hue.value = '200';
-    hue.dispatchEvent(new Event('input'));
+    expect(host.querySelector('app-color-picker .name')?.textContent).toBe('Key 0, red');
+    expect(key(host, 'Key 0, red').getAttribute('aria-pressed')).toBe('true');
+
+    key(host, 'Key 6, blue').click();
     await stable();
 
-    const [lightness, chroma] = hexToOklch(PALETTE[0]);
-    const tuned = oklchToHex([lightness, chroma, 200]);
-    expect(swatches(host)[0]).toBe(tuned);
-    expect(TestBed.inject(Tweaks).values().palette?.[0]).toBe(tuned);
-    expect(host.querySelector('.meta .hex')?.textContent).toBe(tuned);
+    expect(host.querySelector('app-color-picker .hex')?.textContent).toBe(PALETTE[6]);
+    expect(key(host, 'Key 6, blue').getAttribute('aria-pressed')).toBe('true');
+    expect(key(host, 'Key 0, red').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('tunes the selected key, keeping the tuned palette, then brings back the game’s', async () => {
+    const { host, stable } = await setUp();
+    key(host, 'Key 3, lime').click();
+    await stable();
+
+    await slide(host, 'Key 3, lime', 'hue', 200, stable);
+
+    const tuned = hslToHex({ ...hexToHsl(PALETTE[3]), hue: 200 });
+    expect(columns(host)[3]).toBe(tuned);
+    expect(TestBed.inject(Tweaks).values().palette?.[3]).toBe(tuned);
 
     const reset = Array.from(host.querySelectorAll('button')).find((button) =>
       button.textContent.includes("Back to the game's colors"),
     );
-    expect(reset?.disabled).toBe(false);
     reset?.click();
     await stable();
 
-    expect(swatches(host)).toEqual(PALETTE);
+    expect(columns(host)).toEqual(PALETTE);
     expect(TestBed.inject(Tweaks).values()).toEqual({});
     expect(reset?.disabled).toBe(true);
   });
 
-  it('shows the closest pairs first, and flags those easy to mix up', async () => {
+  it('outlines pairs that are easy to mix up', async () => {
     const { host, stable } = await setUp();
-    const pairs = (): string[] =>
-      Array.from(host.querySelectorAll('.pair .verdict'), (verdict) =>
-        verdict.textContent.replace(/\s+/g, ' ').trim(),
-      );
-    expect(pairs()).toHaveLength(6);
-    expect(pairs()[0]).toMatch(/^blue \/ violet · \d+\.\d$/);
-
-    // Violet's hue onto blue's.
-    const hue = slider(host, 'violet hue');
-    hue.value = String(hexToOklch(PALETTE[6])[2]);
-    hue.dispatchEvent(new Event('input'));
+    key(host, 'Key 7, violet').click();
     await stable();
 
-    expect(pairs()[0]).toMatch(/^blue \/ violet · \d+\.\d · (almost the same|easy to mix up)$/);
-    expect(host.querySelectorAll('.pairs .word.close')).toHaveLength(2);
+    // Violet onto blue.
+    const blue = hexToHsl(PALETTE[6]);
+    await slide(host, 'Key 7, violet', 'hue', Math.round(blue.hue), stable);
+    await slide(host, 'Key 7, violet', 'saturation', Math.round(blue.saturation), stable);
+    await slide(host, 'Key 7, violet', 'lightness', Math.round(blue.lightness), stable);
+
+    // Blue then violet, and violet then blue.
+    expect(host.querySelectorAll('.grid .pair.close')).toHaveLength(2);
   });
 
-  it('says how well white digits read on each color', async () => {
-    const { host } = await setUp();
+  it('averages the selected key between the keys on either side', async () => {
+    const { host, stable } = await setUp();
+    key(host, 'Key 0, red').click();
+    await stable();
 
-    const metas = Array.from(host.querySelectorAll('.meta'), (meta) =>
-      meta.textContent.replace(/\s+/g, ' ').trim(),
+    const swatches = Array.from(
+      host.querySelectorAll<HTMLElement>('button.average .swatch'),
+      (swatch) => swatch.style.background,
     );
-    expect(metas[0]).toMatch(/^#de3e2d red white digits 4\.3:1 nearest: 1 orange, ΔE \d+\.\d$/);
-    expect(COLOR_NAMES).toHaveLength(PALETTE.length);
-    expect(contrastNeeded(2)).toBeLessThan(contrastNeeded(0));
-  });
+    expect(swatches).toHaveLength(2);
+    host.querySelector<HTMLButtonElement>('button.average')?.click();
+    await stable();
 
-  it('draws every pair, and the first 100 decimals in words of 5 after the lead', async () => {
-    const { host } = await setUp();
-
-    expect(host.querySelectorAll('.pairs .word')).toHaveLength(100);
-    const words = Array.from(host.querySelectorAll('.words .word'), (word) =>
-      word.textContent.replace(/\s/g, ''),
-    );
-    expect(words).toHaveLength(21);
-    expect(words.slice(0, 3)).toEqual(['π=3.', '14159', '26535']);
+    expect(columns(host)[0]).not.toBe(PALETTE[0]);
   });
 
   it('copies its colors from a button in its top bar', async () => {
