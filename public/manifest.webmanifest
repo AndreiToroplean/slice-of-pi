@@ -1,6 +1,6 @@
 {
-  "name": "Slice of π",
-  "short_name": "Slice of π",
+  "name": "Slice of Pi",
+  "short_name": "Slice of Pi",
   "description": "Learn the digits of π, one slice at a time.",
   "display": "standalone",
   "orientation": "portrait",

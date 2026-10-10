@@ -12,6 +12,8 @@
 
 ## Screen
 
+- **Main menu:** the screen the app opens on: the game's icon and name, and Play.
+- **Play screen:** where the player types π. Its **pause button** opens the **pause dialog**: resume, restart (a new run) or end the game, back to the main menu.
 - **Keypad:** the grid of keys the player types on (`7 8 9 / 4 5 6 / 1 2 3 / _ 0 ⌫`).
 - **Key:** one button of the keypad: a **digit key** (0 to 9) or the **backspace key** (⌫). "Key 3" is the digit key for 3.
 - **Key color:** the color a digit key currently shows: the place color of the next occurrence of its digit. See `colors.md`.
@@ -19,7 +21,7 @@
 - **Slot:** an empty space in the typing area waiting for a digit.
 - **Hint:** the number of slots, i.e. the size of the group the game expects.
 - **Typed digits:** the digits typed so far in the run, shown smaller above the typing area: after a "3." lead, each finished group is a **word** of joined tiles, and rows wrap between words like text (the `TypedDigits` component).
-- **Background:** the season-colored gradient behind the whole play screen. Never call it the sky.
+- **Background:** the season-colored gradient behind every screen; it stays in place from screen to screen. Never call it the sky.
 - **Season header:** the top of the play screen: the season's icon and name, the year and place in it ("Year 1 · digit 42 of 100"), and the **year bar**, one part per season.
 - **Sky:** the 3D night sky of stars where the player's constellations collect. Only this, never the background.
 
@@ -29,7 +31,7 @@
 - **Learn mode / challenge mode:** the two families of modes: guided practice, and typing from memory.
 - **Interval:** the time between typing one digit and the next.
 - **Pace:** the player's local typing speed around a place, from the intervals around it.
-- **Break:** an interval clearly longer than the local pace; breaks separate groups. Prefer "break" over "pause" in technical text.
+- **Break:** an interval clearly longer than the local pace; breaks separate groups. Prefer "break" over "pause" in technical text: "pause" is the player pausing the game.
 - **Milestone:** a number of places reached that gets celebrated (10, 20, 50, 100, …).
 - **Streak:** consecutive days the player came back.
 

@@ -2,36 +2,10 @@
   flex: 1;
   min-height: 0;
   position: relative;
-  /* The background and everything on it: header, typed digits, slots and keypad. Slots fly over all of them. */
+  /* The header, typed digits, slots and keypad, on the background. Slots fly over all of them. */
   isolation: isolate;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
-  background: linear-gradient(172deg, var(--background-top), var(--background-bottom));
-  /*
-   * Each digit eases the background towards its new colors. A new digit restarts the transition from wherever the
-   * colors are, so the background glides along at any typing pace, trailing by a fraction of a second at most.
-   */
-  transition:
-    --background-top 0.8s ease-out,
-    --background-bottom 0.8s ease-out;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/* Shade the top and bottom of the background a little, behind the header and the keypad. */
-:host::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgb(40 20 60 / 16%),
-    transparent 30%,
-    transparent 55%,
-    rgb(30 20 60 / 18%)
-  );
 }
 
 .slots {
