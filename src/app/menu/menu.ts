@@ -67,6 +67,7 @@ const COPY_LABEL = 'Copy all tweaks';
         <div class="section" role="group" aria-labelledby="developer-title">
           <h2 id="developer-title">Developer</h2>
           <a routerLink="/developer/key-colors">Key colors</a>
+          <a routerLink="/developer/season-colors">Season colors</a>
           <button type="button" (click)="void copyTweaks()">{{ copyLabel() }}</button>
         </div>
       }

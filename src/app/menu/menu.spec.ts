@@ -128,7 +128,10 @@ describe('Menu', () => {
           link.textContent.trim(),
           link.getAttribute('href'),
         ]),
-      ).toEqual([['Key colors', '/developer/key-colors']]);
+      ).toEqual([
+        ['Key colors', '/developer/key-colors'],
+        ['Season colors', '/developer/season-colors'],
+      ]);
     });
 
     it('copies all tweaks, and says so for a moment', async () => {

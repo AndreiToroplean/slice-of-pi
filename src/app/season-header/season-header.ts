@@ -1,7 +1,8 @@
 import { Component, computed, input } from '@angular/core';
 import { PLACES_PER_YEAR, SeasonView } from '../seasons/seasons';
 
-const SEASON_NAMES = {
+/** Each season's name, as shown. */
+export const SEASON_NAMES = {
   spring: 'Spring',
   summer: 'Summer',
   autumn: 'Autumn',

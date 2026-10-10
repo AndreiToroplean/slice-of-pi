@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Background } from '../background/background';
 import { PageHeader } from '../page-header/page-header';
 import { PALETTE, placeColors } from '../place-colors/place-colors';
+import { SEASON_NAMES } from '../season-header/season-header';
 import { Season, SEASONS } from '../seasons/seasons';
 import { closestPairs, contrastWithWhite, hexToOklch, Oklch, oklchToHex } from './color-math';
 import { SEASON_STARTS, Tweaks } from './tweaks';
@@ -40,13 +41,6 @@ const SLIDERS = [
   { label: 'Colorfulness', min: 0, max: 0.32, step: 0.002 },
   { label: 'Hue', min: 0, max: 360, step: 1 },
 ] as const;
-
-const SEASON_NAMES: Record<Season, string> = {
-  spring: 'Spring',
-  summer: 'Summer',
-  autumn: 'Autumn',
-  winter: 'Winter',
-};
 
 /**
  * Developer mode's page to tune the 10 key colors: each color's lightness, colorfulness and hue, with how well white
