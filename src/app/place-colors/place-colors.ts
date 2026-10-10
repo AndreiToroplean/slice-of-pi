@@ -1,20 +1,21 @@
 import { Digit, DIGITS, isDigit } from '../digit';
 
 /**
- * The palette (`colors.md` §2): 10 solid colors around the color wheel, chosen to carry white digits (the yellow, less
- * so). Every key steps through it in this order. Players learn with these colors, so they must not change once frozen.
+ * The palette (`colors.md` §2): 10 solid colors around the color wheel, chosen to carry white digits and to look
+ * distinct next to one another. Every key steps through it in this order. Players learn with these colors, so they're
+ * frozen: golden tests pin them.
  */
 export const PALETTE = [
-  '#e5484d', // red
-  '#f76b15', // orange
-  '#f5b800', // yellow
-  '#2f9e44', // green
-  '#0c9488', // teal
-  '#0b87c9', // sky
-  '#3b5bdb', // blue
-  '#7048e8', // violet
-  '#ae3ec9', // purple
-  '#e64980', // pink
+  '#de3e2d', // red
+  '#ec7c0e', // orange
+  '#f4ba07', // yellow
+  '#a9c926', // lime
+  '#309836', // green
+  '#38abbb', // teal
+  '#006edc', // blue
+  '#6853ff', // violet
+  '#c13ec1', // purple
+  '#fc67a3', // pink
 ] as const;
 
 export type PaletteColor = (typeof PALETTE)[number];

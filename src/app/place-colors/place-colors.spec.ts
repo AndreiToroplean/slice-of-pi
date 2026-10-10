@@ -88,3 +88,31 @@ describe('keyColors', () => {
     expect(() => keyColors('1x')).toThrow('Not a digit: x');
   });
 });
+
+/**
+ * Golden tests: players learn with these colors, so they must never change. If one of these fails, the change broke
+ * the colors players know; fix the change, don't update the test.
+ */
+describe('frozen colors', () => {
+  it('keeps the palette', () => {
+    expect(PALETTE).toEqual([
+      '#de3e2d',
+      '#ec7c0e',
+      '#f4ba07',
+      '#a9c926',
+      '#309836',
+      '#38abbb',
+      '#006edc',
+      '#6853ff',
+      '#c13ec1',
+      '#fc67a3',
+    ]);
+  });
+
+  it('keeps the colors of the first 50 places of π', () => {
+    expect(placeColors(DECIMALS).map((color) => PALETTE.indexOf(color))).toEqual([
+      1, 4, 2, 5, 9, 2, 6, 6, 3, 7, 8, 0, 7, 1, 4, 3, 5, 9, 5, 7, 4, 8, 6, 6, 7, 0, 8, 5, 8, 2, 8,
+      0, 6, 1, 2, 7, 3, 3, 9, 4, 9, 4, 9, 5, 6, 0, 0, 9, 5, 1,
+    ]);
+  });
+});
