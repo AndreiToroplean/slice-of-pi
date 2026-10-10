@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { backupFileName, readBackup, writeBackup } from '../runs/backup';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
-import { RunStore } from '../runs/run-store';
+import { IS_PREVIEW, RunStore } from '../runs/run-store';
 
 /** Hands a file to the player, as a download. */
 export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void>('SAVE_FILE', {
@@ -42,6 +42,12 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
     <dialog #dialog aria-labelledby="runs-title" (close)="open.set(false)">
       <h2 id="runs-title">Your runs</h2>
       <p>{{ count() }}</p>
+      @if (readOnlyPreview()) {
+        <p>
+          This preview of the game stores runs in a different format from the main game, so it
+          doesn't keep any.
+        </p>
+      }
       <p>
         @if (persisted()) {
           Your browser keeps them until this site's data is cleared.
@@ -52,15 +58,17 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
       </p>
       <div class="actions">
         <button type="button" (click)="save()">Save a backup</button>
-        <label class="button">
-          Restore a backup
-          <input
-            type="file"
-            accept=".json,application/json"
-            class="visually-hidden"
-            (change)="restore($event)"
-          />
-        </label>
+        @if (!readOnlyPreview()) {
+          <label class="button">
+            Restore a backup
+            <input
+              type="file"
+              accept=".json,application/json"
+              class="visually-hidden"
+              (change)="restore($event)"
+            />
+          </label>
+        }
       </div>
       <p class="message" role="status">{{ message() }}</p>
       <form method="dialog">
@@ -75,12 +83,15 @@ export class RunsDialog {
 
   protected readonly count = signal('');
   protected readonly persisted = signal(false);
+  /** Whether this is a preview that can't keep runs (see {@link RunStore}). */
+  protected readonly readOnlyPreview = signal(false);
   protected readonly message = signal('');
 
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
   private readonly clock = inject(RUN_CLOCK);
   private readonly saveFile = inject(SAVE_FILE);
+  private readonly preview = inject(IS_PREVIEW);
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
   protected async show(): Promise<void> {
@@ -123,7 +134,12 @@ export class RunsDialog {
 
   private async refresh(): Promise<void> {
     await this.recorder.saved();
-    const [runs, persisted] = await Promise.all([this.store.runs(), this.store.persisted()]);
+    const [runs, persisted, writable] = await Promise.all([
+      this.store.runs(),
+      this.store.persisted(),
+      this.store.writable(),
+    ]);
+    this.readOnlyPreview.set(this.preview && !writable);
     this.count.set(
       runs.length === 0
         ? 'No runs kept yet.'

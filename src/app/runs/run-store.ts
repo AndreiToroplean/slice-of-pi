@@ -1,5 +1,6 @@
+import { DOCUMENT } from '@angular/common';
 import { inject, InjectionToken, Service } from '@angular/core';
-import { parseRun, Run } from './run';
+import { parseRun, Run, RUN_FORMAT } from './run';
 
 /** The browser's IndexedDB, where runs are stored; missing in browsers without it. */
 export const INDEXED_DB = new InjectionToken<IDBFactory | undefined>('INDEXED_DB', {
@@ -11,28 +12,56 @@ export const STORAGE_MANAGER = new InjectionToken<StorageManager | undefined>('S
   factory: () => (typeof navigator === 'undefined' ? undefined : navigator.storage),
 });
 
+/**
+ * Whether this is a pull request preview rather than the main game: previews are served from `pr-<number>/` under the
+ * main game (`architecture.md` §1).
+ */
+export const IS_PREVIEW = new InjectionToken<boolean>('IS_PREVIEW', {
+  factory: () => isPreviewPath(new URL(inject(DOCUMENT).baseURI).pathname),
+});
+
+/** Whether the game served at this path, its base, is a pull request preview. */
+export function isPreviewPath(path: string): boolean {
+  return /\/pr-\d+\/$/.test(path);
+}
+
 export const DATABASE_NAME = 'slice-of-pi';
 /**
  * The version of the database's layout (its object stores), not of the records in it: those carry their own format
  * (`RUN_FORMAT`). Pull request previews share the site's storage, so a newer layout must keep the stores older code
  * reads; older code then still opens the database at its newer version.
  */
-export const DATABASE_VERSION = 1;
+export const DATABASE_VERSION = 2;
 export const RUNS = 'runs';
+/** Facts about the stored data, by key. */
+export const META = 'meta';
+/** Under {@link META}: the run format of the main game that last opened the database, as `{ format }`. */
+export const MAIN_FORMAT = 'main-format';
+
+/** The open database, and whether this version of the game may write to it. */
+interface Database {
+  readonly database: IDBDatabase;
+  readonly writable: boolean;
+}
 
 /**
  * Keeps the player's runs in IndexedDB, and asks the browser to keep that storage safe from eviction. Where IndexedDB
  * is missing or fails to open, nothing is stored and there are no runs.
+ *
+ * Pull request previews share the main game's storage (`architecture.md` §5). The main game notes its run format in
+ * the database each time it opens it. A preview reads the runs it finds, but only writes when its run format is the
+ * main game's (or the main game hasn't kept any runs yet), so it never leaves records the main game can't load.
  */
 @Service()
 export class RunStore {
   private readonly indexedDb = inject(INDEXED_DB);
   private readonly storage = inject(STORAGE_MANAGER);
-  private database: Promise<IDBDatabase | undefined> | undefined;
+  private readonly preview = inject(IS_PREVIEW);
+  private database: Promise<Database | undefined> | undefined;
 
   /** Saves a run, replacing the earlier save of the same run. */
   async save(run: Run): Promise<void> {
-    const database = await this.open();
+    const database = await this.openForWriting();
     if (database === undefined) {
       return;
     }
@@ -43,7 +72,7 @@ export class RunStore {
 
   /** Deletes a run. */
   async delete(id: string): Promise<void> {
-    const database = await this.open();
+    const database = await this.openForWriting();
     if (database === undefined) {
       return;
     }
@@ -54,7 +83,7 @@ export class RunStore {
 
   /** Adds the runs not stored yet, such as those of a backup, leaving the runs already stored as they are. */
   async addRuns(runs: readonly Run[]): Promise<number> {
-    const database = await this.open();
+    const database = await this.openForWriting();
     if (database === undefined) {
       return 0;
     }
@@ -74,7 +103,7 @@ export class RunStore {
    * the database, untouched.
    */
   async runs(): Promise<Run[]> {
-    const database = await this.open();
+    const database = (await this.open())?.database;
     if (database === undefined) {
       return [];
     }
@@ -85,6 +114,11 @@ export class RunStore {
       .map(parseRun)
       .filter((run) => run !== undefined)
       .sort((a, b) => a.startedAt - b.startedAt);
+  }
+
+  /** Whether runs are kept: not where IndexedDB is missing, nor in a preview whose run format isn't the main game's. */
+  async writable(): Promise<boolean> {
+    return (await this.open())?.writable ?? false;
   }
 
   /** Whether the browser keeps the site's storage until the player clears it, rather than when it runs low on space. */
@@ -103,16 +137,39 @@ export class RunStore {
     return (await this.storage.persisted()) || this.storage.persist();
   }
 
-  private open(): Promise<IDBDatabase | undefined> {
-    this.database ??= openDatabase(this.indexedDb).catch((error: unknown) => {
+  private open(): Promise<Database | undefined> {
+    this.database ??= openDatabase(this.indexedDb, this.preview).catch((error: unknown) => {
       console.error('Could not open the database; runs will not be kept.', error);
       return undefined;
     });
     return this.database;
   }
+
+  private async openForWriting(): Promise<IDBDatabase | undefined> {
+    const opened = await this.open();
+    return opened?.writable === true ? opened.database : undefined;
+  }
 }
 
-async function openDatabase(indexedDb: IDBFactory | undefined): Promise<IDBDatabase | undefined> {
+async function openDatabase(
+  indexedDb: IDBFactory | undefined,
+  preview: boolean,
+): Promise<Database | undefined> {
+  const database = await openLayout(indexedDb);
+  if (database === undefined) {
+    return undefined;
+  }
+  const meta = database.transaction(META, 'readwrite').objectStore(META);
+  if (!preview) {
+    await result(meta.put({ format: RUN_FORMAT }, MAIN_FORMAT));
+    return { database, writable: true };
+  }
+  // Until the main game has opened the database, it keeps no runs, so there are none to protect.
+  const main = (await result(meta.get(MAIN_FORMAT))) as { format?: unknown } | undefined;
+  return { database, writable: main === undefined || main.format === RUN_FORMAT };
+}
+
+async function openLayout(indexedDb: IDBFactory | undefined): Promise<IDBDatabase | undefined> {
   if (indexedDb === undefined) {
     return undefined;
   }
@@ -121,6 +178,9 @@ async function openDatabase(indexedDb: IDBFactory | undefined): Promise<IDBDatab
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(RUNS)) {
         request.result.createObjectStore(RUNS, { keyPath: 'id' });
+      }
+      if (!request.result.objectStoreNames.contains(META)) {
+        request.result.createObjectStore(META);
       }
     };
     return await result(request);
