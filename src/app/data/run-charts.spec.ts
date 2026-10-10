@@ -1,5 +1,5 @@
 import { addDigit, newRun, Run } from '../runs/run';
-import { average, CHART_HEIGHT, chartPath, chartTop, digitTimes } from './run-charts';
+import { areaPath, average, CHART_HEIGHT, chartPath, chartTop, digitTimes } from './run-charts';
 
 describe('run charts', () => {
   function runAt(times: number[]): Run {
@@ -56,6 +56,20 @@ describe('run charts', () => {
 
     it('breaks the line where a place has no value', () => {
       expect(chartPath([0, undefined, 0], 1000)).toBe('M0 100h0M2 100h0');
+    });
+  });
+
+  describe('areaPath', () => {
+    it('rises from the bottom with its values, to 35% of the chart’s height at 1', () => {
+      expect(areaPath([undefined, 0, 1])).toBe('M1 100L1 100L2 65L2 100Z');
+    });
+
+    it('breaks where a place has no value', () => {
+      expect(areaPath([1, undefined, 1])).toBe('M0 100L0 65L0 100ZM2 100L2 65L2 100Z');
+    });
+
+    it('draws nothing without values', () => {
+      expect(areaPath([])).toBe('');
     });
   });
 });

@@ -243,8 +243,8 @@ describe('Data', () => {
     const format = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
     expect(titles).toEqual([format.format(1_000), format.format(2_000), 'All runs']);
     expect(Array.from(host.querySelectorAll('.runs .meta'), (meta) => meta.textContent)).toEqual([
-      '2 digits in 0.3 s',
-      '1 digit in 0.0 s',
+      '2 digits in 0.3 s · 1 group',
+      '1 digit in 0.0 s · 1 group',
       'Average time per digit',
     ]);
     const labels = Array.from(host.querySelectorAll('app-run-chart svg'), (svg) =>
@@ -255,6 +255,22 @@ describe('Data', () => {
       `Time per digit, ${format.format(2_000)}`,
       'Average time per digit, over all runs',
     ]);
+  });
+
+  it('marks the breaks of each run on its chart, and counts its groups', async () => {
+    // Groups of 3: 200 ms between digits, 700 ms before every fourth.
+    const grouped = Array.from({ length: 12 }, (_, i) => i).reduce(
+      (run, i) => addDigit(run, '1', i === 0 ? 0 : (run.times.at(-1) ?? 0) + (i % 3 ? 200 : 700)),
+      newRun('c', 3_000),
+    );
+    const { host } = await setUp([grouped]);
+
+    const chart = host.querySelector('.runs article app-run-chart');
+    expect(
+      Array.from(chart?.querySelectorAll('.break') ?? [], (bar) => bar.getAttribute('x1')),
+    ).toEqual(['2.5', '5.5', '8.5']);
+    expect(chart?.querySelector('.pace')).not.toBeNull();
+    expect(host.querySelector('.runs .meta')?.textContent).toBe('12 digits in 3.7 s · 4 groups');
   });
 
   it('spans every chart over the places of the longest run', async () => {
