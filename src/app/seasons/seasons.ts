@@ -32,8 +32,12 @@ export const SEASON_BACKGROUNDS: SeasonBackgrounds = {
  */
 export const SEASON_COLOR_SPACE: ColorSpace = 'oklch';
 
-/** Fraction of a season after which it turns into the next one; before that, it only drifts. */
-const TURN_START = 0.8;
+/**
+ * How many places a season takes to turn into the next, at its end, unless tuned in developer mode: from 1, all at once
+ * (though the background still eases from one digit to the next), to a whole season's, turning all season long.
+ * Before its turn, a season only drifts.
+ */
+export const SEASON_TURN = 5;
 
 /** Where the player is in the year after typing `places` places, and what the screen looks like there. */
 export interface SeasonView {
@@ -50,8 +54,8 @@ export interface SeasonView {
 /**
  * The season and background after typing `places` places.
  *
- * A season holds its colors, drifting slightly from its early to its late colors over its first 80%, then turns into
- * the next season's early colors over its last 20%, blending them in `space` so that the background's gradient never
+ * A season holds its colors, drifting slightly from its early to its late colors, then turns into the next season's
+ * early colors over its last `turn` places, blending them in `space` so that the background's gradient never
  * flips the way it turns round the color wheel (see {@link mixGradients}). The colors are decorative and free to
  * tune; what must not change is the structure: a year is 100 places, split into four equal seasons.
  */
@@ -59,14 +63,16 @@ export function seasonAt(
   places: number,
   backgrounds: SeasonBackgrounds = SEASON_BACKGROUNDS,
   space: ColorSpace = SEASON_COLOR_SPACE,
+  turn = SEASON_TURN,
 ): SeasonView {
   const placeInYear = ((places % PLACES_PER_YEAR) + PLACES_PER_YEAR) % PLACES_PER_YEAR;
   const index = Math.floor(placeInYear / PLACES_PER_SEASON);
   const season = seasonByIndex(index);
   const next = seasonByIndex((index + 1) % SEASONS.length);
   const t = (placeInYear % PLACES_PER_SEASON) / PLACES_PER_SEASON;
-  const drift = Math.min(1, t / TURN_START);
-  const turn = smoothstep(TURN_START, 1, t);
+  const turnStart = 1 - turn / PLACES_PER_SEASON;
+  const drift = turnStart > 0 ? Math.min(1, t / turnStart) : 0;
+  const turned = smoothstep(turnStart, 1, t);
   const { early, late } = backgrounds[season];
   const target = backgrounds[next].early;
   return {
@@ -76,7 +82,7 @@ export function seasonAt(
     seasonProgress: SEASONS.map((_, q) =>
       Math.min(1, Math.max(0, (placeInYear - q * PLACES_PER_SEASON) / PLACES_PER_SEASON)),
     ),
-    background: mixGradients(mixGradients(early, late, drift, space), target, turn, space),
+    background: mixGradients(mixGradients(early, late, drift, space), target, turned, space),
   };
 }
 

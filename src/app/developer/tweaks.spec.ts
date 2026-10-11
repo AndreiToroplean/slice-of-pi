@@ -2,7 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { PALETTE } from '../place-colors/place-colors';
 import { INDEXED_DB, IS_PREVIEW, RunStore } from '../runs/run-store';
-import { backgroundsFrom, SEASON_BACKGROUNDS, SEASON_COLOR_SPACE } from '../seasons/seasons';
+import {
+  backgroundsFrom,
+  SEASON_BACKGROUNDS,
+  SEASON_COLOR_SPACE,
+  SEASON_TURN,
+} from '../seasons/seasons';
 import { DEFAULT_TIMING_SETTINGS } from '../timing/timing-model';
 import { DeveloperMode } from './developer-mode';
 import {
@@ -48,6 +53,7 @@ describe('Tweaks', () => {
     expect(tweaks.palette()).toBe(PALETTE);
     expect(tweaks.seasonBackgrounds()).toBe(SEASON_BACKGROUNDS);
     expect(tweaks.colorSpace()).toBe(SEASON_COLOR_SPACE);
+    expect(tweaks.seasonTurn()).toBe(SEASON_TURN);
   });
 
   it('applies the tuned values only while developer mode is on', async () => {
@@ -55,8 +61,10 @@ describe('Tweaks', () => {
     await tweaks.setPalette(palette);
     await tweaks.setSeasons(seasons);
     await tweaks.setColorSpace('hsl');
+    await tweaks.setSeasonTurn(1);
 
     expect(tweaks.palette()).toBe(PALETTE);
+    expect(tweaks.seasonTurn()).toBe(SEASON_TURN);
     expect(tweaks.seasonBackgrounds()).toBe(SEASON_BACKGROUNDS);
     expect(tweaks.colorSpace()).toBe(SEASON_COLOR_SPACE);
 
@@ -64,6 +72,7 @@ describe('Tweaks', () => {
     expect(tweaks.palette()).toEqual(palette);
     expect(tweaks.seasonBackgrounds()).toEqual(backgroundsFrom(seasons));
     expect(tweaks.colorSpace()).toBe('hsl');
+    expect(tweaks.seasonTurn()).toBe(1);
   });
 
   it('keeps the tuned values for the next visits, and brings back the game’s on reset', async () => {
@@ -124,8 +133,8 @@ describe('Tweaks', () => {
       );
     });
 
-    it("lists every season's colors and their color space, marking those that changed", () => {
-      expect(seasonsText(seasons, SEASON_COLOR_SPACE)).toBe(
+    it("lists every season's colors, their color space and turn, marking those that changed", () => {
+      expect(seasonsText(seasons, SEASON_COLOR_SPACE, SEASON_TURN)).toBe(
         [
           'Season colors (early colors in SEASON_BACKGROUNDS in seasons.ts), top then bottom:',
           `  spring: ${SEASON_STARTS.spring[0]}, ${SEASON_STARTS.spring[1]}`,
@@ -133,11 +142,13 @@ describe('Tweaks', () => {
           '  autumn: #000000, #ffffff (changed)',
           `  winter: ${SEASON_STARTS.winter[0]}, ${SEASON_STARTS.winter[1]}`,
           'Blended in OKLCH (SEASON_COLOR_SPACE in seasons.ts)',
+          'Turning over 5 digits (SEASON_TURN in seasons.ts)',
         ].join('\n'),
       );
-      expect(seasonsText(SEASON_STARTS, 'srgb').split('\n').at(-1)).toBe(
+      expect(seasonsText(SEASON_STARTS, 'srgb', 1).split('\n').slice(-2)).toEqual([
         'Blended in sRGB (SEASON_COLOR_SPACE in seasons.ts) (changed)',
-      );
+        'Turning over 1 digit (SEASON_TURN in seasons.ts) (changed)',
+      ]);
     });
   });
 
@@ -167,11 +178,9 @@ describe('Tweaks', () => {
   });
 
   it('reads the tweaks stored in a format it knows, leaving out what is not valid', async () => {
-    expect(parseTweaks({ format: TWEAKS_FORMAT, palette, seasons, colorSpace: 'oklab' })).toEqual({
-      palette,
-      seasons,
-      colorSpace: 'oklab',
-    });
+    expect(
+      parseTweaks({ format: TWEAKS_FORMAT, palette, seasons, colorSpace: 'oklab', seasonTurn: 25 }),
+    ).toEqual({ palette, seasons, colorSpace: 'oklab', seasonTurn: 25 });
     expect(parseTweaks({ format: TWEAKS_FORMAT + 1, palette })).toEqual({});
     expect(
       parseTweaks({
@@ -179,8 +188,11 @@ describe('Tweaks', () => {
         palette: ['#fff'],
         seasons: { spring: [] },
         colorSpace: 'cmyk',
+        seasonTurn: 2.5,
       }),
     ).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 0 })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 26 })).toEqual({});
     expect(parseTweaks(null)).toEqual({});
 
     const store = (await load(), TestBed.inject(RunStore));

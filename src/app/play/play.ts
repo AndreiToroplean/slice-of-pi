@@ -76,7 +76,12 @@ export class Play {
 
   /** The season, and the background's colors, after the places typed so far. */
   protected readonly season = computed(() =>
-    seasonAt(this.digits().length, this.tweaks.seasonBackgrounds(), this.tweaks.colorSpace()),
+    seasonAt(
+      this.digits().length,
+      this.tweaks.seasonBackgrounds(),
+      this.tweaks.colorSpace(),
+      this.tweaks.seasonTurn(),
+    ),
   );
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;

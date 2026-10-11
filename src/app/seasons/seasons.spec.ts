@@ -4,6 +4,7 @@ import {
   PLACES_PER_SEASON,
   PLACES_PER_YEAR,
   SEASON_BACKGROUNDS,
+  SEASON_TURN,
   seasonAt,
 } from './seasons';
 
@@ -79,6 +80,28 @@ describe('seasonAt', () => {
     );
     expect(seasonAt(72, SEASON_BACKGROUNDS, 'srgb').background).not.toEqual(
       seasonAt(72).background,
+    );
+  });
+
+  it('turns into the next season over its last few places, from at once to all season long', () => {
+    const { spring, summer } = SEASON_BACKGROUNDS;
+    // Five places by default: spring's last place is most of the way into summer.
+    expect(SEASON_TURN).toBe(5);
+    expect(seasonAt(24).background).toEqual(
+      mixGradients(
+        mixGradients(spring.early, spring.late, 1, 'oklch'),
+        summer.early,
+        0.896,
+        'oklch',
+      ),
+    );
+    // At once: spring has only drifted by its last place.
+    expect(seasonAt(24, SEASON_BACKGROUNDS, 'oklch', 1).background).toEqual(
+      mixGradients(spring.early, spring.late, 1, 'oklch'),
+    );
+    // All season long: no drift, halfway through spring is about halfway into summer.
+    expect(seasonAt(12, SEASON_BACKGROUNDS, 'oklch', 25).background).toEqual(
+      mixGradients(spring.early, summer.early, 0.48 * 0.48 * (3 - 2 * 0.48), 'oklch'),
     );
   });
 
