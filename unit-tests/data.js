@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791709383127,
+  "lastUpdate": 1791709415194,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -118,6 +118,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 244,
+            "unit": "ms",
+            "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "5ff3c0115165094dbcd52d6d638d2d267ed24905",
+          "message": "feat: make the cake π the game icon\n\nAndrei's cake π artwork on the teal key color replaces the earlier gradient π: the installed app's icons at every size, the favicon, the iOS home screen icon and the main menu. The crop is the one Andrei picked in the crop tool: the cake spans 91.5% of the icon's width. public/icons/icon-transparent.png keeps the same crop with no background, at full resolution, for later use on the main menu. scripts/make-icons.py rebuilds them all from design/icon/cake-pi.png.\n\nClaude-Session: https://claude.ai/code/session_01UB6KK779oktGArLnqYU1QE",
+          "timestamp": "2026-10-11T11:03:12+02:00",
+          "tree_id": "4a79fab49b8503cd45073d04f2f25fc35e208463",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/5ff3c0115165094dbcd52d6d638d2d267ed24905"
+        },
+        "date": 1791709414645,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 2547,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 3247,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 152,
             "unit": "ms",
             "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
           }
