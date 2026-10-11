@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791722669000,
+  "lastUpdate": 1791735836829,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -360,6 +360,46 @@ window.BENCHMARK_DATA = {
             "value": 254,
             "unit": "ms",
             "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "6e1ae837b85b826386b89517a59c78e97cc86e9f",
+          "message": "feat: show mistakes as red digits outlined on white, and keep taking digits after one\n\nClaude-Session: https://claude.ai/code/session_01XZQJnPWKURXPrPTfhrHH7j",
+          "timestamp": "2026-10-11T18:23:30+02:00",
+          "tree_id": "7b267bb4f168ecf821cbff10969066c60dd45566",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/6e1ae837b85b826386b89517a59c78e97cc86e9f"
+        },
+        "date": 1791735836342,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5313,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 8334,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 289,
+            "unit": "ms",
+            "extra": "Data says there are no runs yet"
           }
         ]
       }
