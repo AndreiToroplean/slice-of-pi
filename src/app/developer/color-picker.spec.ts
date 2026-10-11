@@ -52,7 +52,7 @@ describe('ColorPicker', () => {
     const { hue, saturation, lightness } = hexToHsl('#de3e2d');
 
     expect(element.querySelector('.hex')?.textContent).toBe('#de3e2d');
-    expect(element.querySelector('.contrast')?.textContent.trim()).toBe('white digits 4.3:1');
+    expect(element.querySelector('.contrast')).toBeNull();
     expect(Number(slider(element, 'hue').value)).toBeCloseTo(hue, 0);
     expect(Number(slider(element, 'saturation').value)).toBeCloseTo(saturation, 0);
     expect(Number(slider(element, 'lightness').value)).toBeCloseTo(lightness, 0);
@@ -85,7 +85,9 @@ describe('ColorPicker', () => {
   it('sets the color halfway between its neighbors', async () => {
     const { host, element, stable } = await setUp();
 
-    element.querySelector<HTMLButtonElement>('button.average')?.click();
+    const average = element.querySelector<HTMLButtonElement>('.summary button.average');
+    expect(average?.getAttribute('aria-label')).toBe('Average of #ff0000 and #ffff00');
+    average?.click();
     await stable();
 
     expect(host.color()).toBe('#ff8000');

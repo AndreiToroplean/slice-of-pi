@@ -1,5 +1,5 @@
 import { Component, computed, input, linkedSignal, model } from '@angular/core';
-import { averageHsl, contrastWithWhite, hexToHsl, Hsl, hslToHex } from './color-math';
+import { averageHsl, hexToHsl, Hsl, hslToHex } from './color-math';
 
 /** The picker's sliders, in order. */
 const SLIDERS = [
@@ -10,8 +10,8 @@ const SLIDERS = [
 
 /**
  * A color picker as wide as the screen: hue, saturation and lightness sliders, each track showing the colors it goes
- * through, and the color, its hex code and how well white digits read on it. With the colors around it, it can also
- * set the color halfway between them.
+ * through, under a top bar with the color and its hex code. With the colors around it, the top bar can also set the
+ * color halfway between them.
  */
 @Component({
   selector: 'app-color-picker',
@@ -20,7 +20,18 @@ const SLIDERS = [
       <span class="swatch" [style.background]="color()"></span>
       <span class="name">{{ name() }}</span>
       <span class="hex">{{ color() }}</span>
-      <span class="contrast">white digits {{ contrast().toFixed(1) }}:1</span>
+      @if (neighbors(); as around) {
+        <button
+          type="button"
+          class="frosted average"
+          [attr.aria-label]="'Average of ' + around[0] + ' and ' + around[1]"
+          (click)="average(around)"
+        >
+          Average
+          <span class="swatch small" [style.background]="around[0]"></span>
+          <span class="swatch small" [style.background]="around[1]"></span>
+        </button>
+      }
     </div>
     @for (slider of sliders; track slider.key) {
       <label class="slider">
@@ -39,14 +50,6 @@ const SLIDERS = [
           (input)="set(slider.key, $event)"
         />
       </label>
-    }
-    @if (neighbors(); as around) {
-      <button type="button" class="frosted average" (click)="average(around)">
-        Average of
-        <span class="swatch small" [style.background]="around[0]"></span>
-        and
-        <span class="swatch small" [style.background]="around[1]"></span>
-      </button>
     }
   `,
   styleUrl: './color-picker.css',
@@ -73,8 +76,6 @@ export class ColorPicker {
         ? previous.value
         : hexToHsl(color),
   });
-
-  protected readonly contrast = computed(() => contrastWithWhite(this.color()));
 
   /** Each slider's track: the colors it goes through, the other two values staying as they are. */
   protected readonly tracks = computed(() => {

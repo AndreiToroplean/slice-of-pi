@@ -20,11 +20,11 @@ describe('KeyColors', () => {
     return { host: fixture.nativeElement as HTMLElement, stable: () => fixture.whenStable() };
   }
 
-  /** The key colors along the top of the grid, as shown. */
-  function columns(host: HTMLElement): string[] {
+  /** The key colors down the start of the grid's rows, as shown. */
+  function rows(host: HTMLElement): string[] {
     return Array.from(host.querySelectorAll<HTMLElement>('button.head'), (head) =>
       head.style.getPropertyValue('--place-color'),
-    ).slice(0, PALETTE.length);
+    );
   }
 
   function key(host: HTMLElement, name: string): HTMLButtonElement {
@@ -51,13 +51,11 @@ describe('KeyColors', () => {
     await stable();
   }
 
-  it("draws every pair of the game's colors, and of each with the digits' white", async () => {
+  it("draws every pair of the game's colors, with a key to select at the start of each row", async () => {
     const { host } = await setUp();
 
-    expect(columns(host)).toEqual(PALETTE);
-    // 11 by 11: the 10 key colors and white.
-    expect(host.querySelectorAll('.grid .pair')).toHaveLength(121);
-    expect(host.querySelectorAll('.grid .head.white')).toHaveLength(2);
+    expect(rows(host)).toEqual(PALETTE);
+    expect(host.querySelectorAll('.grid .pair')).toHaveLength(100);
     expect(host.querySelectorAll('.grid .pair.close')).toHaveLength(0);
   });
 
@@ -82,7 +80,7 @@ describe('KeyColors', () => {
     await slide(host, 'Key 3, lime', 'hue', 200, stable);
 
     const tuned = hslToHex({ ...hexToHsl(PALETTE[3]), hue: 200 });
-    expect(columns(host)[3]).toBe(tuned);
+    expect(rows(host)[3]).toBe(tuned);
     expect(TestBed.inject(Tweaks).values().palette?.[3]).toBe(tuned);
 
     const reset = Array.from(host.querySelectorAll('button')).find((button) =>
@@ -91,7 +89,7 @@ describe('KeyColors', () => {
     reset?.click();
     await stable();
 
-    expect(columns(host)).toEqual(PALETTE);
+    expect(rows(host)).toEqual(PALETTE);
     expect(TestBed.inject(Tweaks).values()).toEqual({});
     expect(reset?.disabled).toBe(true);
   });
@@ -124,7 +122,7 @@ describe('KeyColors', () => {
     host.querySelector<HTMLButtonElement>('button.average')?.click();
     await stable();
 
-    expect(columns(host)[0]).not.toBe(PALETTE[0]);
+    expect(rows(host)[0]).not.toBe(PALETTE[0]);
   });
 
   it('copies its colors from a button in its top bar', async () => {
