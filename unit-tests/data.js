@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791735836829,
+  "lastUpdate": 1791739496014,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -398,6 +398,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 289,
+            "unit": "ms",
+            "extra": "Data says there are no runs yet"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "31a2eb0f2a72c6c0c7a39707c31a88db166bc689",
+          "message": "docs: stop requiring a sequence diagram in every pull request\n\nClaude-Session: https://claude.ai/code/session_01AWgw5iWjNpV6Z16ArDeD3x",
+          "timestamp": "2026-10-11T19:22:38+02:00",
+          "tree_id": "856893424868fb65bbf1105dfedfafd2203ce00d",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/31a2eb0f2a72c6c0c7a39707c31a88db166bc689"
+        },
+        "date": 1791739495665,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5244,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 8200,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 272,
             "unit": "ms",
             "extra": "Data says there are no runs yet"
           }
