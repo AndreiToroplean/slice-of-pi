@@ -57,6 +57,8 @@ The model (Andrei, 2026-10-08), with its constants tuned by play testing:
 
 **During a run**, the groups shown on screen are never based on that run alone: they're always the groupings of the **aggregate** (§4.2), which includes the current run so far. So for a player with many runs, the only way to cut a group short during a run is a break so long that it outweighs everything else in the aggregate; there's no point in doing that on purpose. For a new player, with no other runs, the aggregate is just the current run.
 
+On the play screen (`src/app/play/play.ts`), the current run is one of the runs like any other, with its own recency. The only thing special about it is the digit not typed yet: its time is the time since the last digit, since the player could type it at any moment. The game keeps computing the aggregate of all the runs with it, and the group being typed is finished as soon as the aggregate breaks before the next digit. It never finishes while a mistake shows (§2).
+
 ### 4.2 Combining runs
 
 The groupings are always computed from **all of the player's stats**, except unchecked runs (played without checking the digits, in developer mode, or from before the game checked them), which may hold mistakes: they're left out unless "Count unchecked runs", in developer mode on the "Your data" page, includes them. There's no overriding: each run's timings just add to the stats, and the groupings follow from them. Each run's evidence at a given place in π is weighted by:
