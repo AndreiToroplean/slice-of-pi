@@ -13,11 +13,11 @@ export interface SlotLayout {
 }
 
 /**
- * Lays out the slots of the group being typed: the hint, or one slot per digit once the player types past it
+ * Lays out the slots of the group being typed: one per digit of its size, plus one per mistake typed past it
  * (`groupings.md` §3). Rows grow to 10 slots, then a new row starts.
  */
-export function slotLayout(typed: number, hint: number): SlotLayout {
-  const count = Math.max(hint, typed);
+export function slotLayout(typed: number, size: number): SlotLayout {
+  const count = Math.max(size, typed);
   return {
     count,
     columns: Math.min(count, SLOTS_PER_ROW),

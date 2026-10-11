@@ -10,7 +10,7 @@ Why:
 
 - When people learn π, groups come to them naturally, and those groups aren't necessarily regular. A player who already knows digits in their own groups shouldn't have to relearn them in exact groups of five.
 - Digits often have natural groups that each player can spot: a group of three, a repeated digit, a pattern. Seeing those is personal and up to each player.
-- For a beginner, proposing groups of five may still help them learn, so five is the default hint until the player's own groups are known (§3).
+- For a beginner, proposing groups of five may still help them learn, so groups of five are the default until the player's own groups are known (§3).
 
 The game detects groupings from **how the player types**: the time it takes them to type each digit. Digits typed quickly one after another belong together; a pause between two digits is a boundary. Over runs, the player's typing rhythm reveals their own groups.
 
@@ -26,21 +26,21 @@ The first version of this mode is **strict**: a wrong digit shows as a mistake i
 
 The play screen is centred on the group being typed, as in the chunk-centred mockup from the visual design work.
 
-- The **typing area** shows **empty slots** for the upcoming group. The number of slots is the **hint**: the size of the group the game expects.
-- The hint is **5 by default**, until the player's stats reveal their own group at that place in π (§4). This is the same in every mode for now.
-- The slots are only a hint. When the player **pauses** between digits, the digits typed since the last pause become a group, whatever the hint said: typing three digits into five slots and pausing makes a group of three.
+- The **typing area** shows **empty slots** for the group being typed, one per digit of its size. The slots are the group: there's no separate hint, and the group finishes as soon as they're all filled.
+- The size is the player's own group at that place in π where the game trusts it (§4.3), and **5** everywhere else, so a new player plays groups of 5. This is the same in every mode for now.
+- When the player **pauses** before filling the slots, long enough for the aggregate to break there (§4.1), the group finishes early: typing three digits into five slots and pausing makes a group of three.
 - The group then **flies off** the typing area to join the **typed digits**, shown smaller.
 - The typed digits are laid out over a few rows, like text: each group is a **word**, separated from the next by a space, and rows wrap between words like text does.
 - Groups have **no minimum size**: a single digit typed between two long pauses is a group of one, and its constellation is a dot.
-- Groups have **no maximum size** for now. If the player types past the hint without pausing, one slot is added per digit. The row of slots grows up to 10, then a new row starts below it, again one slot at a time, and so on. We'll see in play testing whether a bound is needed after all.
-- The typing area shows only the slots: no text under them (no "hint: 5" or similar).
+- Groups are as long as the player's own groups, with **no maximum size**. The row of slots grows up to 10, then a new row starts below it. Mistakes typed past the last slot each add one (§2).
+- The typing area shows only the slots: no text under them (no "5 digits" or similar).
 
 ## 4. Stats and detected groupings
 
 The game keeps **statistics of the player's typing timings**, in the spirit of typing-test sites (e.g. the open-source Monkeytype) that record every keystroke's timing and show rich stats on it.
 
 - Every run records the **raw time each digit took to type**. Groupings formed during a run are never recorded; they're always derived from the raw timings.
-- The game uses those stats to **detect the player's groupings**, and from them sets the hint (the number of empty slots) for each group.
+- The game uses those stats to **detect the player's groupings**, and from them sets the size of each group (the number of empty slots).
 
 ### 4.1 Pauses
 
@@ -72,9 +72,9 @@ All the judging (what counts as a pause, confidence, detected groupings) is loca
 
 How the runs combine (`src/app/timing/timing-model.ts`): at each place, every run that reached it votes break or not, weighted by recency and by its local confidence (its trust). The aggregate has a boundary where the weighted share of break votes is over half, and its confidence there is the runs' agreement times the amount of evidence, which grows with the total weight of the votes and saturates.
 
-### 4.3 When the hint follows the player
+### 4.3 How far the game follows the player
 
-The hint follows the player's detected groupings wherever the game is **confident enough** about them: below a **confidence threshold** (a constant), the hint switches back to the default of 5 at that place. That's also the case for a new player, with no data at all.
+The game follows the player's detected groups from the first decimal up to the first group it isn't **confident enough** about: one whose confidence, averaged over its places, is below a **confidence threshold** (a constant), or the open group at the end of the data. That group and every one after it aren't trusted, even those confident enough, since a shaky group may not start where it should: from its start on, the game plays groups of 5. For a new player, with no data at all, that's from the very first decimal. The aggregate keeps that place (`trustedUntil` in `timing-model.ts`), and the "Your data" page dots the groups from there on.
 
 ### 4.4 Keeping the data
 

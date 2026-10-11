@@ -7,7 +7,7 @@ import { PI_DECIMALS } from '../pi/pi-decimals';
 import { countsInGroups, Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
 import { RunStore } from '../runs/run-store';
-import { aggregate, analyzeRun, isConfident } from '../timing/timing-model';
+import { aggregate, analyzeRun } from '../timing/timing-model';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { RunChart } from './run-chart';
 import { ChartBreak, chartTop, digitTimes } from './run-charts';
@@ -158,7 +158,7 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
           </p>
           <ul class="groups" aria-label="Your groups">
             @for (group of groups(); track group.start) {
-              <li [class.unsure]="!group.confident">{{ group.digits }}</li>
+              <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
             }
           </ul>
         </article>
@@ -248,12 +248,12 @@ export class Data {
     this.aggregate().groups.map((group) => ({
       start: group.start,
       digits: PI_DECIMALS.slice(group.start, group.start + group.size),
-      confident: isConfident(group, this.settings()),
+      trusted: group.start < this.aggregate().trustedUntil,
     })),
   );
   protected readonly aggregateMeta = computed(() => {
-    const confident = this.groups().filter((group) => group.confident).length;
-    return `${plural(this.groups().length, 'group')}, ${String(confident)} sure enough to set the hint; dotted ones get the default of 5`;
+    const trusted = this.groups().filter((group) => group.trusted).length;
+    return `${plural(this.groups().length, 'group')}, ${trusted === 0 ? 'none' : `the first ${String(trusted)}`} trusted; from the first dotted one on, the game plays groups of 5`;
   });
 
   protected readonly uncheckedNote = computed(() => {

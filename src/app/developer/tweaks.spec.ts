@@ -190,7 +190,7 @@ describe('Tweaks', () => {
         '  fullTrustUnevenness: 0.6',
         '  halfLife: 22.63 (changed)',
         '  evidenceNeeded: 1.2',
-        '  hintConfidence: 0.45',
+        '  confidenceNeeded: 0.45',
       ].join('\n'),
     );
   });
@@ -203,6 +203,17 @@ describe('Tweaks', () => {
     expect(
       parseTweaks({ format: TWEAKS_FORMAT, grouping: { ...grouping, neighborhood: undefined } }),
     ).toEqual({});
+  });
+
+  it('reads grouping settings saved before the confidence needed was renamed', () => {
+    const { confidenceNeeded, ...rest } = grouping;
+
+    expect(
+      parseTweaks({
+        format: TWEAKS_FORMAT,
+        grouping: { ...rest, hintConfidence: confidenceNeeded },
+      }),
+    ).toEqual({ grouping });
   });
 
   it('reads the tweaks stored in a format it knows, leaving out what is not valid', async () => {

@@ -3,7 +3,6 @@ import {
   analyzeRun,
   DEFAULT_TIMING_SETTINGS,
   Group,
-  isConfident,
   recencyWeight,
   RunPlace,
   TimingSettings,
@@ -141,7 +140,7 @@ describe('timing model', () => {
     }
 
     it('has nothing to group without runs', () => {
-      expect(analyze([])).toEqual({ places: [], groups: [] });
+      expect(analyze([])).toEqual({ places: [], groups: [], trustedUntil: 0 });
     });
 
     it('follows a single run, with the confidence its evidence gives', () => {
@@ -156,13 +155,24 @@ describe('timing model', () => {
 
       expect(sizes(groups)).toEqual([3, 3, 3, 3, 2]);
       expect(groups.at(-1)).toEqual({ start: 12, size: 2, confidence: 0, open: true });
-      expect(groups.map((group) => isConfident(group, settings))).toEqual([
-        true,
-        true,
-        true,
-        true,
-        false,
-      ]);
+    });
+
+    it('trusts the groups up to the open one at the end', () => {
+      expect(analyze([grouped(14)]).trustedUntil).toBe(12);
+    });
+
+    it('stops trusting groups at the first one not confident enough, even if later ones are', () => {
+      // One shaky place in the second group.
+      const shaky = [
+        analyzeRun(grouped(14), settings).map((place, i) =>
+          i === 4 && place !== undefined ? { ...place, trust: 0.05 } : place,
+        ),
+      ];
+      const { groups, trustedUntil } = aggregate(shaky, settings);
+
+      expect(groups[1]?.confidence).toBeLessThan(settings.confidenceNeeded);
+      expect(groups[2]?.confidence).toBeGreaterThanOrEqual(settings.confidenceNeeded);
+      expect(trustedUntil).toBe(3);
     });
 
     it('grows surer as runs agree', () => {

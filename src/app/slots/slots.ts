@@ -32,12 +32,12 @@ export class Slots {
   readonly digits = input.required<string>();
   /** Their place colors, in the same order. */
   readonly colors = input.required<readonly string[]>();
-  /** How many digits the group is expected to have. */
-  readonly hint = input.required<number>();
+  /** The size of the group being typed. */
+  readonly size = input.required<number>();
   /** How many of the last digits are mistakes. */
   readonly wrong = input(0);
 
-  protected readonly layout = computed(() => slotLayout(this.digits().length, this.hint()));
+  protected readonly layout = computed(() => slotLayout(this.digits().length, this.size()));
 
   /** Each slot's digit, or `null` while it's empty. */
   protected readonly slots = computed(() =>

@@ -1,14 +1,7 @@
-import {
-  Aggregate,
-  aggregate,
-  analyzeRun,
-  isConfident,
-  RunPlace,
-  TimingSettings,
-} from '../timing/timing-model';
+import { Aggregate, aggregate, analyzeRun, RunPlace, TimingSettings } from '../timing/timing-model';
 
-/** The hint, until the player's own groups are known: the size of the group the game expects (`groupings.md` §3). */
-export const DEFAULT_HINT = 5;
+/** The size of a group where the player's own groups aren't trusted (`groupings.md` §3). */
+export const DEFAULT_GROUP_SIZE = 5;
 
 /** A group the player has finished typing, shown among the typed digits as a word. */
 export interface Word {
@@ -36,15 +29,14 @@ export function groupDigits(digits: string, sizes: readonly number[]): Grouping 
 }
 
 /**
- * The hint for the group starting at index `start` (index 0 is the first decimal): as many slots as the aggregate's
- * group there has digits left, where the aggregate is confident enough about it, else the default (`groupings.md`
- * §4.3).
+ * The size of the group starting at index `start` (index 0 is the first decimal): where the aggregate's groups are
+ * trusted, as many digits as its group there has left, else the default (`groupings.md` §4.3).
  */
-export function hintAt(model: Aggregate, start: number, settings: TimingSettings): number {
+export function groupSizeAt(model: Aggregate, start: number): number {
   const group = model.groups.find((g) => start >= g.start && start < g.start + g.size);
-  return group !== undefined && isConfident(group, settings)
+  return group !== undefined && start < model.trustedUntil
     ? group.start + group.size - start
-    : DEFAULT_HINT;
+    : DEFAULT_GROUP_SIZE;
 }
 
 /**

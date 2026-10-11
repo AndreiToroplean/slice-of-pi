@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { Background } from '../background/background';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from '../flight/flight';
-import { groupDigits, groupEnds, hintAt } from '../groups/groups';
+import { groupDigits, groupEnds, groupSizeAt } from '../groups/groups';
 import { Keypad } from '../keypad/keypad';
 import { keyColors, placeColors } from '../place-colors/place-colors';
 import { Pause } from '../pause/pause';
@@ -52,7 +52,7 @@ import { TIMER } from './timer';
       class="slots"
       [digits]="grouping().current + mistakes()"
       [colors]="currentColors()"
-      [hint]="hint()"
+      [size]="size()"
       [wrong]="mistakes().length"
     />
     <p class="visually-hidden" aria-live="assertive">
@@ -102,9 +102,9 @@ export class Play {
   /** The size of each finished group, in order. */
   private readonly sizes = signal<readonly number[]>([]);
   protected readonly grouping = computed(() => groupDigits(this.digits(), this.sizes()));
-  /** How many digits the group being typed is expected to have. */
-  protected readonly hint = computed(() =>
-    hintAt(this.found(), this.digits().length - this.grouping().current.length, this.settings()),
+  /** The size of the group being typed: its slots, and where it finishes unless the player pauses before. */
+  protected readonly size = computed(() =>
+    groupSizeAt(this.found(), this.digits().length - this.grouping().current.length),
   );
 
   /** The color of each typed place (`colors.md`). */
@@ -211,8 +211,8 @@ export class Play {
   }
 
   /**
-   * Finishes the group being typed as soon as all the runs say it ends, this one included, its next digit timed as if
-   * typed now; never while a mistake shows.
+   * Finishes the group being typed once it has all its digits, or before that as soon as all the runs say it ends, this
+   * one included, its next digit timed as if typed now; never while a mistake shows.
    */
   private watchForPause(): void {
     this.stopWatching();
@@ -221,7 +221,10 @@ export class Play {
     }
     const check = (): void => {
       const times = this.recorder.run()?.times ?? [];
-      if (groupEnds(this.earlierVerdicts(), times, this.recorder.waited(), this.settings())) {
+      if (
+        this.grouping().current.length >= this.size() ||
+        groupEnds(this.earlierVerdicts(), times, this.recorder.waited(), this.settings())
+      ) {
         this.stopWatching();
         this.finishGroup();
       }

@@ -225,7 +225,7 @@ export function parseTweaks(stored: unknown): TweakValues {
   }
   const palette = 'palette' in stored ? stored.palette : undefined;
   const seasons = 'seasons' in stored ? stored.seasons : undefined;
-  const grouping = 'grouping' in stored ? stored.grouping : undefined;
+  const grouping = renamedSettings('grouping' in stored ? stored.grouping : undefined);
   const colorSpace = 'colorSpace' in stored ? stored.colorSpace : undefined;
   const seasonTurn = 'seasonTurn' in stored ? stored.seasonTurn : undefined;
   const checking = 'checking' in stored ? stored.checking : undefined;
@@ -270,6 +270,15 @@ function isColorSpace(value: unknown): value is ColorSpace {
 
 function isSeasonTurn(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) >= 1 && Number(value) <= PLACES_PER_SEASON;
+}
+
+/** Grouping settings saved before `confidenceNeeded` was named so, as `hintConfidence`, under its new name. */
+function renamedSettings(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null || !('hintConfidence' in value)) {
+    return value;
+  }
+  const { hintConfidence, ...rest } = value;
+  return { confidenceNeeded: hintConfidence, ...rest };
 }
 
 function isTimingSettings(value: unknown): value is TimingSettings {
