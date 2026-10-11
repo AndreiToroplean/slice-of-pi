@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { inject, InjectionToken, Service } from '@angular/core';
-import { parseRun, Run, RUN_FORMAT } from './run';
+import { isOlderFormat, parseRun, Run, RUN_FORMAT } from './run';
 
 /** The browser's IndexedDB, where runs are stored; missing in browsers without it. */
 export const INDEXED_DB = new InjectionToken<IDBFactory | undefined>('INDEXED_DB', {
@@ -212,14 +212,32 @@ async function openDatabase(
   if (database === undefined) {
     return undefined;
   }
-  const meta = database.transaction(META, 'readwrite').objectStore(META);
   if (!preview) {
-    await result(meta.put({ format: RUN_FORMAT }, MAIN_FORMAT));
+    await migrateRuns(database);
     return { database, writable: true };
   }
   // Until the main game has opened the database, it keeps no runs, so there are none to protect.
+  const meta = database.transaction(META).objectStore(META);
   const main = (await result(meta.get(MAIN_FORMAT))) as { format?: unknown } | undefined;
   return { database, writable: main === undefined || main.format === RUN_FORMAT };
+}
+
+/**
+ * Brings the runs stored in older formats to the current one, and notes it as the main game's run format, all at once.
+ * Only the main game does: previews never write runs the main game couldn't load.
+ */
+async function migrateRuns(database: IDBDatabase): Promise<void> {
+  const transaction = database.transaction([META, RUNS], 'readwrite');
+  transaction.objectStore(META).put({ format: RUN_FORMAT }, MAIN_FORMAT);
+  const runs = transaction.objectStore(RUNS);
+  const records = await result(runs.getAll() as IDBRequest<unknown[]>);
+  for (const record of records.filter(isOlderFormat)) {
+    const run = parseRun(record);
+    if (run !== undefined) {
+      runs.put(run);
+    }
+  }
+  await completion(transaction);
 }
 
 async function openLayout(indexedDb: IDBFactory | undefined): Promise<IDBDatabase | undefined> {

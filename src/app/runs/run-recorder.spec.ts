@@ -88,6 +88,7 @@ describe('RunRecorder', () => {
       {
         format: RUN_FORMAT,
         id: 'run-1',
+        checked: true,
         startedAt: 1_760_000_005_000,
         digits: '14',
         times: [0, 200],
@@ -146,6 +147,7 @@ describe('RunRecorder', () => {
       {
         format: RUN_FORMAT,
         id: 'run-2',
+        checked: true,
         startedAt: 1_760_000_006_000,
         digits: '14',
         times: [0, 200],

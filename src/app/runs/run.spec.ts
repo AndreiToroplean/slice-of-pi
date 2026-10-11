@@ -1,5 +1,5 @@
 import { Digit } from '../digit';
-import { addDigit, newRun, parseRun, removeDigit, Run, RUN_FORMAT } from './run';
+import { addDigit, isOlderFormat, newRun, parseRun, removeDigit, Run, RUN_FORMAT } from './run';
 
 describe('run', () => {
   const empty = newRun('run-1', 1_760_000_000_000);
@@ -12,11 +12,16 @@ describe('run', () => {
     expect(empty).toEqual({
       format: RUN_FORMAT,
       id: 'run-1',
+      checked: true,
       startedAt: 1_760_000_000_000,
       digits: '',
       times: [],
       backspaces: [],
     });
+  });
+
+  it('starts unchecked when asked', () => {
+    expect(newRun('run-1', 0, false).checked).toBe(false);
   });
 
   it('records every digit and when it was typed, in whole milliseconds', () => {
@@ -69,12 +74,33 @@ describe('run', () => {
       expect(parseRun({ ...run, extra: true })).toEqual(run);
     });
 
+    it('reads an unchecked run', () => {
+      expect(parseRun({ ...run, checked: false })).toEqual({ ...run, checked: false });
+    });
+
+    it('migrates a run of format 1, from before the game checked digits, to an unchecked run', () => {
+      const { id, startedAt, digits, times, backspaces } = run;
+      const older = { format: 1, id, startedAt, digits, times, backspaces };
+
+      expect(parseRun(older)).toEqual({ ...run, checked: false });
+    });
+
+    it('tells the records in older formats, to be migrated', () => {
+      expect(isOlderFormat({ ...run, format: 1 })).toBe(true);
+      expect(isOlderFormat(run)).toBe(false);
+      expect(isOlderFormat({ ...run, format: RUN_FORMAT + 1 })).toBe(false);
+      expect(isOlderFormat({ ...run, format: '1' })).toBe(false);
+      expect(isOlderFormat(null)).toBe(false);
+    });
+
     it.each([
       ['not an object', 'run'],
       ['null', null],
       ['an unknown format', { ...run, format: RUN_FORMAT + 1 }],
       ['no format', { ...run, format: undefined }],
       ['an empty id', { ...run, id: '' }],
+      ['no checked flag', { ...run, checked: undefined }],
+      ['a checked flag that is not a boolean', { ...run, checked: 'yes' }],
       ['a numeric id', { ...run, id: 1 }],
       ['a negative start', { ...run, startedAt: -1 }],
       ['a start that is not a number', { ...run, startedAt: '2026-10-10' }],
