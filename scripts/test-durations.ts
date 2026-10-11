@@ -7,8 +7,10 @@ export const LIMITS = { suite: 60_000, test: 2_000 } as const;
 
 /** How creep is detected: the median of the latest runs against the median of as many runs from further back. */
 export const CREEP = {
-  /** Runs in each window. Medians over 10 runs shrug off a slow CI machine or two. */
+  /** Most runs in each window. Medians over 10 runs shrug off a slow CI machine or two. */
   window: 10,
+  /** Fewest runs in each window: while the history is short, windows split it in half, from 3 runs each (6 runs in all). */
+  minWindow: 3,
   /** How many runs back the baseline window ends, before the latest window starts. */
   gap: 30,
   /** How much slower the latest runs may be than the baseline, as a fraction. Above the noise of CI machines. */
@@ -122,16 +124,17 @@ export function findCreep(history: ReadonlyMap<string, readonly number[]>): stri
   const creep: string[] = [];
   for (const name of [SUITE, TESTS]) {
     const values = history.get(name) ?? [];
-    if (values.length < 2 * CREEP.window) {
+    const window = Math.min(CREEP.window, Math.floor(values.length / 2));
+    if (window < CREEP.minWindow) {
       continue;
     }
-    const baselineStart = Math.max(0, values.length - 2 * CREEP.window - CREEP.gap);
-    const baseline = median(values.slice(baselineStart, baselineStart + CREEP.window));
-    const latest = median(values.slice(-CREEP.window));
+    const baselineStart = Math.max(0, values.length - 2 * window - CREEP.gap);
+    const baseline = median(values.slice(baselineStart, baselineStart + window));
+    const latest = median(values.slice(-window));
     if (latest > baseline * (1 + CREEP.threshold)) {
       const percent = Math.round((latest / baseline - 1) * 100);
       creep.push(
-        `${name}: ${seconds(latest)} over the last ${String(CREEP.window)} runs, up ${String(percent)}% from ${seconds(baseline)}.`,
+        `${name}: ${seconds(latest)} over the last ${String(window)} runs, up ${String(percent)}% from ${seconds(baseline)}.`,
       );
     }
   }
