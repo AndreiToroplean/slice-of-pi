@@ -3,7 +3,7 @@ import { placeColors } from '../place-colors/place-colors';
 import { Slots } from './slots';
 
 describe('Slots', () => {
-  async function render(digits: string, hint = 5, wrong = false): Promise<HTMLElement> {
+  async function render(digits: string, hint = 5, wrong = 0): Promise<HTMLElement> {
     const fixture = TestBed.createComponent(Slots);
     fixture.componentRef.setInput('digits', digits);
     fixture.componentRef.setInput('colors', placeColors(digits));
@@ -30,14 +30,14 @@ describe('Slots', () => {
     expect(slots(host).every((slot) => slot.textContent === '')).toBe(true);
   });
 
-  it('marks the last digit typed as wrong, when it is', async () => {
-    const host = await render('140', 5, true);
+  it('marks the last digits typed as mistakes, as many as there are', async () => {
+    const host = await render('1407', 5, 2);
 
     expect(slots(host).map((slot) => slot.classList.contains('wrong'))).toEqual([
       false,
       false,
       true,
-      false,
+      true,
       false,
     ]);
     expect((await render('141')).querySelector('.wrong')).toBeNull();

@@ -11,7 +11,6 @@ import {
   viewChild,
 } from '@angular/core';
 import { Background } from '../background/background';
-import { Digit } from '../digit';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from '../flight/flight';
 import { DEFAULT_HINT, groupDigits } from '../groups/groups';
 import { Keypad } from '../keypad/keypad';
@@ -29,8 +28,8 @@ import { TypedDigits } from '../typed-digits/typed-digits';
 /**
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
  * flies up to the typed digits as a word, as the seasons go by. Each typed digit takes the color its key showed.
- * Every digit is checked against π, unless developer mode turns that off: a wrong one shows in red in its slot, and
- * only backspace, deleting it, goes on.
+ * Every digit is checked against π, unless developer mode turns that off: a wrong one, and any typed on after it, show
+ * as mistakes in their slots, and never finish the group, until backspace deletes them.
  * Backspace deletes the last digit, reopening the last word when the slots are empty. Pausing offers to restart the game
  * or end it, back to the main menu. Every key is recorded, with its time, in the player's runs; restarting or ending the
  * game ends the run.
@@ -45,14 +44,14 @@ import { TypedDigits } from '../typed-digits/typed-digits';
     <app-typed-digits [words]="grouping().words" [digits]="digits()" [colors]="placeColors()" />
     <app-slots
       class="slots"
-      [digits]="grouping().current + (mistake() ?? '')"
+      [digits]="grouping().current + mistakes()"
       [colors]="currentColors()"
       [hint]="hint"
-      [wrong]="mistake() !== undefined"
+      [wrong]="mistakes().length"
     />
     <p class="visually-hidden" aria-live="assertive">
-      @if (mistake(); as wrong) {
-        {{ wrong }} is wrong: delete it to go on.
+      @if (mistakes() !== '') {
+        {{ mistakes().charAt(0) }} is wrong: delete back to it to go on.
       }
     </p>
     <app-keypad class="keypad" [colors]="keyColors()" (keyPressed)="press($event)" />
@@ -63,8 +62,11 @@ import { TypedDigits } from '../typed-digits/typed-digits';
 export class Play {
   /** The decimals typed so far: one character per digit, so even a very long sequence takes little memory. */
   protected readonly digits = signal('');
-  /** A wrong digit typed after them, until backspace deletes it. It's never recorded. */
-  protected readonly mistake = signal<Digit | undefined>(undefined);
+  /**
+   * A wrong digit typed after them, and any typed on after it, until backspace deletes them all: they all show as
+   * mistakes, and none is recorded.
+   */
+  protected readonly mistakes = signal('');
 
   /** The colors tuned in developer mode, or the game's own. */
   private readonly tweaks = inject(Tweaks);
@@ -118,11 +120,12 @@ export class Play {
     if (this.paused()) {
       return;
     }
-    if (this.mistake() !== undefined) {
-      // Only backspace, deleting the wrong digit, goes on.
+    if (this.mistakes() !== '') {
       if (key === 'backspace') {
-        this.mistake.set(undefined);
-        this.recorder.deleteMistake();
+        this.recorder.deleteMistake(this.digits().length + this.mistakes().length);
+        this.mistakes.update((mistakes) => mistakes.slice(0, -1));
+      } else {
+        this.mistakes.update((mistakes) => mistakes + key);
       }
       return;
     }
@@ -131,7 +134,7 @@ export class Play {
       this.tweaks.checking() &&
       !isPiDecimal(this.digits().length + 1, key)
     ) {
-      this.mistake.set(key);
+      this.mistakes.set(key);
       return;
     }
     this.recorder.record(key);
@@ -171,7 +174,7 @@ export class Play {
   protected restart(): void {
     this.landFlights();
     this.digits.set('');
-    this.mistake.set(undefined);
+    this.mistakes.set('');
     this.recorder.end();
   }
 

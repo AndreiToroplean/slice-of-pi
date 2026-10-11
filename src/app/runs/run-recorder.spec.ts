@@ -122,7 +122,7 @@ describe('RunRecorder', () => {
     // 1 at 0, 4 at 200, a wrong 5 never recorded at 400, its backspace at 900, 1 at 1200.
     press(recorder, '14', 200);
     time += 500;
-    recorder.deleteMistake();
+    recorder.deleteMistake(3);
     time += 300;
     press(recorder, '1');
     await recorder.saved();
@@ -133,7 +133,7 @@ describe('RunRecorder', () => {
   it('records nothing for a wrong first digit deleted', async () => {
     const recorder = TestBed.inject(RunRecorder);
 
-    recorder.deleteMistake();
+    recorder.deleteMistake(1);
     await recorder.saved();
 
     expect(saves).toEqual([]);

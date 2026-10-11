@@ -44,8 +44,9 @@
 }
 
 .slot.wrong {
-  background: var(--mistake);
-  color: var(--on-mistake);
+  background: var(--mistake-fill);
+  color: var(--mistake);
+  box-shadow: inset 0 0 0 2.5px var(--mistake);
 }
 
 @keyframes pop {
