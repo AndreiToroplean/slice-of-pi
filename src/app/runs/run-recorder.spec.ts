@@ -111,6 +111,29 @@ describe('RunRecorder', () => {
     expect(stored()).toMatchObject([{ digits: '141', times: [0, 200, 500], backspaces: [3] }]);
   });
 
+  it("records the backspace deleting a wrong digit it never recorded, the clock going back as for a digit's", async () => {
+    const recorder = TestBed.inject(RunRecorder);
+
+    // 1 at 0, 4 at 200, a wrong 5 never recorded at 400, its backspace at 900, 1 at 1200.
+    press(recorder, '14', 200);
+    time += 500;
+    recorder.deleteMistake();
+    time += 300;
+    press(recorder, '1');
+    await recorder.saved();
+
+    expect(stored()).toMatchObject([{ digits: '141', times: [0, 200, 500], backspaces: [3] }]);
+  });
+
+  it('records nothing for a wrong first digit deleted', async () => {
+    const recorder = TestBed.inject(RunRecorder);
+
+    recorder.deleteMistake();
+    await recorder.saved();
+
+    expect(saves).toEqual([]);
+  });
+
   it('takes the clock back one digit per backspace', async () => {
     const recorder = TestBed.inject(RunRecorder);
 

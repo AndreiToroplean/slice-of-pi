@@ -3,11 +3,12 @@ import { placeColors } from '../place-colors/place-colors';
 import { Slots } from './slots';
 
 describe('Slots', () => {
-  async function render(digits: string, hint = 5): Promise<HTMLElement> {
+  async function render(digits: string, hint = 5, wrong = false): Promise<HTMLElement> {
     const fixture = TestBed.createComponent(Slots);
     fixture.componentRef.setInput('digits', digits);
     fixture.componentRef.setInput('colors', placeColors(digits));
     fixture.componentRef.setInput('hint', hint);
+    fixture.componentRef.setInput('wrong', wrong);
     await fixture.whenStable();
     return fixture.nativeElement as HTMLElement;
   }
@@ -27,6 +28,19 @@ describe('Slots', () => {
       'slot',
     ]);
     expect(slots(host).every((slot) => slot.textContent === '')).toBe(true);
+  });
+
+  it('marks the last digit typed as wrong, when it is', async () => {
+    const host = await render('140', 5, true);
+
+    expect(slots(host).map((slot) => slot.classList.contains('wrong'))).toEqual([
+      false,
+      false,
+      true,
+      false,
+      false,
+    ]);
+    expect((await render('141')).querySelector('.wrong')).toBeNull();
   });
 
   it('fills the slots with the digits typed, the following one next', async () => {

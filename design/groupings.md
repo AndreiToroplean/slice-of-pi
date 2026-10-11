@@ -20,7 +20,7 @@ The game detects groupings from **how the player types**: the time it takes them
 
 The main use case for now is a player who **already knows the digits** and can type them: a challenge mode, not a practice mode. Learn modes come later.
 
-The first version of this mode **stops at the first mistake**, so we don't have to handle mistakes in the middle of a group yet. More lenient modes, tolerating a wrong digit now and then, will come later and need their own design.
+The first version of this mode is **strict**: a wrong digit fills its slot in red, its group never finishes, and no other digit is taken until the player deletes it with backspace. For now a mistake doesn't end the game. Wrong digits are never recorded, so mistakes never reach the timings (§4.4). Other modes, ending the game at a mistake or tolerating a wrong digit now and then, will come later and need their own design.
 
 ## 3. Typing a group
 
@@ -76,7 +76,7 @@ The hint follows the player's detected groupings wherever the game is **confiden
 
 ### 4.4 Keeping the data
 
-The raw timings of every run are recorded and **must never be lost**: they're what the player's groupings, and so their constellations, are made of. Like the seed, they're kept in the player data (`architecture.md` §5). A run records each digit typed and when. Backspace leaves no trace: it deletes the last digit's record and takes the clock back to when the digit before it was typed, so the next digit's interval runs from the backspace, as if the player had typed the run without the mistake. Where the player pressed backspace is kept in a separate record (the place of each digit deleted), which groupings don't use: they come from the timings alone. A backspace isn't necessarily a mistake, only that the player thought it was one; detecting mistakes comes later.
+The raw timings of every run are recorded and **must never be lost**: they're what the player's groupings, and so their constellations, are made of. Like the seed, they're kept in the player data (`architecture.md` §5). A run records each digit typed and when. Backspace leaves no trace: it deletes the last digit's record and takes the clock back to when the digit before it was typed, so the next digit's interval runs from the backspace, as if the player had typed the run without the mistake. Where the player pressed backspace is kept in a separate record (the place of each digit deleted), which groupings don't use: they come from the timings alone. A backspace isn't necessarily a mistake, only that the player thought it was one. A wrong digit is never recorded, but the backspace deleting it is, at its place, and the clock goes back the same way.
 
 ### 4.5 Stats page
 

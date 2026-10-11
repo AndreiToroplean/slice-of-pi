@@ -64,6 +64,14 @@ export function removeDigit(run: Run): Run {
 }
 
 /**
+ * The run with the backspace that deleted a wrong digit typed after its last one. The game never kept that digit, so
+ * only the backspace is recorded.
+ */
+export function deleteMistake(run: Run): Run {
+  return { ...run, backspaces: [...run.backspaces, run.digits.length + 1] };
+}
+
+/**
  * Reads a run from untrusted data (storage, a backup file): the run if it's a valid run in a known format, migrated to
  * the current one.
  */

@@ -14,6 +14,7 @@ import { FLIGHT_DURATION } from '../flight/flight';
 import { routes } from '../app.routes';
 import { Menu } from '../menu/menu';
 import { PALETTE, placeColors } from '../place-colors/place-colors';
+import { PI_DECIMALS } from '../pi/pi-decimals';
 import { RunRecorder } from '../runs/run-recorder';
 import { TypedDigits } from '../typed-digits/typed-digits';
 import { backgroundsFrom, seasonAt } from '../seasons/seasons';
@@ -119,10 +120,10 @@ describe('Play', () => {
   it('deletes the last digit with backspace', async () => {
     const { host, type } = await setUp();
 
-    await typeAll(type, '314<<5');
+    await typeAll(type, '141<<4');
 
-    expect(slots(host)).toEqual(['3', '5', '', '', '']);
-    expect(summary(host)).toBe('2 digits typed, the last one is 5.');
+    expect(slots(host)).toEqual(['1', '4', '', '', '']);
+    expect(summary(host)).toBe('2 digits typed, the last one is 4.');
   });
 
   it('reopens the last word with backspace when the slots are empty', async () => {
@@ -146,6 +147,78 @@ describe('Play', () => {
 
     expect(slots(host)).toEqual(['', '', '', '', '']);
     expect(summary(host)).toBe('No digits typed yet.');
+  });
+
+  describe('mistakes', () => {
+    function wrongSlots(host: HTMLElement): string[] {
+      return Array.from(host.querySelectorAll('app-slots .slot.wrong'), (slot) => slot.textContent);
+    }
+
+    it('shows a wrong digit in red in its slot, without finishing the group', async () => {
+      const { host, type } = await setUp();
+
+      await typeAll(type, '14150');
+
+      expect(slots(host)).toEqual(['1', '4', '1', '5', '0']);
+      expect(wrongSlots(host)).toEqual(['0']);
+      expect(words(host)).toEqual([]);
+      expect(summary(host)).toBe('4 digits typed, the last one is 5.');
+      expect(host.querySelector('[aria-live="assertive"]')?.textContent.trim()).toBe(
+        '0 is wrong: delete it to go on.',
+      );
+    });
+
+    it('takes no other digit until backspace deletes the wrong one', async () => {
+      const { host, type } = await setUp();
+
+      await typeAll(type, '14150');
+      await typeAll(type, '9');
+      expect(slots(host)).toEqual(['1', '4', '1', '5', '0']);
+
+      await typeAll(type, '<');
+      expect(slots(host)).toEqual(['1', '4', '1', '5', '']);
+      expect(wrongSlots(host)).toEqual([]);
+
+      await typeAll(type, '9');
+      expect(words(host)).toEqual(['14159']);
+    });
+
+    it('takes a wrong first digit', async () => {
+      const { host, type } = await setUp();
+
+      await typeAll(type, '3');
+
+      expect(slots(host)).toEqual(['3', '', '', '', '']);
+      expect(wrongSlots(host)).toEqual(['3']);
+    });
+
+    it("leaves the keys' colors as they were", async () => {
+      const { host, type } = await setUp();
+      await typeAll(type, '14');
+      const colors = Array.from(host.querySelectorAll<HTMLElement>('app-keypad button'), (key) =>
+        key.style.getPropertyValue('--key-color'),
+      );
+
+      await typeAll(type, '4');
+
+      expect(
+        Array.from(host.querySelectorAll<HTMLElement>('app-keypad button'), (key) =>
+          key.style.getPropertyValue('--key-color'),
+        ),
+      ).toEqual(colors);
+    });
+
+    it('records the backspace deleting a wrong digit, but never the wrong digit', async () => {
+      const recorder = TestBed.inject(RunRecorder);
+      const record = vi.spyOn(recorder, 'record');
+      const deleteMistake = vi.spyOn(recorder, 'deleteMistake');
+      const { type } = await setUp();
+
+      await typeAll(type, '1415<0<');
+
+      expect(record.mock.calls).toEqual([['1'], ['4'], ['1'], ['5'], ['backspace']]);
+      expect(deleteMistake).toHaveBeenCalledOnce();
+    });
   });
 
   describe('colors', () => {
@@ -331,9 +404,7 @@ describe('Play', () => {
   it('moves through the seasons as digits are typed, and back with backspace', async () => {
     const { host, type } = await setUp();
 
-    for (let i = 0; i < 25; i++) {
-      await type('1');
-    }
+    await typeAll(type, PI_DECIMALS.slice(0, 25));
 
     expect(host.querySelector('app-season-header .name')?.textContent.trim()).toBe('Summer');
     expect(TestBed.inject(Background).colors()).toEqual(seasonAt(25).background);
@@ -377,9 +448,9 @@ describe('Play', () => {
       expect(slots(host)).toEqual(['1', '4', '', '', '']);
     });
 
-    it('restarts the game: no digits, back to the first spring', async () => {
+    it('restarts the game: no digits nor mistake, back to the first spring', async () => {
       const { host, type, stable } = await setUp();
-      await typeAll(type, '1415926535897932384626433');
+      await typeAll(type, '14159265358979323846264330');
 
       pauseItem(host, 'Pause').click();
       pauseItem(host, 'Restart').click();

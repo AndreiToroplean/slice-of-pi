@@ -43,6 +43,11 @@
   animation: pop 0.22s cubic-bezier(0.3, 1.6, 0.5, 1);
 }
 
+.slot.wrong {
+  background: var(--mistake);
+  color: var(--on-mistake);
+}
+
 @keyframes pop {
   from {
     transform: scale(0.7);

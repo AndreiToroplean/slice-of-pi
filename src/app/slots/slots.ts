@@ -3,7 +3,7 @@ import { slotLayout } from './slot-layout';
 
 /**
  * The typing area: the slots of the group being typed, filled with its digits so far, the next one outlined
- * (`groupings.md` §3), each in its place color. There is no text under the slots. Hidden from assistive technology: the typed digits say what
+ * (`groupings.md` §3), each in its place color, or in red for a wrong digit. There is no text under the slots. Hidden from assistive technology: the typed digits say what
  * was typed.
  */
 @Component({
@@ -19,6 +19,7 @@ import { slotLayout } from './slot-layout';
         class="slot"
         [class.filled]="slot !== null"
         [class.next]="$index === digits().length"
+        [class.wrong]="wrong() && $index === digits().length - 1"
         [style.--place-color]="colors()[$index]"
         >{{ slot }}</span
       >
@@ -33,6 +34,8 @@ export class Slots {
   readonly colors = input.required<readonly string[]>();
   /** How many digits the group is expected to have. */
   readonly hint = input.required<number>();
+  /** Whether the last digit is wrong. */
+  readonly wrong = input(false);
 
   protected readonly layout = computed(() => slotLayout(this.digits().length, this.hint()));
 
