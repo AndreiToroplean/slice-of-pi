@@ -2,8 +2,15 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Background } from '../background/background';
 import { INDEXED_DB } from '../runs/run-store';
-import { backgroundsFrom, seasonAt } from '../seasons/seasons';
-import { averageHsl, hexToHsl, hslToHex } from './color-math';
+import {
+  backgroundsFrom,
+  SEASON_BACKGROUNDS,
+  SEASON_COLOR_SPACE,
+  seasonAt,
+} from '../seasons/seasons';
+import { DeveloperMode } from './developer-mode';
+import { hexToHsl, hslToHex } from '../colors/color-spaces';
+import { averageHsl } from './color-math';
 import { SeasonColors } from './season-colors';
 import { SEASON_STARTS, Tweaks } from './tweaks';
 
@@ -98,6 +105,38 @@ describe('SeasonColors', () => {
     expect(TestBed.inject(Tweaks).values()).toEqual({});
     expect(background()).toEqual(seasonAt(30).background);
     expect(host.querySelector('app-color-picker .hex')?.textContent).toBe(SEASON_STARTS.summer[1]);
+  });
+
+  it('blends the colors in the color space selected, and brings back the game’s on reset', async () => {
+    await TestBed.inject(DeveloperMode).set(true);
+    const { host, stable } = await setUp();
+    const background = TestBed.inject(Background).colors;
+    await set(slider(host), '72', stable);
+    const select = host.querySelector<HTMLSelectElement>('label.space select');
+    if (select === null) {
+      throw new Error('No color space');
+    }
+    expect(select.value).toBe(SEASON_COLOR_SPACE);
+    expect(Array.from(select.options, (option) => option.textContent.trim())).toEqual([
+      'sRGB (the game’s)',
+      'OKLab',
+      'HSL',
+      'OKLCH',
+    ]);
+
+    select.value = 'oklch';
+    select.dispatchEvent(new Event('change'));
+    await stable();
+
+    expect(TestBed.inject(Tweaks).values()).toEqual({ colorSpace: 'oklch' });
+    expect(background()).toEqual(seasonAt(72, SEASON_BACKGROUNDS, 'oklch').background);
+
+    host.querySelector<HTMLButtonElement>('app-page-header button.pill')?.click();
+    await stable();
+
+    expect(TestBed.inject(Tweaks).values()).toEqual({});
+    expect(background()).toEqual(seasonAt(72).background);
+    expect(select.value).toBe(SEASON_COLOR_SPACE);
   });
 
   it('averages the selected color between the same end of the seasons on either side', async () => {

@@ -1,3 +1,5 @@
+import { ColorSpace, mix } from '../colors/color-spaces';
+
 /** The four seasons of a year, in order. */
 export const SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
 
@@ -24,6 +26,9 @@ export const SEASON_BACKGROUNDS: SeasonBackgrounds = {
   winter: { early: ['#9bb4dc', '#46598f'], late: ['#8299c9', '#30406f'] },
 };
 
+/** The color space the background blends its colors in, unless tuned in developer mode (see `color-spaces.ts`). */
+export const SEASON_COLOR_SPACE: ColorSpace = 'srgb';
+
 /** Fraction of a season after which it turns into the next one; before that, it only drifts. */
 const TURN_START = 0.8;
 
@@ -43,12 +48,13 @@ export interface SeasonView {
  * The season and background after typing `places` places.
  *
  * A season holds its colors, drifting slightly from its early to its late colors over its first 80%, then turns into
- * the next season's early colors over its last 20%. The colors are decorative and free to tune; what must not change
- * is the structure: a year is 100 places, split into four equal seasons.
+ * the next season's early colors over its last 20%, blending them in `space`. The colors are decorative and free to
+ * tune; what must not change is the structure: a year is 100 places, split into four equal seasons.
  */
 export function seasonAt(
   places: number,
   backgrounds: SeasonBackgrounds = SEASON_BACKGROUNDS,
+  space: ColorSpace = SEASON_COLOR_SPACE,
 ): SeasonView {
   const placeInYear = places % PLACES_PER_YEAR;
   const index = Math.floor(placeInYear / PLACES_PER_SEASON);
@@ -59,7 +65,8 @@ export function seasonAt(
   const turn = smoothstep(TURN_START, 1, t);
   const { early, late } = backgrounds[season];
   const target = backgrounds[next].early;
-  const color = (k: 0 | 1): string => mix(mix(early[k], late[k], drift), target[k], turn);
+  const color = (k: 0 | 1): string =>
+    mix(mix(early[k], late[k], drift, space), target[k], turn, space);
   return {
     season,
     year: Math.floor(places / PLACES_PER_YEAR) + 1,
@@ -83,13 +90,6 @@ function seasonByIndex(index: number): Season {
 function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
   return t * t * (3 - 2 * t);
-}
-
-/** Mixes two `#rrggbb` colors channel by channel: `t = 0` gives `a`, `t = 1` gives `b`. */
-export function mix(a: string, b: string, t: number): string {
-  const from = channels(a);
-  const to = channels(b);
-  return hex(from.map((value, i) => value + ((to[i] ?? value) - value) * t));
 }
 
 function channels(color: string): number[] {

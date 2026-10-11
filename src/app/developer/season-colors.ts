@@ -1,8 +1,16 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Background } from '../background/background';
+import { COLOR_SPACE_NAMES, COLOR_SPACES } from '../colors/color-spaces';
 import { PageHeader } from '../page-header/page-header';
 import { SEASON_NAMES, SeasonHeader } from '../season-header/season-header';
-import { backgroundsFrom, PLACES_PER_YEAR, Season, seasonAt, SEASONS } from '../seasons/seasons';
+import {
+  backgroundsFrom,
+  PLACES_PER_YEAR,
+  Season,
+  seasonAt,
+  SEASON_COLOR_SPACE,
+  SEASONS,
+} from '../seasons/seasons';
 import { ColorPicker } from './color-picker';
 import { CopyValues } from './copy-values';
 import { SEASON_STARTS, SeasonStarts, seasonsText, Tweaks } from './tweaks';
@@ -15,8 +23,8 @@ const ENDS = [
 
 /**
  * Developer mode's page to tune the seasons' colors: the top and bottom colors each season starts on, each selected
- * then tuned in the color picker under them, and a slider through the year that moves the background exactly as
- * typing digits does.
+ * then tuned in the color picker under them, the color space they blend in, and a slider through the year that moves
+ * the background exactly as typing digits does.
  */
 @Component({
   selector: 'app-season-colors',
@@ -58,6 +66,16 @@ const ENDS = [
       [neighbors]="neighbors()"
       (colorChange)="pick($event)"
     />
+    <label class="space">
+      Blend colors in
+      <select class="frosted pill" (change)="blendIn($event)">
+        @for (space of colorSpaces; track space) {
+          <option [value]="space" [selected]="space === colorSpace()">
+            {{ spaceNames[space] }}{{ space === gameSpace ? ' (the game’s)' : '' }}
+          </option>
+        }
+      </select>
+    </label>
     <label class="place">
       Place in the year
       <input
@@ -78,6 +96,9 @@ export class SeasonColors {
   protected readonly names = SEASON_NAMES;
   protected readonly ends = ENDS;
   protected readonly placesPerYear = PLACES_PER_YEAR;
+  protected readonly colorSpaces = COLOR_SPACES;
+  protected readonly spaceNames = COLOR_SPACE_NAMES;
+  protected readonly gameSpace = SEASON_COLOR_SPACE;
 
   private readonly tweaks = inject(Tweaks);
   /** The colors being tuned. */
@@ -105,14 +126,22 @@ export class SeasonColors {
     return [around(-1), around(1)];
   });
 
-  protected readonly tuned = computed(() =>
+  /** The color space the colors blend in. */
+  protected readonly colorSpace = this.tweaks.colorSpace;
+
+  private readonly colorsTuned = computed(() =>
     SEASONS.some((season) =>
       this.starts()[season].some((color, k) => color !== SEASON_STARTS[season][k]),
     ),
   );
+  protected readonly tuned = computed(
+    () => this.colorsTuned() || this.colorSpace() !== SEASON_COLOR_SPACE,
+  );
   /** The colors as text, to hand back so they go into the code. */
-  protected readonly copyText = computed(() => seasonsText(this.starts()));
-  protected readonly view = computed(() => seasonAt(this.place(), backgroundsFrom(this.starts())));
+  protected readonly copyText = computed(() => seasonsText(this.starts(), this.colorSpace()));
+  protected readonly view = computed(() =>
+    seasonAt(this.place(), backgroundsFrom(this.starts()), this.colorSpace()),
+  );
 
   constructor() {
     void this.tweaks.loaded.then(() => {
@@ -139,7 +168,16 @@ export class SeasonColors {
       ...starts,
       [season]: end === 0 ? [color, starts[season][1]] : [starts[season][0], color],
     }));
-    void this.tweaks.setSeasons(this.tuned() ? this.starts() : undefined);
+    void this.tweaks.setSeasons(this.colorsTuned() ? this.starts() : undefined);
+  }
+
+  /** Blends the colors in the color space selected. */
+  protected blendIn(event: Event): void {
+    if (event.target instanceof HTMLSelectElement) {
+      const { value } = event.target;
+      const space = COLOR_SPACES.find((name) => name === value) ?? SEASON_COLOR_SPACE;
+      void this.tweaks.setColorSpace(space === SEASON_COLOR_SPACE ? undefined : space);
+    }
   }
 
   protected moveTo(event: Event): void {
@@ -152,5 +190,6 @@ export class SeasonColors {
     this.edited = true;
     this.starts.set(SEASON_STARTS);
     void this.tweaks.setSeasons(undefined);
+    void this.tweaks.setColorSpace(undefined);
   }
 }

@@ -1,6 +1,6 @@
+import { mix } from '../colors/color-spaces';
 import {
   backgroundsFrom,
-  mix,
   PLACES_PER_SEASON,
   PLACES_PER_YEAR,
   SEASON_BACKGROUNDS,
@@ -60,14 +60,17 @@ describe('seasonAt', () => {
       }
     }
   });
-});
 
-describe('mix', () => {
-  it('goes from the first color to the second', () => {
-    expect(mix('#000000', '#ffffff', 0)).toBe('#000000');
-    expect(mix('#000000', '#ffffff', 1)).toBe('#ffffff');
-    expect(mix('#000000', '#ffffff', 0.5)).toBe('#808080');
-    expect(mix('#ff0010', '#00ff10', 0.25)).toBe('#bf4010');
+  it('blends the colors in the color space given, the same at the start of each season', () => {
+    expect(seasonAt(0, SEASON_BACKGROUNDS, 'oklch').background).toEqual(seasonAt(0).background);
+    // Autumn turning into winter: 22 places in, 35.2% of the way after easing.
+    expect(seasonAt(72, SEASON_BACKGROUNDS, 'oklch').background).toEqual([
+      mix(mix('#ee8a45', '#d9683a', 1, 'oklch'), '#9bb4dc', 0.352, 'oklch'),
+      mix(mix('#9b4f86', '#7a3f78', 1, 'oklch'), '#46598f', 0.352, 'oklch'),
+    ]);
+    expect(seasonAt(72, SEASON_BACKGROUNDS, 'oklch').background).not.toEqual(
+      seasonAt(72).background,
+    );
   });
 });
 

@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { PALETTE } from '../place-colors/place-colors';
 import { INDEXED_DB, IS_PREVIEW, RunStore } from '../runs/run-store';
-import { backgroundsFrom, SEASON_BACKGROUNDS } from '../seasons/seasons';
+import { backgroundsFrom, SEASON_BACKGROUNDS, SEASON_COLOR_SPACE } from '../seasons/seasons';
 import { DEFAULT_TIMING_SETTINGS } from '../timing/timing-model';
 import { DeveloperMode } from './developer-mode';
 import {
@@ -47,30 +47,36 @@ describe('Tweaks', () => {
     expect(tweaks.values()).toEqual({});
     expect(tweaks.palette()).toBe(PALETTE);
     expect(tweaks.seasonBackgrounds()).toBe(SEASON_BACKGROUNDS);
+    expect(tweaks.colorSpace()).toBe(SEASON_COLOR_SPACE);
   });
 
   it('applies the tuned values only while developer mode is on', async () => {
     const tweaks = await load();
     await tweaks.setPalette(palette);
     await tweaks.setSeasons(seasons);
+    await tweaks.setColorSpace('oklch');
 
     expect(tweaks.palette()).toBe(PALETTE);
     expect(tweaks.seasonBackgrounds()).toBe(SEASON_BACKGROUNDS);
+    expect(tweaks.colorSpace()).toBe(SEASON_COLOR_SPACE);
 
     await TestBed.inject(DeveloperMode).set(true);
     expect(tweaks.palette()).toEqual(palette);
     expect(tweaks.seasonBackgrounds()).toEqual(backgroundsFrom(seasons));
+    expect(tweaks.colorSpace()).toBe('oklch');
   });
 
   it('keeps the tuned values for the next visits, and brings back the game’s on reset', async () => {
     const first = await load();
     await first.setPalette(palette);
     await first.setSeasons(seasons);
+    await first.setColorSpace('hsl');
 
     const next = await load();
-    expect(next.values()).toEqual({ palette, seasons });
+    expect(next.values()).toEqual({ palette, seasons, colorSpace: 'hsl' });
 
     await next.setPalette(undefined);
+    await next.setColorSpace(undefined);
     expect((await load()).values()).toEqual({ seasons });
   });
 
@@ -118,15 +124,19 @@ describe('Tweaks', () => {
       );
     });
 
-    it("lists every season's colors, marking those that changed", () => {
-      expect(seasonsText(seasons)).toBe(
+    it("lists every season's colors and their color space, marking those that changed", () => {
+      expect(seasonsText(seasons, SEASON_COLOR_SPACE)).toBe(
         [
           'Season colors (early colors in SEASON_BACKGROUNDS in seasons.ts), top then bottom:',
           `  spring: ${SEASON_STARTS.spring[0]}, ${SEASON_STARTS.spring[1]}`,
           `  summer: ${SEASON_STARTS.summer[0]}, ${SEASON_STARTS.summer[1]}`,
           '  autumn: #000000, #ffffff (changed)',
           `  winter: ${SEASON_STARTS.winter[0]}, ${SEASON_STARTS.winter[1]}`,
+          'Blended in sRGB (SEASON_COLOR_SPACE in seasons.ts)',
         ].join('\n'),
+      );
+      expect(seasonsText(SEASON_STARTS, 'oklch').split('\n').at(-1)).toBe(
+        'Blended in OKLCH (SEASON_COLOR_SPACE in seasons.ts) (changed)',
       );
     });
   });
@@ -157,10 +167,19 @@ describe('Tweaks', () => {
   });
 
   it('reads the tweaks stored in a format it knows, leaving out what is not valid', async () => {
-    expect(parseTweaks({ format: TWEAKS_FORMAT, palette, seasons })).toEqual({ palette, seasons });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, palette, seasons, colorSpace: 'oklab' })).toEqual({
+      palette,
+      seasons,
+      colorSpace: 'oklab',
+    });
     expect(parseTweaks({ format: TWEAKS_FORMAT + 1, palette })).toEqual({});
     expect(
-      parseTweaks({ format: TWEAKS_FORMAT, palette: ['#fff'], seasons: { spring: [] } }),
+      parseTweaks({
+        format: TWEAKS_FORMAT,
+        palette: ['#fff'],
+        seasons: { spring: [] },
+        colorSpace: 'cmyk',
+      }),
     ).toEqual({});
     expect(parseTweaks(null)).toEqual({});
 

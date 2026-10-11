@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, provideRouter } from '@angular/router';
 import { App } from './app';
 import { Background } from './background/background';
-import { seasonAt } from './seasons/seasons';
+import { SEASON_COLOR_SPACE, seasonAt } from './seasons/seasons';
 import { zoom } from './app.config';
 import { routes } from './app.routes';
 
@@ -25,6 +25,7 @@ describe('App', () => {
     expect(main?.classList).toContain('season-background');
     expect(main?.style.getPropertyValue('--background-top')).toBe(seasonAt(30).background[0]);
     expect(main?.style.getPropertyValue('--background-bottom')).toBe(seasonAt(30).background[1]);
+    expect(main?.style.getPropertyValue('--background-space')).toBe(SEASON_COLOR_SPACE);
   });
 
   it('keeps the long-press menu from opening anywhere', async () => {

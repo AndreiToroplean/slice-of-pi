@@ -1,67 +1,9 @@
 /**
- * Color math for tuning colors in developer mode: hue, saturation and lightness (HSL), the usual way to pick colors,
- * and how different two colors look (ΔE 2000).
+ * Color math for tuning colors in developer mode: averaging two colors in hue, saturation and lightness (HSL), the usual
+ * way to pick colors, and how different two colors look (ΔE 2000).
  */
 
-/** A color in HSL: hue in degrees from 0 (red) to 360, saturation and lightness in percent. */
-export interface Hsl {
-  readonly hue: number;
-  readonly saturation: number;
-  readonly lightness: number;
-}
-
-type Triple = readonly [number, number, number];
-
-const toLinear = (c: number): number => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-
-function rgb(hex: string): Triple {
-  const channel = (i: number): number => parseInt(hex.slice(i, i + 2), 16) / 255;
-  return [channel(1), channel(3), channel(5)];
-}
-
-function linearRgb(hex: string): Triple {
-  const [r, g, b] = rgb(hex);
-  return [toLinear(r), toLinear(g), toLinear(b)];
-}
-
-function toHex(values: Triple): string {
-  return `#${values
-    .map((c) =>
-      Math.round(Math.min(1, Math.max(0, c)) * 255)
-        .toString(16)
-        .padStart(2, '0'),
-    )
-    .join('')}`;
-}
-
-export function hexToHsl(hex: string): Hsl {
-  const [r, g, b] = rgb(hex);
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const lightness = (max + min) / 2;
-  const delta = max - min;
-  if (delta === 0) {
-    return { hue: 0, saturation: 0, lightness: lightness * 100 };
-  }
-  const saturation = delta / (1 - Math.abs(2 * lightness - 1));
-  const sector =
-    max === r ? (g - b) / delta : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
-  return {
-    hue: (sector * 60 + 360) % 360,
-    saturation: saturation * 100,
-    lightness: lightness * 100,
-  };
-}
-
-export function hslToHex({ hue, saturation, lightness }: Hsl): string {
-  const s = saturation / 100;
-  const l = lightness / 100;
-  const channel = (n: number): number => {
-    const k = (n + hue / 30) % 12;
-    return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-  };
-  return toHex([channel(0), channel(8), channel(4)]);
-}
+import { Hsl, linearRgb } from '../colors/color-spaces';
 
 /** The color halfway between two others, hue, saturation and lightness each on their own; hues the short way round. */
 export function averageHsl(first: Hsl, second: Hsl): Hsl {
@@ -78,7 +20,7 @@ export function averageHsl(first: Hsl, second: Hsl): Hsl {
   };
 }
 
-function hexToLab(hex: string): Triple {
+function hexToLab(hex: string): readonly [number, number, number] {
   const [r, g, b] = linearRgb(hex);
   const f = (t: number): number => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
   const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047);
