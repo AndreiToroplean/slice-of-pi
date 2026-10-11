@@ -138,8 +138,10 @@ export class Data {
   protected readonly message = signal('');
 
   /** In developer mode, the settings of the timing model can be tuned here. */
-  protected readonly developerMode = inject(DeveloperMode).enabled;
-  private readonly settings = inject(Tweaks).grouping;
+  private readonly developer = inject(DeveloperMode);
+  private readonly tweaks = inject(Tweaks);
+  protected readonly developerMode = this.developer.enabled;
+  private readonly settings = this.tweaks.grouping;
   private readonly runs = signal<readonly Run[]>([]);
   /** What the timing model makes of each run, oldest first. */
   private readonly analyses = computed(() =>
@@ -211,9 +213,9 @@ export class Data {
 
   protected async save(): Promise<void> {
     await this.recorder.saved();
-    const runs = await this.store.runs();
+    const [runs, settings] = await Promise.all([this.store.runs(), this.store.settings()]);
     const now = this.clock.epoch();
-    this.saveFile(backupFileName(now), writeBackup(runs, now));
+    this.saveFile(backupFileName(now), writeBackup(runs, settings, now));
     this.message.set(`Saved ${plural(runs.length, 'run')} in the backup.`);
   }
 
@@ -230,13 +232,18 @@ export class Data {
       return;
     }
     const added = await this.store.addRuns(contents.runs);
-    await this.refresh();
+    await this.store.saveSettings(contents.settings);
+    await Promise.all([this.developer.reload(), this.tweaks.reload(), this.refresh()]);
     const unreadable =
       contents.skipped > 0 ? ` ${plural(contents.skipped, 'run')} in it could not be read.` : '';
+    const settings =
+      Object.keys(contents.settings).length > 0 ? ' Its settings replace yours.' : '';
     this.message.set(
       (added > 0
         ? `Added ${plural(added, 'run')} from the backup.`
-        : 'Every run in this backup is already here.') + unreadable,
+        : 'Every run in this backup is already here.') +
+        unreadable +
+        settings,
     );
   }
 

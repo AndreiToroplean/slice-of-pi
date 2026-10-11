@@ -209,12 +209,29 @@ describe('RunStore', () => {
       expect(await storeWith().setting('colors')).toEqual({ format: 1, red: '#ee0000' });
     });
 
+    it('gives every setting, and saves several at once, replacing those of the same name', async () => {
+      const store = storeWith();
+      expect(await store.settings()).toEqual({});
+      await store.saveSetting('colors', { format: 1, red: '#ff0000' });
+      await store.saveSetting('sounds', { format: 1, on: true });
+
+      await store.saveSettings({ colors: { format: 1, red: '#ee0000' }, mode: 'dark' });
+
+      expect(await store.settings()).toEqual({
+        colors: { format: 1, red: '#ee0000' },
+        mode: 'dark',
+        sounds: { format: 1, on: true },
+      });
+    });
+
     it('keeps none without IndexedDB', async () => {
       const store = storeWith({ indexedDb: undefined });
 
       await store.saveSetting('colors', 1);
+      await store.saveSettings({ sounds: 1 });
 
       expect(await store.setting('colors')).toBeUndefined();
+      expect(await store.settings()).toEqual({});
     });
 
     it('has none in a database an older version of the game opened at a newer layout', async () => {
@@ -224,7 +241,9 @@ describe('RunStore', () => {
       });
       database.close();
 
-      expect(await storeWith().setting('colors')).toBeUndefined();
+      const store = storeWith();
+      expect(await store.setting('colors')).toBeUndefined();
+      expect(await store.settings()).toEqual({});
     });
   });
 
@@ -281,9 +300,10 @@ describe('RunStore', () => {
       await preview.save(second);
       await preview.delete(first.id);
       await preview.saveSetting('colors', 1);
+      await preview.saveSettings({ sounds: 1 });
 
       expect(await preview.writable()).toBe(false);
-      expect(await preview.setting('colors')).toBeUndefined();
+      expect(await preview.settings()).toEqual({});
       expect(await preview.addRuns([second])).toBe(0);
       expect(await preview.runs()).toEqual([first]);
       expect(await mainFormat()).toEqual({ format: RUN_FORMAT - 1 });

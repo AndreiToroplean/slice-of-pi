@@ -141,6 +141,34 @@ export class RunStore {
     await completion(transaction);
   }
 
+  /** Every setting, as stored, by name. */
+  async settings(): Promise<Record<string, unknown>> {
+    const database = (await this.open())?.database;
+    if (database?.objectStoreNames.contains(SETTINGS) !== true) {
+      return {};
+    }
+    const store = database.transaction(SETTINGS).objectStore(SETTINGS);
+    // Settings are only ever saved by name.
+    const [names, values] = await Promise.all([
+      result(store.getAllKeys() as IDBRequest<string[]>),
+      result(store.getAll() as IDBRequest<unknown[]>),
+    ]);
+    return Object.fromEntries(names.map((name, i) => [name, values[i]]));
+  }
+
+  /** Saves these settings, such as those of a backup, replacing those stored under the same names. */
+  async saveSettings(settings: Readonly<Record<string, unknown>>): Promise<void> {
+    const database = await this.openForWriting();
+    if (database === undefined) {
+      return;
+    }
+    const transaction = database.transaction(SETTINGS, 'readwrite');
+    for (const [name, value] of Object.entries(settings)) {
+      transaction.objectStore(SETTINGS).put(value, name);
+    }
+    await completion(transaction);
+  }
+
   /** Whether runs are kept: not where IndexedDB is missing, nor in a preview whose run format isn't the main game's. */
   async writable(): Promise<boolean> {
     return (await this.open())?.writable ?? false;

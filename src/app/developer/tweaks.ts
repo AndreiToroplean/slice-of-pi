@@ -80,6 +80,11 @@ export class Tweaks {
     });
   }
 
+  /** Reads the stored setting again, once something else changed it, such as restoring a backup. */
+  async reload(): Promise<void> {
+    this.tweaks.set(parseTweaks(await this.store.setting(TWEAKS)));
+  }
+
   /** Tunes the key colors; `undefined` brings back the game's. */
   setPalette(palette: Palette | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), palette }));
