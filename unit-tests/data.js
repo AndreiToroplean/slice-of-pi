@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791722451051,
+  "lastUpdate": 1791722669000,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -320,6 +320,46 @@ window.BENCHMARK_DATA = {
             "value": 329,
             "unit": "ms",
             "extra": "Data says there are no runs yet"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "0a05e046358492badc7545ef4db01bd498ee0b4c",
+          "message": "fix: ease the background between colors far apart without flipping\n\nThe background eased from one digit's colors to the next with a CSS transition, which blends the top and the bottom each on its own: between colors far apart, as when leaving a game for the main menu, the gradient could still flip the way it turns round the color wheel. The background now eases its colors itself, frame by frame, blending them as the seasons do.\n\nClaude-Session: https://claude.ai/code/session_0123zMwMHRJeeRfFr9Yts5x8",
+          "timestamp": "2026-10-11T14:44:04+02:00",
+          "tree_id": "e19b23066fbb38dab4e40e2938c1695aadf1920d",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/0a05e046358492badc7545ef4db01bd498ee0b4c"
+        },
+        "date": 1791722668690,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5024,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 7612,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 254,
+            "unit": "ms",
+            "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
           }
         ]
       }
