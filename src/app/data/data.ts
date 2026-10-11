@@ -6,7 +6,7 @@ import { backupFileName, readBackup, writeBackup } from '../runs/backup';
 import { PI_DECIMALS } from '../pi/pi-decimals';
 import { countsInGroups, Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
-import { IS_PREVIEW, RunStore } from '../runs/run-store';
+import { RunStore } from '../runs/run-store';
 import { aggregate, analyzeRun, isConfident } from '../timing/timing-model';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { RunChart } from './run-chart';
@@ -46,10 +46,10 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
     <section class="panel" aria-labelledby="backup-title">
       <h2 id="backup-title">Backup</h2>
       <p>{{ count() }}</p>
-      @if (readOnlyPreview()) {
+      @if (separatePreview()) {
         <p>
-          This preview of the game stores runs in a different format from the main game, so it
-          doesn't keep any.
+          This preview of the game stores runs in a different format from the main game, so it keeps
+          them apart: it has a copy of the main game's runs, and the runs played here stay here.
         </p>
       }
       <p>
@@ -62,25 +62,23 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
       </p>
       <div class="buttons">
         <button type="button" class="candy" (click)="save()">Save a backup</button>
-        @if (!readOnlyPreview()) {
-          <label class="candy">
-            Restore a backup
-            <input
-              type="file"
-              accept=".json,application/json"
-              class="visually-hidden"
-              (change)="restore($event)"
-            />
-          </label>
-          <button
-            type="button"
-            class="candy danger"
-            [disabled]="runs().length === 0"
-            (click)="deleteAll()"
-          >
-            Delete all runs
-          </button>
-        }
+        <label class="candy">
+          Restore a backup
+          <input
+            type="file"
+            accept=".json,application/json"
+            class="visually-hidden"
+            (change)="restore($event)"
+          />
+        </label>
+        <button
+          type="button"
+          class="candy danger"
+          [disabled]="runs().length === 0"
+          (click)="deleteAll()"
+        >
+          Delete all runs
+        </button>
       </div>
       <p class="message" role="status">{{ message() }}</p>
     </section>
@@ -96,16 +94,14 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
             Count unchecked runs
           </label>
           <p>{{ uncheckedNote() }}</p>
-          @if (!readOnlyPreview()) {
-            <button
-              type="button"
-              class="candy danger"
-              [disabled]="uncheckedRuns().length === 0"
-              (click)="deleteUnchecked()"
-            >
-              Delete unchecked runs
-            </button>
-          }
+          <button
+            type="button"
+            class="candy danger"
+            [disabled]="uncheckedRuns().length === 0"
+            (click)="deleteUnchecked()"
+          >
+            Delete unchecked runs
+          </button>
         </div>
       </app-grouping-settings-panel>
     }
@@ -169,8 +165,8 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
 export class Data {
   protected readonly count = signal('');
   protected readonly persisted = signal(false);
-  /** Whether this is a preview that can't keep runs (see {@link RunStore}). */
-  protected readonly readOnlyPreview = signal(false);
+  /** Whether this is a preview keeping its runs apart from the main game's (see {@link RunStore}). */
+  protected readonly separatePreview = signal(false);
   protected readonly message = signal('');
 
   /** In developer mode, the settings of the timing model can be tuned here. */
@@ -253,7 +249,6 @@ export class Data {
   private readonly clock = inject(RUN_CLOCK);
   private readonly saveFile = inject(SAVE_FILE);
   private readonly confirm = inject(CONFIRM);
-  private readonly preview = inject(IS_PREVIEW);
 
   constructor() {
     void this.refresh();
@@ -333,13 +328,13 @@ export class Data {
 
   private async refresh(): Promise<void> {
     await this.recorder.saved();
-    const [runs, persisted, writable] = await Promise.all([
+    const [runs, persisted, separate] = await Promise.all([
       this.store.runs(),
       this.store.persisted(),
-      this.store.writable(),
+      this.store.separate(),
     ]);
     this.runs.set(runs);
-    this.readOnlyPreview.set(this.preview && !writable);
+    this.separatePreview.set(separate);
     this.count.set(
       runs.length === 0
         ? 'No runs kept yet.'

@@ -39,11 +39,19 @@ export const SETTINGS = 'settings';
 export const META = 'meta';
 /** Under {@link META}: the run format of the main game that last opened the database, as `{ format }`. */
 export const MAIN_FORMAT = 'main-format';
+/** Under {@link META}, in a preview's own database: set once the main game's settings were copied into it. */
+export const COPIED_SETTINGS = 'copied-settings';
 
-/** The open database, and whether this version of the game may write to it. */
+/** The database of previews whose run format isn't the main game's, kept apart from the main game's. */
+export function previewDatabaseName(format: number): string {
+  return `${DATABASE_NAME}-format-${String(format)}`;
+}
+
+/** The open database, whether this version of the game may write to it, and whether it's a preview's own. */
 interface Database {
   readonly database: IDBDatabase;
   readonly writable: boolean;
+  readonly separate: boolean;
 }
 
 /**
@@ -51,8 +59,10 @@ interface Database {
  * is missing or fails to open, nothing is stored and there are no runs.
  *
  * Pull request previews share the main game's storage (`architecture.md` §5). The main game notes its run format in
- * the database each time it opens it. A preview reads the runs it finds, but only writes when its run format is the
- * main game's (or the main game hasn't kept any runs yet), so it never leaves records the main game can't load.
+ * the database each time it opens it. A preview whose run format is the main game's (or which finds no runs from the
+ * main game yet) uses the main game's database. Any other preview keeps its own database for its run format, so it
+ * never leaves records the main game can't load: each time it opens, it adds the main game's runs it doesn't have yet,
+ * migrated, and the first time it also copies the main game's settings.
  */
 @Service()
 export class RunStore {
@@ -193,9 +203,14 @@ export class RunStore {
     await completion(transaction);
   }
 
-  /** Whether runs are kept: not where IndexedDB is missing, nor in a preview whose run format isn't the main game's. */
+  /** Whether runs are kept: not where IndexedDB is missing. */
   async writable(): Promise<boolean> {
     return (await this.open())?.writable ?? false;
+  }
+
+  /** Whether this is a preview keeping its runs apart from the main game's, as its run format is another. */
+  async separate(): Promise<boolean> {
+    return (await this.open())?.separate ?? false;
   }
 
   /** Whether the browser keeps the site's storage until the player clears it, rather than when it runs low on space. */
@@ -232,18 +247,53 @@ async function openDatabase(
   indexedDb: IDBFactory | undefined,
   preview: boolean,
 ): Promise<Database | undefined> {
-  const database = await openLayout(indexedDb);
-  if (database === undefined) {
+  if (indexedDb === undefined) {
     return undefined;
   }
+  const database = await openLayout(indexedDb, DATABASE_NAME);
   if (!preview) {
     await migrateRuns(database);
-    return { database, writable: true };
+    return { database, writable: true, separate: false };
   }
   // Until the main game has opened the database, it keeps no runs, so there are none to protect.
   const meta = database.transaction(META).objectStore(META);
   const main = (await result(meta.get(MAIN_FORMAT))) as { format?: unknown } | undefined;
-  return { database, writable: main === undefined || main.format === RUN_FORMAT };
+  if (main === undefined || main.format === RUN_FORMAT) {
+    return { database, writable: true, separate: false };
+  }
+  const own = await openLayout(indexedDb, previewDatabaseName(RUN_FORMAT));
+  await copyFromMain(database, own);
+  database.close();
+  return { database: own, writable: true, separate: true };
+}
+
+/**
+ * Adds to a preview's own database the main game's runs it doesn't have yet, migrated, and the first time the main
+ * game's settings.
+ */
+async function copyFromMain(main: IDBDatabase, own: IDBDatabase): Promise<void> {
+  // An older version of the game may have opened the main database at a newer layout, without settings.
+  const settings = main.objectStoreNames.contains(SETTINGS);
+  const from = main.transaction(settings ? [RUNS, SETTINGS] : [RUNS]);
+  const [records, names, values] = await Promise.all([
+    result(from.objectStore(RUNS).getAll() as IDBRequest<unknown[]>),
+    settings ? result(from.objectStore(SETTINGS).getAllKeys()) : [],
+    settings ? result(from.objectStore(SETTINGS).getAll() as IDBRequest<unknown[]>) : [],
+  ]);
+  const transaction = own.transaction([RUNS, SETTINGS, META], 'readwrite');
+  const runs = transaction.objectStore(RUNS);
+  const kept = new Set(await result(runs.getAllKeys()));
+  for (const run of records.map(parseRun)) {
+    if (run !== undefined && !kept.has(run.id)) {
+      runs.add(run);
+    }
+  }
+  const meta = transaction.objectStore(META);
+  if ((await result(meta.get(COPIED_SETTINGS))) === undefined) {
+    names.forEach((name, i) => transaction.objectStore(SETTINGS).put(values[i], name));
+    meta.put(true, COPIED_SETTINGS);
+  }
+  await completion(transaction);
 }
 
 /**
@@ -264,12 +314,9 @@ async function migrateRuns(database: IDBDatabase): Promise<void> {
   await completion(transaction);
 }
 
-async function openLayout(indexedDb: IDBFactory | undefined): Promise<IDBDatabase | undefined> {
-  if (indexedDb === undefined) {
-    return undefined;
-  }
+async function openLayout(indexedDb: IDBFactory, name: string): Promise<IDBDatabase> {
   try {
-    const request = indexedDb.open(DATABASE_NAME, DATABASE_VERSION);
+    const request = indexedDb.open(name, DATABASE_VERSION);
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(RUNS)) {
         request.result.createObjectStore(RUNS, { keyPath: 'id' });
@@ -284,7 +331,7 @@ async function openLayout(indexedDb: IDBFactory | undefined): Promise<IDBDatabas
   } catch (error) {
     // A newer version of the game (a pull request preview) upgraded the database: open it as it is.
     if (error instanceof DOMException && error.name === 'VersionError') {
-      return result(indexedDb.open(DATABASE_NAME));
+      return result(indexedDb.open(name));
     }
     throw error;
   }

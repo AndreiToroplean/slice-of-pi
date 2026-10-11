@@ -347,27 +347,44 @@ describe('RunStore', () => {
       expect(await preview.runs()).toEqual([first, second]);
     });
 
-    it("reads the main game's runs but writes nothing when its run format is not the main game's", async () => {
-      await storeWith().save(first);
+    it("keeps its runs apart, from a copy of the main game's, when its run format is not the main game's", async () => {
+      const main = storeWith();
+      await main.save(first);
+      await main.saveSetting('colors', 1);
       TestBed.resetTestingModule();
       await noteMainFormat(RUN_FORMAT - 1);
       const preview = storeWith({ preview: true });
 
       await preview.save(second);
       await preview.delete(first.id);
-      await preview.deleteRuns([first.id]);
-      await preview.deleteAllRuns();
-      await preview.saveSetting('colors', 1);
-      await preview.saveSettings({ sounds: 1 });
+      await preview.saveSetting('sounds', 1);
 
-      expect(await preview.writable()).toBe(false);
-      expect(await preview.settings()).toEqual({});
-      expect(await preview.addRuns([second])).toBe(0);
-      expect(await preview.runs()).toEqual([first]);
+      expect(await preview.writable()).toBe(true);
+      expect(await preview.separate()).toBe(true);
+      expect(await preview.runs()).toEqual([second]);
+      expect(await preview.settings()).toEqual({ colors: 1, sounds: 1 });
+      expect(await storedRecords()).toEqual([first]);
       expect(await mainFormat()).toEqual({ format: RUN_FORMAT - 1 });
     });
 
-    it('migrates the runs of an older main game as it reads them, but leaves them stored as they are', async () => {
+    it("adds the main game's new runs each time it opens, but copies its settings only once", async () => {
+      const main = storeWith();
+      await main.saveSetting('colors', 1);
+      TestBed.resetTestingModule();
+      await noteMainFormat(RUN_FORMAT - 1);
+      await storeWith({ preview: true }).saveSetting('colors', 2);
+      TestBed.resetTestingModule();
+      const database = await openDirectly();
+      await put(database, [first]);
+      database.close();
+
+      const preview = storeWith({ preview: true });
+
+      expect(await preview.runs()).toEqual([first]);
+      expect(await preview.settings()).toEqual({ colors: 2 });
+    });
+
+    it('migrates the runs of an older main game into its own database, leaving them stored as they are', async () => {
       await storeWith().writable();
       TestBed.resetTestingModule();
       const database = await openDirectly();
@@ -379,6 +396,13 @@ describe('RunStore', () => {
 
       expect(await preview.runs()).toEqual([{ ...unchecked, format: RUN_FORMAT, checked: false }]);
       expect(await storedRecords()).toEqual([unchecked]);
+    });
+
+    it("uses the main database, and is not apart, when its run format is the main game's", async () => {
+      await storeWith().writable();
+      TestBed.resetTestingModule();
+
+      expect(await storeWith({ preview: true }).separate()).toBe(false);
     });
 
     it('keeps runs when the main game has never opened the database', async () => {
