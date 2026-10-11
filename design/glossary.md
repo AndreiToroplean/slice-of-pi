@@ -19,8 +19,8 @@
 - **Key color:** the color a digit key currently shows: the place color of the next occurrence of its digit. See `colors.md`.
 - **Typing area:** where the group being typed appears, as **slots** to fill.
 - **Slot:** an empty space in the typing area waiting for a digit.
-- **Group size:** the number of slots, which is the size of the group being typed: the group finishes when they're all filled, or earlier when the player pauses. There's no separate "hint": the slots always show the group the game plays.
-- **Trusted groups:** the detected groups the game follows, from the first decimal up to the first group not confident enough; from there on, it plays groups of 5 (`groupings.md` §4.3).
+- **Group size:** the number of slots, which is the size of the group being typed: the group finishes when they're all filled, or earlier when the player breaks. Past the trust horizon, filling them adds one more instead, until the player breaks. There's no separate "hint": the slots always show the group the game plays.
+- **Trusted groups:** the detected groups the game follows, those ending within the trust horizon; past it, it plays groups of 5 that grow until the player breaks (`groupings.md` §4.3).
 - **Typed digits:** the digits typed so far in the run, shown smaller above the typing area: after a "3." lead, each finished group is a **word** of joined tiles, and rows wrap between words like text (the `TypedDigits` component).
 - **Background:** the season-colored gradient behind every screen; it stays in place from screen to screen. Never call it the sky.
 - **Season header:** the top of the play screen: the season's icon and name, the year and place in it ("Year 1 · digit 42 of 100"), and the **year bar**, one part per season.
@@ -32,8 +32,10 @@
 - **Mistake:** a wrong digit. The game checks every digit against the decimals of π it knows (`src/app/pi/`, 100,000 of them): a wrong one shows in its slot as a red digit outlined in red on almost white, as does every digit typed on after it, until the player deletes back to it with backspace. Developer mode can turn checking off; runs played that way are **unchecked**.
 - **Learn mode / challenge mode:** the two families of modes: guided practice, and typing from memory.
 - **Interval:** the time between typing one digit and the next.
-- **Pace:** the player's local typing speed around a place, from the intervals around it.
-- **Break:** an interval clearly longer than the local pace; breaks separate groups. Prefer "break" over "pause" in technical text: "pause" is the player pausing the game.
+- **Baseline:** the interval expected at a place of a run without a break, from a rolling median of the run's intervals (`groupings.md` §4.1).
+- **Break:** an interval clearly longer than its baseline; breaks separate groups. The break model gives each interval a probability of being one, P(break). Prefer "break" over "pause" in technical text: "pause" is the player pausing the game.
+- **Usual break spot:** a place where the player usually breaks, over all their runs (`groupings.md` §4.2).
+- **Trust horizon:** the place up to which the game trusts the player's usual break spots, and so follows their groups (`groupings.md` §4.3).
 - **Milestone:** a number of places reached that gets celebrated (10, 20, 50, 100, …).
 - **Streak:** consecutive days the player came back.
 

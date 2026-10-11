@@ -27,8 +27,9 @@ The first version of this mode is **strict**: a wrong digit shows as a mistake i
 The play screen is centred on the group being typed, as in the chunk-centred mockup from the visual design work.
 
 - The **typing area** shows **empty slots** for the group being typed, one per digit of its size. The slots are the group: there's no separate hint, and the group finishes as soon as they're all filled.
-- The size is the player's own group at that place in π where the game trusts it (§4.3), and **5** everywhere else, so a new player plays groups of 5. This is the same in every mode for now.
-- When the player **pauses** before filling the slots, long enough for the aggregate to break there (§4.1), the group finishes early: typing three digits into five slots and pausing makes a group of three.
+- Within the trust horizon (§4.3), the size is the player's own group at that place in π, and the group finishes when they're filled, or earlier where the player usually breaks.
+- Past it, the group starts with **5** slots and finishes when the player **breaks** (§4.1): typing three digits into five slots and pausing makes a group of three. Filling the slots without a break adds one more, so the group grows until the player breaks. So a player whose groups the game doesn't know yet shows it their groups.
+- Before the game has enough data to tell breaks at all (a new player's first digits, §4.1), groups are 5 and finish when filled. This is the same in every mode for now.
 - The group then **flies off** the typing area to join the **typed digits**, shown smaller.
 - The typed digits are laid out over a few rows, like text: each group is a **word**, separated from the next by a space, and rows wrap between words like text does.
 - Groups have **no minimum size**: a single digit typed between two long pauses is a group of one, and its constellation is a dot.
@@ -42,39 +43,38 @@ The game keeps **statistics of the player's typing timings**, in the spirit of t
 - Every run records the **raw time each digit took to type**. Groupings formed during a run are never recorded; they're always derived from the raw timings.
 - The game uses those stats to **detect the player's groupings**, and from them sets the size of each group (the number of empty slots).
 
-### 4.1 Pauses
+### 4.1 Breaks
 
-A pause is a delay that's long **for this player at this place in π**, compared with their local pace: the time they usually take for the digits around it. A player types the digits they know best faster than the last ones they know, so a fixed threshold, or one based on their overall pace, would cut the slow end into single digits. Typing one digit at a time slowly is just slow typing; a boundary is a delay clearly longer than the ones around it.
+A break is a delay that's long **for this player at this place in π**, relative to their current speed: at a ~100 ms baseline, 150 ms could count. A player types the digits they know best faster than the last ones they know, so a fixed threshold, or one based on their overall speed, would cut the slow end into single digits. Typing one digit at a time slowly is just slow typing; a break is a delay clearly longer than the ones around it.
 
-The model (Andrei, 2026-10-08), with its constants tuned by play testing:
+Telling breaks apart is classifying the outliers of a series of intervals, across repeated runs of the same sequence, where index i is the same place in π in every run. The break model (`src/app/timing/break-model.ts`), translated from a method a data scientist gave us:
 
-- **Intervals.** What we measure is the interval between two consecutive digits: the time the player took to type a digit after the previous one. The speed is its inverse.
-- **Local pace.** The player's pace at a digit is a **weighted average of the intervals around it**, the weights following a **normal distribution** centred on that digit, so the pace changes smoothly rather than jumping like a plain rolling window. The width of the distribution (in digits) is a constant. For performance the tail is cut off, e.g. at 3 standard deviations, so only a bounded number of digits is ever looked at.
-- **Local spread.** The **variance** of the intervals is computed with the same weights, giving a standard deviation of the intervals at that digit.
-- **Breaks.** An interval counts as a **break** when it's longer than the local pace by more than a **fraction of the local standard deviation**. That fraction is a constant. Breaks separate groups.
-- **Confidence.** The spread also gives the **confidence** of each break, used to **filter out noise** when the groupings are computed from the aggregate (§4.2): a very small variance means a steady rhythm, where any break is likely just noise, so **low variance means low confidence** and such breaks barely count. (Implementation note: the spread is probably best taken relative to the pace, so that a fast player's confidence isn't lowered just because all their intervals are short.)
-- **Start of a run.** No pace is needed before the run starts: as soon as the player has typed two digits there's an interval, and the pace follows from the data of the run itself. (Using the pace of earlier runs over the coming digits as a starting point was considered and dropped.) What the game does with the very first intervals, while there are too few to judge, is still open (§6).
+1. **Log intervals.** What we measure is the **interval** between two consecutive digits. The model works in log(interval), since breaks are multiplicative: "x% slower than usual".
+2. **Baseline.** Each run has a baseline, its expected log-interval at each place without the breaks. A finished run's is a **centered rolling median** along its places. The run being typed uses only what has been typed so far: the **historical speed curve** (the recency-weighted mean of the finished runs' baselines) plus this run's own offset from it, a **trailing rolling median**; past the end of all history, a trailing rolling median of the run itself. The baseline is smooth along the places on purpose: a median at each place across runs would absorb breaks the player makes at the same place every time.
+3. **Residual.** log(interval) − baseline.
+4. **Mixture.** A **mixture of two normal distributions**, normal and break, is fitted to all the residuals of all runs pooled, each weighted by its run's recency weight (§4.2), by weighted EM (expectation–maximization). To keep it cheap on every keystroke, each fit starts from the last one.
+5. **P(break).** The probability that an interval is a break is the posterior of the break component, forced to 0 below the normal mean: a break is never faster than usual.
 
-**During a run**, the groups shown on screen are never based on that run alone: they're always the groupings of the **aggregate** (§4.2), which includes the current run so far. So for a player with many runs, the only way to cut a group short during a run is a break so long that it outweighs everything else in the aggregate; there's no point in doing that on purpose. For a new player, with no other runs, the aggregate is just the current run.
+While there are fewer intervals than a window, over all runs, the game fits no mixture and finds no break at all. At the very start of a run, the trailing median has only a few intervals to go on: the run's first interval is always its own baseline, so it's never a break on its own.
 
-On the play screen (`src/app/play/play.ts`), the current run is one of the runs like any other, with its own recency. The only thing special about it is the digit not typed yet: its time is the time since the last digit, since the player could type it at any moment. The game keeps computing the aggregate of all the runs with it, and the group being typed is finished as soon as the aggregate breaks before the next digit. It never finishes while a mistake shows (§2).
+The hyperparameters, tuned with play testing in developer mode (§4.5): **window**, the rolling-median window in intervals (21 by default); **recency decay** (§4.2); and **level** (§4.3).
+
+**During a run**, the current run is one of the runs like any other, the newest. The only thing special about it is the digit not typed yet: its interval is the time since the last digit, since the player could type it at any moment. The game keeps running the model with it, and the group being typed finishes as soon as the player breaks before the next digit: within the trust horizon, where the usual-break probability (§4.2) says so, so a player with many runs can only cut a group short with a break that outweighs all of them; past it, where this run's own P(break) says so (§3). It never finishes while a mistake shows (§2). All this only decides what the play screen shows: runs record nothing but their timings (§4.4).
 
 ### 4.2 Combining runs
 
-The groupings are always computed from **all of the player's stats**, except unchecked runs (played without checking the digits, in developer mode, or from before the game checked them), which may hold mistakes: they're left out unless "Count unchecked runs", in developer mode on the "Your data" page, includes them. There's no overriding: each run's timings just add to the stats, and the groupings follow from them. Each run's evidence at a given place in π is weighted by:
+The groupings are always computed from **all of the player's stats**, except unchecked runs (played without checking the digits, in developer mode, or from before the game checked them), which may hold mistakes: they're left out unless "Count unchecked runs", in developer mode on the "Your data" page, includes them. There's no overriding: each run's timings just add to the stats, and the groupings follow from them.
 
-- **Recency:** recent runs weigh more, so a player who deliberately regroups some digits sees the game follow. A run's weight halves every **half-life**, counted in runs (16 by default), so the groups build up over many runs while a very old pattern fades out.
-- **Local confidence:** how clearly that run's timings mark pauses _at that place_. Sharp pauses, much longer than the delays around them, say a lot about where the player's boundaries are; digits typed fast at a steady pace, each taking about the same time, say almost nothing and barely count. Confidence is local because a single run can have a steady rhythm on the digits the player knows best and a very different one further on.
+- **Recency:** recent runs weigh more, so a player who deliberately regroups some digits sees the game follow. A run's weight is **recency decay** to the power of its age, the newest run counting 1 (0.9 by default: a run about 7 runs back counts half). The weights count in the mixture fit, the usual break spots and the confidence alike.
+- **Usual-break probability:** at each place, the recency-weighted average of P(break) over the runs that reached it. The **usual break spots** are the places where it's over ½, and they cut the digits into the player's groups.
 
-So as a player gets faster and smoother, the groups found where their timings were more rhythmic are kept rather than washed out. One slow keystroke barely moves anything, and groups may change a lot in the first runs, then stabilize as the player stabilizes on them. The weightings are tuned with play testing.
-
-All the judging (what counts as a pause, confidence, detected groupings) is local to each place in π.
-
-How the runs combine (`src/app/timing/timing-model.ts`): at each place, every run that reached it votes break or not, weighted by recency and by its local confidence (its trust). The aggregate has a boundary where the weighted share of break votes is over half, and its confidence there is the runs' agreement times the amount of evidence, which grows with the total weight of the votes and saturates.
+All the judging is local to each place in π.
 
 ### 4.3 How far the game follows the player
 
-The game follows the player's detected groups from the first decimal up to the first group it isn't **confident enough** about: one whose confidence, averaged over its places, is below a **confidence threshold** (a constant), or the open group at the end of the data. That group and every one after it aren't trusted, even those confident enough, since a shaky group may not start where it should: from its start on, the game plays groups of 5. For a new player, with no data at all, that's from the very first decimal. The aggregate keeps that place (`trustedUntil` in `timing-model.ts`), and the "Your data" page dots the groups from there on.
+For each place, the model computes a **confidence** that its verdict (usual break or not) is right: the break rate there is treated as unknown, with a Beta(1 + Σw·p, 1 + Σw·(1 − p)) posterior, the sums running over the runs that reached it (w their weight, p their P(break)), and the confidence is the probability that the rate is on the same side of ½ as the verdict. It drops both when fewer runs reach a place and when they disagree there, so it trends down along π, but it's noisy: a threshold on it would cross many times. So the model fits the best non-increasing curve to it, the **confidence trend** (isotonic regression, pooling adjacent violators), which crosses the required **level** exactly once: that's the **trust horizon**. At the default level of 0.9, it takes about three or more recent runs agreeing.
+
+The game follows the player's groups whose break is within the horizon. From the first group that isn't, it plays groups of 5 that grow until the player breaks (§3). For a new player, with no data at all, that's from the very first decimal. The "Your data" page dots the groups past the horizon.
 
 ### 4.4 Keeping the data
 
@@ -84,15 +84,15 @@ The raw timings of every run are recorded and **must never be lost**: they're wh
 
 A technical page shows the data the groupings come from:
 
-- **Every run, one above the other**, each as a graph of typing speed against the digit number, with **red vertical bars** at the breaks that split that run into groups.
-- At the bottom, **sticky**, the **aggregate**: aggregate speed, aggregate confidence, and the groupings determined from them, which are the ones used during play.
-- **Sliders for every setting** of the timing model, each with a help button saying what it is, why it works that way and what moving it does to the groups, so the settings can be tuned against real runs. They're only shown in developer mode, and the values tuned there are tweaks (`glossary.md`).
+- **Every run, one above the other**, each as a graph of the time per digit against the digit number, with its baseline and **red vertical bars** at its likely breaks (P(break) over ½), the darker the more likely.
+- At the bottom, **sticky**, **all runs**: the recency-weighted time per digit, the speed curve, the usual break spots, the confidence trend, and the groups determined from them, which are the ones used during play, dotted past the trust horizon.
+- **Sliders for every hyperparameter** of the break model, each with a help button saying what it is, why it works that way and what moving it does to the groups, so they can be tuned against real runs. They're only shown in developer mode, and the values tuned there are tweaks (`glossary.md`).
 
 It's the "Your data" page, opened from the main menu's overflow menu.
 
 ### 4.6 Prototype
 
-[`prototypes/groupings-lab.html`](prototypes/groupings-lab.html) is a standalone prototype of all of the above (open it in a browser): the play screen with live groups from the aggregate, the stats page with example runs and your own, and sliders for every constant. It's plain HTML and JavaScript, separate from the app, kept as a reference until its features are ported to the game.
+[`prototypes/groupings-lab.html`](prototypes/groupings-lab.html) is a standalone prototype of the game's first take on groupings (open it in a browser): the play screen with live groups, the stats page with example runs and your own, and sliders for every constant. Its model, a local pace with weighted votes, has since been replaced by the break model (§4.1). It's plain HTML and JavaScript, separate from the app.
 
 ## 5. Other layers
 
@@ -102,7 +102,8 @@ It's the "Your data" page, opened from the main menu's overflow menu.
 ## 6. Open questions
 
 - **Conflicting groups.** What if boundaries from different runs overlap (e.g. 3+4 sometimes, 2+5 other times)?
-- **First digits.** The very first digit, and the "3." before the decimals, have no previous digit to time from. While a run has only a couple of intervals there's no pace or spread to judge breaks by yet.
+- **First digits.** The very first digit, and the "3." before the decimals, have no previous digit to time from. While a run has only a couple of intervals, its trailing median has little to go on (§4.1).
+- **Clustered breaks.** If breaks cluster, a two-state hidden Markov model on the residuals could replace the mixture. With hand-labelled data, the probabilities could be calibrated.
 - **Sound and colors.** Do they attach to groups, or stay per digit?
 - **Stats for players.** Beyond the technical stats page (§4.5), what stats do we show the player, and how?
 - **Growing data.** The raw timings (§4.4) grow with play; at some point we may aggregate old stats to save space, to deal with later.
