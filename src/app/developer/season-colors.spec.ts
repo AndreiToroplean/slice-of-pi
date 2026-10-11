@@ -68,12 +68,22 @@ describe('SeasonColors', () => {
     const background = TestBed.inject(Background).colors;
     expect(background()).toEqual(seasonAt(0).background);
     const range = slider(host);
-    expect(range.max).toBe('100');
+    expect([range.min, range.max]).toEqual(['-25', '125']);
+    expect(
+      Array.from(host.querySelectorAll('label.place .marks span'), (mark) => mark.textContent),
+    ).toEqual(['0', '100']);
 
     await set(range, '60', stable);
 
     expect(background()).toEqual(seasonAt(60).background);
     expect(host.querySelector('app-season-header .name')?.textContent.trim()).toBe('Autumn');
+
+    await set(range, '-10', stable);
+
+    expect(background()).toEqual(seasonAt(90).background);
+    expect(host.querySelector('app-season-header .place')?.textContent.trim()).toBe(
+      'Year 0 · digit 90 of 100',
+    );
   });
 
   it('tunes the selected color, keeping it, and shows it in the background, then brings back the game’s', async () => {

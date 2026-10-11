@@ -38,7 +38,7 @@ const TURN_START = 0.8;
 /** Where the player is in the year after typing `places` places, and what the screen looks like there. */
 export interface SeasonView {
   readonly season: Season;
-  /** The year, starting at 1. */
+  /** The year, starting at 1 (0 before any digit, as developer mode's Season colors page can show). */
   readonly year: number;
   /** Places typed in the current year, from 0 to 99. */
   readonly placeInYear: number;
@@ -60,7 +60,7 @@ export function seasonAt(
   backgrounds: SeasonBackgrounds = SEASON_BACKGROUNDS,
   space: ColorSpace = SEASON_COLOR_SPACE,
 ): SeasonView {
-  const placeInYear = places % PLACES_PER_YEAR;
+  const placeInYear = ((places % PLACES_PER_YEAR) + PLACES_PER_YEAR) % PLACES_PER_YEAR;
   const index = Math.floor(placeInYear / PLACES_PER_SEASON);
   const season = seasonByIndex(index);
   const next = seasonByIndex((index + 1) % SEASONS.length);

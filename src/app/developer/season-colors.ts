@@ -5,6 +5,7 @@ import { PageHeader } from '../page-header/page-header';
 import { SEASON_NAMES, SeasonHeader } from '../season-header/season-header';
 import {
   backgroundsFrom,
+  PLACES_PER_SEASON,
   PLACES_PER_YEAR,
   Season,
   seasonAt,
@@ -23,8 +24,8 @@ const ENDS = [
 
 /**
  * Developer mode's page to tune the seasons' colors: the top and bottom colors each season starts on, each selected
- * then tuned in the color picker under them, the color space they blend in, and a slider through the year that moves
- * the background exactly as typing digits does.
+ * then tuned in the color picker under them, the color space they blend in, and a slider through the year, and into
+ * the years before and after, that moves the background exactly as typing digits does.
  */
 @Component({
   selector: 'app-season-colors',
@@ -80,12 +81,17 @@ const ENDS = [
       Place in the year
       <input
         type="range"
-        min="0"
-        [max]="placesPerYear"
+        [min]="-placesPerSeason"
+        [max]="placesPerYear + placesPerSeason"
         step="1"
         [value]="place()"
         (input)="moveTo($event)"
       />
+      <span class="marks" aria-hidden="true">
+        @for (mark of yearEnds; track mark.place) {
+          <span [style.--at]="mark.at">{{ mark.place }}</span>
+        }
+      </span>
     </label>
     <app-copy-values [text]="copyText()" />
   `,
@@ -96,6 +102,12 @@ export class SeasonColors {
   protected readonly names = SEASON_NAMES;
   protected readonly ends = ENDS;
   protected readonly placesPerYear = PLACES_PER_YEAR;
+  protected readonly placesPerSeason = PLACES_PER_SEASON;
+  /** Marks under the place slider where the year starts and ends, and how far along the slider they are. */
+  protected readonly yearEnds = [0, PLACES_PER_YEAR].map((place) => ({
+    place,
+    at: (place + PLACES_PER_SEASON) / (PLACES_PER_YEAR + 2 * PLACES_PER_SEASON),
+  }));
   protected readonly colorSpaces = COLOR_SPACES;
   protected readonly spaceNames = COLOR_SPACE_NAMES;
   protected readonly gameSpace = SEASON_COLOR_SPACE;
@@ -104,7 +116,10 @@ export class SeasonColors {
   /** The colors being tuned. */
   protected readonly starts = signal<SeasonStarts>(this.tweaks.values().seasons ?? SEASON_STARTS);
   private edited = false;
-  /** The place shown, as if that many digits were typed. */
+  /**
+   * The place shown, as if that many digits were typed: a whole year, marked at its start and its end, and a season
+   * on either side, to look at the turns of the year too.
+   */
   protected readonly place = signal(0);
   /** The color being tuned in the picker: the top of spring at first. */
   protected readonly selected = signal<{ season: Season; end: 0 | 1 }>({
