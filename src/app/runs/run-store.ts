@@ -83,6 +83,30 @@ export class RunStore {
     await completion(transaction);
   }
 
+  /** Deletes these runs. */
+  async deleteRuns(ids: readonly string[]): Promise<void> {
+    const database = await this.openForWriting();
+    if (database === undefined) {
+      return;
+    }
+    const transaction = database.transaction(RUNS, 'readwrite');
+    for (const id of ids) {
+      transaction.objectStore(RUNS).delete(id);
+    }
+    await completion(transaction);
+  }
+
+  /** Deletes every run, those in formats this version of the game doesn't know included. */
+  async deleteAllRuns(): Promise<void> {
+    const database = await this.openForWriting();
+    if (database === undefined) {
+      return;
+    }
+    const transaction = database.transaction(RUNS, 'readwrite');
+    transaction.objectStore(RUNS).clear();
+    await completion(transaction);
+  }
+
   /** Adds the runs not stored yet, such as those of a backup, leaving the runs already stored as they are. */
   async addRuns(runs: readonly Run[]): Promise<number> {
     const database = await this.openForWriting();

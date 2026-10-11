@@ -27,6 +27,11 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
   },
 });
 
+/** Asks the player to confirm something that can't be undone; resolves to whether they did. */
+export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIRM', {
+  factory: () => (question) => confirm(question),
+});
+
 /**
  * The player's data, opened from the main menu's overflow menu: how many runs are kept and how safe they are, with a
  * backup file to save and restore, then a chart of each run and, sticking to the bottom, one of them all. In
@@ -67,6 +72,14 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
               (change)="restore($event)"
             />
           </label>
+          <button
+            type="button"
+            class="candy danger"
+            [disabled]="runs().length === 0"
+            (click)="deleteAll()"
+          >
+            Delete all runs
+          </button>
         }
       </div>
       <p class="message" role="status">{{ message() }}</p>
@@ -83,6 +96,16 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
             Count unchecked runs
           </label>
           <p>{{ uncheckedNote() }}</p>
+          @if (!readOnlyPreview()) {
+            <button
+              type="button"
+              class="candy danger"
+              [disabled]="uncheckedRuns().length === 0"
+              (click)="deleteUnchecked()"
+            >
+              Delete unchecked runs
+            </button>
+          }
         </div>
       </app-grouping-settings-panel>
     }
@@ -156,7 +179,8 @@ export class Data {
   protected readonly developerMode = this.developer.enabled;
   private readonly settings = this.tweaks.grouping;
   protected readonly includeUnchecked = this.tweaks.includeUnchecked;
-  private readonly runs = signal<readonly Run[]>([]);
+  protected readonly runs = signal<readonly Run[]>([]);
+  protected readonly uncheckedRuns = computed(() => this.runs().filter((run) => !run.checked));
   /** What the timing model makes of each run, oldest first. */
   private readonly analyses = computed(() =>
     this.runs().map((run) => analyzeRun(run.times, this.settings())),
@@ -217,7 +241,7 @@ export class Data {
   });
 
   protected readonly uncheckedNote = computed(() => {
-    const count = this.runs().filter((run) => !run.checked).length;
+    const count = this.uncheckedRuns().length;
     return (
       `${count === 1 ? '1 run is' : `${String(count)} runs are`} unchecked: played without checking the digits, or before the game checked them, so they may hold mistakes. ` +
       `${count === 1 ? 'It counts' : 'They count'} in your groups only when this is on.`
@@ -228,6 +252,7 @@ export class Data {
   private readonly recorder = inject(RunRecorder);
   private readonly clock = inject(RUN_CLOCK);
   private readonly saveFile = inject(SAVE_FILE);
+  private readonly confirm = inject(CONFIRM);
   private readonly preview = inject(IS_PREVIEW);
 
   constructor() {
@@ -272,6 +297,38 @@ export class Data {
         unreadable +
         settings,
     );
+  }
+
+  /** Deletes every run kept, once the player confirms. */
+  protected async deleteAll(): Promise<void> {
+    await this.recorder.saved();
+    const count = this.runs().length;
+    if (
+      !this.confirm(
+        `Delete ${count === 1 ? 'the run' : `all ${String(count)} runs`} kept on this device? Only a backup file can bring ${count === 1 ? 'it' : 'them'} back.`,
+      )
+    ) {
+      return;
+    }
+    await this.store.deleteAllRuns();
+    await this.refresh();
+    this.message.set(`Deleted ${plural(count, 'run')}.`);
+  }
+
+  /** Deletes the unchecked runs, once the player confirms. */
+  protected async deleteUnchecked(): Promise<void> {
+    await this.recorder.saved();
+    const ids = this.uncheckedRuns().map((run) => run.id);
+    if (
+      !this.confirm(
+        `Delete ${ids.length === 1 ? 'the unchecked run' : `the ${String(ids.length)} unchecked runs`}? Only a backup file can bring ${ids.length === 1 ? 'it' : 'them'} back.`,
+      )
+    ) {
+      return;
+    }
+    await this.store.deleteRuns(ids);
+    await this.refresh();
+    this.message.set(`Deleted ${plural(ids.length, 'unchecked run')}.`);
   }
 
   private async refresh(): Promise<void> {
