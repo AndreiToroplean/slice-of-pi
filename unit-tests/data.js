@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791713884338,
+  "lastUpdate": 1791722451051,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -278,6 +278,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 299,
+            "unit": "ms",
+            "extra": "Data says there are no runs yet"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "db4898adf3fd6c946b2ebf287662875183edebb7",
+          "message": "docs: describe what the game means and collect wild ideas\n\nAdd design/meaning.md (the game is about the player's own memory, why it's called Slice of Pi, its kinship with sequence memory games) and a wild ideas section in the vision with a digitless mode and starting anywhere in π.\n\nClaude-Session: https://claude.ai/code/session_01Jg5WRU2pEemgvAGKsd8JWK",
+          "timestamp": "2026-10-11T14:40:30+02:00",
+          "tree_id": "d676929fb8c2e7ab6cabbf3b3dabfe9c3a733af5",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/db4898adf3fd6c946b2ebf287662875183edebb7"
+        },
+        "date": 1791722450722,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5154,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 7841,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 329,
             "unit": "ms",
             "extra": "Data says there are no runs yet"
           }
