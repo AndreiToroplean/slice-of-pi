@@ -1,24 +1,6 @@
-import { PALETTE } from '../place-colors/place-colors';
-import { colorDifference, averageHsl, hexToHsl, hslToHex } from './color-math';
+import { averageHsl, colorDifference } from './color-math';
 
 describe('color math', () => {
-  it('goes to HSL and back', () => {
-    for (const color of [...PALETTE, '#000000', '#ffffff', '#808080', '#ff0000']) {
-      expect(hslToHex(hexToHsl(color))).toBe(color);
-    }
-  });
-
-  it('starts hues on red, then yellow, green, cyan, blue and magenta', () => {
-    expect(
-      ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff'].map(
-        (color) => hexToHsl(color).hue,
-      ),
-    ).toEqual([0, 60, 120, 180, 240, 300]);
-    expect(hexToHsl('#ff0000')).toEqual({ hue: 0, saturation: 100, lightness: 50 });
-    expect(hexToHsl('#808080')).toMatchObject({ hue: 0, saturation: 0 });
-    expect(hslToHex({ hue: 120, saturation: 100, lightness: 25 })).toBe('#008000');
-  });
-
   it('averages two colors, hues the short way round', () => {
     expect(
       averageHsl(

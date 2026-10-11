@@ -95,7 +95,9 @@ export class Menu {
     // The background of a new game, so that playing starts on the same colors.
     const background = inject(Background);
     effect(() => {
-      background.colors.set(seasonAt(0, this.tweaks.seasonBackgrounds()).background);
+      background.colors.set(
+        seasonAt(0, this.tweaks.seasonBackgrounds(), this.tweaks.colorSpace()).background,
+      );
     });
   }
 

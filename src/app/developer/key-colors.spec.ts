@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router';
 import { Background } from '../background/background';
 import { PALETTE } from '../place-colors/place-colors';
 import { INDEXED_DB } from '../runs/run-store';
-import { hexToHsl, hslToHex } from './color-math';
+import { hexToHsl, hslToHex } from '../colors/color-spaces';
 import { KeyColors } from './key-colors';
 import { SEASON_STARTS, Tweaks } from './tweaks';
 

@@ -1,5 +1,6 @@
 import { effect, inject, Service, signal } from '@angular/core';
 import { Meta } from '@angular/platform-browser';
+import { Tweaks } from '../developer/tweaks';
 import { BackgroundColors, seasonAt } from '../seasons/seasons';
 
 /**
@@ -10,6 +11,8 @@ import { BackgroundColors, seasonAt } from '../seasons/seasons';
 export class Background {
   /** The background's colors, top then bottom: a new game's by default. */
   readonly colors = signal<BackgroundColors>(seasonAt(0).background);
+  /** The color space the background blends its colors in, from top to bottom as through the seasons. */
+  readonly colorSpace = inject(Tweaks).colorSpace;
 
   constructor() {
     const meta = inject(Meta);

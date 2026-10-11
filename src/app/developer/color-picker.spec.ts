@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { hexToHsl, hslToHex } from './color-math';
+import { hexToHsl, hslToHex } from '../colors/color-spaces';
 import { ColorPicker } from './color-picker';
 
 @Component({

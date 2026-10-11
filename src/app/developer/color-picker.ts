@@ -1,5 +1,6 @@
 import { Component, computed, input, linkedSignal, model } from '@angular/core';
-import { averageHsl, hexToHsl, Hsl, hslToHex } from './color-math';
+import { hexToHsl, Hsl, hslToHex } from '../colors/color-spaces';
+import { averageHsl } from './color-math';
 
 /** The picker's sliders, in order. */
 const SLIDERS = [

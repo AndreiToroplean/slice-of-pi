@@ -1,4 +1,5 @@
 import { computed, inject, Service, signal } from '@angular/core';
+import { COLOR_SPACE_NAMES, COLOR_SPACES, ColorSpace } from '../colors/color-spaces';
 import { Palette, PALETTE } from '../place-colors/place-colors';
 import { RunStore } from '../runs/run-store';
 import {
@@ -6,6 +7,7 @@ import {
   backgroundsFrom,
   Season,
   SEASON_BACKGROUNDS,
+  SEASON_COLOR_SPACE,
   SeasonBackgrounds,
   SEASONS,
 } from '../seasons/seasons';
@@ -28,6 +30,8 @@ export interface TweakValues {
   readonly seasons?: SeasonStarts;
   /** The settings of the timing model, for {@link DEFAULT_TIMING_SETTINGS}. */
   readonly grouping?: TimingSettings;
+  /** The color space the background blends its colors in, for {@link SEASON_COLOR_SPACE}. */
+  readonly colorSpace?: ColorSpace;
 }
 
 /** The game's own starting colors of each season. */
@@ -70,6 +74,11 @@ export class Tweaks {
       ? (this.tweaks().grouping ?? DEFAULT_TIMING_SETTINGS)
       : DEFAULT_TIMING_SETTINGS,
   );
+  /** The color space the background blends its colors in. */
+  readonly colorSpace = computed(
+    (): ColorSpace =>
+      (this.developerMode.enabled() ? this.tweaks().colorSpace : undefined) ?? SEASON_COLOR_SPACE,
+  );
 
   constructor() {
     this.loaded = this.store.setting(TWEAKS).then((stored) => {
@@ -100,6 +109,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), grouping }));
   }
 
+  /** Sets the color space the background blends its colors in; `undefined` brings back the game's. */
+  setColorSpace(colorSpace: ColorSpace | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), colorSpace }));
+  }
+
   private async save(next: TweakValues): Promise<void> {
     this.changed = true;
     this.tweaks.set(next);
@@ -116,14 +130,21 @@ export function paletteText(palette: Palette): string {
   ].join('\n');
 }
 
-/** The seasons' starting colors as text to hand back so they go into the code, marking those that differ. */
-export function seasonsText(seasons: SeasonStarts): string {
+/**
+ * The seasons' starting colors and the color space they blend in, as text to hand back so they go into the code,
+ * marking what differs.
+ */
+export function seasonsText(seasons: SeasonStarts, colorSpace: ColorSpace): string {
+  const changed = (yes: boolean): string => (yes ? ' (changed)' : '');
   return [
     'Season colors (early colors in SEASON_BACKGROUNDS in seasons.ts), top then bottom:',
-    ...SEASONS.map((season) => {
-      const changed = seasons[season].some((color, k) => color !== SEASON_STARTS[season][k]);
-      return `  ${season}: ${seasons[season][0]}, ${seasons[season][1]}${changed ? ' (changed)' : ''}`;
-    }),
+    ...SEASONS.map(
+      (season) =>
+        `  ${season}: ${seasons[season][0]}, ${seasons[season][1]}${changed(
+          seasons[season].some((color, k) => color !== SEASON_STARTS[season][k]),
+        )}`,
+    ),
+    `Blended in ${COLOR_SPACE_NAMES[colorSpace]} (SEASON_COLOR_SPACE in seasons.ts)${changed(colorSpace !== SEASON_COLOR_SPACE)}`,
   ].join('\n');
 }
 
@@ -161,10 +182,12 @@ export function parseTweaks(stored: unknown): TweakValues {
   const palette = 'palette' in stored ? stored.palette : undefined;
   const seasons = 'seasons' in stored ? stored.seasons : undefined;
   const grouping = 'grouping' in stored ? stored.grouping : undefined;
+  const colorSpace = 'colorSpace' in stored ? stored.colorSpace : undefined;
   return tweakValues({
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
     grouping: isTimingSettings(grouping) ? grouping : undefined,
+    colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
   });
 }
 
@@ -173,6 +196,7 @@ function tweakValues({
   palette,
   seasons,
   grouping,
+  colorSpace,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -180,7 +204,12 @@ function tweakValues({
     ...(palette === undefined ? {} : { palette }),
     ...(seasons === undefined ? {} : { seasons }),
     ...(grouping === undefined ? {} : { grouping }),
+    ...(colorSpace === undefined ? {} : { colorSpace }),
   };
+}
+
+function isColorSpace(value: unknown): value is ColorSpace {
+  return COLOR_SPACES.some((space) => space === value);
 }
 
 function isTimingSettings(value: unknown): value is TimingSettings {

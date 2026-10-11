@@ -24,7 +24,7 @@
   gap: var(--space-1);
   padding: var(--space-2) var(--space-1);
   border-radius: 1.125rem;
-  background: linear-gradient(172deg, var(--top), var(--bottom));
+  background: linear-gradient(172deg in var(--background-space, srgb), var(--top), var(--bottom));
   box-shadow:
     inset 0 0 0 1px var(--frost-highlight),
     0 4px 16px rgb(30 20 60 / 18%);
@@ -60,6 +60,21 @@
 
 .bottom {
   grid-row: 4;
+}
+
+/* The color space, beside its label. */
+.space {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-weight: 500;
+  text-shadow: var(--text-shadow);
+
+  /* The list of options is drawn by the browser, on its own light background. */
+  & option {
+    color: var(--ink);
+  }
 }
 
 .place {
