@@ -1,12 +1,5 @@
 import { PALETTE } from '../place-colors/place-colors';
-import {
-  closestPairs,
-  colorDifference,
-  contrastWithWhite,
-  averageHsl,
-  hexToHsl,
-  hslToHex,
-} from './color-math';
+import { colorDifference, averageHsl, hexToHsl, hslToHex } from './color-math';
 
 describe('color math', () => {
   it('goes to HSL and back', () => {
@@ -41,11 +34,6 @@ describe('color math', () => {
     ).toEqual({ hue: 150, saturation: 50, lightness: 50 });
   });
 
-  it('measures the contrast of white text', () => {
-    expect(contrastWithWhite('#000000')).toBeCloseTo(21, 5);
-    expect(contrastWithWhite('#ffffff')).toBeCloseTo(1, 5);
-  });
-
   it('measures how different two colors look', () => {
     expect(colorDifference('#de3e2d', '#de3e2d')).toBe(0);
     expect(colorDifference('#000000', '#ffffff')).toBeCloseTo(100, 0);
@@ -53,16 +41,5 @@ describe('color math', () => {
       colorDifference('#ec7c0e', '#de3e2d'),
       9,
     );
-  });
-
-  it('lists every pair of colors, the closest first', () => {
-    const pairs = closestPairs(['#000000', '#ffffff', '#010101']);
-
-    expect(pairs.map(({ first, second }) => [first, second])).toEqual([
-      [0, 2],
-      [1, 2],
-      [0, 1],
-    ]);
-    expect(closestPairs(PALETTE)).toHaveLength(45);
   });
 });

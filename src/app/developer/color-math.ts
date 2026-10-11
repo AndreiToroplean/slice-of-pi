@@ -1,6 +1,6 @@
 /**
  * Color math for tuning colors in developer mode: hue, saturation and lightness (HSL), the usual way to pick colors,
- * and how different two colors look (ΔE 2000) or how well white text reads on a color (WCAG contrast).
+ * and how different two colors look (ΔE 2000).
  */
 
 /** A color in HSL: hue in degrees from 0 (red) to 360, saturation and lightness in percent. */
@@ -78,16 +78,6 @@ export function averageHsl(first: Hsl, second: Hsl): Hsl {
   };
 }
 
-function luminance(hex: string): number {
-  const [r, g, b] = linearRgb(hex);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-/** The contrast ratio of white text on a color, from 1 to 21. */
-export function contrastWithWhite(hex: string): number {
-  return 1.05 / (luminance(hex) + 0.05);
-}
-
 function hexToLab(hex: string): Triple {
   const [r, g, b] = linearRgb(hex);
   const f = (t: number): number => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
@@ -148,22 +138,4 @@ export function colorDifference(first: string, second: string): number {
   const sh = 1 + 0.015 * cMeanP * t;
   const rt = -Math.sin(2 * dTheta * rad) * rc;
   return Math.sqrt((dL / sl) ** 2 + (dC / sc) ** 2 + (dH / sh) ** 2 + rt * (dC / sc) * (dH / sh));
-}
-
-/** Two colors of a palette, by index, and how different they look. */
-export interface ColorPair {
-  readonly first: number;
-  readonly second: number;
-  readonly difference: number;
-}
-
-/** Every pair of a palette's colors, the closest first. */
-export function closestPairs(colors: readonly string[]): ColorPair[] {
-  const pairs: ColorPair[] = [];
-  colors.forEach((first, i) => {
-    colors.slice(i + 1).forEach((second, j) => {
-      pairs.push({ first: i, second: i + 1 + j, difference: colorDifference(first, second) });
-    });
-  });
-  return pairs.sort((a, b) => a.difference - b.difference);
 }
