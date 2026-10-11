@@ -19,7 +19,7 @@ import {
 import { DEVELOPER_MODE, DEVELOPER_MODE_FORMAT, DeveloperMode } from '../developer/developer-mode';
 import { Tweaks, TWEAKS, TWEAKS_FORMAT } from '../developer/tweaks';
 import { DEFAULT_TIMING_SETTINGS } from '../timing/timing-model';
-import { Data, SAVE_FILE } from './data';
+import { CONFIRM, Data, SAVE_FILE } from './data';
 
 describe('Data', () => {
   const first = addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250);
@@ -31,9 +31,14 @@ describe('Data', () => {
     newRun('c', 3_000),
   );
   let saved: { name: string; text: string }[];
+  /** The questions the player was asked to confirm, and their answer. */
+  let questions: string[];
+  let confirming: boolean;
 
   beforeEach(() => {
     saved = [];
+    questions = [];
+    confirming = true;
   });
 
   async function setUp(
@@ -65,6 +70,13 @@ describe('Data', () => {
             now: () => 0,
             epoch: () => new Date(2026, 9, 10, 12).getTime(),
             newId: () => 'id',
+          },
+        },
+        {
+          provide: CONFIRM,
+          useValue: (question: string) => {
+            questions.push(question);
+            return confirming;
           },
         },
         {
@@ -252,6 +264,35 @@ describe('Data', () => {
     expect(await TestBed.inject(RunStore).runs()).toEqual([]);
   });
 
+  it('deletes every run once the player confirms', async () => {
+    const { host, until } = await setUp([first, second]);
+
+    button(host, 'Delete all runs').click();
+    await until(() => message(host) !== '');
+
+    expect(questions).toEqual([
+      'Delete all 2 runs kept on this device? Only a backup file can bring them back.',
+    ]);
+    expect(message(host)).toBe('Deleted 2 runs.');
+    expect(text(host)).toContain('No runs kept yet.');
+    expect(await TestBed.inject(RunStore).runs()).toEqual([]);
+    expect(button(host, 'Delete all runs').disabled).toBe(true);
+  });
+
+  it('keeps the runs when the player does not confirm', async () => {
+    const { host } = await setUp([first]);
+    confirming = false;
+
+    button(host, 'Delete all runs').click();
+    await vi.waitFor(() => {
+      expect(questions).toEqual([
+        'Delete the run kept on this device? Only a backup file can bring it back.',
+      ]);
+    });
+
+    expect(await TestBed.inject(RunStore).runs()).toEqual([first]);
+  });
+
   it('says when a preview keeps no runs, and offers no restore', async () => {
     const { host } = await setUp([], false, true, RUN_FORMAT + 1);
 
@@ -259,6 +300,7 @@ describe('Data', () => {
       "This preview of the game stores runs in a different format from the main game, so it doesn't keep any.",
     );
     expect(host.querySelector('input[type="file"]')).toBeNull();
+    expect(() => button(host, 'Delete all runs')).toThrow();
     expect(button(host, 'Save a backup')).toBeTruthy();
   });
 
@@ -358,6 +400,20 @@ describe('Data', () => {
 
       expect(groupsShown(host)).toEqual(['141', '592', '653', '589']);
       expect(TestBed.inject(Tweaks).values()).toEqual({ includeUnchecked: true });
+    });
+
+    it('deletes the unchecked runs once the player confirms, in developer mode', async () => {
+      const { host, until } = await setUp([grouped, unchecked], false, false, undefined, true);
+
+      button(host, 'Delete unchecked runs').click();
+      await until(() => message(host) !== '');
+
+      expect(questions).toEqual([
+        'Delete the unchecked run? Only a backup file can bring it back.',
+      ]);
+      expect(message(host)).toBe('Deleted 1 unchecked run.');
+      expect(await TestBed.inject(RunStore).runs()).toEqual([grouped]);
+      expect(button(host, 'Delete unchecked runs').disabled).toBe(true);
     });
   });
 

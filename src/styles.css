@@ -206,6 +206,12 @@ body {
   --candy-edge: var(--candy-danger-edge);
 }
 
+.candy:disabled {
+  opacity: 0.6;
+  cursor: default;
+  pointer-events: none;
+}
+
 .candy:active {
   translate: 0 0.25rem;
   box-shadow:

@@ -132,6 +132,28 @@ describe('RunStore', () => {
     expect(await store.runs()).toEqual([second]);
   });
 
+  it('deletes several runs at once', async () => {
+    const store = storeWith();
+    await store.save(first);
+    await store.save(second);
+
+    await store.deleteRuns([first.id, 'missing']);
+
+    expect(await store.runs()).toEqual([second]);
+  });
+
+  it('deletes every run, even those it cannot read', async () => {
+    const store = storeWith();
+    await store.save(first);
+    const database = await openDirectly();
+    await put(database, [{ ...second, format: RUN_FORMAT + 1 }]);
+    database.close();
+
+    await store.deleteAllRuns();
+
+    expect(await storedRecords()).toEqual([]);
+  });
+
   it('keeps the runs for the next visit', async () => {
     await storeWith().save(first);
     TestBed.resetTestingModule();
@@ -333,6 +355,8 @@ describe('RunStore', () => {
 
       await preview.save(second);
       await preview.delete(first.id);
+      await preview.deleteRuns([first.id]);
+      await preview.deleteAllRuns();
       await preview.saveSetting('colors', 1);
       await preview.saveSettings({ sounds: 1 });
 
