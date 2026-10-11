@@ -293,15 +293,13 @@ describe('Data', () => {
     expect(await TestBed.inject(RunStore).runs()).toEqual([first]);
   });
 
-  it('says when a preview keeps no runs, and offers no restore', async () => {
+  it('says when a preview keeps its runs apart from the main game', async () => {
     const { host } = await setUp([], false, true, RUN_FORMAT + 1);
 
     expect(text(host)).toContain(
-      "This preview of the game stores runs in a different format from the main game, so it doesn't keep any.",
+      "This preview of the game stores runs in a different format from the main game, so it keeps them apart: it has a copy of the main game's runs, and the runs played here stay here.",
     );
-    expect(host.querySelector('input[type="file"]')).toBeNull();
-    expect(() => button(host, 'Delete all runs')).toThrow();
-    expect(button(host, 'Save a backup')).toBeTruthy();
+    expect(host.querySelector('input[type="file"]')).not.toBeNull();
   });
 
   it('says nothing about previews in the main game', async () => {
