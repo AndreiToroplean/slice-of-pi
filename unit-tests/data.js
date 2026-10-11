@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791712726142,
+  "lastUpdate": 1791713884338,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -240,6 +240,46 @@ window.BENCHMARK_DATA = {
             "value": 269,
             "unit": "ms",
             "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "8eda65eb961585e0a6ba5afce39fb7b5a66d8868",
+          "message": "feat: blend the season background in OKLCH\n\nThe background's middle tones between seasons, and from the top of the screen to its bottom, stay saturated instead of going grey. sRGB and the other spaces stay available in developer mode.\n\nClaude-Session: https://claude.ai/code/session_016m6R8VrNsBEGy9cTZjCDpk",
+          "timestamp": "2026-10-11T12:17:42+02:00",
+          "tree_id": "c83ab7bd59f98cc5fbd3149eacba6a5fc584f868",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/8eda65eb961585e0a6ba5afce39fb7b5a66d8868"
+        },
+        "date": 1791713883791,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 4918,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 7335,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 299,
+            "unit": "ms",
+            "extra": "Data says there are no runs yet"
           }
         ]
       }
