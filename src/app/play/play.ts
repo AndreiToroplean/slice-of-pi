@@ -12,22 +12,28 @@ import {
 } from '@angular/core';
 import { Background } from '../background/background';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from '../flight/flight';
-import { DEFAULT_HINT, groupDigits } from '../groups/groups';
+import { groupDigits, groupEnds, hintAt } from '../groups/groups';
 import { Keypad } from '../keypad/keypad';
 import { keyColors, placeColors } from '../place-colors/place-colors';
 import { Pause } from '../pause/pause';
 import { isPiDecimal } from '../pi/pi';
+import { countsInGroups, Run } from '../runs/run';
 import { RunRecorder } from '../runs/run-recorder';
+import { RunStore } from '../runs/run-store';
 import { KeypadKey } from '../keypad/keypad-layout';
 import { SeasonHeader } from '../season-header/season-header';
 import { seasonAt } from '../seasons/seasons';
 import { Tweaks } from '../developer/tweaks';
 import { Slots } from '../slots/slots';
+import { aggregate, analyzeRun } from '../timing/timing-model';
 import { TypedDigits } from '../typed-digits/typed-digits';
+import { TIMER } from './timer';
 
 /**
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
  * flies up to the typed digits as a word, as the seasons go by. Each typed digit takes the color its key showed.
+ * The groups follow the player's timings, over all their runs and this one (`groupings.md` §4): a group is finished
+ * when the player pauses, and the slots show the group expected where the player's groups are known well enough.
  * Every digit is checked against π, unless developer mode turns that off: a wrong one, and any typed on after it, show
  * as mistakes in their slots, and never finish the group, until backspace deletes them.
  * Backspace deletes the last digit, reopening the last word when the slots are empty. Pausing offers to restart the game
@@ -46,7 +52,7 @@ import { TypedDigits } from '../typed-digits/typed-digits';
       class="slots"
       [digits]="grouping().current + mistakes()"
       [colors]="currentColors()"
-      [hint]="hint"
+      [hint]="hint()"
       [wrong]="mistakes().length"
     />
     <p class="visually-hidden" aria-live="assertive">
@@ -74,8 +80,32 @@ export class Play {
   /** Whether the game is paused: keys typed on a keyboard meanwhile don't count. */
   protected readonly paused = signal(false);
 
-  protected readonly hint = DEFAULT_HINT;
-  protected readonly grouping = computed(() => groupDigits(this.digits(), this.hint));
+  private readonly recorder = inject(RunRecorder);
+  /** The settings of the timing model, tuned in developer mode or the game's own. */
+  private readonly settings = this.tweaks.grouping;
+  /** The player's earlier runs, oldest first. */
+  private readonly earlierRuns = signal<readonly Run[]>([]);
+  /** What the timing model makes of each earlier run that counts in the groups. */
+  private readonly earlierVerdicts = computed(() =>
+    this.earlierRuns()
+      .filter((run) => countsInGroups(run, this.tweaks.includeUnchecked()))
+      .map((run) => analyzeRun(run.times, this.settings())),
+  );
+  /** The groups of all the player's runs, this one so far included. */
+  private readonly found = computed(() =>
+    aggregate(
+      [...this.earlierVerdicts(), analyzeRun(this.recorder.run()?.times ?? [], this.settings())],
+      this.settings(),
+    ),
+  );
+
+  /** The size of each finished group, in order. */
+  private readonly sizes = signal<readonly number[]>([]);
+  protected readonly grouping = computed(() => groupDigits(this.digits(), this.sizes()));
+  /** How many digits the group being typed is expected to have. */
+  protected readonly hint = computed(() =>
+    hintAt(this.found(), this.digits().length - this.grouping().current.length, this.settings()),
+  );
 
   /** The color of each typed place (`colors.md`). */
   protected readonly placeColors = computed(() =>
@@ -100,16 +130,29 @@ export class Play {
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
-  private readonly recorder = inject(RunRecorder);
+  private readonly timer = inject(TIMER);
   private readonly typedDigits = viewChild.required(TypedDigits);
   /** Slots flying into their word. */
   private flights: Animation[] = [];
+  /** Stops looking whether the player has paused. */
+  private stopWatching = (): void => undefined;
 
   constructor() {
     // Ending the game, back to the main menu, ends the run.
     inject(DestroyRef).onDestroy(() => {
+      this.stopWatching();
       this.recorder.end();
     });
+    void inject(RunStore)
+      .runs()
+      .then((runs) => {
+        // Leaving out the run being played, already saved if a key came first, and those already added on restarts.
+        const playing = this.recorder.run()?.id;
+        this.earlierRuns.update((added) => [
+          ...runs.filter((run) => run.id !== playing && !added.some(({ id }) => id === run.id)),
+          ...added,
+        ]);
+      });
     const background = inject(Background);
     effect(() => {
       background.colors.set(this.season().background);
@@ -124,6 +167,7 @@ export class Play {
       if (key === 'backspace') {
         this.recorder.deleteMistake(this.digits().length + this.mistakes().length);
         this.mistakes.update((mistakes) => mistakes.slice(0, -1));
+        this.watchForPause();
       } else {
         this.mistakes.update((mistakes) => mistakes + key);
       }
@@ -134,48 +178,85 @@ export class Play {
       this.tweaks.checking() &&
       !isPiDecimal(this.digits().length + 1, key)
     ) {
+      // A group never finishes on a mistake.
+      this.stopWatching();
       this.mistakes.set(key);
       return;
     }
     this.recorder.record(key);
     if (key === 'backspace') {
       this.landFlights();
+      if (this.grouping().current === '') {
+        this.sizes.update((sizes) => sizes.slice(0, -1));
+      }
       this.digits.update((digits) => digits.slice(0, -1));
-      return;
+    } else {
+      this.digits.update((digits) => digits + key);
     }
-    const words = this.grouping().words.length;
-    const next = this.digits() + key;
-    const closed = groupDigits(next, this.hint).words.at(words);
-    const slots = closed === undefined ? [] : this.slotsToFly(closed.digits.length);
-    this.digits.set(next);
-    if (closed !== undefined && slots.length > 0) {
-      // Measured once the new word is laid out. The typed digits finish scrolling down to it before the first slot lands.
-      afterNextRender(
-        {
-          read: () => {
-            const word = this.host.querySelector<HTMLElement>(
-              `app-typed-digits .word[data-first-place="${String(closed.firstPlace)}"]`,
-            );
-            if (word !== null) {
-              const rise = this.typedDigits().scrollDown(FLIGHT_DURATION);
-              this.flights = [
-                ...this.flights.filter((flight) => flight.playState === 'running'),
-                ...flyIntoWord(this.host, slots, word, rise),
-              ];
-            }
-          },
-        },
-        { injector: this.injector },
-      );
-    }
+    this.watchForPause();
   }
 
   /** Starts a new game: no digits typed, back to the first spring. */
   protected restart(): void {
+    this.stopWatching();
     this.landFlights();
     this.digits.set('');
     this.mistakes.set('');
+    this.sizes.set([]);
+    const ended = this.recorder.run();
     this.recorder.end();
+    if (ended !== undefined) {
+      this.earlierRuns.update((runs) => [...runs, ended]);
+    }
+  }
+
+  /**
+   * Finishes the group being typed as soon as all the runs say it ends, this one included, its next digit timed as if
+   * typed now; never while a mistake shows.
+   */
+  private watchForPause(): void {
+    this.stopWatching();
+    if (this.grouping().current === '' || this.mistakes() !== '') {
+      return;
+    }
+    const check = (): void => {
+      const times = this.recorder.run()?.times ?? [];
+      if (groupEnds(this.earlierVerdicts(), times, this.recorder.waited(), this.settings())) {
+        this.stopWatching();
+        this.finishGroup();
+      }
+    };
+    this.stopWatching = this.timer.every(PAUSE_CHECK, check);
+    check();
+  }
+
+  /** Turns the group being typed into a word, its slots flying into it. */
+  private finishGroup(): void {
+    const length = this.grouping().current.length;
+    const firstPlace = this.digits().length - length + 1;
+    const slots = this.slotsToFly(length);
+    this.sizes.update((sizes) => [...sizes, length]);
+    if (slots.length === 0) {
+      return;
+    }
+    // Measured once the new word is laid out. The typed digits finish scrolling down to it before the first slot lands.
+    afterNextRender(
+      {
+        read: () => {
+          const word = this.host.querySelector<HTMLElement>(
+            `app-typed-digits .word[data-first-place="${String(firstPlace)}"]`,
+          );
+          if (word !== null) {
+            const rise = this.typedDigits().scrollDown(FLIGHT_DURATION);
+            this.flights = [
+              ...this.flights.filter((flight) => flight.playState === 'running'),
+              ...flyIntoWord(this.host, slots, word, rise),
+            ];
+          }
+        },
+      },
+      { injector: this.injector },
+    );
   }
 
   /** Snapshots of the slots a group about to close fills, unless flights are off. */
@@ -196,6 +277,9 @@ export class Play {
     this.flights = [];
   }
 }
+
+/** How often to look whether the player has paused, in milliseconds. */
+const PAUSE_CHECK = 50;
 
 /** Whether slots can fly: not when the player prefers reduced motion, nor where the Web Animations API is missing. */
 function canFly(element: HTMLElement): boolean {
