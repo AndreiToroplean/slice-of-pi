@@ -61,7 +61,7 @@ describe('run', () => {
   });
 
   it('records the backspace deleting a wrong digit after the last one, which it never kept', () => {
-    const run = deleteMistake(play(['1', 0], ['4', 212]));
+    const run = deleteMistake(play(['1', 0], ['4', 212]), 3);
 
     expect(run.digits).toBe('14');
     expect(run.times).toEqual([0, 212]);

@@ -75,15 +75,15 @@ export class RunRecorder {
   }
 
   /**
-   * Records the backspace deleting a wrong digit, which was never recorded: wrong digits leave no timings. As for any
-   * backspace, the clock goes back to when the last digit was typed.
+   * Records the backspace deleting a wrong digit at `place`, or a digit typed after one, which were never recorded:
+   * mistakes leave no timings. As for any backspace, the clock goes back to when the last digit was typed.
    */
-  deleteMistake(): void {
+  deleteMistake(place: number): void {
     if (this.run === undefined) {
       return;
     }
     const now = this.clock.now();
-    this.run = deleteMistake(this.run);
+    this.run = deleteMistake(this.run, place);
     this.rewound = now - this.start - (this.run.times.at(-1) ?? 0);
     this.queue(this.run);
   }

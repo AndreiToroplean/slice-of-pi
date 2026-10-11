@@ -154,7 +154,7 @@ describe('Play', () => {
       return Array.from(host.querySelectorAll('app-slots .slot.wrong'), (slot) => slot.textContent);
     }
 
-    it('shows a wrong digit in red in its slot, without finishing the group', async () => {
+    it('marks a wrong digit as a mistake in its slot, without finishing the group', async () => {
       const { host, type } = await setUp();
 
       await typeAll(type, '14150');
@@ -164,16 +164,20 @@ describe('Play', () => {
       expect(words(host)).toEqual([]);
       expect(summary(host)).toBe('4 digits typed, the last one is 5.');
       expect(host.querySelector('[aria-live="assertive"]')?.textContent.trim()).toBe(
-        '0 is wrong: delete it to go on.',
+        '0 is wrong: delete back to it to go on.',
       );
     });
 
-    it('takes no other digit until backspace deletes the wrong one', async () => {
+    it('marks every digit typed on after a mistake as one too, until backspace deletes back to it', async () => {
       const { host, type } = await setUp();
 
-      await typeAll(type, '14150');
-      await typeAll(type, '9');
-      expect(slots(host)).toEqual(['1', '4', '1', '5', '0']);
+      await typeAll(type, '1415092');
+      expect(slots(host)).toEqual(['1', '4', '1', '5', '0', '9', '2']);
+      expect(wrongSlots(host)).toEqual(['0', '9', '2']);
+      expect(words(host)).toEqual([]);
+
+      await typeAll(type, '<<');
+      expect(wrongSlots(host)).toEqual(['0']);
 
       await typeAll(type, '<');
       expect(slots(host)).toEqual(['1', '4', '1', '5', '']);
@@ -228,16 +232,16 @@ describe('Play', () => {
       expect(host.querySelector('app-slots .wrong')?.textContent).toBe('3');
     });
 
-    it('records the backspace deleting a wrong digit, but never the wrong digit', async () => {
+    it('records the backspaces deleting mistakes, at their places, but never the mistakes', async () => {
       const recorder = TestBed.inject(RunRecorder);
       const record = vi.spyOn(recorder, 'record');
       const deleteMistake = vi.spyOn(recorder, 'deleteMistake');
       const { type } = await setUp();
 
-      await typeAll(type, '1415<0<');
+      await typeAll(type, '1415<03<<');
 
       expect(record.mock.calls).toEqual([['1'], ['4'], ['1'], ['5'], ['backspace']]);
-      expect(deleteMistake).toHaveBeenCalledOnce();
+      expect(deleteMistake.mock.calls).toEqual([[5], [4]]);
     });
   });
 

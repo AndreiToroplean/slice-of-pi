@@ -72,11 +72,12 @@ export function countsInGroups(run: Run, includeUnchecked: boolean): boolean {
 }
 
 /**
- * The run with the backspace that deleted a wrong digit typed after its last one. The game never kept that digit, so
+ * The run with the backspace that deleted a wrong digit typed after its last one, at `place` (the first wrong digit is
+ * at the place after the run's last digit, and any typed after it further on). The game never kept those digits, so
  * only the backspace is recorded.
  */
-export function deleteMistake(run: Run): Run {
-  return { ...run, backspaces: [...run.backspaces, run.digits.length + 1] };
+export function deleteMistake(run: Run, place: number): Run {
+  return { ...run, backspaces: [...run.backspaces, place] };
 }
 
 /**
