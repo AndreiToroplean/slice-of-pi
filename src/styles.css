@@ -41,6 +41,9 @@
   /* The "π=3." lead, which has no place colors: white tiles, interlaced with a little greyer ones. */
   --lead: #ffffff;
   --lead-shade: #e4e0ea;
+  /* A wrong digit's slot. */
+  --mistake: #d63b41;
+  --on-mistake: #ffffff;
 
   /* The breaks between groups on the charts of the player's data. */
   --chart-break: #e8344e;

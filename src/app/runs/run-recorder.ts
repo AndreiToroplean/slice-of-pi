@@ -1,6 +1,6 @@
 import { inject, InjectionToken, Service } from '@angular/core';
 import { KeypadKey } from '../keypad/keypad-layout';
-import { addDigit, newRun, removeDigit, Run } from './run';
+import { addDigit, deleteMistake, newRun, removeDigit, Run } from './run';
 import { RunStore } from './run-store';
 
 /** Where the recorder reads the time, and gets ids for new runs. */
@@ -68,6 +68,20 @@ export class RunRecorder {
       void this.store.persist();
     }
     this.run = addDigit(this.run, key, now - this.start - this.rewound);
+    this.queue(this.run);
+  }
+
+  /**
+   * Records the backspace deleting a wrong digit, which was never recorded: wrong digits leave no timings. As for any
+   * backspace, the clock goes back to when the last digit was typed.
+   */
+  deleteMistake(): void {
+    if (this.run === undefined) {
+      return;
+    }
+    const now = this.clock.now();
+    this.run = deleteMistake(this.run);
+    this.rewound = now - this.start - (this.run.times.at(-1) ?? 0);
     this.queue(this.run);
   }
 

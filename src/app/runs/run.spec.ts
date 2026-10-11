@@ -1,5 +1,14 @@
 import { Digit } from '../digit';
-import { addDigit, isOlderFormat, newRun, parseRun, removeDigit, Run, RUN_FORMAT } from './run';
+import {
+  addDigit,
+  deleteMistake,
+  isOlderFormat,
+  newRun,
+  parseRun,
+  removeDigit,
+  Run,
+  RUN_FORMAT,
+} from './run';
 
 describe('run', () => {
   const empty = newRun('run-1', 1_760_000_000_000);
@@ -48,6 +57,14 @@ describe('run', () => {
 
     expect(run.digits).toBe('1');
     expect(run.backspaces).toEqual([3, 3, 2]);
+  });
+
+  it('records the backspace deleting a wrong digit after the last one, which it never kept', () => {
+    const run = deleteMistake(play(['1', 0], ['4', 212]));
+
+    expect(run.digits).toBe('14');
+    expect(run.times).toEqual([0, 212]);
+    expect(run.backspaces).toEqual([3]);
   });
 
   it('records no backspace when there is no digit to delete', () => {

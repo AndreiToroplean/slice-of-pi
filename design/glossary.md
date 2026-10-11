@@ -27,7 +27,8 @@
 
 ## Play
 
-- **Run:** one attempt, from the start of π until the player stops or makes a mistake. Until the game checks the digits, a run ends when the player restarts or ends the game, or leaves it; deleting every digit typed deletes the run.
+- **Run:** one attempt, from the start of π until the player stops. For now a mistake doesn't end it (`groupings.md` §2): a run ends when the player restarts or ends the game, or leaves it; deleting every digit typed deletes the run.
+- **Mistake:** a wrong digit. The game checks every digit against the decimals of π it knows (`src/app/pi/`, 100,000 of them): a wrong one fills its slot in red, and the player deletes it with backspace to go on. Developer mode can turn checking off; runs played that way are **unchecked**.
 - **Learn mode / challenge mode:** the two families of modes: guided practice, and typing from memory.
 - **Interval:** the time between typing one digit and the next.
 - **Pace:** the player's local typing speed around a place, from the intervals around it.
