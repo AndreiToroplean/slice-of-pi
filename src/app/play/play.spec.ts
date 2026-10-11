@@ -1,5 +1,6 @@
 import { Location } from '@angular/common';
 import { provideLocationMocks, SpyLocation } from '@angular/common/testing';
+import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -9,18 +10,25 @@ import {
   uninstallAnimations,
 } from '../../testing/fake-animations';
 import { installDialogs, uninstallDialogs } from '../../testing/fake-dialogs';
+import { FakeTime } from '../../testing/fake-time';
 import { Background } from '../background/background';
 import { FLIGHT_DURATION } from '../flight/flight';
 import { routes } from '../app.routes';
 import { Menu } from '../menu/menu';
 import { PALETTE, placeColors } from '../place-colors/place-colors';
 import { PI_DECIMALS } from '../pi/pi-decimals';
+import { IDBFactory } from 'fake-indexeddb';
+import { newRun } from '../runs/run';
 import { RunRecorder } from '../runs/run-recorder';
+import { INDEXED_DB, RunStore } from '../runs/run-store';
 import { TypedDigits } from '../typed-digits/typed-digits';
 import { backgroundsFrom, seasonAt } from '../seasons/seasons';
 import { DeveloperMode } from '../developer/developer-mode';
 import { Tweaks } from '../developer/tweaks';
 import { Play } from './play';
+
+/** A pause clearly longer than the time between digits, in milliseconds. */
+const PAUSE = 2000;
 
 describe('Play', () => {
   // Compiles the play screen once, before its tests, so that the first one doesn't pay for it.
@@ -31,8 +39,16 @@ describe('Play', () => {
     TestBed.resetTestingModule();
   });
 
+  let time: FakeTime;
+  /** How many digits have been typed, to type them unevenly as players do. */
+  let typed: number;
+
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideRouter(routes), provideLocationMocks()] });
+    time = new FakeTime();
+    typed = 0;
+    TestBed.configureTestingModule({
+      providers: [provideRouter(routes), provideLocationMocks(), ...time.providers],
+    });
   });
 
   afterEach(() => {
@@ -49,15 +65,22 @@ describe('Play', () => {
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
     const type = async (key: string): Promise<void> => {
+      time.advance(typed++ % 2 === 0 ? 150 : 250);
       host.querySelector<HTMLButtonElement>(`button[data-key="${key}"]`)?.click();
       await fixture.whenStable();
     };
     return { host, type, stable: () => fixture.whenStable() };
   }
 
+  /** Types the keys: `<` is backspace, and a space is a pause, long enough to finish a group. */
   async function typeAll(type: (key: string) => Promise<void>, keys: string): Promise<void> {
     for (const key of keys) {
-      await type(key === '<' ? 'backspace' : key);
+      if (key === ' ') {
+        time.advance(PAUSE);
+        await TestBed.inject(ApplicationRef).whenStable();
+      } else {
+        await type(key === '<' ? 'backspace' : key);
+      }
     }
   }
 
@@ -102,19 +125,152 @@ describe('Play', () => {
     expect(summary(host)).toBe('3 digits typed, the last one is 1.');
   });
 
-  it('turns every 5 digits into a word and empties the slots', async () => {
+  it('turns the digits typed into a word when the player pauses, and empties the slots', async () => {
     const { host, type } = await setUp();
 
-    await typeAll(type, '14159');
+    await typeAll(type, '141 ');
 
-    expect(words(host)).toEqual(['14159']);
+    expect(words(host)).toEqual(['141']);
     expect(slots(host)).toEqual(['', '', '', '', '']);
 
-    await typeAll(type, '265358');
+    await typeAll(type, '59265 3');
 
-    expect(words(host)).toEqual(['14159', '26535']);
-    expect(slots(host)).toEqual(['8', '', '', '', '']);
-    expect(summary(host)).toBe('11 digits typed, the last one is 8.');
+    expect(words(host)).toEqual(['141', '59265']);
+    expect(slots(host)).toEqual(['3', '', '', '', '']);
+    expect(summary(host)).toBe('9 digits typed, the last one is 3.');
+  });
+
+  it('keeps the group open while the player types on, adding a slot per digit past the hint', async () => {
+    const { host, type } = await setUp();
+
+    await typeAll(type, '1415926');
+
+    expect(words(host)).toEqual([]);
+    expect(slots(host)).toEqual(['1', '4', '1', '5', '9', '2', '6']);
+  });
+
+  it("doesn't finish a group before the wait is clearly longer than the player's pace", async () => {
+    const { host, type } = await setUp();
+    await typeAll(type, '1415926');
+
+    time.advance(260);
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    expect(words(host)).toEqual([]);
+  });
+
+  it("doesn't finish a group emptied by backspace when the player pauses", async () => {
+    const { host, type } = await setUp();
+
+    await typeAll(type, '14 5< ');
+
+    expect(words(host)).toEqual(['14']);
+    expect(slots(host)).toEqual(['', '', '', '', '']);
+  });
+
+  it('waits for a new pause after backspace, counted from it', async () => {
+    const { host, type } = await setUp();
+    await typeAll(type, '1415926');
+    time.advance(PAUSE - 100);
+    await type('backspace');
+
+    time.advance(200);
+    await TestBed.inject(ApplicationRef).whenStable();
+    expect(words(host)).toEqual([]);
+
+    await typeAll(type, ' ');
+    expect(words(host)).toEqual(['141592']);
+  });
+
+  describe("with the player's earlier runs", () => {
+    /** Times of a run grouped by 3: a pause after every 3 digits. */
+    function by3(length: number): number[] {
+      let at = 0;
+      return Array.from({ length }, (_, i) => {
+        at += i === 0 ? 0 : i % 3 === 0 ? PAUSE : i % 2 === 0 ? 150 : 250;
+        return at;
+      });
+    }
+
+    /** Sets up with `count` earlier runs grouped by 3, once `before` has run. */
+    async function setUpWithRuns(
+      count: number,
+      checked = true,
+      before = (): Promise<void> => Promise.resolve(),
+    ): ReturnType<typeof setUp> {
+      TestBed.overrideProvider(INDEXED_DB, { useValue: new IDBFactory() });
+      await before();
+      const store = TestBed.inject(RunStore);
+      for (let i = 0; i < count; i++) {
+        await store.save({
+          ...newRun(`earlier-${String(i)}`, i, checked),
+          digits: '141592653589793',
+          times: by3(15),
+        });
+      }
+      const setup = await setUp();
+      // Reads come back in order: once this one is back, so is the play screen's.
+      await store.runs();
+      await setup.stable();
+      return setup;
+    }
+
+    it('leaves out the runs whose digits were not checked', async () => {
+      const { host, type } = await setUpWithRuns(4, false);
+
+      await typeAll(type, '141');
+
+      expect(words(host)).toEqual([]);
+      expect(slots(host)).toEqual(['1', '4', '1', '', '']);
+    });
+
+    it('counts the unchecked runs when developer mode says so', async () => {
+      const { host, type } = await setUpWithRuns(4, false, async () => {
+        await TestBed.inject(Tweaks).setIncludeUnchecked(true);
+        await TestBed.inject(DeveloperMode).set(true);
+      });
+
+      await typeAll(type, '141');
+
+      expect(words(host)).toEqual(['141']);
+    });
+
+    it('shows as many slots as the group expected', async () => {
+      const { host, type } = await setUpWithRuns(4);
+
+      expect(slots(host)).toEqual(['', '', '']);
+
+      await typeAll(type, '1');
+      expect(slots(host)).toEqual(['1', '', '']);
+    });
+
+    it('finishes a group at once where the runs agree it ends', async () => {
+      const { host, type } = await setUpWithRuns(4);
+
+      await typeAll(type, '141');
+
+      expect(words(host)).toEqual(['141']);
+      expect(slots(host)).toEqual(['', '', '']);
+    });
+
+    it('counts the run of a game restarted as an earlier run', async () => {
+      installDialogs();
+      try {
+        const { host, type, stable } = await setUp();
+        await typeAll(type, '141 592 653 589 793 ');
+        expect(slots(host)).toEqual(['', '', '', '', '']);
+
+        host.querySelector<HTMLButtonElement>('button[aria-label="Pause"]')?.click();
+        Array.from(host.querySelectorAll<HTMLButtonElement>('button'))
+          .find((button) => button.textContent.trim() === 'Restart')
+          ?.click();
+        await stable();
+
+        expect(slots(host)).toEqual(['', '', '']);
+      } finally {
+        uninstallDialogs();
+      }
+    });
   });
 
   it('deletes the last digit with backspace', async () => {
@@ -129,7 +285,7 @@ describe('Play', () => {
   it('reopens the last word with backspace when the slots are empty', async () => {
     const { host, type } = await setUp();
 
-    await typeAll(type, '1415926535<');
+    await typeAll(type, '14159 26535 <');
 
     expect(words(host)).toEqual(['14159']);
     expect(slots(host)).toEqual(['2', '6', '5', '3', '']);
@@ -183,8 +339,29 @@ describe('Play', () => {
       expect(slots(host)).toEqual(['1', '4', '1', '5', '']);
       expect(wrongSlots(host)).toEqual([]);
 
-      await typeAll(type, '9');
+      await typeAll(type, '9 ');
       expect(words(host)).toEqual(['14159']);
+    });
+
+    it('never finishes a group while a mistake shows, however long the player pauses', async () => {
+      const { host, type } = await setUp();
+
+      await typeAll(type, '1415  0   ');
+
+      expect(words(host)).toEqual(['1415']);
+      expect(slots(host)).toEqual(['0', '', '', '', '']);
+
+      await typeAll(type, '9  ');
+      expect(words(host)).toEqual(['1415']);
+    });
+
+    it('waits for the pause that finishes the group again once the mistake is deleted', async () => {
+      const { host, type } = await setUp();
+      await typeAll(type, '1410  <');
+      expect(words(host)).toEqual([]);
+
+      await typeAll(type, ' ');
+      expect(words(host)).toEqual(['141']);
     });
 
     it('takes a wrong first digit', async () => {
@@ -291,7 +468,7 @@ describe('Play', () => {
     it('keeps the colors of the digits in their words and in the group being typed', async () => {
       const { host, type } = await setUp();
 
-      await typeAll(type, '1415926');
+      await typeAll(type, '14159 26');
 
       expect(placeColorsShown(host, 'app-typed-digits .word .tile')).toEqual(placeColors('14159'));
       expect(placeColorsShown(host, 'app-slots .slot')).toEqual(placeColors('1415926').slice(5));
@@ -340,7 +517,7 @@ describe('Play', () => {
       const animations = stubAnimations();
       const { host, type } = await setUp();
 
-      await typeAll(type, '14159');
+      await typeAll(type, '14159 ');
 
       expect(animations).toHaveLength(5);
       expect(flyingSlots(host)).toBe('14159');
@@ -357,7 +534,7 @@ describe('Play', () => {
       const animations = stubAnimations();
       const { host, type } = await setUp();
 
-      await typeAll(type, '14159');
+      await typeAll(type, '14159 ');
 
       expect(animations.every((animation) => animation.options?.fill === 'both')).toBe(true);
       const radius = getComputedStyle(
@@ -373,7 +550,7 @@ describe('Play', () => {
       const scrollDown = vi.spyOn(TypedDigits.prototype, 'scrollDown').mockReturnValue(50);
       const { type } = await setUp();
 
-      await typeAll(type, '14159');
+      await typeAll(type, '14159 ');
 
       expect(scrollDown).toHaveBeenCalledWith(FLIGHT_DURATION);
       expect(animations[0]?.keyframes[2]?.['transform']).toMatch(/^translate\(0px, -50px\)/);
@@ -383,7 +560,7 @@ describe('Play', () => {
       const animations = stubAnimations();
       const { host, type } = await setUp();
 
-      await typeAll(type, '14159<');
+      await typeAll(type, '14159 <');
 
       expect(animations.every((animation) => animation.playState === 'idle')).toBe(true);
       expect(flyingSlots(host)).toBe('');
@@ -395,7 +572,7 @@ describe('Play', () => {
       vi.stubGlobal('matchMedia', () => ({ matches: true }));
       const { host, type } = await setUp();
 
-      await typeAll(type, '14159');
+      await typeAll(type, '14159 ');
 
       expect(animations).toEqual([]);
       expect(shownTiles(host)).toBe('14159');
@@ -506,7 +683,7 @@ describe('Play', () => {
       vi.stubGlobal('matchMedia', () => ({ matches: false }));
       try {
         const { host, type, stable } = await setUp();
-        await typeAll(type, '14159');
+        await typeAll(type, '14159 ');
         expect(animations.length).toBeGreaterThan(0);
 
         pauseItem(host, 'Pause').click();

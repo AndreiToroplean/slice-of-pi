@@ -1,4 +1,4 @@
-import { inject, InjectionToken, Service } from '@angular/core';
+import { inject, InjectionToken, Service, signal } from '@angular/core';
 import { Tweaks } from '../developer/tweaks';
 import { KeypadKey } from '../keypad/keypad-layout';
 import { addDigit, deleteMistake, newRun, removeDigit, Run } from './run';
@@ -38,7 +38,9 @@ export class RunRecorder {
   private readonly clock = inject(RUN_CLOCK);
   private readonly tweaks = inject(Tweaks);
 
-  private run: Run | undefined;
+  private readonly current = signal<Run | undefined>(undefined);
+  /** The run being played, as recorded so far; `undefined` until its first digit. */
+  readonly run = this.current.asReadonly();
   /** When the current run's first digit was typed, on the precise clock. */
   private start = 0;
   /** The time taken back by backspaces in the current run, in milliseconds. */
@@ -51,27 +53,27 @@ export class RunRecorder {
   /** Records a key the player pressed. */
   record(key: KeypadKey): void {
     const now = this.clock.now();
+    let run = this.current();
     if (key === 'backspace') {
-      if (this.run === undefined) {
+      if (run === undefined) {
         return;
       }
-      this.run = removeDigit(this.run);
+      run = removeDigit(run);
       // The clock goes back to when the digit now last was typed.
-      this.rewound = now - this.start - (this.run.times.at(-1) ?? 0);
-      this.queue(this.run);
-      if (this.run.digits === '') {
-        this.run = undefined;
-      }
+      this.rewound = now - this.start - (run.times.at(-1) ?? 0);
+      this.queue(run);
+      this.current.set(run.digits === '' ? undefined : run);
       return;
     }
-    if (this.run === undefined) {
-      this.run = newRun(this.clock.newId(), this.clock.epoch(), this.tweaks.checking());
+    if (run === undefined) {
+      run = newRun(this.clock.newId(), this.clock.epoch(), this.tweaks.checking());
       this.start = now;
       this.rewound = 0;
       void this.store.persist();
     }
-    this.run = addDigit(this.run, key, now - this.start - this.rewound);
-    this.queue(this.run);
+    run = addDigit(run, key, now - this.start - this.rewound);
+    this.queue(run);
+    this.current.set(run);
   }
 
   /**
@@ -79,18 +81,25 @@ export class RunRecorder {
    * mistakes leave no timings. As for any backspace, the clock goes back to when the last digit was typed.
    */
   deleteMistake(place: number): void {
-    if (this.run === undefined) {
+    let run = this.current();
+    if (run === undefined) {
       return;
     }
     const now = this.clock.now();
-    this.run = deleteMistake(this.run, place);
-    this.rewound = now - this.start - (this.run.times.at(-1) ?? 0);
-    this.queue(this.run);
+    run = deleteMistake(run, place);
+    this.rewound = now - this.start - (run.times.at(-1) ?? 0);
+    this.queue(run);
+    this.current.set(run);
+  }
+
+  /** How long it's been since the last digit of the current run, in milliseconds, on the run's clock. */
+  waited(): number {
+    return this.clock.now() - this.start - this.rewound - (this.current()?.times.at(-1) ?? 0);
   }
 
   /** Ends the current run, as kept so far: the next digit starts a new run. */
   end(): void {
-    this.run = undefined;
+    this.current.set(undefined);
   }
 
   /** Resolves once every key recorded so far is saved. */

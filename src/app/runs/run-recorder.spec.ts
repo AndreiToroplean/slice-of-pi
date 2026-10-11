@@ -102,6 +102,35 @@ describe('RunRecorder', () => {
     ]);
   });
 
+  it('shows the run being played as recorded so far, until it ends', () => {
+    const recorder = TestBed.inject(RunRecorder);
+    expect(recorder.run()).toBeUndefined();
+
+    press(recorder, '145<');
+    expect(recorder.run()).toMatchObject({ digits: '14', times: [0, 200], backspaces: [3] });
+
+    recorder.end();
+    expect(recorder.run()).toBeUndefined();
+  });
+
+  it('tells how long it has been since the last digit, counted from a backspace after one', () => {
+    const recorder = TestBed.inject(RunRecorder);
+
+    press(recorder, '14', 200);
+    expect(recorder.waited()).toBe(200);
+
+    press(recorder, '5<', 300);
+    expect(recorder.waited()).toBe(300);
+  });
+
+  it('shows no run once every digit is deleted', () => {
+    const recorder = TestBed.inject(RunRecorder);
+
+    press(recorder, '1<');
+
+    expect(recorder.run()).toBeUndefined();
+  });
+
   it('leaves no trace of a deleted digit: the next interval runs from the backspace', async () => {
     const recorder = TestBed.inject(RunRecorder);
 

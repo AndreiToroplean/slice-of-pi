@@ -1,12 +1,20 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { groupDigits } from '../groups/groups';
+import { groupDigits, Word } from '../groups/groups';
 import { PALETTE, placeColors } from '../place-colors/place-colors';
 import { SCROLL_DOWN_DURATION, TypedDigits } from './typed-digits';
+
+/** The words of the digits typed in groups of 5. */
+function wordsOf5(digits: string): readonly Word[] {
+  return groupDigits(
+    digits,
+    Array.from({ length: Math.floor(digits.length / 5) }, () => 5),
+  ).words;
+}
 
 describe('TypedDigits', () => {
   async function render(digits: string): Promise<HTMLElement> {
     const fixture = TestBed.createComponent(TypedDigits);
-    fixture.componentRef.setInput('words', groupDigits(digits).words);
+    fixture.componentRef.setInput('words', wordsOf5(digits));
     fixture.componentRef.setInput('digits', digits);
     fixture.componentRef.setInput('colors', placeColors(digits));
     await fixture.whenStable();
@@ -120,7 +128,7 @@ describe('TypedDigits', () => {
     }
 
     async function type(fixture: ComponentFixture<TypedDigits>, digits: string): Promise<void> {
-      fixture.componentRef.setInput('words', groupDigits(digits).words);
+      fixture.componentRef.setInput('words', wordsOf5(digits));
       fixture.componentRef.setInput('digits', digits);
       fixture.componentRef.setInput('colors', placeColors(digits));
       await fixture.whenStable();
@@ -172,7 +180,7 @@ describe('TypedDigits', () => {
       const fixture = TestBed.createComponent(TypedDigits);
       const host = fixture.nativeElement as HTMLElement;
       Object.defineProperty(host, 'scrollTop', { get: () => 0, set: () => undefined });
-      fixture.componentRef.setInput('words', groupDigits('1415').words);
+      fixture.componentRef.setInput('words', wordsOf5('1415'));
       fixture.componentRef.setInput('digits', '1415');
       fixture.componentRef.setInput('colors', placeColors('1415'));
       vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
