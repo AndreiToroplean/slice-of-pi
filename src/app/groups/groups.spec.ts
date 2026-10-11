@@ -1,22 +1,36 @@
-import { aggregate, analyzeRun, DEFAULT_TIMING_SETTINGS } from '../timing/timing-model';
+import {
+  BreakModel,
+  breakModel,
+  DEFAULT_BREAK_SETTINGS,
+  finishedRuns,
+} from '../timing/break-model';
 import { DEFAULT_GROUP_SIZE, groupDigits, groupEnds, groupSizeAt } from './groups';
 
-const settings = DEFAULT_TIMING_SETTINGS;
+const settings = DEFAULT_BREAK_SETTINGS;
 
-/** The times of a run of `length` digits typed every 200 ms, with a pause of 1 s before each index in `breaks`. */
+/**
+ * The times of a run of `length` digits typed about 200 ms apart (an uneven 180, 200, 230), with a pause of 1 s before
+ * each index in `breaks`.
+ */
 function timesOf(length: number, breaks: readonly number[]): number[] {
   let time = 0;
   return Array.from({ length }, (_, i) => {
     if (i > 0) {
-      time += breaks.includes(i) ? 1000 : 200;
+      time += breaks.includes(i) ? 1000 : ([180, 200, 230][i % 3] ?? 0);
     }
     return time;
   });
 }
 
-/** A player who groups the first 15 decimals by 3, `count` times. */
-function runsBy3(count: number, length = 15): ReturnType<typeof analyzeRun>[] {
-  return Array.from({ length: count }, () => analyzeRun(timesOf(length, [3, 6, 9, 12]), settings));
+/** Every third index, up to `length`: groups of 3. */
+function by3(length: number): number[] {
+  return Array.from({ length: Math.floor((length - 1) / 3) }, (_, k) => 3 * (k + 1));
+}
+
+/** A player who groups the first `length` decimals by 3, `count` times, then types `current`. */
+function model(count: number, current: readonly number[], length = 30): BreakModel {
+  const runs = Array.from({ length: count }, () => timesOf(length, by3(length)));
+  return breakModel(finishedRuns(runs, settings.window), current, settings);
 }
 
 describe('groupDigits', () => {
@@ -53,66 +67,42 @@ describe('groupDigits', () => {
 
 describe('groupSizeAt', () => {
   it('is the default for a new player', () => {
-    expect(groupSizeAt(aggregate([], settings), 0)).toBe(DEFAULT_GROUP_SIZE);
+    expect(groupSizeAt(model(0, []), 0)).toBe(DEFAULT_GROUP_SIZE);
   });
 
-  it("follows the player's groups where they're trusted", () => {
-    const found = aggregate(runsBy3(4), settings);
+  it("follows the player's groups within the trust horizon", () => {
+    const found = model(3, []);
 
     expect(groupSizeAt(found, 0)).toBe(3);
     expect(groupSizeAt(found, 3)).toBe(3);
   });
 
   it('counts the digits left in a group starting inside it', () => {
-    expect(groupSizeAt(aggregate(runsBy3(4), settings), 4)).toBe(2);
+    expect(groupSizeAt(model(3, []), 4)).toBe(2);
   });
 
-  it('is the default from the first group not trusted on', () => {
-    const found = aggregate(runsBy3(4), settings);
+  it('is the default past the trust horizon', () => {
+    const found = model(3, []);
 
-    expect(found.trustedUntil).toBe(12);
-    expect(groupSizeAt(found, 12)).toBe(DEFAULT_GROUP_SIZE);
-    expect(groupSizeAt(found, 20)).toBe(DEFAULT_GROUP_SIZE);
+    expect(found.horizon).toBe(29);
+    expect(groupSizeAt(found, 27)).toBe(DEFAULT_GROUP_SIZE);
+    expect(groupSizeAt(found, 40)).toBe(DEFAULT_GROUP_SIZE);
   });
 
-  it('is the default everywhere when no group is confident enough', () => {
-    const custom = { ...settings, confidenceNeeded: 1 };
-
-    expect(groupSizeAt(aggregate(runsBy3(4), custom), 3)).toBe(DEFAULT_GROUP_SIZE);
+  it('is the default everywhere when too few runs agree', () => {
+    expect(groupSizeAt(model(1, []), 3)).toBe(DEFAULT_GROUP_SIZE);
   });
 });
 
 describe('groupEnds', () => {
-  it('has nothing to finish before a digit is typed', () => {
-    expect(groupEnds([], [], 5000, settings)).toBe(false);
+  it('finishes where the player usually breaks', () => {
+    const found = model(3, timesOf(4, []));
+
+    expect(groupEnds(found, 3)).toBe(true);
+    expect(groupEnds(found, 2)).toBe(false);
   });
 
-  it("finishes a new player's first digit after the pause used while there's too little to judge", () => {
-    expect(groupEnds([], [0], 900, settings)).toBe(false);
-    expect(groupEnds([], [0], 901, settings)).toBe(true);
-  });
-
-  it("finishes after a wait clearly longer than this run's local pace", () => {
-    const times = timesOf(10, [3]);
-    const bar = analyzeRun([...times, 0], settings)[10]?.threshold ?? 0;
-
-    expect(bar).toBeGreaterThan(200);
-    expect(groupEnds([], times, Math.floor(bar), settings)).toBe(false);
-    expect(groupEnds([], times, Math.ceil(bar) + 1, settings)).toBe(true);
-  });
-
-  it('finishes at once where the earlier runs agree on a break, whatever this run says', () => {
-    expect(groupEnds(runsBy3(4), timesOf(3, []), 0, settings)).toBe(true);
-  });
-
-  it('never finishes where the earlier runs outweigh this one, which then goes on', () => {
-    expect(groupEnds(runsBy3(8), timesOf(4, [3]), 60_000, settings)).toBe(false);
-  });
-
-  it("follows this run's wait where the earlier runs are split", () => {
-    const split = [...runsBy3(1), analyzeRun(timesOf(15, [4, 8, 12]), settings)];
-
-    expect(groupEnds(split, timesOf(3, []), 0, settings)).toBe(false);
-    expect(groupEnds(split, timesOf(3, []), 901, settings)).toBe(true);
+  it("never finishes where there's too little data to tell breaks", () => {
+    expect(groupEnds(model(0, timesOf(4, [3])), 3)).toBe(false);
   });
 });

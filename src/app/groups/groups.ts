@@ -1,4 +1,4 @@
-import { Aggregate, aggregate, analyzeRun, RunPlace, TimingSettings } from '../timing/timing-model';
+import { BreakModel } from '../timing/break-model';
 
 /** The size of a group where the player's own groups aren't trusted (`groupings.md` §3). */
 export const DEFAULT_GROUP_SIZE = 5;
@@ -29,33 +29,19 @@ export function groupDigits(digits: string, sizes: readonly number[]): Grouping 
 }
 
 /**
- * The size of the group starting at index `start` (index 0 is the first decimal): where the aggregate's groups are
- * trusted, as many digits as its group there has left, else the default (`groupings.md` §4.3).
+ * The size of the group starting at index `start` (index 0 is the first decimal): within the trust horizon, as many
+ * digits as the player's group there has left, else the default (`groupings.md` §4.3).
  */
-export function groupSizeAt(model: Aggregate, start: number): number {
+export function groupSizeAt(model: BreakModel, start: number): number {
   const group = model.groups.find((g) => start >= g.start && start < g.start + g.size);
-  return group !== undefined && start < model.trustedUntil
-    ? group.start + group.size - start
-    : DEFAULT_GROUP_SIZE;
+  return group?.trusted === true ? group.start + group.size - start : DEFAULT_GROUP_SIZE;
 }
 
 /**
- * Whether the group being typed is finished: whether the aggregate of all the runs breaks before the next digit
- * (`groupings.md` §4.1). The run being typed is one of them, like any other, its next digit timed as if typed now,
- * `waited` milliseconds after its last one.
- *
- * The earlier runs are given oldest first, as returned by `analyzeRun`; `times` are the run being typed's, as recorded.
+ * Whether the group being typed is finished: whether the player usually breaks before the next digit, at index
+ * `next` (`groupings.md` §4.1). The model includes the run being typed, like any other run, its next digit timed as if
+ * typed now.
  */
-export function groupEnds(
-  earlier: readonly (readonly (RunPlace | undefined)[])[],
-  times: readonly number[],
-  waited: number,
-  settings: TimingSettings,
-): boolean {
-  const last = times.at(-1);
-  if (last === undefined) {
-    return false;
-  }
-  const run = analyzeRun([...times, last + waited], settings);
-  return aggregate([...earlier, run], settings).places[times.length]?.isBreak === true;
+export function groupEnds(model: BreakModel, next: number): boolean {
+  return (model.usual[next] ?? 0) > 0.5;
 }

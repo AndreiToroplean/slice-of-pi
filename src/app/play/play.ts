@@ -25,7 +25,7 @@ import { SeasonHeader } from '../season-header/season-header';
 import { seasonAt } from '../seasons/seasons';
 import { Tweaks } from '../developer/tweaks';
 import { Slots } from '../slots/slots';
-import { aggregate, analyzeRun } from '../timing/timing-model';
+import { BreakModel, breakModel, finishedRuns, Mixture } from '../timing/break-model';
 import { TypedDigits } from '../typed-digits/typed-digits';
 import { TIMER } from './timer';
 
@@ -81,23 +81,23 @@ export class Play {
   protected readonly paused = signal(false);
 
   private readonly recorder = inject(RunRecorder);
-  /** The settings of the timing model, tuned in developer mode or the game's own. */
+  /** The hyperparameters of the break model, tuned in developer mode or the game's own. */
   private readonly settings = this.tweaks.grouping;
   /** The player's earlier runs, oldest first. */
   private readonly earlierRuns = signal<readonly Run[]>([]);
-  /** What the timing model makes of each earlier run that counts in the groups. */
-  private readonly earlierVerdicts = computed(() =>
-    this.earlierRuns()
-      .filter((run) => countsInGroups(run, this.tweaks.includeUnchecked()))
-      .map((run) => analyzeRun(run.times, this.settings())),
-  );
-  /** The groups of all the player's runs, this one so far included. */
-  private readonly found = computed(() =>
-    aggregate(
-      [...this.earlierVerdicts(), analyzeRun(this.recorder.run()?.times ?? [], this.settings())],
-      this.settings(),
+  /** What the break model makes of the earlier runs that count in the groups, before this one. */
+  private readonly finished = computed(() =>
+    finishedRuns(
+      this.earlierRuns()
+        .filter((run) => countsInGroups(run, this.tweaks.includeUnchecked()))
+        .map((run) => run.times),
+      this.settings().window,
     ),
   );
+  /** The last mixture fitted, to start the next fit from, so that it takes only a few rounds. */
+  private mixture: Mixture | undefined;
+  /** The groups of all the player's runs, this one so far included. */
+  private readonly found = computed(() => this.fit(this.recorder.run()?.times ?? []));
 
   /** The size of each finished group, in order. */
   private readonly sizes = signal<readonly number[]>([]);
@@ -220,17 +220,30 @@ export class Play {
       return;
     }
     const check = (): void => {
-      const times = this.recorder.run()?.times ?? [];
-      if (
-        this.grouping().current.length >= this.size() ||
-        groupEnds(this.earlierVerdicts(), times, this.recorder.waited(), this.settings())
-      ) {
+      if (this.grouping().current.length >= this.size() || this.pausedLongEnough()) {
         this.stopWatching();
         this.finishGroup();
       }
     };
     this.stopWatching = this.timer.every(PAUSE_CHECK, check);
     check();
+  }
+
+  /** Whether the group being typed ends before the next digit, were it typed now. */
+  private pausedLongEnough(): boolean {
+    const times = this.recorder.run()?.times ?? [];
+    const last = times.at(-1);
+    return (
+      last !== undefined &&
+      groupEnds(this.fit([...times, last + this.recorder.waited()]), times.length)
+    );
+  }
+
+  /** Runs the break model over the earlier runs and this one, with the times given. */
+  private fit(times: readonly number[]): BreakModel {
+    const model = breakModel(this.finished(), times, this.settings(), this.mixture);
+    this.mixture = model.mixture;
+    return model;
   }
 
   /** Turns the group being typed into a word, its slots flying into it. */

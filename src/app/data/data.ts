@@ -7,7 +7,7 @@ import { PI_DECIMALS } from '../pi/pi-decimals';
 import { countsInGroups, Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
 import { RunStore } from '../runs/run-store';
-import { aggregate, analyzeRun } from '../timing/timing-model';
+import { breakModel, finishedRuns, Values } from '../timing/break-model';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { RunChart } from './run-chart';
 import { ChartBreak, chartTop, digitTimes } from './run-charts';
@@ -35,7 +35,7 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
 /**
  * The player's data, opened from the main menu's overflow menu: how many runs are kept and how safe they are, with a
  * backup file to save and restore, then a chart of each run and, sticking to the bottom, one of them all. In
- * developer mode, the settings of the timing model can be tuned between the two.
+ * developer mode, the hyperparameters of the break model can be tuned between the two.
  */
 @Component({
   selector: 'app-data',
@@ -112,14 +112,13 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
       } @else {
         <p>
           How long you took to type each digit, so pauses are peaks, along every place you've
-          reached. Each run's own pauses split it into groups.
+          reached. Breaks are drawn where they're more likely than not, the darker the more likely.
         </p>
         <ul class="legend">
           <li><i class="time"></i>Time per digit</li>
-          <li><i class="pace"></i>Pace around it</li>
-          <li><i class="threshold"></i>Pause threshold</li>
-          <li><i class="break"></i>Break between groups</li>
-          <li><i class="trust"></i>Trust, or confidence for all runs</li>
+          <li><i class="baseline"></i>Baseline</li>
+          <li><i class="break"></i>Break</li>
+          <li><i class="confidence"></i>Confidence trend, for all runs</li>
         </ul>
         @for (chart of charts(); track chart.id) {
           <article class="panel" [class.unchecked]="!chart.checked">
@@ -132,10 +131,8 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
             <p class="meta">{{ chart.meta }}</p>
             <app-run-chart
               [values]="chart.times"
-              [pace]="chart.pace"
-              [threshold]="chart.threshold"
+              [baseline]="chart.baseline"
               [breaks]="chart.breaks"
-              [trust]="chart.trust"
               [places]="places()"
               [top]="top()"
               [label]="'Time per digit, ' + chart.title"
@@ -147,11 +144,12 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
           <p class="meta">{{ aggregateMeta() }}</p>
           <app-run-chart
             [values]="aggregateChart().times"
+            [baseline]="aggregateChart().baseline"
             [breaks]="aggregateChart().breaks"
-            [trust]="aggregateChart().confidence"
+            [confidence]="aggregateChart().confidence"
             [places]="places()"
             [top]="top()"
-            label="Time per digit over all runs, recent ones weighing more, with the breaks they agree on"
+            label="Time per digit over all runs, recent ones weighing more, with your usual break spots"
           />
           <p class="axis" aria-hidden="true">
             <span>Place 1</span><span>Place {{ places() }}</span>
@@ -175,7 +173,7 @@ export class Data {
   protected readonly separatePreview = signal(false);
   protected readonly message = signal('');
 
-  /** In developer mode, the settings of the timing model can be tuned here. */
+  /** In developer mode, the hyperparameters of the break model can be tuned here. */
   private readonly developer = inject(DeveloperMode);
   private readonly tweaks = inject(Tweaks);
   protected readonly developerMode = this.developer.enabled;
@@ -183,21 +181,33 @@ export class Data {
   protected readonly includeUnchecked = this.tweaks.includeUnchecked;
   protected readonly runs = signal<readonly Run[]>([]);
   protected readonly uncheckedRuns = computed(() => this.runs().filter((run) => !run.checked));
-  /** What the timing model makes of each run, oldest first. */
-  private readonly analyses = computed(() =>
-    this.runs().map((run) => analyzeRun(run.times, this.settings())),
+  /** The runs the groups are computed from, oldest first. */
+  private readonly counted = computed(() =>
+    this.runs().filter((run) => countsInGroups(run, this.includeUnchecked())),
+  );
+  /** What the break model makes of them: the groups the game plays with. */
+  private readonly model = computed(() =>
+    breakModel(
+      finishedRuns(
+        this.counted().map((run) => run.times),
+        this.settings().window,
+      ),
+      undefined,
+      this.settings(),
+    ),
   );
   /** Unchecked runs, which may hold mistakes, only show in developer mode. */
   private readonly shown = computed(() =>
     this.runs().filter((run) => run.checked || this.developerMode()),
   );
   protected readonly charts = computed(() =>
-    this.runs().flatMap((run, r) => {
+    this.runs().flatMap((run) => {
       if (!run.checked && !this.developerMode()) {
         return [];
       }
-      const places = this.analyses()[r] ?? [];
-      const breaks = breaksOf(places);
+      // Runs left out of the groups have only their times.
+      const found = this.model().runs[this.counted().indexOf(run)];
+      const breaks = breaksOf(found?.breakProbability ?? []);
       return {
         id: run.id,
         title: dateAndTime.format(run.startedAt),
@@ -206,10 +216,8 @@ export class Data {
           `${plural(run.digits.length, 'digit')} in ${seconds(run.times.at(-1) ?? 0)}` +
           (run.digits.length > 0 ? ` · ${plural(breaks.length + 1, 'group')}` : ''),
         times: digitTimes(run),
-        pace: places.map((place) => place?.pace),
-        threshold: places.map((place) => place?.threshold),
+        baseline: found?.baseline ?? [],
         breaks,
-        trust: places.map((place) => place?.trust),
       };
     }),
   );
@@ -225,35 +233,25 @@ export class Data {
     Math.max(1, ...this.shown().map((run) => run.digits.length)),
   );
   protected readonly top = computed(() => chartTop(this.charts().map((chart) => chart.times)));
-  /** The verdicts of the runs the groups are computed from, combined: the groups the game plays with. */
-  private readonly aggregate = computed(() => {
-    const runs = this.runs();
-    const counted = this.analyses().filter((_, r) => {
-      const run = runs[r];
-      return run !== undefined && countsInGroups(run, this.includeUnchecked());
-    });
-    return aggregate(counted, this.settings());
-  });
   protected readonly aggregateChart = computed(() => {
-    const places = this.aggregate().places;
+    const model = this.model();
     return {
-      times: places.map((place) => place?.time),
-      breaks: places.flatMap((place, i) =>
-        place?.isBreak === true ? [{ place: i, strength: place.confidence }] : [],
-      ),
-      confidence: places.map((place) => place?.confidence),
+      times: model.averageTime,
+      baseline: model.speedCurve,
+      breaks: breaksOf(model.usual),
+      confidence: model.confidenceTrend,
     };
   });
   protected readonly groups = computed(() =>
-    this.aggregate().groups.map((group) => ({
+    this.model().groups.map((group) => ({
       start: group.start,
       digits: PI_DECIMALS.slice(group.start, group.start + group.size),
-      trusted: group.start < this.aggregate().trustedUntil,
+      trusted: group.trusted,
     })),
   );
   protected readonly aggregateMeta = computed(() => {
     const trusted = this.groups().filter((group) => group.trusted).length;
-    return `${plural(this.groups().length, 'group')}, ${trusted === 0 ? 'none' : `the first ${String(trusted)}`} trusted; from the first dotted one on, the game plays groups of 5`;
+    return `${plural(this.groups().length, 'group')}, ${trusted === 0 ? 'none' : `the first ${String(trusted)}`} within the trust horizon; from the first dotted one on, the game plays groups of 5`;
   });
 
   protected readonly uncheckedNote = computed(() => {
@@ -360,11 +358,10 @@ export class Data {
   }
 }
 
-function breaksOf(
-  places: readonly ({ isBreak: boolean; trust: number } | undefined)[],
-): ChartBreak[] {
-  return places.flatMap((place, i) =>
-    place?.isBreak === true ? [{ place: i, strength: place.trust }] : [],
+/** A break wherever one is more likely than not, the stronger the more likely. */
+function breaksOf(probabilities: Values): ChartBreak[] {
+  return probabilities.flatMap((p, i) =>
+    p !== undefined && p > 0.5 ? [{ place: i, strength: 2 * p - 1 }] : [],
   );
 }
 

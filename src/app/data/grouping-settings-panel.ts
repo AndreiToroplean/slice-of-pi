@@ -1,128 +1,69 @@
 import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { CopyValues } from '../developer/copy-values';
 import { groupingText, Tweaks } from '../developer/tweaks';
-import { DEFAULT_TIMING_SETTINGS, TimingSettings } from '../timing/timing-model';
+import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
 
-/** A slider for one setting of the timing model, with what it means behind a help button. */
+/** A slider for one hyperparameter of the break model, with what it means behind a help button. */
 interface Control {
-  readonly key: keyof TimingSettings;
+  readonly key: keyof BreakSettings;
   readonly label: string;
-  /** The slider's range and step, in its own units (see {@link toSlider}). */
   readonly min: number;
   readonly max: number;
   readonly step: number;
   readonly format: (value: number) => string;
-  /** From the setting's value to the slider's position and back, where the slider isn't linear. */
-  readonly toSlider?: (value: number) => number;
-  readonly fromSlider?: (position: number) => number;
   readonly help: { readonly what: string; readonly why: string; readonly moving: string };
 }
 
 export const CONTROLS: readonly Control[] = [
   {
-    key: 'neighborhood',
-    label: 'Neighborhood',
-    min: 1,
-    max: 12,
-    step: 0.5,
-    format: (value) => `${String(value)} digits`,
+    key: 'window',
+    label: 'Window',
+    min: 3,
+    max: 61,
+    step: 2,
+    format: (value) => `${String(value)} intervals`,
     help: {
-      what: 'To tell a pause, each digit’s time is compared with the usual time around it, the local pace: an average of its neighbors’ times. This is how far the neighbors reach.',
-      why: 'Only neighbors, because you slow down towards the end of what you know: against the whole run’s average, that slow end would look like pauses everywhere. The neighbors’ weights fade along a bell curve, so the pace glides instead of jumping as digits come in and out of reach; at 4 it amounts to about 9 neighbors. The digit being judged is left out, so a pause never raises its own bar.',
+      what: 'Each interval (the time you took to type a digit after the one before) is compared with its baseline: the interval expected at that place without a break. The baseline is the median of the intervals around it, over this many intervals. In the run being played, only those typed so far count. A break is an interval clearly longer than its baseline.',
+      why: 'A median, because breaks are a minority of the intervals: unlike an average, it isn’t pulled up by them. Along each run rather than across runs at the same place, so that a break you make at the same place every time still stands out, instead of becoming the usual time there. Rolling, because you slow down as you get into what you know less well: at 21, the baseline follows your speed over about four groups of 5.',
       moving:
-        'Lower follows your pace closely, but only 2 or 3 neighbors decide, so one pause nearby swings it and the groups get erratic. Higher is steadier but slow to follow your slowdown: fewer breaks where you’re fast, more and smaller groups where you slow down.',
+        'Smaller follows changes of speed sooner, but where breaks fill nearly half the window, the median rises with them and they stop standing out. Larger is steadier but lags behind your slowdown, so the slow end of a run can look like breaks.',
     },
   },
   {
-    key: 'pauseMargin',
-    label: 'Pause margin',
-    min: 0.1,
-    max: 2.5,
-    step: 0.05,
-    format: (value) => `${value.toFixed(2)} spreads`,
-    help: {
-      what: 'Besides the pace, the model measures how much the neighbors’ times vary around it: their spread (standard deviation). A time is a pause when it’s longer than the pace plus this many spreads.',
-      why: 'How surprising a delay is depends on how irregular you are there: 300 ms is a big surprise if you always take 200 ± 10, and nothing if you swing between 100 and 400. The standard deviation is that typical swing, in milliseconds like the times, so it adds to the pace (the variance is the same thing squared, in ms²).',
-      moving:
-        'Higher finds fewer breaks, so bigger groups: groups split by short pauses merge. Lower finds more breaks and smaller groups, false ones from a single slow keystroke included. The spread counts your other pauses too, so where you pause every 3 digits, 0.8 already asks for about 2.5 times your typing time.',
-    },
-  },
-  {
-    key: 'minimumPause',
-    label: 'Minimum pause',
-    min: 1,
-    max: 3,
-    step: 0.05,
-    format: (value) => `${value.toFixed(2)} × pace`,
-    help: {
-      what: 'Whatever the spread says, a pause must also be at least this many times the pace.',
-      why: 'Where you type steadily, the spread is tiny, so the pace plus the margin is barely above the pace, and any slightly slow keystroke would be a break. It’s a ratio rather than milliseconds because an extra 50 ms is a lot for a fast player and nothing for a slow one.',
-      moving:
-        'Higher keeps steady stretches as one long group, and drops short pauses everywhere once it’s above the pace plus the margin. Lower lets noise cut up steady stretches. It decides where you type steadily, and the margin where you pause regularly.',
-    },
-  },
-  {
-    key: 'fullTrustUnevenness',
-    label: 'Unevenness for full trust',
-    min: 0.1,
-    max: 1.5,
-    step: 0.05,
-    format: (value) => value.toFixed(2),
-    help: {
-      what: 'Each run’s verdict at a place, break or not, counts in the vote with a trust from 0 to 1. It grows with how uneven the run’s rhythm is there: the spread divided by the pace. At this unevenness, the run is fully trusted.',
-      why: 'Divided by the pace so that it measures rhythm, not speed: a player twice as fast with the same rhythm has half the spread in milliseconds. 0.1 means times vary by about 10% (a metronome), 0.6 by 60% (clear pauses). Where you type like a metronome, a break is just noise, and a steady run says little about your groups: once you’re fluent enough to type a stretch in one stream, its groups are kept rather than erased.',
-      moving:
-        'Lower trusts runs sooner, so your groups are followed further, noisier places included, and smooth runs erase groups sooner. Higher only trusts clearly structured stretches, so groups of 5 start sooner. It never moves a run’s own breaks.',
-    },
-  },
-  {
-    key: 'halfLife',
-    label: 'Half-life',
-    min: 0,
-    max: 8,
-    step: 0.25,
-    format: (value) => `${value < 10 ? value.toFixed(1) : value.toFixed(0)} runs`,
-    toSlider: (value) => Math.log2(value),
-    fromSlider: (position) => 2 ** position,
-    help: {
-      what: 'How many runs back a run’s vote weighs half as much as the newest run’s. At 16, a run 16 runs old counts half, and one 32 runs old a quarter.',
-      why: 'The weights fade smoothly, run after run, so no run suddenly drops out and flips a group. The slider goes from 1 to 256 runs, each step multiplying the half-life, since what matters is its order of magnitude.',
-      moving:
-        'Shorter makes your groups follow your last few runs: a regrouping shows quickly, but one odd run can flip groups. Longer makes them build up over many runs and stay stable, but a regrouping takes longer to show.',
-    },
-  },
-  {
-    key: 'evidenceNeeded',
-    label: 'Evidence needed',
-    min: 0.2,
-    max: 4,
-    step: 0.1,
-    format: (value) => `${value.toFixed(1)} runs`,
-    help: {
-      what: 'At each place, the confidence of all runs together is agreement × evidence. Agreement is 1 when all the weighted votes agree, and 0 at a 50/50 split. Evidence counts the trusted votes, in fully trusted new runs: it reaches 63% at this amount, 86% at twice it and 95% at three times.',
-      why: 'Multiplied because both are needed: one run agreeing with itself is unanimous but thin, and many runs split evenly are plenty of evidence but no answer. Each extra run helps less and less, and the confidence never goes past 1.',
-      moving:
-        'Lower makes a single run strong evidence, so a new player’s groups are followed right away. Higher waits for several runs that agree, so there are more 5s at first.',
-    },
-  },
-  {
-    key: 'confidenceNeeded',
-    label: 'Confidence needed',
-    min: 0,
+    key: 'recencyDecay',
+    label: 'Recency decay',
+    min: 0.5,
     max: 1,
-    step: 0.05,
+    step: 0.01,
+    format: (value) =>
+      value < 1
+        ? `${value.toFixed(2)}, half weight ${(Math.log(0.5) / Math.log(value)).toFixed(1)} runs back`
+        : '1, every run the same',
+    help: {
+      what: 'How much each run counts compared with the one after it: a run’s weight is this to the power of its age, the newest run counting 1. At 0.9, the run before the newest counts 0.9, one about 7 runs back half, and one 22 runs back a tenth.',
+      why: 'So that the game follows you when you regroup some digits, without one odd run flipping your groups. The weights fade smoothly, so no run suddenly drops out. They count everywhere: in telling breaks apart, in your usual break spots and in how far they’re trusted.',
+      moving:
+        'At 1, every run counts the same: your groups build up over all your runs, and a regrouping takes as long to show as you’ve played. Lower follows your latest runs: a regrouping shows sooner, but there’s less evidence, so the trust horizon comes sooner too.',
+    },
+  },
+  {
+    key: 'level',
+    label: 'Level',
+    min: 0.5,
+    max: 0.99,
+    step: 0.01,
     format: (value) => value.toFixed(2),
     help: {
-      what: 'A group is trusted only if its confidence, averaged over its places, is at least this, and every group before it is trusted too. From the first group that isn’t, the game plays groups of 5.',
-      why: 'So that the game only follows groups it has seen clearly, and offers groups of 5 past them. Once one group is shaky, the ones after it can’t be relied on to start where they do.',
+      what: 'How confident the game must be of its verdict at a place, a usual break there or not, to follow your groups there. The place where it stops being that confident is the trust horizon: past it, the game stops following your groups.',
+      why: 'The confidence at a place is the probability that your break rate there is on the side of ½ the verdict says, given the recency-weighted runs that reached it. It drops as fewer runs reach a place and as they disagree, but it’s noisy and would cross any level many times. So the game fits the best curve that only goes down, the confidence trend, and cuts where that falls below this level: once, so there’s a single horizon.',
       moving:
-        'Lower follows your groups further, into shakier places. Higher starts the groups of 5 sooner. It never moves the groups the runs agree on, only how far they’re followed: those past that point are dotted.',
+        'At 0.9, about three recent runs need to agree. Higher asks for more of them, so the trust horizon comes sooner. Lower follows your groups further, into places fewer runs agree on.',
     },
   },
 ];
 
 /**
- * Developer mode's sliders for every setting of the timing model, each with a help button opening a dialog that says
+ * Developer mode's sliders for every hyperparameter of the break model, each with a help button opening a dialog that says
  * what it does, a button to bring back the game's settings, and one to copy their values so they go into the code.
  * Content given to it goes above the sliders.
  */
@@ -281,15 +222,13 @@ export class GroupingSettingsPanel {
   }
 
   protected position(control: Control): number {
-    const value = this.settings()[control.key];
-    return control.toSlider?.(value) ?? value;
+    return this.settings()[control.key];
   }
 
   protected set(control: Control, event: Event): void {
-    const position = Number((event.target as HTMLInputElement).value);
-    const value = control.fromSlider?.(position) ?? position;
+    const value = Number((event.target as HTMLInputElement).value);
     const settings = { ...this.settings(), [control.key]: value };
-    const tuned = CONTROLS.some(({ key }) => settings[key] !== DEFAULT_TIMING_SETTINGS[key]);
+    const tuned = CONTROLS.some(({ key }) => settings[key] !== DEFAULT_BREAK_SETTINGS[key]);
     void this.tweaks.setGrouping(tuned ? settings : undefined);
   }
 

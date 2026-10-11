@@ -8,7 +8,7 @@ import {
   SEASON_COLOR_SPACE,
   SEASON_TURN,
 } from '../seasons/seasons';
-import { DEFAULT_TIMING_SETTINGS } from '../timing/timing-model';
+import { DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
 import { DeveloperMode } from './developer-mode';
 import {
   groupingText,
@@ -25,7 +25,7 @@ describe('Tweaks', () => {
   let indexedDb: IDBFactory;
   const palette = PALETTE.map((color, i) => (i === 3 ? '#123456' : color));
   const seasons = { ...SEASON_STARTS, autumn: ['#000000', '#ffffff'] as const };
-  const grouping = { ...DEFAULT_TIMING_SETTINGS, halfLife: 2 ** 4.5 };
+  const grouping = { ...DEFAULT_BREAK_SETTINGS, recencyDecay: 0.95 };
 
   beforeEach(() => {
     indexedDb = new IDBFactory();
@@ -105,7 +105,7 @@ describe('Tweaks', () => {
     const tweaks = await load();
     await tweaks.setGrouping(grouping);
 
-    expect(tweaks.grouping()).toBe(DEFAULT_TIMING_SETTINGS);
+    expect(tweaks.grouping()).toBe(DEFAULT_BREAK_SETTINGS);
     await TestBed.inject(DeveloperMode).set(true);
     expect(tweaks.grouping()).toEqual(grouping);
     expect((await load()).values()).toEqual({ grouping });
@@ -183,37 +183,46 @@ describe('Tweaks', () => {
   it('lists the grouping settings, marking those that changed', () => {
     expect(groupingText(grouping)).toBe(
       [
-        'Grouping settings (DEFAULT_TIMING_SETTINGS in timing-model.ts):',
-        '  neighborhood: 4',
-        '  pauseMargin: 0.8',
-        '  minimumPause: 1.35',
-        '  fullTrustUnevenness: 0.6',
-        '  halfLife: 22.63 (changed)',
-        '  evidenceNeeded: 1.2',
-        '  confidenceNeeded: 0.45',
+        'Grouping settings (DEFAULT_BREAK_SETTINGS in break-model.ts):',
+        '  window: 21',
+        '  recencyDecay: 0.95 (changed)',
+        '  level: 0.9',
       ].join('\n'),
     );
   });
 
-  it('leaves out stored grouping settings that are missing one or would divide by 0', () => {
+  it('leaves out stored grouping settings that are missing one or out of range', () => {
     expect(parseTweaks({ format: TWEAKS_FORMAT, grouping })).toEqual({ grouping });
-    expect(parseTweaks({ format: TWEAKS_FORMAT, grouping: { ...grouping, halfLife: 0 } })).toEqual(
-      {},
-    );
-    expect(
-      parseTweaks({ format: TWEAKS_FORMAT, grouping: { ...grouping, neighborhood: undefined } }),
-    ).toEqual({});
+    for (const wrong of [
+      { window: 0 },
+      { window: 2.5 },
+      { recencyDecay: 0 },
+      { recencyDecay: 1.1 },
+      { level: -0.1 },
+      { level: 1.1 },
+      { level: undefined },
+    ]) {
+      expect(parseTweaks({ format: TWEAKS_FORMAT, grouping: { ...grouping, ...wrong } })).toEqual(
+        {},
+      );
+    }
   });
 
-  it('reads grouping settings saved before the confidence needed was renamed', () => {
-    const { confidenceNeeded, ...rest } = grouping;
-
+  it('leaves out the settings saved for the timing model the break model replaced', () => {
     expect(
       parseTweaks({
         format: TWEAKS_FORMAT,
-        grouping: { ...rest, hintConfidence: confidenceNeeded },
+        grouping: {
+          neighborhood: 4,
+          pauseMargin: 0.8,
+          minimumPause: 1.35,
+          fullTrustUnevenness: 0.6,
+          halfLife: 16,
+          evidenceNeeded: 1.2,
+          confidenceNeeded: 0.45,
+        },
       }),
-    ).toEqual({ grouping });
+    ).toEqual({});
   });
 
   it('reads the tweaks stored in a format it knows, leaving out what is not valid', async () => {
