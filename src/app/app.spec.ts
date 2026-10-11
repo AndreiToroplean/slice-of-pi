@@ -16,15 +16,16 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('lays the background out behind every screen, in its colors', async () => {
+  it('lays the background out behind every screen, in the colors it shows', async () => {
     const fixture = TestBed.createComponent(App);
-    TestBed.inject(Background).colors.set(seasonAt(30).background);
     await fixture.whenStable();
     const main = (fixture.nativeElement as HTMLElement).querySelector('main');
+    const shown = TestBed.inject(Background).shown();
 
+    expect(shown).toEqual(seasonAt(0).background);
     expect(main?.classList).toContain('season-background');
-    expect(main?.style.getPropertyValue('--background-top')).toBe(seasonAt(30).background[0]);
-    expect(main?.style.getPropertyValue('--background-bottom')).toBe(seasonAt(30).background[1]);
+    expect(main?.style.getPropertyValue('--background-top')).toBe(shown[0]);
+    expect(main?.style.getPropertyValue('--background-bottom')).toBe(shown[1]);
     expect(main?.style.getPropertyValue('--background-space')).toBe(SEASON_COLOR_SPACE);
   });
 
