@@ -74,8 +74,3 @@
     accent-color: var(--on-background);
   }
 }
-
-.candy:disabled {
-  opacity: 0.6;
-  cursor: default;
-}

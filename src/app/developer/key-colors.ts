@@ -28,7 +28,7 @@ export const CLOSE = 15;
 
 /**
  * Developer mode's page to tune the 10 key colors, fitting the screen: every pair of them side by side, outlined where
- * they're easy to mix up, on a season's background. Selecting a key at the start of its row tunes it in the color
+ * they're easy to mix up, on a season's background. Selecting a key, at the start of its row or anywhere on it, tunes it in the color
  * picker under the grid.
  */
 @Component({
@@ -37,7 +37,9 @@ export const CLOSE = 15;
   host: { class: 'screen' },
   template: `
     <app-page-header title="Key colors">
-      <app-copy-values [text]="copyText()" />
+      <button type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
+        Back to the game's colors
+      </button>
     </app-page-header>
     <div class="seasons" role="radiogroup" aria-label="Background">
       @for (season of seasons; track season) {
@@ -65,7 +67,12 @@ export const CLOSE = 15;
           {{ r }}
         </button>
         @for (column of hexes(); track $index; let c = $index) {
-          <span class="pair" aria-hidden="true" [class.close]="isClose(row, column)">
+          <span
+            class="pair"
+            aria-hidden="true"
+            [class.close]="isClose(row, column)"
+            (click)="selected.set(r)"
+          >
             <span class="tile" [style.--place-color]="row">{{ r }}</span>
             <span class="tile" [style.--place-color]="column">{{ c }}</span>
           </span>
@@ -78,9 +85,7 @@ export const CLOSE = 15;
       [neighbors]="neighbors()"
       (colorChange)="tune($event)"
     />
-    <button type="button" class="candy" [disabled]="!tuned()" (click)="reset()">
-      Back to the game's colors
-    </button>
+    <app-copy-values [text]="copyText()" />
   `,
   styleUrl: './key-colors.css',
 })
