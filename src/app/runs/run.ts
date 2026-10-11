@@ -6,7 +6,7 @@ import { Digit } from '../digit';
  * in a newer format than it knows (written by a pull request preview sharing the site's storage) leaves it alone
  * rather than misreading it.
  */
-export const RUN_FORMAT = 1;
+export const RUN_FORMAT = 2;
 
 /**
  * The raw record of one run: each digit typed and when. Nothing derived (groups, pauses, pace) is stored; it's always
@@ -19,6 +19,11 @@ export const RUN_FORMAT = 1;
 export interface Run {
   readonly format: typeof RUN_FORMAT;
   readonly id: string;
+  /**
+   * Whether the game checked each digit as it was typed, so the run only holds decimals of π. Runs played without
+   * checking, in developer mode, aren't, nor are those from before the game checked digits: they may hold mistakes.
+   */
+  readonly checked: boolean;
   /** When the run started, in milliseconds since the Unix epoch. */
   readonly startedAt: number;
   /** The digits typed, in order. */
@@ -35,9 +40,9 @@ export interface Run {
   readonly backspaces: readonly number[];
 }
 
-/** A run that has no digits yet. */
-export function newRun(id: string, startedAt: number): Run {
-  return { format: RUN_FORMAT, id, startedAt, digits: '', times: [], backspaces: [] };
+/** A run that has no digits yet, checked unless said otherwise. */
+export function newRun(id: string, startedAt: number, checked = true): Run {
+  return { format: RUN_FORMAT, id, checked, startedAt, digits: '', times: [], backspaces: [] };
 }
 
 /** The run with one more digit, typed `time` milliseconds after its first digit. */
@@ -59,20 +64,19 @@ export function removeDigit(run: Run): Run {
 }
 
 /**
- * Reads a run from untrusted data (storage, a backup file): the run if it's a valid run in a known format. Format 1 is
- * the only one so far; migrations from older formats will go here.
+ * Reads a run from untrusted data (storage, a backup file): the run if it's a valid run in a known format, migrated to
+ * the current one.
  */
 export function parseRun(value: unknown): Run | undefined {
   if (typeof value !== 'object' || value === null) {
     return undefined;
   }
-  const { format, id, startedAt, digits, times, backspaces } = value as Partial<
-    Record<keyof Run, unknown>
-  >;
+  const { format, id, checked, startedAt, digits, times, backspaces } = migrate(value);
   if (
     format !== RUN_FORMAT ||
     typeof id !== 'string' ||
     id === '' ||
+    typeof checked !== 'boolean' ||
     !isTime(startedAt) ||
     typeof digits !== 'string' ||
     !/^[0-9]*$/.test(digits) ||
@@ -84,7 +88,30 @@ export function parseRun(value: unknown): Run | undefined {
   ) {
     return undefined;
   }
-  return { format, id, startedAt, digits, times, backspaces: backspaces as number[] };
+  return { format, id, checked, startedAt, digits, times, backspaces: backspaces as number[] };
+}
+
+/** Whether a stored record is in an older format than the current one, to be migrated. */
+export function isOlderFormat(value: unknown): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'format' in value &&
+    typeof value.format === 'number' &&
+    value.format < RUN_FORMAT
+  );
+}
+
+type RunRecord = Partial<Record<keyof Run, unknown>>;
+
+/** A record in an older format brought to the current one, one step per format; any other record as it is. */
+function migrate(record: RunRecord): RunRecord {
+  let migrated = record;
+  if (migrated.format === 1) {
+    // Format 1 runs are from before the game checked digits.
+    migrated = { ...migrated, format: 2, checked: false };
+  }
+  return migrated;
 }
 
 function isTime(value: unknown): value is number {

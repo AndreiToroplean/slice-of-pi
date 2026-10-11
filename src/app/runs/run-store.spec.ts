@@ -74,8 +74,30 @@ describe('RunStore', () => {
     });
   }
 
+  /** Every record in the runs store, as stored. */
+  async function storedRecords(): Promise<unknown[]> {
+    const database = await openDirectly();
+    const records = await new Promise<unknown[]>((resolve) => {
+      const request = database.transaction(RUNS).objectStore(RUNS).getAll();
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+    });
+    database.close();
+    return records;
+  }
+
   const first = addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250);
   const second = addDigit(newRun('b', 2_000), '1', 0);
+  /** A run as the game stored it before it checked digits, in format 1. */
+  const unchecked = {
+    format: 1,
+    id: 'old',
+    startedAt: 500,
+    digits: '7',
+    times: [0],
+    backspaces: [],
+  };
 
   it('has no runs at first', async () => {
     expect(await storeWith().runs()).toEqual([]);
@@ -134,6 +156,18 @@ describe('RunStore', () => {
       };
     });
     expect(count).toBe(3);
+  });
+
+  it('migrates the runs stored in older formats, and stores them in the current one', async () => {
+    await storeWith().writable();
+    TestBed.resetTestingModule();
+    const database = await openDirectly();
+    await put(database, [unchecked]);
+    database.close();
+
+    const migrated = { ...unchecked, format: RUN_FORMAT, checked: false };
+    expect(await storeWith().runs()).toEqual([migrated]);
+    expect(await storedRecords()).toEqual([migrated]);
   });
 
   it('opens a database a newer version of the game upgraded', async () => {
@@ -307,6 +341,20 @@ describe('RunStore', () => {
       expect(await preview.addRuns([second])).toBe(0);
       expect(await preview.runs()).toEqual([first]);
       expect(await mainFormat()).toEqual({ format: RUN_FORMAT - 1 });
+    });
+
+    it('migrates the runs of an older main game as it reads them, but leaves them stored as they are', async () => {
+      await storeWith().writable();
+      TestBed.resetTestingModule();
+      const database = await openDirectly();
+      await put(database, [unchecked]);
+      database.close();
+      await noteMainFormat(RUN_FORMAT - 1);
+
+      const preview = storeWith({ preview: true });
+
+      expect(await preview.runs()).toEqual([{ ...unchecked, format: RUN_FORMAT, checked: false }]);
+      expect(await storedRecords()).toEqual([unchecked]);
     });
 
     it('keeps runs when the main game has never opened the database', async () => {
