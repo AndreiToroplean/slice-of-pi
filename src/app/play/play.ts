@@ -29,7 +29,8 @@ import { TypedDigits } from '../typed-digits/typed-digits';
 /**
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
  * flies up to the typed digits as a word, as the seasons go by. Each typed digit takes the color its key showed.
- * Every digit is checked against π: a wrong one shows in red in its slot, and only backspace, deleting it, goes on.
+ * Every digit is checked against π, unless developer mode turns that off: a wrong one shows in red in its slot, and
+ * only backspace, deleting it, goes on.
  * Backspace deletes the last digit, reopening the last word when the slots are empty. Pausing offers to restart the game
  * or end it, back to the main menu. Every key is recorded, with its time, in the player's runs; restarting or ending the
  * game ends the run.
@@ -125,7 +126,11 @@ export class Play {
       }
       return;
     }
-    if (key !== 'backspace' && !isPiDecimal(this.digits().length + 1, key)) {
+    if (
+      key !== 'backspace' &&
+      this.tweaks.checking() &&
+      !isPiDecimal(this.digits().length + 1, key)
+    ) {
       this.mistake.set(key);
       return;
     }

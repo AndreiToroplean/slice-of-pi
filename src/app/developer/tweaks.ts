@@ -36,6 +36,8 @@ export interface TweakValues {
   readonly colorSpace?: ColorSpace;
   /** How many places a season takes to turn into the next, for {@link SEASON_TURN}. */
   readonly seasonTurn?: number;
+  /** `false` to play without checking the digits, which the game otherwise always does. */
+  readonly checking?: false;
 }
 
 /** The game's own starting colors of each season. */
@@ -88,6 +90,11 @@ export class Tweaks {
     () => (this.developerMode.enabled() ? this.tweaks().seasonTurn : undefined) ?? SEASON_TURN,
   );
 
+  /** Whether the game checks the digits typed against π. */
+  readonly checking = computed(
+    () => !this.developerMode.enabled() || this.tweaks().checking !== false,
+  );
+
   constructor() {
     this.loaded = this.store.setting(TWEAKS).then((stored) => {
       // Unless they were changed in the meantime.
@@ -125,6 +132,11 @@ export class Tweaks {
   /** Sets how many places a season takes to turn into the next; `undefined` brings back the game's. */
   setSeasonTurn(seasonTurn: number | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), seasonTurn }));
+  }
+
+  /** Turns checking the digits typed on or off. */
+  setChecking(checking: boolean): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), checking: checking ? undefined : false }));
   }
 
   private async save(next: TweakValues): Promise<void> {
@@ -202,12 +214,14 @@ export function parseTweaks(stored: unknown): TweakValues {
   const grouping = 'grouping' in stored ? stored.grouping : undefined;
   const colorSpace = 'colorSpace' in stored ? stored.colorSpace : undefined;
   const seasonTurn = 'seasonTurn' in stored ? stored.seasonTurn : undefined;
+  const checking = 'checking' in stored ? stored.checking : undefined;
   return tweakValues({
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
     grouping: isTimingSettings(grouping) ? grouping : undefined,
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
+    checking: checking === false ? checking : undefined,
   });
 }
 
@@ -218,6 +232,7 @@ function tweakValues({
   grouping,
   colorSpace,
   seasonTurn,
+  checking,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -227,6 +242,7 @@ function tweakValues({
     ...(grouping === undefined ? {} : { grouping }),
     ...(colorSpace === undefined ? {} : { colorSpace }),
     ...(seasonTurn === undefined ? {} : { seasonTurn }),
+    ...(checking === undefined ? {} : { checking }),
   };
 }
 

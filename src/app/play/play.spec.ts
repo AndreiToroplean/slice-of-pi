@@ -208,6 +208,26 @@ describe('Play', () => {
       ).toEqual(colors);
     });
 
+    it('takes any digit when developer mode turns checking off', async () => {
+      await TestBed.inject(Tweaks).setChecking(false);
+      await TestBed.inject(DeveloperMode).set(true);
+      const { host, type } = await setUp();
+
+      await typeAll(type, '30');
+
+      expect(slots(host)).toEqual(['3', '0', '', '', '']);
+      expect(host.querySelector('app-slots .wrong')).toBeNull();
+    });
+
+    it('checks the digits again once developer mode is off', async () => {
+      await TestBed.inject(Tweaks).setChecking(false);
+      const { host, type } = await setUp();
+
+      await typeAll(type, '3');
+
+      expect(host.querySelector('app-slots .wrong')?.textContent).toBe('3');
+    });
+
     it('records the backspace deleting a wrong digit, but never the wrong digit', async () => {
       const recorder = TestBed.inject(RunRecorder);
       const record = vi.spyOn(recorder, 'record');

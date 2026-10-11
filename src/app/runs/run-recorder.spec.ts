@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Tweaks } from '../developer/tweaks';
 import { KeypadKey } from '../keypad/keypad-layout';
 import { Run, RUN_FORMAT } from './run';
 import { RUN_CLOCK, RunRecorder } from './run-recorder';
@@ -13,8 +14,11 @@ describe('RunRecorder', () => {
   /** Saves hold until released, when set. */
   let held: (() => void)[] | undefined;
   let failing: boolean;
+  /** Whether the game checks the digits. */
+  let checking: boolean;
 
   beforeEach(() => {
+    checking = true;
     time = 5_000;
     ids = 0;
     saves = [];
@@ -24,6 +28,7 @@ describe('RunRecorder', () => {
     persist = vi.fn(() => Promise.resolve(true));
     TestBed.configureTestingModule({
       providers: [
+        { provide: Tweaks, useValue: { checking: () => checking } },
         {
           provide: RUN_CLOCK,
           useValue: {
@@ -190,6 +195,23 @@ describe('RunRecorder', () => {
     expect(stored()).toMatchObject([
       { id: 'run-1', digits: '14', backspaces: [] },
       { id: 'run-2', digits: '1', times: [0] },
+    ]);
+  });
+
+  it('marks a run started without checking the digits as unchecked', async () => {
+    const recorder = TestBed.inject(RunRecorder);
+
+    checking = false;
+    press(recorder, '1');
+    checking = true;
+    press(recorder, '4');
+    recorder.end();
+    press(recorder, '1');
+    await recorder.saved();
+
+    expect(stored()).toMatchObject([
+      { id: 'run-1', digits: '14', checked: false },
+      { id: 'run-2', digits: '1', checked: true },
     ]);
   });
 
