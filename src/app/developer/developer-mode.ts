@@ -35,6 +35,11 @@ export class DeveloperMode {
     });
   }
 
+  /** Reads the stored setting again, once something else changed it, such as restoring a backup. */
+  async reload(): Promise<void> {
+    this.isEnabled.set(parseSetting(await this.store.setting(DEVELOPER_MODE)));
+  }
+
   /** Turns developer mode on or off, and keeps it that way for the next visits. */
   async set(enabled: boolean): Promise<void> {
     this.changed = true;

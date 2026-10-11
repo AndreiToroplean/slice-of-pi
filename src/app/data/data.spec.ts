@@ -16,7 +16,9 @@ import {
   RUNS,
   STORAGE_MANAGER,
 } from '../runs/run-store';
-import { DeveloperMode } from '../developer/developer-mode';
+import { DEVELOPER_MODE, DEVELOPER_MODE_FORMAT, DeveloperMode } from '../developer/developer-mode';
+import { Tweaks, TWEAKS, TWEAKS_FORMAT } from '../developer/tweaks';
+import { DEFAULT_TIMING_SETTINGS } from '../timing/timing-model';
 import { Data, SAVE_FILE } from './data';
 
 describe('Data', () => {
@@ -172,31 +174,59 @@ describe('Data', () => {
     expect(text(host)).toContain("keeps them until this site's data is cleared");
   });
 
-  it('saves a backup of every run, named after the date', async () => {
-    const { host, until } = await setUp([first, second]);
+  it('saves a backup of every run and setting, named after the date', async () => {
+    const { host, until } = await setUp([first, second], false, false, undefined, true);
 
     button(host, 'Save a backup').click();
     await until(() => message(host) !== '');
 
     expect(saved.map((file) => file.name)).toEqual(['slice-of-pi-2026-10-10.json']);
-    expect(readBackup(saved[0]?.text ?? '')).toEqual({ runs: [first, second], skipped: 0 });
+    expect(readBackup(saved[0]?.text ?? '')).toEqual({
+      runs: [first, second],
+      skipped: 0,
+      settings: { [DEVELOPER_MODE]: { format: DEVELOPER_MODE_FORMAT, enabled: true } },
+    });
     expect(message(host)).toBe('Saved 2 runs in the backup.');
   });
 
   it('restores the runs of a backup that are not kept yet', async () => {
     const { host, until } = await setUp([first]);
 
-    await choose(host, until, writeBackup([first, second], 0));
+    await choose(host, until, writeBackup([first, second], {}, 0));
 
     expect(message(host)).toBe('Added 1 run from the backup.');
     expect(text(host)).toContain('2 runs kept on this device.');
     expect(await TestBed.inject(RunStore).runs()).toEqual([first, second]);
   });
 
+  it('restores the settings of a backup, and applies them', async () => {
+    const { host, until } = await setUp([first]);
+    const grouping = { ...DEFAULT_TIMING_SETTINGS, halfLife: 4 };
+
+    await choose(
+      host,
+      until,
+      writeBackup(
+        [first],
+        {
+          [DEVELOPER_MODE]: { format: DEVELOPER_MODE_FORMAT, enabled: true },
+          [TWEAKS]: { format: TWEAKS_FORMAT, grouping },
+        },
+        0,
+      ),
+    );
+    await until(() => host.querySelector('app-grouping-settings-panel') !== null);
+
+    expect(message(host)).toBe(
+      'Every run in this backup is already here. Its settings replace yours.',
+    );
+    expect(TestBed.inject(Tweaks).grouping()).toEqual(grouping);
+  });
+
   it('says when every run of a backup is already kept', async () => {
     const { host, until } = await setUp([first]);
 
-    await choose(host, until, writeBackup([first], 0));
+    await choose(host, until, writeBackup([first], {}, 0));
 
     expect(message(host)).toBe('Every run in this backup is already here.');
   });
@@ -335,7 +365,7 @@ describe('Data', () => {
   it('charts the runs of a backup once restored', async () => {
     const { host, until } = await setUp();
 
-    await choose(host, until, writeBackup([first], 0));
+    await choose(host, until, writeBackup([first], {}, 0));
 
     expect(host.querySelectorAll('app-run-chart')).toHaveLength(2);
   });

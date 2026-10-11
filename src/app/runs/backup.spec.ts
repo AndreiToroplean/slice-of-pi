@@ -6,29 +6,45 @@ describe('backup', () => {
     addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250),
     addDigit(newRun('b', 2_000), '1', 0),
   ];
+  const settings = { 'developer-mode': { format: 1, enabled: true } };
 
-  it('writes every run in a versioned file', () => {
-    expect(JSON.parse(writeBackup(runs, 1_760_000_000_000))).toEqual({
+  it('writes every run and setting in a versioned file', () => {
+    expect(JSON.parse(writeBackup(runs, settings, 1_760_000_000_000))).toEqual({
       kind: BACKUP_KIND,
       format: BACKUP_FORMAT,
       exportedAt: 1_760_000_000_000,
       runs,
+      settings,
     });
   });
 
-  it('reads back the runs it wrote', () => {
-    expect(readBackup(writeBackup(runs, 0))).toEqual({ runs, skipped: 0 });
+  it('reads back the runs and settings it wrote', () => {
+    expect(readBackup(writeBackup(runs, settings, 0))).toEqual({ runs, skipped: 0, settings });
   });
 
   it('reads a backup without runs', () => {
-    expect(readBackup(writeBackup([], 0))).toEqual({ runs: [], skipped: 0 });
+    expect(readBackup(writeBackup([], {}, 0))).toEqual({ runs: [], skipped: 0, settings: {} });
+  });
+
+  it.each([
+    ['made before settings were kept in backups', undefined],
+    ['whose settings are not settings by name', ['developer-mode']],
+  ])('reads no settings from a backup %s', (_, written) => {
+    const text = JSON.stringify({
+      kind: BACKUP_KIND,
+      format: BACKUP_FORMAT,
+      runs,
+      settings: written,
+    });
+
+    expect(readBackup(text)).toEqual({ runs, skipped: 0, settings: {} });
   });
 
   it('skips the runs it cannot read, and counts them', () => {
-    const backup = JSON.parse(writeBackup(runs, 0)) as Record<string, unknown>;
+    const backup = JSON.parse(writeBackup(runs, {}, 0)) as Record<string, unknown>;
     backup['runs'] = [...runs, { ...runs[0], format: RUN_FORMAT + 1 }, 'run'];
 
-    expect(readBackup(JSON.stringify(backup))).toEqual({ runs, skipped: 2 });
+    expect(readBackup(JSON.stringify(backup))).toEqual({ runs, skipped: 2, settings: {} });
   });
 
   it.each([

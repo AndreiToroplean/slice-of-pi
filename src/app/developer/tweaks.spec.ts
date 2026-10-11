@@ -96,6 +96,15 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({ grouping });
   });
 
+  it('reads the stored tweaks again once something else changed them', async () => {
+    const tweaks = await load();
+    await TestBed.inject(RunStore).saveSetting(TWEAKS, { format: TWEAKS_FORMAT, grouping });
+
+    await tweaks.reload();
+
+    expect(tweaks.values()).toEqual({ grouping });
+  });
+
   describe('as text', () => {
     it('lists the key colors, saying when they are the game’s own', () => {
       expect(paletteText(PALETTE).split('\n')[0]).toBe(
