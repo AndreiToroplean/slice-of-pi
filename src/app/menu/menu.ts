@@ -54,7 +54,7 @@ import { seasonAt } from '../seasons/seasons';
       }
     </nav>
     <div class="title">
-      <img class="icon" ngSrc="icons/icon.svg" width="136" height="136" alt="" priority />
+      <img class="icon" ngSrc="icons/icon.webp" width="136" height="136" alt="" priority />
       <h1>
         <span class="visually-hidden">{{ name }}</span>
         <!-- The name written in tiles, like the typed digits. -->
