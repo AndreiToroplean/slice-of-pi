@@ -1,4 +1,4 @@
-import { ColorSpace, mix } from '../colors/color-spaces';
+import { ColorSpace, GradientColors, mixGradients } from '../colors/color-spaces';
 
 /** The four seasons of a year, in order. */
 export const SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
@@ -11,7 +11,7 @@ export const PLACES_PER_YEAR = 100;
 export const PLACES_PER_SEASON = PLACES_PER_YEAR / SEASONS.length;
 
 /** A pair of background colors, top then bottom, as `#rrggbb`. */
-export type BackgroundColors = readonly [top: string, bottom: string];
+export type BackgroundColors = GradientColors;
 
 /** Each season's background at its start (`early`) and once it has drifted, just before it turns into the next season. */
 export type SeasonBackgrounds = Readonly<
@@ -51,7 +51,8 @@ export interface SeasonView {
  * The season and background after typing `places` places.
  *
  * A season holds its colors, drifting slightly from its early to its late colors over its first 80%, then turns into
- * the next season's early colors over its last 20%, blending them in `space`. The colors are decorative and free to
+ * the next season's early colors over its last 20%, blending them in `space` so that the background's gradient never
+ * flips the way it turns round the color wheel (see {@link mixGradients}). The colors are decorative and free to
  * tune; what must not change is the structure: a year is 100 places, split into four equal seasons.
  */
 export function seasonAt(
@@ -68,8 +69,6 @@ export function seasonAt(
   const turn = smoothstep(TURN_START, 1, t);
   const { early, late } = backgrounds[season];
   const target = backgrounds[next].early;
-  const color = (k: 0 | 1): string =>
-    mix(mix(early[k], late[k], drift, space), target[k], turn, space);
   return {
     season,
     year: Math.floor(places / PLACES_PER_YEAR) + 1,
@@ -77,7 +76,7 @@ export function seasonAt(
     seasonProgress: SEASONS.map((_, q) =>
       Math.min(1, Math.max(0, (placeInYear - q * PLACES_PER_SEASON) / PLACES_PER_SEASON)),
     ),
-    background: [color(0), color(1)],
+    background: mixGradients(mixGradients(early, late, drift, space), target, turn, space),
   };
 }
 

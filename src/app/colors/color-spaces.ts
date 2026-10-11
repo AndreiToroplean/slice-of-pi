@@ -26,30 +26,130 @@ export interface Hsl {
 
 type Triple = readonly [number, number, number];
 
-/** Blends two `#rrggbb` colors in `space`: `t = 0` gives `a`, `t = 1` gives `b`; hues go the short way round. */
-export function mix(a: string, b: string, t: number, space: ColorSpace = 'srgb'): string {
+/** Which way round the color wheel hues turn when blending. */
+export type HueWay = 'short' | 'long';
+
+/**
+ * Blends two `#rrggbb` colors in `space`: `t = 0` gives `a`, `t = 1` gives `b`. In a space with a hue, the hue turns the
+ * short way round unless told to go the long way.
+ */
+export function mix(
+  a: string,
+  b: string,
+  t: number,
+  space: ColorSpace = 'srgb',
+  way: HueWay = 'short',
+): string {
   switch (space) {
     case 'srgb':
       return toHex(lerpTriple(rgb(a), rgb(b), t));
     case 'oklab':
       return oklabToHex(lerpTriple(hexToOklab(a), hexToOklab(b), t));
-    case 'hsl': {
-      const from = hexToHsl(a);
-      const to = hexToHsl(b);
-      return hslToHex({
-        hue: lerpHue(from.hue, to.hue, t),
-        saturation: lerp(from.saturation, to.saturation, t),
-        lightness: lerp(from.lightness, to.lightness, t),
-      });
-    }
+    case 'hsl':
     case 'oklch': {
-      const [l1, c1, h1] = oklch(hexToOklab(a));
-      const [l2, c2, h2] = oklch(hexToOklab(b));
-      const hue = (lerpHue(h1, h2, t) * Math.PI) / 180;
-      const chroma = lerp(c1, c2, t);
-      return oklabToHex([lerp(l1, l2, t), chroma * Math.cos(hue), chroma * Math.sin(hue)]);
+      const from = toHued(a, space);
+      const to = toHued(b, space);
+      const turn = shortWay(from.hue, to.hue);
+      return fromHued(
+        {
+          hue: from.hue + (way === 'short' ? turn : longWay(turn)) * t,
+          rest: [lerp(from.rest[0], to.rest[0], t), lerp(from.rest[1], to.rest[1], t)],
+        },
+        space,
+      );
     }
   }
+}
+
+/** A gradient's two colors, as `#rrggbb`: where it starts (the top of the screen) and where it ends (its bottom). */
+export type GradientColors = readonly [start: string, end: string];
+
+/**
+ * Blends two gradients in `space`, blending their starts and their ends as {@link mix} does.
+ *
+ * A gradient drawn in a space with a hue turns from its start hue to its end hue the short way round. Were the starts
+ * and the ends each blended the short way, the difference between their hues could pass half the wheel along the way,
+ * and the gradient would flip, all at once, to turning the other way round. So when the start and the end would turn
+ * against each other like that, one of them goes the long way round instead: whichever makes the trip shorter overall.
+ */
+export function mixGradients(
+  a: GradientColors,
+  b: GradientColors,
+  t: number,
+  space: ColorSpace = 'srgb',
+): GradientColors {
+  const [start, end] = space === 'hsl' || space === 'oklch' ? hueWays(a, b, space) : SHORT_WAYS;
+  return [mix(a[0], b[0], t, space, start), mix(a[1], b[1], t, space, end)];
+}
+
+const SHORT_WAYS = ['short', 'short'] as const;
+
+/** Which ways the start and the end of a gradient turn, so that it never flips (see {@link mixGradients}). */
+function hueWays(
+  a: GradientColors,
+  b: GradientColors,
+  space: 'hsl' | 'oklch',
+): readonly [HueWay, HueWay] {
+  const hue = (color: string): number => hueOf(color, space);
+  // How far the end's hue is from the start's, as the gradient is drawn: it must change straight from a's to b's.
+  const change = shortWay(hue(b[0]), hue(b[1])) - shortWay(hue(a[0]), hue(a[1]));
+  const start = shortWay(hue(a[0]), hue(b[0]));
+  const end = shortWay(hue(a[1]), hue(b[1]));
+  const ways: readonly (readonly [HueWay, HueWay, number, number])[] = [
+    ['short', 'short', start, end],
+    ['long', 'short', longWay(start), end],
+    ['short', 'long', start, longWay(end)],
+  ];
+  let best: readonly [HueWay, HueWay] = SHORT_WAYS;
+  let shortest = Infinity;
+  for (const [startWay, endWay, startTurn, endTurn] of ways) {
+    const trip = Math.abs(startTurn) + Math.abs(endTurn);
+    if (Math.abs(endTurn - startTurn - change) < 1e-6 && trip < shortest) {
+      best = [startWay, endWay];
+      shortest = trip;
+    }
+  }
+  return best;
+}
+
+/** The hue of a `#rrggbb` color in a space with a hue, in degrees from 0 to 360. */
+export function hueOf(hex: string, space: 'hsl' | 'oklch'): number {
+  return toHued(hex, space).hue;
+}
+
+/** How far to turn from hue `a` to hue `b` the short way round: from -180 to 180 degrees. */
+export function shortWay(a: number, b: number): number {
+  const difference = (((b - a) % 360) + 360) % 360;
+  return difference > 180 ? difference - 360 : difference;
+}
+
+/** The same turn the other way round the color wheel. */
+function longWay(turn: number): number {
+  return turn > 0 ? turn - 360 : turn + 360;
+}
+
+/** A color in a space with a hue: its hue in degrees, then its other two channels (as in `hsl()` or `oklch()`). */
+interface Hued {
+  readonly hue: number;
+  readonly rest: readonly [number, number];
+}
+
+function toHued(hex: string, space: 'hsl' | 'oklch'): Hued {
+  if (space === 'hsl') {
+    const { hue, saturation, lightness } = hexToHsl(hex);
+    return { hue, rest: [saturation, lightness] };
+  }
+  const [lightness, chroma, hue] = oklch(hexToOklab(hex));
+  return { hue, rest: [lightness, chroma] };
+}
+
+function fromHued({ hue, rest }: Hued, space: 'hsl' | 'oklch'): string {
+  const degrees = ((hue % 360) + 360) % 360;
+  if (space === 'hsl') {
+    return hslToHex({ hue: degrees, saturation: rest[0], lightness: rest[1] });
+  }
+  const radians = (degrees * Math.PI) / 180;
+  return oklabToHex([rest[0], rest[1] * Math.cos(radians), rest[1] * Math.sin(radians)]);
 }
 
 export function hexToHsl(hex: string): Hsl {
@@ -146,15 +246,4 @@ function lerp(a: number, b: number, t: number): number {
 
 function lerpTriple(a: Triple, b: Triple, t: number): Triple {
   return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
-}
-
-/** Hues the short way round the color wheel. */
-function lerpHue(a: number, b: number, t: number): number {
-  let difference = b - a;
-  if (difference > 180) {
-    difference -= 360;
-  } else if (difference < -180) {
-    difference += 360;
-  }
-  return (a + difference * t + 360) % 360;
 }
