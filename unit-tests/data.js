@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791709415194,
+  "lastUpdate": 1791711744765,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -158,6 +158,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 152,
+            "unit": "ms",
+            "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "1b036dcfeb867c89645955c556976fdafaffe50e",
+          "message": "fix: fit the installed app icon inside the Android launcher's crop\n\nAndroid launchers show only the middle 80% of a maskable icon (its safe zone; the outer 10% on each side may be cut), so they zoomed into the cake. New maskable icons (192 and 512px) shrink the design to that middle 80%, so the launcher shows it as framed in the crop tool. The other icons keep the full frame and are now marked \"any\".\n\nClaude-Session: https://claude.ai/code/session_01UB6KK779oktGArLnqYU1QE",
+          "timestamp": "2026-10-11T11:41:51+02:00",
+          "tree_id": "8e7db0fd6240659b92df7e59ac20d0a856159450",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/1b036dcfeb867c89645955c556976fdafaffe50e"
+        },
+        "date": 1791711743981,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 3520,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 4833,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 182,
             "unit": "ms",
             "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
           }
