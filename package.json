@@ -8,6 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false",
     "test:coverage": "ng test --watch=false --coverage",
+    "test:manual": "ng test --watch=false --include ../scripts/pi.spec.ts",
     "lint": "ng lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
