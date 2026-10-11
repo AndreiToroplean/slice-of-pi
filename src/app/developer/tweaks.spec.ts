@@ -54,7 +54,7 @@ describe('Tweaks', () => {
     const tweaks = await load();
     await tweaks.setPalette(palette);
     await tweaks.setSeasons(seasons);
-    await tweaks.setColorSpace('oklch');
+    await tweaks.setColorSpace('hsl');
 
     expect(tweaks.palette()).toBe(PALETTE);
     expect(tweaks.seasonBackgrounds()).toBe(SEASON_BACKGROUNDS);
@@ -63,7 +63,7 @@ describe('Tweaks', () => {
     await TestBed.inject(DeveloperMode).set(true);
     expect(tweaks.palette()).toEqual(palette);
     expect(tweaks.seasonBackgrounds()).toEqual(backgroundsFrom(seasons));
-    expect(tweaks.colorSpace()).toBe('oklch');
+    expect(tweaks.colorSpace()).toBe('hsl');
   });
 
   it('keeps the tuned values for the next visits, and brings back the game’s on reset', async () => {
@@ -132,11 +132,11 @@ describe('Tweaks', () => {
           `  summer: ${SEASON_STARTS.summer[0]}, ${SEASON_STARTS.summer[1]}`,
           '  autumn: #000000, #ffffff (changed)',
           `  winter: ${SEASON_STARTS.winter[0]}, ${SEASON_STARTS.winter[1]}`,
-          'Blended in sRGB (SEASON_COLOR_SPACE in seasons.ts)',
+          'Blended in OKLCH (SEASON_COLOR_SPACE in seasons.ts)',
         ].join('\n'),
       );
-      expect(seasonsText(SEASON_STARTS, 'oklch').split('\n').at(-1)).toBe(
-        'Blended in OKLCH (SEASON_COLOR_SPACE in seasons.ts) (changed)',
+      expect(seasonsText(SEASON_STARTS, 'srgb').split('\n').at(-1)).toBe(
+        'Blended in sRGB (SEASON_COLOR_SPACE in seasons.ts) (changed)',
       );
     });
   });

@@ -118,18 +118,18 @@ describe('SeasonColors', () => {
     }
     expect(select.value).toBe(SEASON_COLOR_SPACE);
     expect(Array.from(select.options, (option) => option.textContent.trim())).toEqual([
-      'sRGB (the game’s)',
+      'sRGB',
       'OKLab',
       'HSL',
-      'OKLCH',
+      'OKLCH (the game’s)',
     ]);
 
-    select.value = 'oklch';
+    select.value = 'srgb';
     select.dispatchEvent(new Event('change'));
     await stable();
 
-    expect(TestBed.inject(Tweaks).values()).toEqual({ colorSpace: 'oklch' });
-    expect(background()).toEqual(seasonAt(72, SEASON_BACKGROUNDS, 'oklch').background);
+    expect(TestBed.inject(Tweaks).values()).toEqual({ colorSpace: 'srgb' });
+    expect(background()).toEqual(seasonAt(72, SEASON_BACKGROUNDS, 'srgb').background);
 
     host.querySelector<HTMLButtonElement>('app-page-header button.pill')?.click();
     await stable();
