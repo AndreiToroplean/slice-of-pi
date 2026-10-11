@@ -18,7 +18,7 @@ npm run lint           # lint with ESLint
 npm test               # run unit tests (Vitest)
 npm run test:coverage  # unit tests with coverage report
 npm run build          # production build into dist/
-npm run check          # format check, lint, build and tests, timed against budgets
+npm run check          # format check, lint, build and tests
 ```
 
 Every pull request runs the checks (see `.github/workflows/deploy.yml`). `main` is deployed to GitHub Pages, and a pull request can ask for a preview of its own.
