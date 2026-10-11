@@ -178,7 +178,7 @@ h3 {
   }
 }
 
-/* The groups of all runs, as words of digits; those the hint doesn't follow yet are dotted. */
+/* The groups of all runs, as words of digits; those not trusted, from the first one not confident enough on, are dotted. */
 .groups {
   display: flex;
   flex-wrap: wrap;

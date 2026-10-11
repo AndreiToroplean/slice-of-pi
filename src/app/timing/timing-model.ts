@@ -23,8 +23,8 @@ export interface TimingSettings {
   readonly halfLife: number;
   /** How much trusted evidence makes the aggregate 63% sure, in fully trusted newest runs. */
   readonly evidenceNeeded: number;
-  /** The aggregate confidence a group needs for the hint to follow it, from 0 to 1. */
-  readonly hintConfidence: number;
+  /** The aggregate confidence a group needs to be trusted, from 0 to 1; groups after one that falls short aren't either. */
+  readonly confidenceNeeded: number;
 }
 
 export const DEFAULT_TIMING_SETTINGS: TimingSettings = {
@@ -34,7 +34,7 @@ export const DEFAULT_TIMING_SETTINGS: TimingSettings = {
   fullTrustUnevenness: 0.6,
   halfLife: 16,
   evidenceNeeded: 1.2,
-  hintConfidence: 0.45,
+  confidenceNeeded: 0.45,
 };
 
 /** Neighbors further than this many neighborhoods away are left out: their weight would be under 1.2%. */
@@ -83,6 +83,11 @@ export interface Aggregate {
   /** By index; `undefined` at index 0 and where no run has a verdict. */
   readonly places: readonly (AggregatePlace | undefined)[];
   readonly groups: readonly Group[];
+  /**
+   * The index where the trusted groups end: the start of the first group that is open or not confident enough
+   * (`groupings.md` §4.3). That group and every one after it aren't trusted, so the game plays groups of 5 from there.
+   */
+  readonly trustedUntil: number;
 }
 
 /** Judges every place of one run, from its times (in milliseconds since its first digit). */
@@ -192,7 +197,11 @@ export function aggregate(
       confidence: agreement * evidence,
     };
   });
-  return { places, groups: groups(places) };
+  const found = groups(places);
+  const untrusted = found.find(
+    (group) => group.open || group.confidence < settings.confidenceNeeded,
+  );
+  return { places, groups: found, trustedUntil: untrusted?.start ?? length };
 }
 
 function groups(places: readonly (AggregatePlace | undefined)[]): Group[] {
@@ -210,9 +219,4 @@ function groups(places: readonly (AggregatePlace | undefined)[]): Group[] {
     start = i;
   }
   return found;
-}
-
-/** Whether the hint follows this group (`groupings.md` §4.3); elsewhere it's the default of 5. */
-export function isConfident(group: Group, settings: TimingSettings): boolean {
-  return !group.open && group.confidence >= settings.hintConfidence;
 }

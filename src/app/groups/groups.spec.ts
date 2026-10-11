@@ -1,5 +1,5 @@
 import { aggregate, analyzeRun, DEFAULT_TIMING_SETTINGS } from '../timing/timing-model';
-import { groupEnds, DEFAULT_HINT, groupDigits, hintAt } from './groups';
+import { DEFAULT_GROUP_SIZE, groupDigits, groupEnds, groupSizeAt } from './groups';
 
 const settings = DEFAULT_TIMING_SETTINGS;
 
@@ -24,8 +24,8 @@ describe('groupDigits', () => {
     expect(groupDigits('', [])).toEqual({ words: [], current: '' });
   });
 
-  it('expects groups of 5 by default', () => {
-    expect(DEFAULT_HINT).toBe(5);
+  it('plays groups of 5 by default', () => {
+    expect(DEFAULT_GROUP_SIZE).toBe(5);
   });
 
   it('keeps every digit in the group being typed until a group is finished', () => {
@@ -51,33 +51,34 @@ describe('groupDigits', () => {
   });
 });
 
-describe('hintAt', () => {
+describe('groupSizeAt', () => {
   it('is the default for a new player', () => {
-    expect(hintAt(aggregate([], settings), 0, settings)).toBe(DEFAULT_HINT);
+    expect(groupSizeAt(aggregate([], settings), 0)).toBe(DEFAULT_GROUP_SIZE);
   });
 
-  it("follows the player's groups where the aggregate is confident about them", () => {
+  it("follows the player's groups where they're trusted", () => {
     const found = aggregate(runsBy3(4), settings);
 
-    expect(hintAt(found, 0, settings)).toBe(3);
-    expect(hintAt(found, 3, settings)).toBe(3);
+    expect(groupSizeAt(found, 0)).toBe(3);
+    expect(groupSizeAt(found, 3)).toBe(3);
   });
 
   it('counts the digits left in a group starting inside it', () => {
-    expect(hintAt(aggregate(runsBy3(4), settings), 4, settings)).toBe(2);
+    expect(groupSizeAt(aggregate(runsBy3(4), settings), 4)).toBe(2);
   });
 
-  it('is the default where the aggregate is not confident enough', () => {
-    const found = aggregate(runsBy3(4), { ...settings, hintConfidence: 1 });
-
-    expect(hintAt(found, 3, { ...settings, hintConfidence: 1 })).toBe(DEFAULT_HINT);
-  });
-
-  it('is the default in a group no break is known to end, and past the data', () => {
+  it('is the default from the first group not trusted on', () => {
     const found = aggregate(runsBy3(4), settings);
 
-    expect(hintAt(found, 12, settings)).toBe(DEFAULT_HINT);
-    expect(hintAt(found, 20, settings)).toBe(DEFAULT_HINT);
+    expect(found.trustedUntil).toBe(12);
+    expect(groupSizeAt(found, 12)).toBe(DEFAULT_GROUP_SIZE);
+    expect(groupSizeAt(found, 20)).toBe(DEFAULT_GROUP_SIZE);
+  });
+
+  it('is the default everywhere when no group is confident enough', () => {
+    const custom = { ...settings, confidenceNeeded: 1 };
+
+    expect(groupSizeAt(aggregate(runsBy3(4), custom), 3)).toBe(DEFAULT_GROUP_SIZE);
   });
 });
 

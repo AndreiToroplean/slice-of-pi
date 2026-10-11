@@ -140,18 +140,18 @@ describe('Play', () => {
     expect(summary(host)).toBe('9 digits typed, the last one is 3.');
   });
 
-  it('keeps the group open while the player types on, adding a slot per digit past the hint', async () => {
+  it('finishes a group of 5 by default once it has all its digits, without a pause', async () => {
     const { host, type } = await setUp();
 
     await typeAll(type, '1415926');
 
-    expect(words(host)).toEqual([]);
-    expect(slots(host)).toEqual(['1', '4', '1', '5', '9', '2', '6']);
+    expect(words(host)).toEqual(['14159']);
+    expect(slots(host)).toEqual(['2', '6', '', '', '']);
   });
 
   it("doesn't finish a group before the wait is clearly longer than the player's pace", async () => {
     const { host, type } = await setUp();
-    await typeAll(type, '1415926');
+    await typeAll(type, '1415');
 
     time.advance(260);
     await TestBed.inject(ApplicationRef).whenStable();
@@ -170,8 +170,8 @@ describe('Play', () => {
 
   it('waits for a new pause after backspace, counted from it', async () => {
     const { host, type } = await setUp();
-    await typeAll(type, '1415926');
-    time.advance(PAUSE - 100);
+    await typeAll(type, '1415');
+    time.advance(200);
     await type('backspace');
 
     time.advance(200);
@@ -179,7 +179,7 @@ describe('Play', () => {
     expect(words(host)).toEqual([]);
 
     await typeAll(type, ' ');
-    expect(words(host)).toEqual(['141592']);
+    expect(words(host)).toEqual(['141']);
   });
 
   describe("with the player's earlier runs", () => {

@@ -329,7 +329,7 @@ describe('Data', () => {
     expect(Array.from(host.querySelectorAll('.runs .meta'), (meta) => meta.textContent)).toEqual([
       '2 digits in 0.3 s · 1 group',
       '1 digit in 0.0 s · 1 group',
-      '1 group, 0 sure enough to set the hint; dotted ones get the default of 5',
+      '1 group, none trusted; from the first dotted one on, the game plays groups of 5',
     ]);
     const labels = Array.from(host.querySelectorAll('app-run-chart svg'), (svg) =>
       svg.getAttribute('aria-label'),
@@ -352,7 +352,7 @@ describe('Data', () => {
     expect(host.querySelector('.runs .meta')?.textContent).toBe('12 digits in 3.7 s · 4 groups');
   });
 
-  it('shows the groups of all runs, dotted where the hint keeps its default', async () => {
+  it('shows the groups of all runs, dotted from the first one not trusted', async () => {
     const { host } = await setUp([grouped]);
 
     expect(
@@ -367,7 +367,7 @@ describe('Data', () => {
       ['589', true],
     ]);
     expect(host.querySelector('.summary .meta')?.textContent).toBe(
-      '4 groups, 3 sure enough to set the hint; dotted ones get the default of 5',
+      '4 groups, the first 3 trusted; from the first dotted one on, the game plays groups of 5',
     );
     expect(host.querySelectorAll('.summary .break')).toHaveLength(3);
   });

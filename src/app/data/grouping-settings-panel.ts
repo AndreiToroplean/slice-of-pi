@@ -72,7 +72,7 @@ export const CONTROLS: readonly Control[] = [
       what: 'Each run’s verdict at a place, break or not, counts in the vote with a trust from 0 to 1. It grows with how uneven the run’s rhythm is there: the spread divided by the pace. At this unevenness, the run is fully trusted.',
       why: 'Divided by the pace so that it measures rhythm, not speed: a player twice as fast with the same rhythm has half the spread in milliseconds. 0.1 means times vary by about 10% (a metronome), 0.6 by 60% (clear pauses). Where you type like a metronome, a break is just noise, and a steady run says little about your groups: once you’re fluent enough to type a stretch in one stream, its groups are kept rather than erased.',
       moving:
-        'Lower trusts runs sooner, so the hint follows you in more places, noisier ones included, and smooth runs erase groups sooner. Higher only trusts clearly structured stretches, so more places fall back to 5. It never moves a run’s own breaks.',
+        'Lower trusts runs sooner, so your groups are followed further, noisier places included, and smooth runs erase groups sooner. Higher only trusts clearly structured stretches, so groups of 5 start sooner. It never moves a run’s own breaks.',
     },
   },
   {
@@ -102,21 +102,21 @@ export const CONTROLS: readonly Control[] = [
       what: 'At each place, the confidence of all runs together is agreement × evidence. Agreement is 1 when all the weighted votes agree, and 0 at a 50/50 split. Evidence counts the trusted votes, in fully trusted new runs: it reaches 63% at this amount, 86% at twice it and 95% at three times.',
       why: 'Multiplied because both are needed: one run agreeing with itself is unanimous but thin, and many runs split evenly are plenty of evidence but no answer. Each extra run helps less and less, and the confidence never goes past 1.',
       moving:
-        'Lower makes a single run strong evidence, so the hint follows a new player right away. Higher waits for several runs that agree, so there are more 5s at first.',
+        'Lower makes a single run strong evidence, so a new player’s groups are followed right away. Higher waits for several runs that agree, so there are more 5s at first.',
     },
   },
   {
-    key: 'hintConfidence',
-    label: 'Confidence for the hint',
+    key: 'confidenceNeeded',
+    label: 'Confidence needed',
     min: 0,
     max: 1,
     step: 0.05,
     format: (value) => value.toFixed(2),
     help: {
-      what: 'A group sets the hint (the number of empty slots) only if its confidence, averaged over its places, is at least this. Elsewhere, the hint is the default of 5.',
-      why: 'So that the game only follows groups it has seen clearly, and offers groups of 5 meanwhile.',
+      what: 'A group is trusted only if its confidence, averaged over its places, is at least this, and every group before it is trusted too. From the first group that isn’t, the game plays groups of 5.',
+      why: 'So that the game only follows groups it has seen clearly, and offers groups of 5 past them. Once one group is shaky, the ones after it can’t be relied on to start where they do.',
       moving:
-        'Lower makes the hint follow you sooner, in shakier places. Higher keeps more 5s. It never moves the groups, only whether the hint follows them: those it doesn’t are dotted.',
+        'Lower follows your groups further, into shakier places. Higher starts the groups of 5 sooner. It never moves the groups the runs agree on, only how far they’re followed: those past that point are dotted.',
     },
   },
 ];

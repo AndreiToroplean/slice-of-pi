@@ -3,11 +3,11 @@ import { placeColors } from '../place-colors/place-colors';
 import { Slots } from './slots';
 
 describe('Slots', () => {
-  async function render(digits: string, hint = 5, wrong = 0): Promise<HTMLElement> {
+  async function render(digits: string, size = 5, wrong = 0): Promise<HTMLElement> {
     const fixture = TestBed.createComponent(Slots);
     fixture.componentRef.setInput('digits', digits);
     fixture.componentRef.setInput('colors', placeColors(digits));
-    fixture.componentRef.setInput('hint', hint);
+    fixture.componentRef.setInput('size', size);
     fixture.componentRef.setInput('wrong', wrong);
     await fixture.whenStable();
     return fixture.nativeElement as HTMLElement;
@@ -17,7 +17,7 @@ describe('Slots', () => {
     return Array.from(host.querySelectorAll<HTMLElement>('.slot'));
   }
 
-  it('shows as many empty slots as the hint, the first one next', async () => {
+  it("shows as many empty slots as the group's size, the first one next", async () => {
     const host = await render('');
 
     expect(slots(host).map((slot) => slot.className)).toEqual([
@@ -66,7 +66,7 @@ describe('Slots', () => {
     ]);
   });
 
-  it('adds a filled slot per digit typed past the hint, with no next slot', async () => {
+  it('adds a filled slot per digit typed past its size, with no next slot', async () => {
     const host = await render('1415926');
 
     expect(slots(host).map((slot) => slot.textContent)).toEqual('1415926'.split(''));
@@ -88,7 +88,7 @@ describe('Slots', () => {
     expect((await render('1415926')).classList).toContain('dense');
   });
 
-  it('follows the hint', async () => {
+  it("follows the group's size", async () => {
     expect(slots(await render('', 3))).toHaveLength(3);
   });
 
