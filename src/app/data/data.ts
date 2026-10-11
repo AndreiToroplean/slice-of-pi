@@ -251,7 +251,7 @@ export class Data {
   );
   protected readonly aggregateMeta = computed(() => {
     const trusted = this.groups().filter((group) => group.trusted).length;
-    return `${plural(this.groups().length, 'group')}, ${trusted === 0 ? 'none' : `the first ${String(trusted)}`} within the trust horizon; from the first dotted one on, the game plays groups of 5`;
+    return `${plural(this.groups().length, 'group')}, ${trusted === 0 ? 'none' : `the first ${String(trusted)}`} within the trust horizon; from the first dotted one on, the game plays groups of 5 that grow until you pause`;
   });
 
   protected readonly uncheckedNote = computed(() => {

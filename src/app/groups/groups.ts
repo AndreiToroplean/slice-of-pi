@@ -28,20 +28,42 @@ export function groupDigits(digits: string, sizes: readonly number[]): Grouping 
   return { words, current: digits.slice(start) };
 }
 
-/**
- * The size of the group starting at index `start` (index 0 is the first decimal): within the trust horizon, as many
- * digits as the player's group there has left, else the default (`groupings.md` §4.3).
- */
-export function groupSizeAt(model: BreakModel, start: number): number {
-  const group = model.groups.find((g) => start >= g.start && start < g.start + g.size);
-  return group?.trusted === true ? group.start + group.size - start : DEFAULT_GROUP_SIZE;
+/** How the group starting at a place is played (`groupings.md` §3). */
+export interface GroupPlan {
+  /** How many slots it starts with. */
+  readonly size: number;
+  /** Whether it's the player's own group, within the trust horizon. */
+  readonly trusted: boolean;
+  /**
+   * Whether it grows past its slots, one at a time, until the player breaks: past the trust horizon, once there's
+   * enough data to tell breaks. Otherwise it finishes when its slots are filled.
+   */
+  readonly grows: boolean;
 }
 
 /**
- * Whether the group being typed is finished: whether the player usually breaks before the next digit, at index
- * `next` (`groupings.md` §4.1). The model includes the run being typed, like any other run, its next digit timed as if
- * typed now.
+ * How the group starting at index `start` (index 0 is the first decimal) is played: within the trust horizon, as the
+ * player's own group there, as many slots as it has digits left; past it, groups of 5 that grow until the player breaks
+ * (`groupings.md` §4.3).
  */
-export function groupEnds(model: BreakModel, next: number): boolean {
-  return (model.usual[next] ?? 0) > 0.5;
+export function groupAt(model: BreakModel, start: number): GroupPlan {
+  const group = model.groups.find((g) => start >= g.start && start < g.start + g.size);
+  return group?.trusted === true
+    ? { size: group.start + group.size - start, trusted: true, grows: false }
+    : { size: DEFAULT_GROUP_SIZE, trusted: false, grows: model.mixture !== undefined };
+}
+
+/** How many slots a group shows once `typed` digits are in it: one more than those typed, for a group that grows. */
+export function slotCount(plan: GroupPlan, typed: number): number {
+  return plan.grows ? Math.max(plan.size, typed + 1) : plan.size;
+}
+
+/**
+ * Whether the group being typed is finished before the next digit, at index `next` (`groupings.md` §4.1). The model
+ * includes the run being typed, like any other run, its next digit timed as if typed now. Within the trust horizon, the
+ * group ends where the player usually breaks; past it, where this run breaks.
+ */
+export function groupEnds(model: BreakModel, next: number, trusted: boolean): boolean {
+  const p = trusted ? model.usual[next] : model.runs.at(-1)?.breakProbability[next];
+  return (p ?? 0) > 0.5;
 }

@@ -337,7 +337,7 @@ describe('Data', () => {
     expect(Array.from(host.querySelectorAll('.runs .meta'), (meta) => meta.textContent)).toEqual([
       '2 digits in 0.3 s · 1 group',
       '1 digit in 0.0 s · 1 group',
-      '1 group, none within the trust horizon; from the first dotted one on, the game plays groups of 5',
+      '1 group, none within the trust horizon; from the first dotted one on, the game plays groups of 5 that grow until you pause',
     ]);
     const labels = Array.from(host.querySelectorAll('app-run-chart svg'), (svg) =>
       svg.getAttribute('aria-label'),
@@ -370,7 +370,7 @@ describe('Data', () => {
       ]),
     ).toEqual(groupsBy3.map((digits, i) => [digits, i === 9]));
     expect(host.querySelector('.summary .meta')?.textContent).toBe(
-      '10 groups, the first 9 within the trust horizon; from the first dotted one on, the game plays groups of 5',
+      '10 groups, the first 9 within the trust horizon; from the first dotted one on, the game plays groups of 5 that grow until you pause',
     );
     expect(host.querySelectorAll('.summary .break')).toHaveLength(9);
     expect(host.querySelector('.summary .confidence')).not.toBeNull();
