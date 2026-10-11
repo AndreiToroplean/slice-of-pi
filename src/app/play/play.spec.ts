@@ -98,6 +98,47 @@ describe('Play', () => {
     return host.querySelector('app-typed-digits .visually-hidden')?.textContent;
   }
 
+  /** Times of a run grouped by 3: a pause after every 3 digits, a little longer in each `run`, as no two are alike. */
+  function by3(length: number, run = 0): number[] {
+    let at = 0;
+    return Array.from({ length }, (_, i) => {
+      at += i === 0 ? 0 : i % 3 === 0 ? PAUSE + 50 * run : i % 2 === 0 ? 150 : 250;
+      return at;
+    });
+  }
+
+  /** Sets up with `count` earlier runs grouped by 3, of `length` digits, once `before` has run. */
+  async function setUpWithRuns(
+    count: number,
+    checked = true,
+    before = (): Promise<void> => Promise.resolve(),
+    length = 15,
+  ): ReturnType<typeof setUp> {
+    TestBed.overrideProvider(INDEXED_DB, { useValue: new IDBFactory() });
+    await before();
+    const store = TestBed.inject(RunStore);
+    for (let i = 0; i < count; i++) {
+      await store.save({
+        ...newRun(`earlier-${String(i)}`, i, checked),
+        digits: PI_DECIMALS.slice(0, length),
+        times: by3(length, i),
+      });
+    }
+    const setup = await setUp();
+    // Reads come back in order: once this one is back, so is the play screen's.
+    await store.runs();
+    await setup.stable();
+    return setup;
+  }
+
+  /**
+   * Sets up for a player who has played once before, pausing after every 3 digits: enough to tell their breaks, but not
+   * to trust their groups yet.
+   */
+  function setUpPlayed(): ReturnType<typeof setUp> {
+    return setUpWithRuns(1, true, undefined, 30);
+  }
+
   it('has a heading', async () => {
     const { host } = await setUp();
 
@@ -126,7 +167,7 @@ describe('Play', () => {
   });
 
   it('turns the digits typed into a word when the player pauses, and empties the slots', async () => {
-    const { host, type } = await setUp();
+    const { host, type } = await setUpPlayed();
 
     await typeAll(type, '141 ');
 
@@ -150,7 +191,7 @@ describe('Play', () => {
   });
 
   it("doesn't finish a group before the wait is clearly longer than the player's pace", async () => {
-    const { host, type } = await setUp();
+    const { host, type } = await setUpPlayed();
     await typeAll(type, '1415');
 
     time.advance(260);
@@ -159,17 +200,26 @@ describe('Play', () => {
     expect(words(host)).toEqual([]);
   });
 
-  it("doesn't finish a group emptied by backspace when the player pauses", async () => {
+  it("doesn't finish a group on a pause before there's enough data to tell breaks", async () => {
     const { host, type } = await setUp();
 
-    await typeAll(type, '14 5< ');
+    await typeAll(type, '141 ');
 
-    expect(words(host)).toEqual(['14']);
+    expect(words(host)).toEqual([]);
+    expect(slots(host)).toEqual(['1', '4', '1', '', '']);
+  });
+
+  it("doesn't finish a group emptied by backspace when the player pauses", async () => {
+    const { host, type } = await setUpPlayed();
+
+    await typeAll(type, '141 5< ');
+
+    expect(words(host)).toEqual(['141']);
     expect(slots(host)).toEqual(['', '', '', '', '']);
   });
 
   it('waits for a new pause after backspace, counted from it', async () => {
-    const { host, type } = await setUp();
+    const { host, type } = await setUpPlayed();
     await typeAll(type, '1415');
     time.advance(200);
     await type('backspace');
@@ -183,38 +233,6 @@ describe('Play', () => {
   });
 
   describe("with the player's earlier runs", () => {
-    /** Times of a run grouped by 3: a pause after every 3 digits. */
-    function by3(length: number): number[] {
-      let at = 0;
-      return Array.from({ length }, (_, i) => {
-        at += i === 0 ? 0 : i % 3 === 0 ? PAUSE : i % 2 === 0 ? 150 : 250;
-        return at;
-      });
-    }
-
-    /** Sets up with `count` earlier runs grouped by 3, once `before` has run. */
-    async function setUpWithRuns(
-      count: number,
-      checked = true,
-      before = (): Promise<void> => Promise.resolve(),
-    ): ReturnType<typeof setUp> {
-      TestBed.overrideProvider(INDEXED_DB, { useValue: new IDBFactory() });
-      await before();
-      const store = TestBed.inject(RunStore);
-      for (let i = 0; i < count; i++) {
-        await store.save({
-          ...newRun(`earlier-${String(i)}`, i, checked),
-          digits: '141592653589793',
-          times: by3(15),
-        });
-      }
-      const setup = await setUp();
-      // Reads come back in order: once this one is back, so is the play screen's.
-      await store.runs();
-      await setup.stable();
-      return setup;
-    }
-
     it('leaves out the runs whose digits were not checked', async () => {
       const { host, type } = await setUpWithRuns(4, false);
 
@@ -256,9 +274,10 @@ describe('Play', () => {
     it('counts the run of a game restarted as an earlier run', async () => {
       installDialogs();
       try {
-        const { host, type, stable } = await setUp();
-        await typeAll(type, '141 592 653 589 793 ');
+        // Too few runs to trust the player's groups, until the restarted one counts too.
+        const { host, type, stable } = await setUpWithRuns(2);
         expect(slots(host)).toEqual(['', '', '', '', '']);
+        await typeAll(type, '141 592 653 589 793 ');
 
         host.querySelector<HTMLButtonElement>('button[aria-label="Pause"]')?.click();
         Array.from(host.querySelectorAll<HTMLButtonElement>('button'))
@@ -344,7 +363,7 @@ describe('Play', () => {
     });
 
     it('never finishes a group while a mistake shows, however long the player pauses', async () => {
-      const { host, type } = await setUp();
+      const { host, type } = await setUpPlayed();
 
       await typeAll(type, '1415  0   ');
 
@@ -356,7 +375,7 @@ describe('Play', () => {
     });
 
     it('waits for the pause that finishes the group again once the mistake is deleted', async () => {
-      const { host, type } = await setUp();
+      const { host, type } = await setUpPlayed();
       await typeAll(type, '1410  <');
       expect(words(host)).toEqual([]);
 
@@ -651,7 +670,8 @@ describe('Play', () => {
 
     it('restarts the game: no digits nor mistake, back to the first spring', async () => {
       const { host, type, stable } = await setUp();
-      await typeAll(type, '14159265358979323846264330');
+      // With pauses, as players do: their first run then tells them apart.
+      await typeAll(type, '141 592 653 589 793 238 462 643 30');
 
       pauseItem(host, 'Pause').click();
       pauseItem(host, 'Restart').click();

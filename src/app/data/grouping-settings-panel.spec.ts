@@ -5,7 +5,7 @@ import { WRITE_CLIPBOARD } from '../developer/copy-values';
 import { DeveloperMode } from '../developer/developer-mode';
 import { groupingText, Tweaks } from '../developer/tweaks';
 import { INDEXED_DB, IS_PREVIEW } from '../runs/run-store';
-import { DEFAULT_TIMING_SETTINGS, TimingSettings } from '../timing/timing-model';
+import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
 import { CONTROLS, GroupingSettingsPanel } from './grouping-settings-panel';
 
 describe('GroupingSettingsPanel', () => {
@@ -41,7 +41,7 @@ describe('GroupingSettingsPanel', () => {
     };
   }
 
-  function slider(host: HTMLElement, key: keyof TimingSettings): HTMLInputElement {
+  function slider(host: HTMLElement, key: keyof BreakSettings): HTMLInputElement {
     const input = host.querySelector<HTMLInputElement>(`#setting-${key}`);
     if (input === null) {
       throw new Error(`No slider for ${key}`);
@@ -64,7 +64,7 @@ describe('GroupingSettingsPanel', () => {
     input.dispatchEvent(new Event('input'));
   }
 
-  function settings(): TimingSettings {
+  function settings(): BreakSettings {
     return TestBed.inject(Tweaks).grouping();
   }
 
@@ -72,7 +72,7 @@ describe('GroupingSettingsPanel', () => {
     const { host } = await setUp();
 
     expect(CONTROLS.map((control) => control.key).sort()).toEqual(
-      Object.keys(DEFAULT_TIMING_SETTINGS).sort(),
+      Object.keys(DEFAULT_BREAK_SETTINGS).sort(),
     );
     for (const control of CONTROLS) {
       const input = slider(host, control.key);
@@ -82,44 +82,41 @@ describe('GroupingSettingsPanel', () => {
       expect(Number(input.min)).toBeLessThanOrEqual(Number(input.value));
       expect(Number(input.max)).toBeGreaterThanOrEqual(Number(input.value));
     }
-    expect(slider(host, 'neighborhood').value).toBe('4');
-    expect(slider(host, 'neighborhood').getAttribute('aria-valuetext')).toBe('4 digits');
+    expect(slider(host, 'window').value).toBe('21');
+    expect(slider(host, 'window').getAttribute('aria-valuetext')).toBe('21 intervals');
   });
 
   it('changes the setting as its slider moves, and shows its value', async () => {
     const { host, detect } = await setUp();
 
-    move(slider(host, 'pauseMargin'), 1.5);
+    move(slider(host, 'level'), 0.95);
     detect();
 
-    expect(settings().pauseMargin).toBe(1.5);
-    expect(host.querySelector('output[for="setting-pauseMargin"]')?.textContent).toBe(
-      '1.50 spreads',
-    );
+    expect(settings().level).toBe(0.95);
+    expect(host.querySelector('output[for="setting-level"]')?.textContent).toBe('0.95');
   });
 
-  it('moves the half-life on a scale of powers of two, from 1 to 256 runs', async () => {
+  it('says how many runs back a run counts half, or that every run counts the same', async () => {
     const { host, detect } = await setUp();
-    const input = slider(host, 'halfLife');
+    const output = (): string | undefined =>
+      host.querySelector('output[for="setting-recencyDecay"]')?.textContent;
 
-    expect(input.value).toBe('4');
-    expect([input.min, input.max]).toEqual(['0', '8']);
-    move(input, 5.5);
+    expect(output()).toBe('0.90, half weight 6.6 runs back');
+    move(slider(host, 'recencyDecay'), 1);
     detect();
 
-    expect(settings().halfLife).toBeCloseTo(45.25, 2);
-    expect(host.querySelector('output[for="setting-halfLife"]')?.textContent).toBe('45 runs');
+    expect(output()).toBe('1, every run the same');
   });
 
   it('opens the help of a setting in a dialog, and closes it', async () => {
     const { host, detect } = await setUp();
     const dialog = host.querySelector('dialog');
 
-    host.querySelector<HTMLButtonElement>('button[aria-label="About Half-life"]')?.click();
+    host.querySelector<HTMLButtonElement>('button[aria-label="About Recency decay"]')?.click();
     detect();
 
     expect(dialog?.open).toBe(true);
-    expect(dialog?.querySelector('h2')?.textContent).toBe('Half-life');
+    expect(dialog?.querySelector('h2')?.textContent).toBe('Recency decay');
     expect(dialog?.textContent).toContain('Why this way.');
     buttonLabelled(host, 'Close').click();
     detect();
@@ -133,34 +130,34 @@ describe('GroupingSettingsPanel', () => {
     const reset = buttonLabelled(host, "Back to the game's settings");
 
     expect(reset.disabled).toBe(true);
-    move(slider(host, 'minimumPause'), 2);
+    move(slider(host, 'window'), 11);
     detect();
     expect(reset.disabled).toBe(false);
     reset.click();
     detect();
 
     expect(TestBed.inject(Tweaks).values().grouping).toBeUndefined();
-    expect(slider(host, 'minimumPause').value).toBe('1.35');
+    expect(slider(host, 'window').value).toBe('21');
   });
 
   it('keeps the tuned settings, and none once they are all back to their defaults', async () => {
     const { host } = await setUp();
     const tweaks = TestBed.inject(Tweaks);
 
-    move(slider(host, 'minimumPause'), 2);
-    expect(tweaks.values().grouping).toEqual({ ...DEFAULT_TIMING_SETTINGS, minimumPause: 2 });
-    move(slider(host, 'minimumPause'), 1.35);
+    move(slider(host, 'window'), 11);
+    expect(tweaks.values().grouping).toEqual({ ...DEFAULT_BREAK_SETTINGS, window: 11 });
+    move(slider(host, 'window'), 21);
     expect(tweaks.values().grouping).toBeUndefined();
   });
 
   it('copies the values of the settings', async () => {
     const { host, detect } = await setUp();
 
-    move(slider(host, 'pauseMargin'), 1.5);
+    move(slider(host, 'level'), 0.95);
     detect();
     buttonLabelled(host, 'Copy hyperparameter values').click();
     await vi.waitFor(() => {
-      expect(copied).toEqual([groupingText({ ...DEFAULT_TIMING_SETTINGS, pauseMargin: 1.5 })]);
+      expect(copied).toEqual([groupingText({ ...DEFAULT_BREAK_SETTINGS, level: 0.95 })]);
     });
   });
 });

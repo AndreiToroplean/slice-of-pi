@@ -7,7 +7,7 @@ describe('RunChart', () => {
     values: Series,
     places: number,
     top: number,
-    model: Partial<Record<'pace' | 'threshold' | 'trust' | 'breaks', unknown>> = {},
+    model: Partial<Record<'baseline' | 'confidence' | 'breaks', unknown>> = {},
   ): SVGSVGElement {
     const fixture = TestBed.createComponent(RunChart);
     fixture.componentRef.setInput('values', values);
@@ -56,19 +56,17 @@ describe('RunChart', () => {
     expect(svg.querySelector('.break')).toBeNull();
   });
 
-  it('adds the pace, the pause threshold and the trust', () => {
+  it('adds the baseline and the confidence', () => {
     const svg = setUp([undefined, 500], 2, 1000, {
-      pace: [undefined, 250],
-      threshold: [undefined, 400],
-      trust: [undefined, 1],
+      baseline: [undefined, 250],
+      confidence: [undefined, 1],
     });
 
-    expect(svg.querySelector('.pace')?.getAttribute('d')).toBe('M1 75h0');
-    expect(svg.querySelector('.threshold')?.getAttribute('d')).toBe('M1 60h0');
-    expect(svg.querySelector('.trust')?.getAttribute('d')).toBe('M1 100L1 65L1 100Z');
+    expect(svg.querySelector('.baseline')?.getAttribute('d')).toBe('M1 75h0');
+    expect(svg.querySelector('.confidence')?.getAttribute('d')).toBe('M1 100L1 65L1 100Z');
   });
 
-  it('draws each break between its place and the one before, the stronger the more trusted', () => {
+  it('draws each break between its place and the one before, the stronger the more likely', () => {
     const svg = setUp([undefined, 500, 900], 3, 1000, {
       breaks: [
         { place: 2, strength: 1 },

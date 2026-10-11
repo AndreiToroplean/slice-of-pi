@@ -18,18 +18,26 @@ import {
 } from '../runs/run-store';
 import { DEVELOPER_MODE, DEVELOPER_MODE_FORMAT, DeveloperMode } from '../developer/developer-mode';
 import { Tweaks, TWEAKS, TWEAKS_FORMAT } from '../developer/tweaks';
-import { DEFAULT_TIMING_SETTINGS } from '../timing/timing-model';
+import { PI_DECIMALS } from '../pi/pi-decimals';
+import { DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
 import { CONFIRM, Data, SAVE_FILE } from './data';
 
 describe('Data', () => {
   const first = addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250);
   const second = addDigit(newRun('b', 2_000), '1', 0);
-  // Groups of 3: 200 ms between digits, 700 ms before every fourth.
-  const grouped = Array.from('141592653589').reduce(
+  // Groups of 3: about 200 ms between digits, 700 ms before every fourth.
+  const grouped = Array.from(PI_DECIMALS.slice(0, 30)).reduce(
     (run, digit, i) =>
-      addDigit(run, digit as Digit, i === 0 ? 0 : (run.times.at(-1) ?? 0) + (i % 3 ? 200 : 700)),
+      addDigit(
+        run,
+        digit as Digit,
+        i === 0 ? 0 : (run.times.at(-1) ?? 0) + (i % 3 ? ([180, 230][i % 2] ?? 0) : 700),
+      ),
     newRun('c', 3_000),
   );
+  const groupsBy3 = PI_DECIMALS.slice(0, 30).match(/.../g) ?? [];
+  /** Enough runs grouped by 3 for the game to trust their groups. */
+  const trusted = ['d', 'e', 'f'].map((id, i) => ({ ...grouped, id, startedAt: 4_000 + i }));
   let saved: { name: string; text: string }[];
   /** The questions the player was asked to confirm, and their answer. */
   let questions: string[];
@@ -213,7 +221,7 @@ describe('Data', () => {
 
   it('restores the settings of a backup, and applies them', async () => {
     const { host, until } = await setUp([first]);
-    const grouping = { ...DEFAULT_TIMING_SETTINGS, halfLife: 4 };
+    const grouping = { ...DEFAULT_BREAK_SETTINGS, level: 0.8 };
 
     await choose(
       host,
@@ -329,7 +337,7 @@ describe('Data', () => {
     expect(Array.from(host.querySelectorAll('.runs .meta'), (meta) => meta.textContent)).toEqual([
       '2 digits in 0.3 s · 1 group',
       '1 digit in 0.0 s · 1 group',
-      '1 group, none trusted; from the first dotted one on, the game plays groups of 5',
+      '1 group, none within the trust horizon; from the first dotted one on, the game plays groups of 5',
     ]);
     const labels = Array.from(host.querySelectorAll('app-run-chart svg'), (svg) =>
       svg.getAttribute('aria-label'),
@@ -337,7 +345,7 @@ describe('Data', () => {
     expect(labels).toEqual([
       `Time per digit, ${format.format(1_000)}`,
       `Time per digit, ${format.format(2_000)}`,
-      'Time per digit over all runs, recent ones weighing more, with the breaks they agree on',
+      'Time per digit over all runs, recent ones weighing more, with your usual break spots',
     ]);
   });
 
@@ -347,29 +355,31 @@ describe('Data', () => {
     const chart = host.querySelector('.runs article app-run-chart');
     expect(
       Array.from(chart?.querySelectorAll('.break') ?? [], (bar) => bar.getAttribute('x1')),
-    ).toEqual(['2.5', '5.5', '8.5']);
-    expect(chart?.querySelector('.pace')).not.toBeNull();
-    expect(host.querySelector('.runs .meta')?.textContent).toBe('12 digits in 3.7 s · 4 groups');
+    ).toEqual(['2.5', '5.5', '8.5', '11.5', '14.5', '17.5', '20.5', '23.5', '26.5']);
+    expect(chart?.querySelector('.baseline')).not.toBeNull();
+    expect(host.querySelector('.runs .meta')?.textContent).toBe('30 digits in 10.4 s · 10 groups');
   });
 
-  it('shows the groups of all runs, dotted from the first one not trusted', async () => {
-    const { host } = await setUp([grouped]);
+  it('shows the groups of all runs, dotted past the trust horizon', async () => {
+    const { host } = await setUp(trusted);
 
     expect(
       Array.from(host.querySelectorAll('.groups li'), (group) => [
         group.textContent.trim(),
         group.classList.contains('unsure'),
       ]),
-    ).toEqual([
-      ['141', false],
-      ['592', false],
-      ['653', false],
-      ['589', true],
-    ]);
+    ).toEqual(groupsBy3.map((digits, i) => [digits, i === 9]));
     expect(host.querySelector('.summary .meta')?.textContent).toBe(
-      '4 groups, the first 3 trusted; from the first dotted one on, the game plays groups of 5',
+      '10 groups, the first 9 within the trust horizon; from the first dotted one on, the game plays groups of 5',
     );
-    expect(host.querySelectorAll('.summary .break')).toHaveLength(3);
+    expect(host.querySelectorAll('.summary .break')).toHaveLength(9);
+    expect(host.querySelector('.summary .confidence')).not.toBeNull();
+  });
+
+  it('trusts no group of a single run', async () => {
+    const { host } = await setUp([grouped]);
+
+    expect(host.querySelectorAll('.groups li.unsure')).toHaveLength(10);
   });
 
   describe('unchecked runs', () => {
@@ -385,7 +395,7 @@ describe('Data', () => {
       expect(host.querySelectorAll('.runs article:not(.summary)')).toHaveLength(1);
       expect(host.querySelector('.runs .badge')).toBeNull();
       expect(text(host)).toContain('1 run kept on this device.');
-      expect(groupsShown(host)).toEqual(['141', '592', '653', '589']);
+      expect(groupsShown(host)).toEqual(groupsBy3);
       expect(host.querySelector('.unchecked')).toBeNull();
     });
 
@@ -408,7 +418,7 @@ describe('Data', () => {
       checkbox?.click();
       await until(() => groupsShown(host).length > 0);
 
-      expect(groupsShown(host)).toEqual(['141', '592', '653', '589']);
+      expect(groupsShown(host)).toEqual(groupsBy3);
       expect(TestBed.inject(Tweaks).values()).toEqual({ includeUnchecked: true });
     });
 
@@ -433,18 +443,18 @@ describe('Data', () => {
     expect(host.querySelector('app-grouping-settings-panel')).toBeNull();
   });
 
-  it('regroups as the grouping settings change', async () => {
-    const { host, until } = await setUp([grouped], false, false, undefined, true);
-    const slider = host.querySelector<HTMLInputElement>('#setting-minimumPause');
+  it('follows the grouping settings as they change', async () => {
+    const { host, until } = await setUp(trusted, false, false, undefined, true);
+    const slider = host.querySelector<HTMLInputElement>('#setting-level');
 
     if (slider === null) {
       throw new Error('No slider');
     }
-    slider.value = '3';
+    slider.value = '0.99';
     slider.dispatchEvent(new Event('input'));
-    await until(() => host.querySelectorAll('.groups li').length === 1);
+    await until(() => host.querySelectorAll('.groups li.unsure').length === 10);
 
-    expect(host.querySelector('.groups li')?.textContent.trim()).toBe('141592653589');
+    expect(host.querySelector('.summary .meta')?.textContent).toContain('none within');
   });
 
   it('spans every chart over the places of the longest run', async () => {

@@ -13,7 +13,7 @@ import {
   SeasonBackgrounds,
   SEASONS,
 } from '../seasons/seasons';
-import { DEFAULT_TIMING_SETTINGS, TimingSettings } from '../timing/timing-model';
+import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
 import { DeveloperMode } from './developer-mode';
 
 /** The name of the tweaks setting in the store. */
@@ -30,8 +30,8 @@ export interface TweakValues {
   readonly palette?: Palette;
   /** The seasons' starting colors, for {@link SEASON_BACKGROUNDS}. */
   readonly seasons?: SeasonStarts;
-  /** The settings of the timing model, for {@link DEFAULT_TIMING_SETTINGS}. */
-  readonly grouping?: TimingSettings;
+  /** The hyperparameters of the break model, for {@link DEFAULT_BREAK_SETTINGS}. */
+  readonly grouping?: BreakSettings;
   /** The color space the background blends its colors in, for {@link SEASON_COLOR_SPACE}. */
   readonly colorSpace?: ColorSpace;
   /** How many places a season takes to turn into the next, for {@link SEASON_TURN}. */
@@ -76,11 +76,11 @@ export class Tweaks {
       ? backgroundsFrom(seasons)
       : SEASON_BACKGROUNDS;
   });
-  /** The settings of the timing model the game uses. */
+  /** The hyperparameters of the break model the game uses. */
   readonly grouping = computed(() =>
     this.developerMode.enabled()
-      ? (this.tweaks().grouping ?? DEFAULT_TIMING_SETTINGS)
-      : DEFAULT_TIMING_SETTINGS,
+      ? (this.tweaks().grouping ?? DEFAULT_BREAK_SETTINGS)
+      : DEFAULT_BREAK_SETTINGS,
   );
   /** The color space the background blends its colors in. */
   readonly colorSpace = computed(
@@ -126,8 +126,8 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), seasons }));
   }
 
-  /** Tunes the settings of the timing model; `undefined` brings back the game's. */
-  setGrouping(grouping: TimingSettings | undefined): Promise<void> {
+  /** Tunes the hyperparameters of the break model; `undefined` brings back the game's. */
+  setGrouping(grouping: BreakSettings | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), grouping }));
   }
 
@@ -192,26 +192,19 @@ export function seasonsText(
   ].join('\n');
 }
 
-/** The settings of the timing model as text to hand back so they go into the code, marking those that differ. */
-export function groupingText(settings: TimingSettings): string {
+/** The hyperparameters of the break model as text to hand back so they go into the code, marking those that differ. */
+export function groupingText(settings: BreakSettings): string {
   return [
-    'Grouping settings (DEFAULT_TIMING_SETTINGS in timing-model.ts):',
+    'Grouping settings (DEFAULT_BREAK_SETTINGS in break-model.ts):',
     ...SETTING_KEYS.map((key) => {
       const value = settings[key];
-      const changed = value !== DEFAULT_TIMING_SETTINGS[key];
+      const changed = value !== DEFAULT_BREAK_SETTINGS[key];
       return `  ${key}: ${String(Number(value.toPrecision(4)))}${changed ? ' (changed)' : ''}`;
     }),
   ].join('\n');
 }
 
-const SETTING_KEYS = Object.keys(DEFAULT_TIMING_SETTINGS) as (keyof TimingSettings)[];
-/** The settings the timing model divides by, which can't be 0. */
-const POSITIVE_SETTINGS: readonly (keyof TimingSettings)[] = [
-  'neighborhood',
-  'fullTrustUnevenness',
-  'halfLife',
-  'evidenceNeeded',
-];
+const SETTING_KEYS = Object.keys(DEFAULT_BREAK_SETTINGS) as (keyof BreakSettings)[];
 
 /** The tweaks in a stored setting, leaving out what isn't valid. A format this version doesn't know gives none. */
 export function parseTweaks(stored: unknown): TweakValues {
@@ -225,7 +218,8 @@ export function parseTweaks(stored: unknown): TweakValues {
   }
   const palette = 'palette' in stored ? stored.palette : undefined;
   const seasons = 'seasons' in stored ? stored.seasons : undefined;
-  const grouping = renamedSettings('grouping' in stored ? stored.grouping : undefined);
+  // Settings saved for the timing model the break model replaced have none of its keys, so they're left out.
+  const grouping = 'grouping' in stored ? stored.grouping : undefined;
   const colorSpace = 'colorSpace' in stored ? stored.colorSpace : undefined;
   const seasonTurn = 'seasonTurn' in stored ? stored.seasonTurn : undefined;
   const checking = 'checking' in stored ? stored.checking : undefined;
@@ -233,7 +227,7 @@ export function parseTweaks(stored: unknown): TweakValues {
   return tweakValues({
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
-    grouping: isTimingSettings(grouping) ? grouping : undefined,
+    grouping: isBreakSettings(grouping) ? grouping : undefined,
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
@@ -272,27 +266,20 @@ function isSeasonTurn(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) >= 1 && Number(value) <= PLACES_PER_SEASON;
 }
 
-/** Grouping settings saved before `confidenceNeeded` was named so, as `hintConfidence`, under its new name. */
-function renamedSettings(value: unknown): unknown {
-  if (typeof value !== 'object' || value === null || !('hintConfidence' in value)) {
-    return value;
+function isBreakSettings(value: unknown): value is BreakSettings {
+  if (typeof value !== 'object' || value === null) {
+    return false;
   }
-  const { hintConfidence, ...rest } = value;
-  return { confidenceNeeded: hintConfidence, ...rest };
-}
-
-function isTimingSettings(value: unknown): value is TimingSettings {
+  const { window, recencyDecay, level } = value as Partial<Record<keyof BreakSettings, unknown>>;
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    SETTING_KEYS.every((key) => {
-      const setting: unknown = (value as Record<string, unknown>)[key];
-      return (
-        typeof setting === 'number' &&
-        Number.isFinite(setting) &&
-        (POSITIVE_SETTINGS.includes(key) ? setting > 0 : setting >= 0)
-      );
-    })
+    Number.isInteger(window) &&
+    Number(window) >= 1 &&
+    typeof recencyDecay === 'number' &&
+    recencyDecay > 0 &&
+    recencyDecay <= 1 &&
+    typeof level === 'number' &&
+    level >= 0 &&
+    level <= 1
   );
 }
 
