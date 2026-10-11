@@ -1,6 +1,7 @@
 import { Digit } from '../digit';
 import {
   addDigit,
+  countsInGroups,
   deleteMistake,
   isOlderFormat,
   newRun,
@@ -78,6 +79,15 @@ describe('run', () => {
 
     expect(run.digits).toBe('1');
     expect(run.times).toEqual([0]);
+  });
+
+  it('computes the groups from the checked runs, unless the unchecked ones are included', () => {
+    const checked = newRun('checked', 0);
+    const unchecked = newRun('unchecked', 1, false);
+
+    expect(countsInGroups(checked, false)).toBe(true);
+    expect(countsInGroups(unchecked, false)).toBe(false);
+    expect(countsInGroups(unchecked, true)).toBe(true);
   });
 
   describe('parseRun', () => {

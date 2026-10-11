@@ -37,6 +37,26 @@ p {
   display: none;
 }
 
+.unchecked {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 500;
+  text-shadow: var(--text-shadow);
+}
+
+.check input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  accent-color: var(--candy);
+}
+
 .candy:has(input:focus-visible) {
   outline: 0.1875rem solid var(--focus-ring);
   outline-offset: 0.25rem;

@@ -38,6 +38,8 @@ export interface TweakValues {
   readonly seasonTurn?: number;
   /** `false` to play without checking the digits, which the game otherwise always does. */
   readonly checking?: false;
+  /** `true` to count unchecked runs in the player's groups, which otherwise leave them out. */
+  readonly includeUnchecked?: true;
 }
 
 /** The game's own starting colors of each season. */
@@ -95,6 +97,11 @@ export class Tweaks {
     () => !this.developerMode.enabled() || this.tweaks().checking !== false,
   );
 
+  /** Whether the player's groups count unchecked runs, which may hold mistakes. */
+  readonly includeUnchecked = computed(
+    () => this.developerMode.enabled() && this.tweaks().includeUnchecked === true,
+  );
+
   constructor() {
     this.loaded = this.store.setting(TWEAKS).then((stored) => {
       // Unless they were changed in the meantime.
@@ -137,6 +144,13 @@ export class Tweaks {
   /** Turns checking the digits typed on or off. */
   setChecking(checking: boolean): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), checking: checking ? undefined : false }));
+  }
+
+  /** Counts unchecked runs in the player's groups, or leaves them out. */
+  setIncludeUnchecked(includeUnchecked: boolean): Promise<void> {
+    return this.save(
+      tweakValues({ ...this.tweaks(), includeUnchecked: includeUnchecked ? true : undefined }),
+    );
   }
 
   private async save(next: TweakValues): Promise<void> {
@@ -215,6 +229,7 @@ export function parseTweaks(stored: unknown): TweakValues {
   const colorSpace = 'colorSpace' in stored ? stored.colorSpace : undefined;
   const seasonTurn = 'seasonTurn' in stored ? stored.seasonTurn : undefined;
   const checking = 'checking' in stored ? stored.checking : undefined;
+  const includeUnchecked = 'includeUnchecked' in stored ? stored.includeUnchecked : undefined;
   return tweakValues({
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
@@ -222,6 +237,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
+    includeUnchecked: includeUnchecked === true ? includeUnchecked : undefined,
   });
 }
 
@@ -233,6 +249,7 @@ function tweakValues({
   colorSpace,
   seasonTurn,
   checking,
+  includeUnchecked,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -243,6 +260,7 @@ function tweakValues({
     ...(colorSpace === undefined ? {} : { colorSpace }),
     ...(seasonTurn === undefined ? {} : { seasonTurn }),
     ...(checking === undefined ? {} : { checking }),
+    ...(includeUnchecked === undefined ? {} : { includeUnchecked }),
   };
 }
 

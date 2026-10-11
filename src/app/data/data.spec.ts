@@ -330,6 +330,37 @@ describe('Data', () => {
     expect(host.querySelectorAll('.summary .break')).toHaveLength(3);
   });
 
+  describe('unchecked runs', () => {
+    const unchecked = { ...grouped, id: 'unchecked', checked: false };
+
+    function groupsShown(host: HTMLElement): string[] {
+      return Array.from(host.querySelectorAll('.groups li'), (group) => group.textContent.trim());
+    }
+
+    it('marks unchecked runs, and leaves them out of the groups', async () => {
+      const { host } = await setUp([unchecked]);
+
+      expect(host.querySelector('.runs .meta')?.textContent).toBe(
+        '12 digits in 3.7 s · 4 groups · unchecked',
+      );
+      expect(groupsShown(host)).toEqual([]);
+      expect(host.querySelector('.unchecked')).toBeNull();
+    });
+
+    it('counts unchecked runs in the groups when told to, in developer mode', async () => {
+      const { host, until } = await setUp([unchecked], false, false, undefined, true);
+      const checkbox = host.querySelector<HTMLInputElement>('.unchecked input[type="checkbox"]');
+      expect(host.querySelector('.unchecked p')?.textContent).toContain('1 run is unchecked');
+      expect(checkbox?.checked).toBe(false);
+
+      checkbox?.click();
+      await until(() => groupsShown(host).length > 0);
+
+      expect(groupsShown(host)).toEqual(['141', '592', '653', '589']);
+      expect(TestBed.inject(Tweaks).values()).toEqual({ includeUnchecked: true });
+    });
+  });
+
   it('offers the grouping settings only in developer mode', async () => {
     const { host } = await setUp([grouped]);
 

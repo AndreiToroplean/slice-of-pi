@@ -64,6 +64,14 @@ export function removeDigit(run: Run): Run {
 }
 
 /**
+ * Whether the player's groups are computed from this run: a checked one does, an unchecked one, which may hold
+ * mistakes, only when unchecked runs are included.
+ */
+export function countsInGroups(run: Run, includeUnchecked: boolean): boolean {
+  return run.checked || includeUnchecked;
+}
+
+/**
  * The run with the backspace that deleted a wrong digit typed after its last one. The game never kept that digit, so
  * only the backspace is recorded.
  */

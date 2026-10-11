@@ -125,6 +125,20 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({});
   });
 
+  it('leaves unchecked runs out of the groups unless told otherwise, only while developer mode is on', async () => {
+    const tweaks = await load();
+    expect(tweaks.includeUnchecked()).toBe(false);
+
+    await tweaks.setIncludeUnchecked(true);
+    expect(tweaks.includeUnchecked()).toBe(false);
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.includeUnchecked()).toBe(true);
+    expect((await load()).values()).toEqual({ includeUnchecked: true });
+
+    await TestBed.inject(Tweaks).setIncludeUnchecked(false);
+    expect((await load()).values()).toEqual({});
+  });
+
   it('reads the stored tweaks again once something else changed them', async () => {
     const tweaks = await load();
     await TestBed.inject(RunStore).saveSetting(TWEAKS, { format: TWEAKS_FORMAT, grouping });
@@ -208,6 +222,10 @@ describe('Tweaks', () => {
     expect(parseTweaks({ format: TWEAKS_FORMAT, checking: false })).toEqual({ checking: false });
     expect(parseTweaks({ format: TWEAKS_FORMAT, checking: true })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, checking: 'no' })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, includeUnchecked: true })).toEqual({
+      includeUnchecked: true,
+    });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, includeUnchecked: false })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 0 })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 26 })).toEqual({});
     expect(parseTweaks(null)).toEqual({});
