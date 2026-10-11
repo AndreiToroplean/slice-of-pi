@@ -30,7 +30,7 @@ describe('Menu', () => {
         Array.from(line.querySelectorAll('.word'), (word) => word.textContent.replace(/\s/g, '')),
       ),
     ).toEqual([['Slice', 'of'], ['Pi']]);
-    expect(host.querySelector('img')?.getAttribute('src')).toBe('icons/icon.svg');
+    expect(host.querySelector('img')?.getAttribute('src')).toBe('icons/icon.webp');
     // Decorative: the heading already names the game.
     expect(host.querySelector('img')?.getAttribute('alt')).toBe('');
   });
