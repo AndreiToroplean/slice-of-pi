@@ -1,4 +1,4 @@
-import { mix } from '../colors/color-spaces';
+import { hueOf, mixGradients, shortWay } from '../colors/color-spaces';
 import {
   backgroundsFrom,
   PLACES_PER_SEASON,
@@ -64,13 +64,31 @@ describe('seasonAt', () => {
   it('blends the colors in OKLCH, or the color space given, the same at the start of each season', () => {
     expect(seasonAt(0, SEASON_BACKGROUNDS, 'srgb').background).toEqual(seasonAt(0).background);
     // Autumn turning into winter: 22 places in, 35.2% of the way after easing.
-    expect(seasonAt(72).background).toEqual([
-      mix(mix('#ee8a45', '#d9683a', 1, 'oklch'), '#9bb4dc', 0.352, 'oklch'),
-      mix(mix('#9b4f86', '#7a3f78', 1, 'oklch'), '#46598f', 0.352, 'oklch'),
-    ]);
+    expect(seasonAt(72).background).toEqual(
+      mixGradients(
+        mixGradients(['#ee8a45', '#9b4f86'], ['#d9683a', '#7a3f78'], 1, 'oklch'),
+        ['#9bb4dc', '#46598f'],
+        0.352,
+        'oklch',
+      ),
+    );
     expect(seasonAt(72, SEASON_BACKGROUNDS, 'srgb').background).not.toEqual(
       seasonAt(72).background,
     );
+  });
+
+  it('never flips the way the background turns round the color wheel, into the next year too', () => {
+    for (const space of ['hsl', 'oklch'] as const) {
+      // How far the bottom's hue is from the top's, the short way, as the browser draws the gradient.
+      const turns = Array.from({ length: 2 * PLACES_PER_YEAR + 1 }, (_, places) => {
+        const [top, bottom] = seasonAt(places, SEASON_BACKGROUNDS, space).background;
+        return shortWay(hueOf(top, space), hueOf(bottom, space));
+      });
+      // Flipping would jump from about 180 degrees one way to about 180 the other.
+      for (const [places, turn] of turns.entries()) {
+        expect(Math.abs(turn - (turns[places + 1] ?? turn))).toBeLessThan(90);
+      }
+    }
   });
 });
 
