@@ -4,7 +4,7 @@ import {
   DEFAULT_BREAK_SETTINGS,
   finishedRuns,
 } from '../timing/break-model';
-import { DEFAULT_GROUP_SIZE, groupDigits, groupEnds, groupSizeAt } from './groups';
+import { DEFAULT_GROUP_SIZE, groupAt, groupDigits, groupEnds, slotCount } from './groups';
 
 const settings = DEFAULT_BREAK_SETTINGS;
 
@@ -65,44 +65,75 @@ describe('groupDigits', () => {
   });
 });
 
-describe('groupSizeAt', () => {
-  it('is the default for a new player', () => {
-    expect(groupSizeAt(model(0, []), 0)).toBe(DEFAULT_GROUP_SIZE);
+describe('groupAt', () => {
+  it('is a group of 5 for a new player, finished once filled', () => {
+    expect(groupAt(model(0, []), 0)).toEqual({
+      size: DEFAULT_GROUP_SIZE,
+      trusted: false,
+      grows: false,
+    });
   });
 
   it("follows the player's groups within the trust horizon", () => {
     const found = model(3, []);
 
-    expect(groupSizeAt(found, 0)).toBe(3);
-    expect(groupSizeAt(found, 3)).toBe(3);
+    expect(groupAt(found, 0)).toEqual({ size: 3, trusted: true, grows: false });
+    expect(groupAt(found, 3)).toEqual({ size: 3, trusted: true, grows: false });
   });
 
   it('counts the digits left in a group starting inside it', () => {
-    expect(groupSizeAt(model(3, []), 4)).toBe(2);
+    expect(groupAt(model(3, []), 4).size).toBe(2);
   });
 
-  it('is the default past the trust horizon', () => {
+  it('is a group of 5 that grows past the trust horizon', () => {
     const found = model(3, []);
 
     expect(found.horizon).toBe(29);
-    expect(groupSizeAt(found, 27)).toBe(DEFAULT_GROUP_SIZE);
-    expect(groupSizeAt(found, 40)).toBe(DEFAULT_GROUP_SIZE);
+    expect(groupAt(found, 27)).toEqual({ size: DEFAULT_GROUP_SIZE, trusted: false, grows: true });
+    expect(groupAt(found, 40)).toEqual({ size: DEFAULT_GROUP_SIZE, trusted: false, grows: true });
   });
 
-  it('is the default everywhere when too few runs agree', () => {
-    expect(groupSizeAt(model(1, []), 3)).toBe(DEFAULT_GROUP_SIZE);
+  it('grows everywhere when too few runs agree', () => {
+    expect(groupAt(model(1, []), 3)).toEqual({
+      size: DEFAULT_GROUP_SIZE,
+      trusted: false,
+      grows: true,
+    });
+  });
+});
+
+describe('slotCount', () => {
+  it('is the size of a group that doesn’t grow', () => {
+    expect(slotCount({ size: 3, trusted: true, grows: false }, 3)).toBe(3);
+  });
+
+  it('is one more than the digits typed in a group that grows, from its size on', () => {
+    const plan = { size: 5, trusted: false, grows: true };
+
+    expect(slotCount(plan, 0)).toBe(5);
+    expect(slotCount(plan, 4)).toBe(5);
+    expect(slotCount(plan, 5)).toBe(6);
+    expect(slotCount(plan, 12)).toBe(13);
   });
 });
 
 describe('groupEnds', () => {
-  it('finishes where the player usually breaks', () => {
+  it('finishes where the player usually breaks, within the trust horizon', () => {
     const found = model(3, timesOf(4, []));
 
-    expect(groupEnds(found, 3)).toBe(true);
-    expect(groupEnds(found, 2)).toBe(false);
+    expect(groupEnds(found, 3, true)).toBe(true);
+    expect(groupEnds(found, 2, true)).toBe(false);
+  });
+
+  it('finishes where this run breaks, past the trust horizon', () => {
+    const found = model(3, timesOf(45, [35]), 30);
+
+    expect(groupEnds(found, 35, false)).toBe(true);
+    expect(groupEnds(found, 36, false)).toBe(false);
+    expect(groupEnds(found, 33, false)).toBe(false);
   });
 
   it("never finishes where there's too little data to tell breaks", () => {
-    expect(groupEnds(model(0, timesOf(4, [3])), 3)).toBe(false);
+    expect(groupEnds(model(0, timesOf(4, [3])), 3, false)).toBe(false);
   });
 });

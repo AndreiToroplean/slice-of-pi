@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { Background } from '../background/background';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from '../flight/flight';
-import { groupDigits, groupEnds, groupSizeAt } from '../groups/groups';
+import { groupAt, groupDigits, groupEnds, slotCount } from '../groups/groups';
 import { Keypad } from '../keypad/keypad';
 import { keyColors, placeColors } from '../place-colors/place-colors';
 import { Pause } from '../pause/pause';
@@ -32,8 +32,8 @@ import { TIMER } from './timer';
 /**
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
  * flies up to the typed digits as a word, as the seasons go by. Each typed digit takes the color its key showed.
- * The groups follow the player's timings, over all their runs and this one (`groupings.md` §4): a group is finished
- * when the player pauses, and the slots show the group expected where the player's groups are known well enough.
+ * The groups follow the player's timings, over all their runs and this one (`groupings.md` §4): the slots show the
+ * player's own group where it's trusted, else 5 slots that grow, once breaks can be told, until the player pauses.
  * Every digit is checked against π, unless developer mode turns that off: a wrong one, and any typed on after it, show
  * as mistakes in their slots, and never finish the group, until backspace deletes them.
  * Backspace deletes the last digit, reopening the last word when the slots are empty. Pausing offers to restart the game
@@ -102,10 +102,12 @@ export class Play {
   /** The size of each finished group, in order. */
   private readonly sizes = signal<readonly number[]>([]);
   protected readonly grouping = computed(() => groupDigits(this.digits(), this.sizes()));
-  /** The size of the group being typed: its slots, and where it finishes unless the player pauses before. */
-  protected readonly size = computed(() =>
-    groupSizeAt(this.found(), this.digits().length - this.grouping().current.length),
+  /** How the group being typed is played. */
+  private readonly plan = computed(() =>
+    groupAt(this.found(), this.digits().length - this.grouping().current.length),
   );
+  /** The slots of the group being typed. */
+  protected readonly size = computed(() => slotCount(this.plan(), this.grouping().current.length));
 
   /** The color of each typed place (`colors.md`). */
   protected readonly placeColors = computed(() =>
@@ -211,8 +213,9 @@ export class Play {
   }
 
   /**
-   * Finishes the group being typed once it has all its digits, or before that as soon as all the runs say it ends, this
-   * one included, its next digit timed as if typed now; never while a mistake shows.
+   * Finishes the group being typed once it has all its digits, unless it grows, or as soon as the player breaks: where
+   * they usually do, within the trust horizon, or where this run does, past it, its next digit timed as if typed now.
+   * Never while a mistake shows.
    */
   private watchForPause(): void {
     this.stopWatching();
@@ -220,7 +223,11 @@ export class Play {
       return;
     }
     const check = (): void => {
-      if (this.grouping().current.length >= this.size() || this.pausedLongEnough()) {
+      const plan = this.plan();
+      if (
+        (!plan.grows && this.grouping().current.length >= plan.size) ||
+        this.pausedLongEnough(plan.trusted)
+      ) {
         this.stopWatching();
         this.finishGroup();
       }
@@ -229,13 +236,13 @@ export class Play {
     check();
   }
 
-  /** Whether the group being typed ends before the next digit, were it typed now. */
-  private pausedLongEnough(): boolean {
+  /** Whether the group being typed, the player's own if `trusted`, ends before the next digit, were it typed now. */
+  private pausedLongEnough(trusted: boolean): boolean {
     const times = this.recorder.run()?.times ?? [];
     const last = times.at(-1);
     return (
       last !== undefined &&
-      groupEnds(this.fit([...times, last + this.recorder.waited()]), times.length)
+      groupEnds(this.fit([...times, last + this.recorder.waited()]), times.length, trusted)
     );
   }
 

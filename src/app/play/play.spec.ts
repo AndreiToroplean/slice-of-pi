@@ -190,6 +190,19 @@ describe('Play', () => {
     expect(slots(host)).toEqual(['2', '6', '', '', '']);
   });
 
+  it('adds slots past 5 until the player pauses, where their own groups are not trusted yet', async () => {
+    const { host, type } = await setUpPlayed();
+
+    await typeAll(type, '1415926');
+
+    expect(words(host)).toEqual([]);
+    expect(slots(host)).toEqual(['1', '4', '1', '5', '9', '2', '6', '']);
+
+    await typeAll(type, ' ');
+    expect(words(host)).toEqual(['1415926']);
+    expect(slots(host)).toEqual(['', '', '', '', '']);
+  });
+
   it("doesn't finish a group before the wait is clearly longer than the player's pace", async () => {
     const { host, type } = await setUpPlayed();
     await typeAll(type, '1415');
