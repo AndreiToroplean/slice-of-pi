@@ -7,7 +7,9 @@ import {
   backgroundsFrom,
   Season,
   SEASON_BACKGROUNDS,
+  PLACES_PER_SEASON,
   SEASON_COLOR_SPACE,
+  SEASON_TURN,
   SeasonBackgrounds,
   SEASONS,
 } from '../seasons/seasons';
@@ -32,6 +34,8 @@ export interface TweakValues {
   readonly grouping?: TimingSettings;
   /** The color space the background blends its colors in, for {@link SEASON_COLOR_SPACE}. */
   readonly colorSpace?: ColorSpace;
+  /** How many places a season takes to turn into the next, for {@link SEASON_TURN}. */
+  readonly seasonTurn?: number;
 }
 
 /** The game's own starting colors of each season. */
@@ -79,6 +83,10 @@ export class Tweaks {
     (): ColorSpace =>
       (this.developerMode.enabled() ? this.tweaks().colorSpace : undefined) ?? SEASON_COLOR_SPACE,
   );
+  /** How many places a season takes to turn into the next. */
+  readonly seasonTurn = computed(
+    () => (this.developerMode.enabled() ? this.tweaks().seasonTurn : undefined) ?? SEASON_TURN,
+  );
 
   constructor() {
     this.loaded = this.store.setting(TWEAKS).then((stored) => {
@@ -114,6 +122,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), colorSpace }));
   }
 
+  /** Sets how many places a season takes to turn into the next; `undefined` brings back the game's. */
+  setSeasonTurn(seasonTurn: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), seasonTurn }));
+  }
+
   private async save(next: TweakValues): Promise<void> {
     this.changed = true;
     this.tweaks.set(next);
@@ -131,10 +144,14 @@ export function paletteText(palette: Palette): string {
 }
 
 /**
- * The seasons' starting colors and the color space they blend in, as text to hand back so they go into the code,
- * marking what differs.
+ * The seasons' starting colors, the color space they blend in and how long they take to turn, as text to hand back so
+ * they go into the code, marking what differs.
  */
-export function seasonsText(seasons: SeasonStarts, colorSpace: ColorSpace): string {
+export function seasonsText(
+  seasons: SeasonStarts,
+  colorSpace: ColorSpace,
+  seasonTurn: number,
+): string {
   const changed = (yes: boolean): string => (yes ? ' (changed)' : '');
   return [
     'Season colors (early colors in SEASON_BACKGROUNDS in seasons.ts), top then bottom:',
@@ -145,6 +162,7 @@ export function seasonsText(seasons: SeasonStarts, colorSpace: ColorSpace): stri
         )}`,
     ),
     `Blended in ${COLOR_SPACE_NAMES[colorSpace]} (SEASON_COLOR_SPACE in seasons.ts)${changed(colorSpace !== SEASON_COLOR_SPACE)}`,
+    `Turning over ${String(seasonTurn)} digit${seasonTurn === 1 ? '' : 's'} (SEASON_TURN in seasons.ts)${changed(seasonTurn !== SEASON_TURN)}`,
   ].join('\n');
 }
 
@@ -183,11 +201,13 @@ export function parseTweaks(stored: unknown): TweakValues {
   const seasons = 'seasons' in stored ? stored.seasons : undefined;
   const grouping = 'grouping' in stored ? stored.grouping : undefined;
   const colorSpace = 'colorSpace' in stored ? stored.colorSpace : undefined;
+  const seasonTurn = 'seasonTurn' in stored ? stored.seasonTurn : undefined;
   return tweakValues({
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
     grouping: isTimingSettings(grouping) ? grouping : undefined,
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
+    seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
   });
 }
 
@@ -197,6 +217,7 @@ function tweakValues({
   seasons,
   grouping,
   colorSpace,
+  seasonTurn,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -205,11 +226,16 @@ function tweakValues({
     ...(seasons === undefined ? {} : { seasons }),
     ...(grouping === undefined ? {} : { grouping }),
     ...(colorSpace === undefined ? {} : { colorSpace }),
+    ...(seasonTurn === undefined ? {} : { seasonTurn }),
   };
 }
 
 function isColorSpace(value: unknown): value is ColorSpace {
   return COLOR_SPACES.some((space) => space === value);
+}
+
+function isSeasonTurn(value: unknown): value is number {
+  return Number.isInteger(value) && Number(value) >= 1 && Number(value) <= PLACES_PER_SEASON;
 }
 
 function isTimingSettings(value: unknown): value is TimingSettings {

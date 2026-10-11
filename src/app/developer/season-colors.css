@@ -77,7 +77,8 @@
   }
 }
 
-.place {
+/* A slider under its label. */
+.slider {
   display: grid;
   gap: 0.375rem;
   font-weight: 500;

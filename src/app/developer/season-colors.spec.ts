@@ -117,6 +117,36 @@ describe('SeasonColors', () => {
     expect(host.querySelector('app-color-picker .hex')?.textContent).toBe(SEASON_STARTS.summer[1]);
   });
 
+  it('turns the seasons over as many places as selected, and brings back the game’s on reset', async () => {
+    await TestBed.inject(DeveloperMode).set(true);
+    const { host, stable } = await setUp();
+    const background = TestBed.inject(Background).colors;
+    await set(slider(host), '22', stable);
+    const turn = host.querySelector<HTMLInputElement>('label.turn input');
+    if (turn === null) {
+      throw new Error('No turn slider');
+    }
+    const label = (): string | undefined => turn.parentElement?.textContent.trim();
+    expect([turn.min, turn.max, turn.value]).toEqual(['1', '25', '5']);
+    expect(label()).toBe('Each season turns into the next over its last 5 digits');
+
+    await set(turn, '1', stable);
+
+    expect(TestBed.inject(Tweaks).values()).toEqual({ seasonTurn: 1 });
+    expect(background()).toEqual(
+      seasonAt(22, SEASON_BACKGROUNDS, SEASON_COLOR_SPACE, 1).background,
+    );
+    expect(label()).toBe('Each season turns into the next at once');
+    await set(turn, '25', stable);
+    expect(label()).toBe('Each season turns into the next all season long');
+
+    host.querySelector<HTMLButtonElement>('app-page-header button.pill')?.click();
+    await stable();
+
+    expect(TestBed.inject(Tweaks).values()).toEqual({});
+    expect(background()).toEqual(seasonAt(22).background);
+  });
+
   it('blends the colors in the color space selected, and brings back the game’s on reset', async () => {
     await TestBed.inject(DeveloperMode).set(true);
     const { host, stable } = await setUp();

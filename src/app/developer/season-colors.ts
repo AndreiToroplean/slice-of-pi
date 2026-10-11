@@ -10,6 +10,7 @@ import {
   Season,
   seasonAt,
   SEASON_COLOR_SPACE,
+  SEASON_TURN,
   SEASONS,
 } from '../seasons/seasons';
 import { ColorPicker } from './color-picker';
@@ -24,7 +25,7 @@ const ENDS = [
 
 /**
  * Developer mode's page to tune the seasons' colors: the top and bottom colors each season starts on, each selected
- * then tuned in the color picker under them, the color space they blend in, and a slider through the year, and into
+ * then tuned in the color picker under them, the color space they blend in, how long they take to turn, and a slider through the year, and into
  * the years before and after, that moves the background exactly as typing digits does.
  */
 @Component({
@@ -77,7 +78,18 @@ const ENDS = [
         }
       </select>
     </label>
-    <label class="place">
+    <label class="slider turn">
+      {{ turnText() }}
+      <input
+        type="range"
+        min="1"
+        [max]="placesPerSeason"
+        step="1"
+        [value]="seasonTurn()"
+        (input)="turnOver($event)"
+      />
+    </label>
+    <label class="slider place">
       Place in the year
       <input
         type="range"
@@ -149,13 +161,29 @@ export class SeasonColors {
       this.starts()[season].some((color, k) => color !== SEASON_STARTS[season][k]),
     ),
   );
+  /** How many places a season takes to turn into the next. */
+  protected readonly seasonTurn = this.tweaks.seasonTurn;
+  protected readonly turnText = computed(() => {
+    const turn = this.seasonTurn();
+    return turn === 1
+      ? 'Each season turns into the next at once'
+      : turn === PLACES_PER_SEASON
+        ? 'Each season turns into the next all season long'
+        : `Each season turns into the next over its last ${String(turn)} digits`;
+  });
+
   protected readonly tuned = computed(
-    () => this.colorsTuned() || this.colorSpace() !== SEASON_COLOR_SPACE,
+    () =>
+      this.colorsTuned() ||
+      this.colorSpace() !== SEASON_COLOR_SPACE ||
+      this.seasonTurn() !== SEASON_TURN,
   );
   /** The colors as text, to hand back so they go into the code. */
-  protected readonly copyText = computed(() => seasonsText(this.starts(), this.colorSpace()));
+  protected readonly copyText = computed(() =>
+    seasonsText(this.starts(), this.colorSpace(), this.seasonTurn()),
+  );
   protected readonly view = computed(() =>
-    seasonAt(this.place(), backgroundsFrom(this.starts()), this.colorSpace()),
+    seasonAt(this.place(), backgroundsFrom(this.starts()), this.colorSpace(), this.seasonTurn()),
   );
 
   constructor() {
@@ -195,6 +223,13 @@ export class SeasonColors {
     }
   }
 
+  protected turnOver(event: Event): void {
+    if (event.target instanceof HTMLInputElement) {
+      const turn = Number(event.target.value);
+      void this.tweaks.setSeasonTurn(turn === SEASON_TURN ? undefined : turn);
+    }
+  }
+
   protected moveTo(event: Event): void {
     if (event.target instanceof HTMLInputElement) {
       this.place.set(Number(event.target.value));
@@ -206,5 +241,6 @@ export class SeasonColors {
     this.starts.set(SEASON_STARTS);
     void this.tweaks.setSeasons(undefined);
     void this.tweaks.setColorSpace(undefined);
+    void this.tweaks.setSeasonTurn(undefined);
   }
 }
