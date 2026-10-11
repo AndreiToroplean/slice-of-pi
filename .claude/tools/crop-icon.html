@@ -1,0 +1,585 @@
+<!doctype html>
+<!--
+  Crop tool for app icons: frame an artwork on a flat background and preview it as square, squircle, circle, on home
+  screens and as a favicon, then copy the values for scripts/make-icons.py. Open it from a local server at the repo
+  root (e.g. `python3 -m http.server`, then open /.claude/tools/crop-icon.html), or pick any image with "Open image".
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Crop icon</title>
+    <style>
+      /* Layout: editor on the left, live previews on the right; one column on phones. */
+      :root {
+        --bg: #f5f2f8;
+        --panel: #ffffff;
+        --fg: #2a1f3d;
+        --muted: #5d5470;
+        --line: #ddd5e6;
+        --accent: #07bed4;
+        --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #17131f;
+          --panel: #221c2d;
+          --fg: #f1ecf7;
+          --muted: #b3a9c4;
+          --line: #3a3149;
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #17131f;
+        --panel: #221c2d;
+        --fg: #f1ecf7;
+        --muted: #b3a9c4;
+        --line: #3a3149;
+        color-scheme: dark;
+      }
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--font);
+        padding: 20px 16px 48px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 1.4rem;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 0.95rem;
+        margin: 0 0 10px;
+      }
+      p.lead {
+        color: var(--muted);
+        margin: 0 0 18px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+        gap: 20px;
+        align-items: start;
+      }
+      @media (max-width: 760px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+      #editor {
+        width: 100%;
+        max-width: 100%;
+        aspect-ratio: 1;
+        touch-action: none;
+        cursor: grab;
+        border-radius: 6px;
+        display: block;
+      }
+      #editor:active {
+        cursor: grabbing;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 0;
+      }
+      label.row {
+        display: grid;
+        grid-template-columns: 70px minmax(0, 1fr) 52px;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+      label.row output {
+        font-family: var(--mono);
+        font-size: 12px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      input[type='range'] {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+      .swatches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+      .swatch {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        cursor: pointer;
+        padding: 0;
+      }
+      .swatch[aria-pressed='true'] {
+        border-color: var(--fg);
+      }
+      .swatch:focus-visible,
+      button:focus-visible {
+        outline: 2px solid var(--fg);
+        outline-offset: 2px;
+      }
+      input[type='color'] {
+        width: 34px;
+        height: 28px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: none;
+        padding: 0;
+      }
+      .checks {
+        display: flex;
+        gap: 14px;
+        font-size: 13px;
+        flex-wrap: wrap;
+      }
+      .buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      button.action {
+        font: inherit;
+        font-size: 14px;
+        padding: 8px 14px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--fg);
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #06262b;
+        font-weight: 600;
+      }
+      #values {
+        font-family: var(--mono);
+        font-size: 12px;
+        width: 100%;
+        box-sizing: border-box;
+        resize: none;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      .previews {
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+      }
+      .shape-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        align-items: end;
+      }
+      figure {
+        margin: 0;
+        display: grid;
+        justify-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      canvas.pv {
+        display: block;
+      }
+      .home {
+        border-radius: 14px;
+        padding: 18px 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+      }
+      .home figure {
+        color: #fff;
+        text-shadow: 0 1px 2px rgb(0 0 0 / 60%);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Crop icon</h1>
+    <p class="lead">
+      Drag the artwork to move it, pinch or scroll to resize, or use the sliders. Every preview
+      updates live. When it looks right, copy the values and give them to Claude.
+    </p>
+
+    <div class="layout">
+      <section class="panel" aria-label="Crop">
+        <canvas
+          id="editor"
+          width="720"
+          height="720"
+          aria-label="Icon editor: drag to move the artwork"
+        ></canvas>
+        <p class="hint">
+          Dashed circle: the safe zone launchers promise never to cut (80% of the icon).
+        </p>
+        <label class="row" for="size"
+          >Size <input id="size" type="range" min="30" max="140" step="0.5" />
+          <output id="sizeOut"></output
+        ></label>
+        <label class="row" for="x"
+          >Left/right <input id="x" type="range" min="-40" max="40" step="0.5" />
+          <output id="xOut"></output
+        ></label>
+        <label class="row" for="y"
+          >Up/down <input id="y" type="range" min="-40" max="40" step="0.5" />
+          <output id="yOut"></output
+        ></label>
+        <div class="swatches" role="group" aria-label="Background color" id="swatches"></div>
+        <div class="checks">
+          <label><input type="checkbox" id="guides" checked /> Show safe zone</label>
+        </div>
+        <div class="buttons">
+          <button class="action primary" id="copy" type="button">Copy values</button>
+          <button class="action" id="reset" type="button">Reset</button>
+          <button class="action" id="open" type="button">Open image</button>
+          <input id="file" type="file" accept="image/*" hidden />
+        </div>
+        <textarea id="values" rows="3" readonly aria-label="Crop values"></textarea>
+      </section>
+
+      <section class="previews" aria-label="Previews">
+        <div class="panel">
+          <h2>Square</h2>
+          <div class="shape-row" data-shape="square"></div>
+        </div>
+        <div class="panel">
+          <h2>Squircle</h2>
+          <div class="shape-row" data-shape="squircle"></div>
+        </div>
+        <div class="panel">
+          <h2>Circle</h2>
+          <div class="shape-row" data-shape="circle"></div>
+        </div>
+        <div class="panel">
+          <h2>Home screen</h2>
+          <div
+            class="home"
+            style="background: linear-gradient(160deg, #2b4a8f, #121a33)"
+            data-home="dark"
+          ></div>
+          <div class="home" style="background: #e9e3d8" data-home="light"></div>
+        </div>
+        <div class="panel">
+          <h2>Browser tab (favicon)</h2>
+          <div class="shape-row" data-shape="favicon"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      // Values are fractions of the icon's side: `width` is the artwork's width, `x`/`y` move its center from the icon's
+      // center (right and down are positive). The artwork is first cropped to its visible pixels (alpha > 32), as
+      // scripts/make-icons.py does.
+      const DEFAULT = { background: '#07bed4', width: 0.8, x: 0, y: 0 };
+      const COLORS = [
+        '#07bed4',
+        '#e3402f',
+        '#fd7225',
+        '#f4ba0d',
+        '#a9c926',
+        '#3cba60',
+        '#3371fa',
+        '#8225d7',
+        '#bf56c1',
+        '#ff82d1',
+        '#ffffff',
+        '#202124',
+      ];
+      const SIZES = {
+        square: [192, 96, 48],
+        squircle: [192, 96, 48],
+        circle: [192, 96, 48],
+        favicon: [32, 16],
+      };
+      const state = { ...DEFAULT };
+      let art = Object.assign(document.createElement('canvas'), { width: 0, height: 0 });
+      function load(url) {
+        const image = new Image();
+        image.addEventListener('load', () => {
+          const full = Object.assign(document.createElement('canvas'), {
+            width: image.naturalWidth,
+            height: image.naturalHeight,
+          });
+          const ctx = full.getContext('2d');
+          ctx.drawImage(image, 0, 0);
+          const { data, width, height } = ctx.getImageData(0, 0, full.width, full.height);
+          let left = width,
+            top = height,
+            right = -1,
+            bottom = -1;
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              if (data[(y * width + x) * 4 + 3] > 32) {
+                left = Math.min(left, x);
+                right = Math.max(right, x);
+                top = Math.min(top, y);
+                bottom = Math.max(bottom, y);
+              }
+            }
+          }
+          if (right < 0) return;
+          art = Object.assign(document.createElement('canvas'), {
+            width: right - left + 1,
+            height: bottom - top + 1,
+          });
+          art.getContext('2d').drawImage(full, -left, -top);
+          render();
+        });
+        image.src = url;
+      }
+      load('../../design/icon/cake-pi.png');
+
+      const $ = (id) => document.getElementById(id);
+      const editor = $('editor');
+
+      function shapePath(ctx, shape, s) {
+        ctx.beginPath();
+        if (shape === 'circle') {
+          ctx.arc(s / 2, s / 2, s / 2, 0, Math.PI * 2);
+        } else if (shape === 'squircle') {
+          const n = 5,
+            r = s / 2;
+          for (let i = 0; i <= 200; i++) {
+            const t = (i / 200) * Math.PI * 2,
+              c = Math.cos(t),
+              sn = Math.sin(t);
+            const px = r + r * Math.sign(c) * Math.abs(c) ** (2 / n);
+            const py = r + r * Math.sign(sn) * Math.abs(sn) ** (2 / n);
+            i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+          }
+          ctx.closePath();
+        } else {
+          ctx.rect(0, 0, s, s);
+        }
+      }
+
+      function paint(canvas, cssSize, shape) {
+        const dpr = window.devicePixelRatio || 1;
+        const s = Math.round(cssSize * dpr);
+        if (canvas.width !== s) {
+          canvas.width = s;
+          canvas.height = s;
+        }
+        canvas.style.width = cssSize + 'px';
+        canvas.style.height = cssSize + 'px';
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, s, s);
+        ctx.save();
+        shapePath(ctx, shape, s);
+        ctx.clip();
+        ctx.fillStyle = state.background;
+        ctx.fillRect(0, 0, s, s);
+        if (art.width) {
+          const w = state.width * s,
+            h = (w * art.height) / art.width;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(art, s / 2 + state.x * s - w / 2, s / 2 + state.y * s - h / 2, w, h);
+        }
+        ctx.restore();
+      }
+
+      function paintEditor() {
+        const s = editor.width;
+        const ctx = editor.getContext('2d');
+        paint(editor, editor.clientWidth || 320, 'square');
+        if ($('guides').checked) {
+          const px = editor.width;
+          ctx.save();
+          ctx.setLineDash([px * 0.02, px * 0.015]);
+          ctx.lineWidth = Math.max(1, px * 0.004);
+          ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+          ctx.beginPath();
+          ctx.arc(px / 2, px / 2, px * 0.4, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+        editor.style.width = '';
+        editor.style.height = '';
+      }
+
+      const canvases = [];
+      for (const row of document.querySelectorAll('[data-shape]')) {
+        const shape = row.dataset.shape;
+        for (const size of SIZES[shape]) {
+          const fig = document.createElement('figure');
+          const c = document.createElement('canvas');
+          c.className = 'pv';
+          c.setAttribute('aria-hidden', 'true');
+          fig.append(
+            c,
+            Object.assign(document.createElement('figcaption'), { textContent: size + 'px' }),
+          );
+          row.append(fig);
+          canvases.push([c, size, shape === 'favicon' ? 'square' : shape]);
+        }
+      }
+      for (const home of document.querySelectorAll('[data-home]')) {
+        for (const shape of ['squircle', 'circle', 'square']) {
+          const fig = document.createElement('figure');
+          const c = document.createElement('canvas');
+          c.className = 'pv';
+          c.setAttribute('aria-hidden', 'true');
+          fig.append(
+            c,
+            Object.assign(document.createElement('figcaption'), { textContent: 'Slice of Pi' }),
+          );
+          home.append(fig);
+          canvases.push([c, 54, shape]);
+        }
+      }
+
+      const fmt = (v) => (v >= 0 ? '' : '−') + Math.abs(v * 100).toFixed(1) + '%';
+      function render() {
+        $('size').value = state.width * 100;
+        $('x').value = state.x * 100;
+        $('y').value = state.y * 100;
+        $('sizeOut').textContent = (state.width * 100).toFixed(1) + '%';
+        $('xOut').textContent = fmt(state.x);
+        $('yOut').textContent = fmt(state.y);
+        for (const b of document.querySelectorAll('.swatch'))
+          b.setAttribute('aria-pressed', String(b.dataset.color === state.background));
+        $('picker').value = state.background;
+        $('values').value = JSON.stringify({
+          background: state.background,
+          width: +state.width.toFixed(4),
+          x: +state.x.toFixed(4),
+          y: +state.y.toFixed(4),
+        });
+        paintEditor();
+        for (const [c, size, shape] of canvases) paint(c, size, shape);
+        try {
+          localStorage.setItem('crop-icon', JSON.stringify(state));
+        } catch {}
+      }
+
+      const swatches = $('swatches');
+      for (const color of COLORS) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'swatch';
+        b.style.background = color;
+        b.dataset.color = color;
+        b.setAttribute('aria-label', 'Background ' + color);
+        b.addEventListener('click', () => {
+          state.background = color;
+          render();
+        });
+        swatches.append(b);
+      }
+      const picker = Object.assign(document.createElement('input'), {
+        type: 'color',
+        id: 'picker',
+      });
+      picker.setAttribute('aria-label', 'Custom background color');
+      picker.addEventListener('input', () => {
+        state.background = picker.value;
+        render();
+      });
+      swatches.append(picker);
+
+      $('size').addEventListener('input', (e) => {
+        state.width = e.target.value / 100;
+        render();
+      });
+      $('x').addEventListener('input', (e) => {
+        state.x = e.target.value / 100;
+        render();
+      });
+      $('y').addEventListener('input', (e) => {
+        state.y = e.target.value / 100;
+        render();
+      });
+      $('guides').addEventListener('change', render);
+      $('reset').addEventListener('click', () => {
+        Object.assign(state, DEFAULT);
+        render();
+      });
+      $('copy').addEventListener('click', async () => {
+        const text = $('values').value;
+        try {
+          await navigator.clipboard.writeText(text);
+          $('copy').textContent = 'Copied';
+        } catch {
+          $('values').select();
+          $('copy').textContent = 'Selected, copy it';
+        }
+        setTimeout(() => ($('copy').textContent = 'Copy values'), 1600);
+      });
+
+      // Drag to move, pinch or wheel to resize.
+      const pointers = new Map();
+      let last = null;
+      const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+      editor.addEventListener('pointerdown', (e) => {
+        editor.setPointerCapture(e.pointerId);
+        pointers.set(e.pointerId, e);
+        last = null;
+      });
+      editor.addEventListener('pointermove', (e) => {
+        if (!pointers.has(e.pointerId)) return;
+        const prev = pointers.get(e.pointerId);
+        pointers.set(e.pointerId, e);
+        const side = editor.clientWidth;
+        if (pointers.size === 1) {
+          state.x = clamp(state.x + (e.clientX - prev.clientX) / side, -0.4, 0.4);
+          state.y = clamp(state.y + (e.clientY - prev.clientY) / side, -0.4, 0.4);
+        } else if (pointers.size === 2) {
+          const [a, b] = [...pointers.values()];
+          const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+          if (last) state.width = clamp(state.width * (d / last), 0.3, 1.4);
+          last = d;
+        }
+        render();
+      });
+      const up = (e) => {
+        pointers.delete(e.pointerId);
+        last = null;
+      };
+      editor.addEventListener('pointerup', up);
+      editor.addEventListener('pointercancel', up);
+      editor.addEventListener(
+        'wheel',
+        (e) => {
+          e.preventDefault();
+          state.width = clamp(state.width * Math.exp(-e.deltaY * 0.001), 0.3, 1.4);
+          render();
+        },
+        { passive: false },
+      );
+
+      try {
+        Object.assign(state, JSON.parse(localStorage.getItem('crop-icon')) || {});
+      } catch {}
+      $('open').addEventListener('click', () => $('file').click());
+      $('file').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) load(URL.createObjectURL(file));
+      });
+      window.addEventListener('resize', render);
+      render();
+    </script>
+  </body>
+</html>
