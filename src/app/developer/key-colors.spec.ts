@@ -72,6 +72,16 @@ describe('KeyColors', () => {
     expect(key(host, 'Key 0, red').getAttribute('aria-pressed')).toBe('false');
   });
 
+  it('selects a key from anywhere on its row', async () => {
+    const { host, stable } = await setUp();
+
+    host.querySelectorAll<HTMLElement>('.grid .pair')[4 * PALETTE.length + 7]?.click();
+    await stable();
+
+    expect(host.querySelector('app-color-picker .name')?.textContent).toBe('Key 4, green');
+    expect(key(host, 'Key 4, green').getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('tunes the selected key, keeping the tuned palette, then brings back the game’s', async () => {
     const { host, stable } = await setUp();
     key(host, 'Key 3, lime').click();
@@ -125,11 +135,14 @@ describe('KeyColors', () => {
     expect(rows(host)[0]).not.toBe(PALETTE[0]);
   });
 
-  it('copies its colors from a button in its top bar', async () => {
+  it('copies its colors from a button at its bottom, with the reset in its top bar', async () => {
     const { host } = await setUp();
 
-    expect(host.querySelector('app-page-header app-copy-values button')?.textContent.trim()).toBe(
+    expect(host.querySelector(':scope > app-copy-values button')?.textContent.trim()).toBe(
       'Copy hyperparameter values',
+    );
+    expect(host.querySelector('app-page-header button.pill')?.textContent.trim()).toBe(
+      "Back to the game's colors",
     );
   });
 

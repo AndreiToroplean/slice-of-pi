@@ -16,7 +16,7 @@ const LABEL = 'Copy hyperparameter values';
  */
 @Component({
   selector: 'app-copy-values',
-  template: `<button type="button" class="frosted" (click)="void copy()">{{ label() }}</button>`,
+  template: `<button type="button" class="candy" (click)="void copy()">{{ label() }}</button>`,
   styleUrl: './copy-values.css',
 })
 export class CopyValues {

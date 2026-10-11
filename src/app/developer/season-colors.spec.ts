@@ -114,11 +114,14 @@ describe('SeasonColors', () => {
     expect(TestBed.inject(Tweaks).values().seasons?.autumn[0]).toBe(expected);
   });
 
-  it('copies its colors from a button in its top bar', async () => {
+  it('copies its colors from a button at its bottom, with the reset in its top bar', async () => {
     const { host } = await setUp();
 
-    expect(host.querySelector('app-page-header app-copy-values button')?.textContent.trim()).toBe(
+    expect(host.querySelector(':scope > app-copy-values button')?.textContent.trim()).toBe(
       'Copy hyperparameter values',
+    );
+    expect(host.querySelector('app-page-header button.pill')?.textContent.trim()).toBe(
+      "Back to the game's colors",
     );
   });
 

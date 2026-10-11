@@ -24,7 +24,9 @@ const ENDS = [
   host: { class: 'screen' },
   template: `
     <app-page-header title="Season colors">
-      <app-copy-values [text]="copyText()" />
+      <button type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
+        Back to the game's colors
+      </button>
     </app-page-header>
     <app-season-header [view]="view()" />
     <div class="seasons">
@@ -67,9 +69,7 @@ const ENDS = [
         (input)="moveTo($event)"
       />
     </label>
-    <button type="button" class="candy" [disabled]="!tuned()" (click)="reset()">
-      Back to the game's colors
-    </button>
+    <app-copy-values [text]="copyText()" />
   `,
   styleUrl: './season-colors.css',
 })
