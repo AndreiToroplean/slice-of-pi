@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791709235340,
+  "lastUpdate": 1791709383127,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -78,6 +78,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 145,
+            "unit": "ms",
+            "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "b315559bec1c39be648e9d79433c026ba412f75b",
+          "message": "feat: select key colors from their rows and swap the page buttons\n\nOn the key colors page, tapping anywhere on a row selects its key, like the key at its start. On both developer pages, \"Back to the game's colors\" moves to the top bar as a small pill and \"Copy hyperparameter values\" to the bottom of the page as the big button.\n\nClaude-Session: https://claude.ai/code/session_0184FGdXhC5HPYa8x4kP8HrA",
+          "timestamp": "2026-10-11T11:02:38+02:00",
+          "tree_id": "b012adfa158195df8924106e331bff36c4a2dfa6",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/b315559bec1c39be648e9d79433c026ba412f75b"
+        },
+        "date": 1791709382368,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 4670,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 6727,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 244,
             "unit": "ms",
             "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
           }
