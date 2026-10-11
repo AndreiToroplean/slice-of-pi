@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791711744765,
+  "lastUpdate": 1791712726142,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -198,6 +198,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 182,
+            "unit": "ms",
+            "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "fedbeda91dc7bca25209b4676efb315e1793ee39",
+          "message": "feat: back up the settings along with the runs\n\nThe backup file now holds everything in the database: the runs and every setting, as stored (developer mode and its tweaks, grouping settings included). Restoring a backup still only adds the runs not kept yet, and its settings replace those of the same name, applied right away. Older backups without settings restore as before, and older versions of the game ignore the settings, so the format stays the same.\n\nClaude-Session: https://claude.ai/code/session_01T5XrWMGqg5Db7AbDhDqJGN",
+          "timestamp": "2026-10-11T11:58:27+02:00",
+          "tree_id": "c16d80f1cff67a6fb849b9b863d27f6a12887503",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/fedbeda91dc7bca25209b4676efb315e1793ee39"
+        },
+        "date": 1791712725604,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 4974,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 7342,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 269,
             "unit": "ms",
             "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
           }
