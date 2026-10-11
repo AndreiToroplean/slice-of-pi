@@ -114,12 +114,19 @@ describe('readHistory', () => {
 describe('findCreep', () => {
   const steady = (runs: number, ms: number): number[] => Array.from({ length: runs }, () => ms);
 
-  it('waits for two windows of runs', () => {
-    const values = [...steady(CREEP.window, 1_000), ...steady(CREEP.window - 1, 9_000)];
+  it('waits for two of the smallest windows of runs', () => {
+    const values = [...steady(CREEP.minWindow, 1_000), ...steady(CREEP.minWindow - 1, 9_000)];
     expect(findCreep(new Map([[SUITE, values]]))).toEqual([]);
   });
 
-  it('compares the latest runs with the first ones while the history is short', () => {
+  it('splits a short history in half, comparing its latest runs with its first ones', () => {
+    const values = [...steady(3, 10_000), 99_000, ...steady(3, 13_000)];
+    expect(findCreep(new Map([[SUITE, values]]))).toEqual([
+      `${SUITE}: 13.0s over the last 3 runs, up 30% from 10.0s.`,
+    ]);
+  });
+
+  it('compares the latest runs with the first ones while the history is too short for a gap', () => {
     const values = [...steady(CREEP.window, 10_000), ...steady(CREEP.window, 13_000)];
     expect(findCreep(new Map([[SUITE, values]]))).toEqual([
       `${SUITE}: 13.0s over the last 10 runs, up 30% from 10.0s.`,
