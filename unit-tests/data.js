@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791739496014,
+  "lastUpdate": 1791750922791,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -438,6 +438,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 272,
+            "unit": "ms",
+            "extra": "Data says there are no runs yet"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "3e11d4e31a2b65e6c5c00f1afa9670b88fd69c48",
+          "message": "feat: make the slots the group, trusting groups up to the first shaky one\n\nThere is no separate hint any more: the slots show the size of the group being typed, and the group finishes once they're all filled, or earlier when the player pauses long enough for the aggregate to break. The aggregate trusts its groups from the first decimal up to the first one that is open or below the confidence needed (`trustedUntil`); from there on the game plays groups of 5, and the \"Your data\" page dots those groups. The \"Confidence for the hint\" setting becomes \"Confidence needed\", reading tweaks saved under the old name.\n\nClaude-Session: https://claude.ai/code/session_01Tw6hW4xpt6xaeGr8NpXjYY",
+          "timestamp": "2026-10-11T22:35:01+02:00",
+          "tree_id": "aa9209c80206b33ce342ddd3f99b20b99c8b55c2",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/3e11d4e31a2b65e6c5c00f1afa9670b88fd69c48"
+        },
+        "date": 1791750922317,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5340,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 8493,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 264,
             "unit": "ms",
             "extra": "Data says there are no runs yet"
           }
