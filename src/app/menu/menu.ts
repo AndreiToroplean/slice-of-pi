@@ -50,6 +50,10 @@ import { seasonAt } from '../seasons/seasons';
           <h2 id="developer-title">Developer</h2>
           <a routerLink="/developer/key-colors">Key colors</a>
           <a routerLink="/developer/season-colors">Season colors</a>
+          <label class="toggle">
+            <input type="checkbox" [checked]="tweaks.checking()" (change)="setChecking($event)" />
+            Check digits
+          </label>
         </div>
       }
     </nav>
@@ -87,7 +91,8 @@ export class Menu {
   protected readonly dropdownAt = signal({ top: 0, right: 0 });
   protected readonly developerMode = inject(DeveloperMode);
 
-  private readonly tweaks = inject(Tweaks);
+  /** The values tuned in developer mode, checking the digits among them. */
+  protected readonly tweaks = inject(Tweaks);
 
   private readonly more = viewChild.required<ElementRef<HTMLButtonElement>>('more');
 
@@ -99,6 +104,11 @@ export class Menu {
         seasonAt(0, this.tweaks.seasonBackgrounds(), this.tweaks.colorSpace()).background,
       );
     });
+  }
+
+  /** Turns checking the digits on or off, from developer mode. */
+  protected setChecking(event: Event): void {
+    void this.tweaks.setChecking((event.target as HTMLInputElement).checked);
   }
 
   /** Puts the dropdown under its button. It opens in the top layer, positioned against the window. */

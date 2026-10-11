@@ -52,5 +52,5 @@
 
 ## Developer
 
-- **Developer mode:** a hidden mode for tuning the game, turned on and off by holding the main menu's ⋮ button for 5 seconds, then dragging it onto the target that appears at the bottom of the screen. It adds a Developer section to the ⋮ menu, with a page per thing to tune.
-- **Tweaks:** values tuned in developer mode, such as the key colors, the seasons' colors and the grouping settings. They're kept with the player data and apply to the game only while developer mode is on. Each page's "Copy hyperparameter values" button, at the bottom of the page, copies its values as text, to be written into the code (on the "Your data" page, at the bottom of the grouping settings).
+- **Developer mode:** a hidden mode for tuning the game, turned on and off by holding the main menu's ⋮ button for 5 seconds, then dragging it onto the target that appears at the bottom of the screen. It adds a Developer section to the ⋮ menu, with a page per thing to tune and a "Check digits" toggle, to play without checking the digits.
+- **Tweaks:** values tuned in developer mode, such as the key colors, the seasons' colors and the grouping settings, and developer settings such as checking the digits. They're kept with the player data and apply to the game only while developer mode is on. Each page's "Copy hyperparameter values" button, at the bottom of the page, copies its values as text, to be written into the code (on the "Your data" page, at the bottom of the grouping settings).

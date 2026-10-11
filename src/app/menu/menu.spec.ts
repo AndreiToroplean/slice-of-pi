@@ -123,6 +123,23 @@ describe('Menu', () => {
       ]);
     });
 
+    it('turns checking the digits off and on', async () => {
+      await TestBed.inject(DeveloperMode).set(true);
+      const host = await setUp();
+      const toggle = developerSection(host)?.querySelector<HTMLInputElement>(
+        'label.toggle input[type="checkbox"]',
+      );
+      const tweaks = TestBed.inject(Tweaks);
+      expect(toggle?.closest('label')?.textContent.trim()).toBe('Check digits');
+      expect(toggle?.checked).toBe(true);
+
+      toggle?.click();
+      expect(tweaks.checking()).toBe(false);
+
+      toggle?.click();
+      expect(tweaks.checking()).toBe(true);
+    });
+
     it('starts on the tuned background of a new game', async () => {
       await TestBed.inject(DeveloperMode).set(true);
       await TestBed.inject(Tweaks).setSeasons(seasons);

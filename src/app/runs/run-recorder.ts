@@ -1,4 +1,5 @@
 import { inject, InjectionToken, Service } from '@angular/core';
+import { Tweaks } from '../developer/tweaks';
 import { KeypadKey } from '../keypad/keypad-layout';
 import { addDigit, deleteMistake, newRun, removeDigit, Run } from './run';
 import { RunStore } from './run-store';
@@ -28,12 +29,14 @@ export const RUN_CLOCK = new InjectionToken<RunClock>('RUN_CLOCK', {
  * digit before it was typed, so the next digit's interval runs from the backspace.
  *
  * A run starts with the first digit typed and ends when the game restarts or ends. Deleting every digit deletes the run,
- * as if it had never started, and the next digit starts a new one.
+ * as if it had never started, and the next digit starts a new one. A run started without checking the digits, in
+ * developer mode, is marked unchecked.
  */
 @Service()
 export class RunRecorder {
   private readonly store = inject(RunStore);
   private readonly clock = inject(RUN_CLOCK);
+  private readonly tweaks = inject(Tweaks);
 
   private run: Run | undefined;
   /** When the current run's first digit was typed, on the precise clock. */
@@ -62,7 +65,7 @@ export class RunRecorder {
       return;
     }
     if (this.run === undefined) {
-      this.run = newRun(this.clock.newId(), this.clock.epoch());
+      this.run = newRun(this.clock.newId(), this.clock.epoch(), this.tweaks.checking());
       this.start = now;
       this.rewound = 0;
       void this.store.persist();

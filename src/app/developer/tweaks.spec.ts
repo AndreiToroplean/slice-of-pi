@@ -111,6 +111,20 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({ grouping });
   });
 
+  it('checks the digits unless told not to, only while developer mode is on, and keeps that', async () => {
+    const tweaks = await load();
+    expect(tweaks.checking()).toBe(true);
+
+    await tweaks.setChecking(false);
+    expect(tweaks.checking()).toBe(true);
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.checking()).toBe(false);
+    expect((await load()).values()).toEqual({ checking: false });
+
+    await TestBed.inject(Tweaks).setChecking(true);
+    expect((await load()).values()).toEqual({});
+  });
+
   it('reads the stored tweaks again once something else changed them', async () => {
     const tweaks = await load();
     await TestBed.inject(RunStore).saveSetting(TWEAKS, { format: TWEAKS_FORMAT, grouping });
@@ -191,6 +205,9 @@ describe('Tweaks', () => {
         seasonTurn: 2.5,
       }),
     ).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, checking: false })).toEqual({ checking: false });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, checking: true })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, checking: 'no' })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 0 })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 26 })).toEqual({});
     expect(parseTweaks(null)).toEqual({});
