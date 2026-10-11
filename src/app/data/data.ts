@@ -122,8 +122,13 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
           <li><i class="trust"></i>Trust, or confidence for all runs</li>
         </ul>
         @for (chart of charts(); track chart.id) {
-          <article class="panel">
-            <h3>{{ chart.title }}</h3>
+          <article class="panel" [class.unchecked]="!chart.checked">
+            <h3>
+              {{ chart.title }}
+              @if (!chart.checked) {
+                <span class="badge">Unchecked</span>
+              }
+            </h3>
             <p class="meta">{{ chart.meta }}</p>
             <app-run-chart
               [values]="chart.times"
@@ -163,7 +168,8 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
   styleUrl: './data.css',
 })
 export class Data {
-  protected readonly count = signal('');
+  /** Whether the runs have been read. */
+  private readonly loaded = signal(false);
   protected readonly persisted = signal(false);
   /** Whether this is a preview keeping its runs apart from the main game's (see {@link RunStore}). */
   protected readonly separatePreview = signal(false);
@@ -181,17 +187,24 @@ export class Data {
   private readonly analyses = computed(() =>
     this.runs().map((run) => analyzeRun(run.times, this.settings())),
   );
+  /** Unchecked runs, which may hold mistakes, only show in developer mode. */
+  private readonly shown = computed(() =>
+    this.runs().filter((run) => run.checked || this.developerMode()),
+  );
   protected readonly charts = computed(() =>
-    this.runs().map((run, r) => {
+    this.runs().flatMap((run, r) => {
+      if (!run.checked && !this.developerMode()) {
+        return [];
+      }
       const places = this.analyses()[r] ?? [];
       const breaks = breaksOf(places);
       return {
         id: run.id,
         title: dateAndTime.format(run.startedAt),
+        checked: run.checked,
         meta:
           `${plural(run.digits.length, 'digit')} in ${seconds(run.times.at(-1) ?? 0)}` +
-          (run.digits.length > 0 ? ` · ${plural(breaks.length + 1, 'group')}` : '') +
-          (run.checked ? '' : ' · unchecked'),
+          (run.digits.length > 0 ? ` · ${plural(breaks.length + 1, 'group')}` : ''),
         times: digitTimes(run),
         pace: places.map((place) => place?.pace),
         threshold: places.map((place) => place?.threshold),
@@ -200,9 +213,16 @@ export class Data {
       };
     }),
   );
+  protected readonly count = computed(() => {
+    if (!this.loaded()) {
+      return '';
+    }
+    const count = this.shown().length;
+    return count === 0 ? 'No runs kept yet.' : `${plural(count, 'run')} kept on this device.`;
+  });
   /** Every chart spans the places of the longest run. */
   protected readonly places = computed(() =>
-    Math.max(1, ...this.runs().map((run) => run.digits.length)),
+    Math.max(1, ...this.shown().map((run) => run.digits.length)),
   );
   protected readonly top = computed(() => chartTop(this.charts().map((chart) => chart.times)));
   /** The verdicts of the runs the groups are computed from, combined: the groups the game plays with. */
@@ -334,12 +354,8 @@ export class Data {
       this.store.separate(),
     ]);
     this.runs.set(runs);
+    this.loaded.set(true);
     this.separatePreview.set(separate);
-    this.count.set(
-      runs.length === 0
-        ? 'No runs kept yet.'
-        : `${plural(runs.length, 'run')} kept on this device.`,
-    );
     this.persisted.set(persisted);
   }
 }

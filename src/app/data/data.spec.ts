@@ -321,7 +321,9 @@ describe('Data', () => {
   it('charts each run, oldest first, then all of them', async () => {
     const { host } = await setUp([second, first]);
 
-    const titles = Array.from(host.querySelectorAll('.runs h3'), (title) => title.textContent);
+    const titles = Array.from(host.querySelectorAll('.runs h3'), (title) =>
+      title.textContent.trim(),
+    );
     const format = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
     expect(titles).toEqual([format.format(1_000), format.format(2_000), 'All runs']);
     expect(Array.from(host.querySelectorAll('.runs .meta'), (meta) => meta.textContent)).toEqual([
@@ -377,14 +379,24 @@ describe('Data', () => {
       return Array.from(host.querySelectorAll('.groups li'), (group) => group.textContent.trim());
     }
 
-    it('marks unchecked runs, and leaves them out of the groups', async () => {
-      const { host } = await setUp([unchecked]);
+    it('hides unchecked runs outside developer mode, and leaves them out of the groups', async () => {
+      const { host } = await setUp([grouped, unchecked]);
 
-      expect(host.querySelector('.runs .meta')?.textContent).toBe(
-        '12 digits in 3.7 s · 4 groups · unchecked',
-      );
-      expect(groupsShown(host)).toEqual([]);
+      expect(host.querySelectorAll('.runs article:not(.summary)')).toHaveLength(1);
+      expect(host.querySelector('.runs .badge')).toBeNull();
+      expect(text(host)).toContain('1 run kept on this device.');
+      expect(groupsShown(host)).toEqual(['141', '592', '653', '589']);
       expect(host.querySelector('.unchecked')).toBeNull();
+    });
+
+    it('shows unchecked runs in developer mode, marked, still leaving them out of the groups', async () => {
+      const { host } = await setUp([unchecked], false, false, undefined, true);
+
+      const article = host.querySelector('.runs article');
+      expect(article?.classList).toContain('unchecked');
+      expect(article?.querySelector('h3 .badge')?.textContent.trim()).toBe('Unchecked');
+      expect(text(host)).toContain('1 run kept on this device.');
+      expect(groupsShown(host)).toEqual([]);
     });
 
     it('counts unchecked runs in the groups when told to, in developer mode', async () => {
