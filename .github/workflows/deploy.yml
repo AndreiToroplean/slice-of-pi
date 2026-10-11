@@ -53,7 +53,18 @@ jobs:
       - if: needs.plan.outputs.publish != 'main'
         run: npm run lint
       - if: needs.plan.outputs.publish != 'main'
-        run: npm run test:coverage
+        run: npm run test:coverage -- --reporters=default --reporters=json --output-file="$RUNNER_TEMP/test-report.json"
+      # Hard limits on how long the unit tests take: a generous backstop, creep is caught by the test-durations job below.
+      - if: needs.plan.outputs.publish != 'main'
+        run: node scripts/track-test-durations.ts limits "$RUNNER_TEMP/test-report.json"
+      # Keeps this run's test durations for the test-durations job below, which records the last run of a merged pull request.
+      - if: needs.plan.outputs.publish != 'main'
+        run: node scripts/track-test-durations.ts record "$RUNNER_TEMP/test-report.json" "$RUNNER_TEMP/benchmarks.json"
+      - if: needs.plan.outputs.publish != 'main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-durations
+          path: ${{ runner.temp }}/benchmarks.json
       - run: npm run build -- --base-href "${{ needs.plan.outputs.base-href }}"
       # Serve the app for unknown paths too, so client-side routes survive a reload.
       - run: cp dist/slice-of-pi/browser/index.html dist/slice-of-pi/browser/404.html
@@ -62,6 +73,69 @@ jobs:
         with:
           name: site
           path: dist/slice-of-pi/browser
+
+  # Records how long the unit tests of each pull request merged into main took, from its last run, on the test-durations
+  # branch with github-action-benchmark, and opens an issue when they creep up. See scripts/test-durations.ts.
+  test-durations:
+    needs: plan
+    if: needs.plan.outputs.publish == 'main'
+    concurrency:
+      group: test-durations
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      # The durations the build job kept on the last run of the pull request that brought this commit, if any.
+      - id: durations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].head.sha // empty')
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=test-durations&per_page=100" \
+            --jq "[.artifacts[] | select(.workflow_run.head_sha == \"$head\")][0].workflow_run.id // empty")
+          if [ -z "$head" ] || [ -z "$run" ]; then
+            echo 'No pull request run with test durations to record.'
+            exit 0
+          fi
+          gh run download "$run" --repo "$GITHUB_REPOSITORY" --name test-durations --dir "$RUNNER_TEMP"
+          echo 'found=true' >> "$GITHUB_OUTPUT"
+      # github-action-benchmark needs the branch to exist: start it with an empty commit the first time.
+      - if: steps.durations.outputs.found == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898333+github-actions[bot]@users.noreply.github.com'
+          if ! git ls-remote --exit-code origin refs/heads/test-durations > /dev/null; then
+            git push origin "$(git commit-tree "$(git mktree < /dev/null)" -m 'chore: record test durations')":refs/heads/test-durations
+          fi
+      - if: steps.durations.outputs.found == 'true'
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Unit tests
+          tool: customSmallerIsBetter
+          output-file-path: ${{ runner.temp }}/benchmarks.json
+          gh-pages-branch: test-durations
+          benchmark-data-dir-path: unit-tests
+          github-token: ${{ github.token }}
+          auto-push: true
+      - if: steps.durations.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: Unit tests are getting slower
+        run: |
+          git fetch origin test-durations
+          git show FETCH_HEAD:unit-tests/data.js > "$RUNNER_TEMP/data.js"
+          node scripts/track-test-durations.ts creep "$RUNNER_TEMP/data.js" "$RUNNER_TEMP/creep.md"
+          if [ -f "$RUNNER_TEMP/creep.md" ] &&
+            [ -z "$(gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq '.[].number')" ]; then
+            gh issue create --title "$TITLE" --body-file "$RUNNER_TEMP/creep.md"
+          fi
 
   # GitHub Pages serves the gh-pages branch, which scripts/publish-pages.ts keeps up to date.
   publish:
