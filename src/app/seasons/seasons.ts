@@ -26,8 +26,11 @@ export const SEASON_BACKGROUNDS: SeasonBackgrounds = {
   winter: { early: ['#9bb4dc', '#46598f'], late: ['#8299c9', '#30406f'] },
 };
 
-/** The color space the background blends its colors in, unless tuned in developer mode (see `color-spaces.ts`). */
-export const SEASON_COLOR_SPACE: ColorSpace = 'srgb';
+/**
+ * The color space the background blends its colors in, unless tuned in developer mode (see `color-spaces.ts`): OKLCH
+ * keeps the middle tones between seasons, and from the top of the screen to its bottom, saturated and evenly lit.
+ */
+export const SEASON_COLOR_SPACE: ColorSpace = 'oklch';
 
 /** Fraction of a season after which it turns into the next one; before that, it only drifts. */
 const TURN_START = 0.8;

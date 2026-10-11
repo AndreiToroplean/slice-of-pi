@@ -105,7 +105,7 @@ body {
   /* The background and everything on it. */
   isolation: isolate;
   background: linear-gradient(
-    172deg in var(--background-space, srgb),
+    172deg in var(--background-space, oklch),
     var(--background-top),
     var(--background-bottom)
   );
