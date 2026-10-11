@@ -3,7 +3,8 @@ import { DeveloperMode } from '../developer/developer-mode';
 import { Tweaks } from '../developer/tweaks';
 import { PageHeader } from '../page-header/page-header';
 import { backupFileName, readBackup, writeBackup } from '../runs/backup';
-import { Run } from '../runs/run';
+import { PI_DECIMALS } from '../pi/pi-decimals';
+import { countsInGroups, Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
 import { IS_PREVIEW, RunStore } from '../runs/run-store';
 import { aggregate, analyzeRun, isConfident } from '../timing/timing-model';
@@ -71,7 +72,19 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
       <p class="message" role="status">{{ message() }}</p>
     </section>
     @if (developerMode()) {
-      <app-grouping-settings-panel />
+      <app-grouping-settings-panel>
+        <div class="unchecked">
+          <label class="check">
+            <input
+              type="checkbox"
+              [checked]="includeUnchecked()"
+              (change)="setIncludeUnchecked($event)"
+            />
+            Count unchecked runs
+          </label>
+          <p>{{ uncheckedNote() }}</p>
+        </div>
+      </app-grouping-settings-panel>
     }
     <section class="runs" aria-labelledby="runs-title">
       <h2 id="runs-title">Your runs</h2>
@@ -142,6 +155,7 @@ export class Data {
   private readonly tweaks = inject(Tweaks);
   protected readonly developerMode = this.developer.enabled;
   private readonly settings = this.tweaks.grouping;
+  protected readonly includeUnchecked = this.tweaks.includeUnchecked;
   private readonly runs = signal<readonly Run[]>([]);
   /** What the timing model makes of each run, oldest first. */
   private readonly analyses = computed(() =>
@@ -156,7 +170,8 @@ export class Data {
         title: dateAndTime.format(run.startedAt),
         meta:
           `${plural(run.digits.length, 'digit')} in ${seconds(run.times.at(-1) ?? 0)}` +
-          (run.digits.length > 0 ? ` · ${plural(breaks.length + 1, 'group')}` : ''),
+          (run.digits.length > 0 ? ` · ${plural(breaks.length + 1, 'group')}` : '') +
+          (run.checked ? '' : ' · unchecked'),
         times: digitTimes(run),
         pace: places.map((place) => place?.pace),
         threshold: places.map((place) => place?.threshold),
@@ -170,8 +185,15 @@ export class Data {
     Math.max(1, ...this.runs().map((run) => run.digits.length)),
   );
   protected readonly top = computed(() => chartTop(this.charts().map((chart) => chart.times)));
-  /** The runs' verdicts combined: the groups the game plays with. */
-  private readonly aggregate = computed(() => aggregate(this.analyses(), this.settings()));
+  /** The verdicts of the runs the groups are computed from, combined: the groups the game plays with. */
+  private readonly aggregate = computed(() => {
+    const runs = this.runs();
+    const counted = this.analyses().filter((_, r) => {
+      const run = runs[r];
+      return run !== undefined && countsInGroups(run, this.includeUnchecked());
+    });
+    return aggregate(counted, this.settings());
+  });
   protected readonly aggregateChart = computed(() => {
     const places = this.aggregate().places;
     return {
@@ -182,23 +204,24 @@ export class Data {
       confidence: places.map((place) => place?.confidence),
     };
   });
-  /** Every run types the digits of π, so the longest one has the digits of every group. */
-  private readonly digits = computed(() =>
-    this.runs().reduce(
-      (longest, run) => (run.digits.length > longest.length ? run.digits : longest),
-      '',
-    ),
-  );
   protected readonly groups = computed(() =>
     this.aggregate().groups.map((group) => ({
       start: group.start,
-      digits: this.digits().slice(group.start, group.start + group.size),
+      digits: PI_DECIMALS.slice(group.start, group.start + group.size),
       confident: isConfident(group, this.settings()),
     })),
   );
   protected readonly aggregateMeta = computed(() => {
     const confident = this.groups().filter((group) => group.confident).length;
     return `${plural(this.groups().length, 'group')}, ${String(confident)} sure enough to set the hint; dotted ones get the default of 5`;
+  });
+
+  protected readonly uncheckedNote = computed(() => {
+    const count = this.runs().filter((run) => !run.checked).length;
+    return (
+      `${count === 1 ? '1 run is' : `${String(count)} runs are`} unchecked: played without checking the digits, or before the game checked them, so they may hold mistakes. ` +
+      `${count === 1 ? 'It counts' : 'They count'} in your groups only when this is on.`
+    );
   });
 
   private readonly store = inject(RunStore);
@@ -209,6 +232,10 @@ export class Data {
 
   constructor() {
     void this.refresh();
+  }
+
+  protected setIncludeUnchecked(event: Event): void {
+    void this.tweaks.setIncludeUnchecked((event.target as HTMLInputElement).checked);
   }
 
   protected async save(): Promise<void> {

@@ -124,6 +124,7 @@ export const CONTROLS: readonly Control[] = [
 /**
  * Developer mode's sliders for every setting of the timing model, each with a help button opening a dialog that says
  * what it does, a button to bring back the game's settings, and one to copy their values so they go into the code.
+ * Content given to it goes above the sliders.
  */
 @Component({
   selector: 'app-grouping-settings-panel',
@@ -136,6 +137,7 @@ export const CONTROLS: readonly Control[] = [
       </button>
     </div>
     <p>How your groups are found. The charts below follow as you move them.</p>
+    <ng-content />
     @for (control of controls; track control.key) {
       <div class="setting">
         <div class="top">
@@ -240,7 +242,7 @@ export const CONTROLS: readonly Control[] = [
       outline-offset: 0.125rem;
     }
 
-    input {
+    input[type='range'] {
       width: 100%;
       margin: 0;
       accent-color: var(--candy);

@@ -59,7 +59,7 @@ The model (Andrei, 2026-10-08), with its constants tuned by play testing:
 
 ### 4.2 Combining runs
 
-The groupings are always computed from **all of the player's stats**. There's no overriding: each run's timings just add to the stats, and the groupings follow from them. Each run's evidence at a given place in π is weighted by:
+The groupings are always computed from **all of the player's stats**, except unchecked runs (played without checking the digits, in developer mode, or from before the game checked them), which may hold mistakes: they're left out unless "Count unchecked runs", in developer mode on the "Your data" page, includes them. There's no overriding: each run's timings just add to the stats, and the groupings follow from them. Each run's evidence at a given place in π is weighted by:
 
 - **Recency:** recent runs weigh more, so a player who deliberately regroups some digits sees the game follow. A run's weight halves every **half-life**, counted in runs (16 by default), so the groups build up over many runs while a very old pattern fades out.
 - **Local confidence:** how clearly that run's timings mark pauses _at that place_. Sharp pauses, much longer than the delays around them, say a lot about where the player's boundaries are; digits typed fast at a steady pace, each taking about the same time, say almost nothing and barely count. Confidence is local because a single run can have a steady rhythm on the digits the player knows best and a very different one further on.
