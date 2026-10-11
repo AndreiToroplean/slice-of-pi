@@ -11,6 +11,10 @@
 
 - Use the vendored skills in `.claude/skills/` (see `SOURCES.md` there): `angular-developer` and `angular-new-app` for Angular work, `modern-web-guidance` for HTML/CSS/client-side JS.
 
+# Tuning
+
+- To tune a game parameter or compare options for it (colors, color spaces, timings, …), add a control for it to a developer mode page, or a new page in the Developer section, instead of building a separate mockup: the owner tries it in the real game on his phone, the tweak applies to the whole game while developer mode is on, and the page's copy button hands the value back to go into the code. See the glossary's developer mode and tweaks (`design/glossary.md`).
+
 # Quality
 
 - Keep test coverage high: every feature and bug fix comes with unit tests (Vitest).
