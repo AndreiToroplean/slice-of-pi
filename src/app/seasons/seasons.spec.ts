@@ -38,6 +38,11 @@ describe('seasonAt', () => {
     expect(seasonAt(1234)).toMatchObject({ season: 'summer', year: 13, placeInYear: 34 });
   });
 
+  it('goes back into the year before the first', () => {
+    expect(seasonAt(-25)).toMatchObject({ season: 'winter', year: 0, placeInYear: 75 });
+    expect(seasonAt(-1).background).toEqual(seasonAt(99).background);
+  });
+
   it('fills the year bar one season at a time', () => {
     expect(seasonAt(10).seasonProgress).toEqual([0.4, 0, 0, 0]);
     expect(seasonAt(25).seasonProgress).toEqual([1, 0, 0, 0]);
