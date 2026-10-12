@@ -62,6 +62,13 @@ describe('routes', () => {
     expect(component).toBe(Play);
   });
 
+  it("lazily loads the player's runs", async () => {
+    const runs = routes.find((route) => route.path === 'runs');
+    const component = await runs?.loadComponent?.();
+    const { YourRuns } = await import('./data/your-runs');
+    expect(component).toBe(YourRuns);
+  });
+
   it("lazily loads the player's data", async () => {
     const data = routes.find((route) => route.path === 'data');
     const component = await data?.loadComponent?.();
