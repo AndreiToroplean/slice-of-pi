@@ -2,18 +2,18 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { PageHeader } from './page-header';
+import { Page } from './page';
 
-@Component({ imports: [PageHeader], template: `<app-page-header title="A page" />` })
-class Page {}
+@Component({ imports: [Page], template: `<app-page title="A page" />` })
+class APage {}
 
-describe('PageHeader', () => {
+describe('Page', () => {
   it('shows the title, and goes back to the main menu', async () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
           { path: '', children: [] },
-          { path: 'page', component: Page },
+          { path: 'page', component: APage },
         ]),
       ],
     });

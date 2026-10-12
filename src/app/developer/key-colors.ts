@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Background } from '../background/background';
-import { PageHeader } from '../page-header/page-header';
+import { Page } from '../page/page';
 import { Palette, PALETTE } from '../place-colors/place-colors';
 import { SEASON_NAMES } from '../season-header/season-header';
 import { Season, SEASONS } from '../seasons/seasons';
@@ -33,59 +33,58 @@ export const CLOSE = 15;
  */
 @Component({
   selector: 'app-key-colors',
-  imports: [ColorPicker, CopyValues, PageHeader],
-  host: { class: 'screen' },
+  imports: [ColorPicker, CopyValues, Page],
   template: `
-    <app-page-header title="Key colors">
-      <button type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
+    <app-page title="Key colors">
+      <button pageAction type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
         Back to the game's colors
       </button>
-    </app-page-header>
-    <div class="seasons" role="radiogroup" aria-label="Background">
-      @for (season of seasons; track season) {
-        <button
-          type="button"
-          class="frosted"
-          role="radio"
-          [attr.aria-checked]="season === background()"
-          (click)="showBackground(season)"
-        >
-          {{ seasonNames[season] }}
-        </button>
-      }
-    </div>
-    <div class="grid">
-      @for (row of hexes(); track $index; let r = $index) {
-        <button
-          type="button"
-          class="head tile"
-          [style.--place-color]="row"
-          [attr.aria-label]="names()[r]"
-          [attr.aria-pressed]="r === selected()"
-          (click)="selected.set(r)"
-        >
-          {{ r }}
-        </button>
-        @for (column of hexes(); track $index; let c = $index) {
-          <span
-            class="pair"
-            aria-hidden="true"
-            [class.close]="isClose(row, column)"
+      <div class="seasons" role="radiogroup" aria-label="Background">
+        @for (season of seasons; track season) {
+          <button
+            type="button"
+            class="frosted"
+            role="radio"
+            [attr.aria-checked]="season === background()"
+            (click)="showBackground(season)"
+          >
+            {{ seasonNames[season] }}
+          </button>
+        }
+      </div>
+      <div class="grid">
+        @for (row of hexes(); track $index; let r = $index) {
+          <button
+            type="button"
+            class="head tile"
+            [style.--place-color]="row"
+            [attr.aria-label]="names()[r]"
+            [attr.aria-pressed]="r === selected()"
             (click)="selected.set(r)"
           >
-            <span class="tile" [style.--place-color]="row">{{ r }}</span>
-            <span class="tile" [style.--place-color]="column">{{ c }}</span>
-          </span>
+            {{ r }}
+          </button>
+          @for (column of hexes(); track $index; let c = $index) {
+            <span
+              class="pair"
+              aria-hidden="true"
+              [class.close]="isClose(row, column)"
+              (click)="selected.set(r)"
+            >
+              <span class="tile" [style.--place-color]="row">{{ r }}</span>
+              <span class="tile" [style.--place-color]="column">{{ c }}</span>
+            </span>
+          }
         }
-      }
-    </div>
-    <app-color-picker
-      [color]="hexes()[selected()] ?? '#000000'"
-      [name]="names()[selected()] ?? ''"
-      [neighbors]="neighbors()"
-      (colorChange)="tune($event)"
-    />
-    <app-copy-values [text]="copyText()" />
+      </div>
+      <app-color-picker
+        [color]="hexes()[selected()] ?? '#000000'"
+        [name]="names()[selected()] ?? ''"
+        [neighbors]="neighbors()"
+        (colorChange)="tune($event)"
+      />
+      <app-copy-values [text]="copyText()" />
+    </app-page>
   `,
   styleUrl: './key-colors.css',
 })

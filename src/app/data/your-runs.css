@@ -1,12 +1,10 @@
 :host {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  /* No padding at the bottom, where the chart of all runs sticks. */
-  padding: 0.625rem var(--space-3) 0;
+  display: contents;
+}
+
+/* No padding at the bottom, where the chart of all runs sticks. */
+app-page {
+  padding-bottom: 0;
 }
 
 p {
@@ -56,7 +54,7 @@ h3 {
   padding-bottom: var(--space-3);
 }
 
-:host:has(> .summary) .runs {
+app-page:has(> .summary) .runs {
   padding-bottom: 0;
 }
 

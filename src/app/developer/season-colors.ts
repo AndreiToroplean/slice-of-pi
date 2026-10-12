@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Background } from '../background/background';
 import { COLOR_SPACE_NAMES, COLOR_SPACES } from '../colors/color-spaces';
-import { PageHeader } from '../page-header/page-header';
+import { Page } from '../page/page';
 import { SEASON_NAMES, SeasonHeader } from '../season-header/season-header';
 import {
   backgroundsFrom,
@@ -30,82 +30,81 @@ const ENDS = [
  */
 @Component({
   selector: 'app-season-colors',
-  imports: [ColorPicker, CopyValues, PageHeader, SeasonHeader],
-  host: { class: 'screen' },
+  imports: [ColorPicker, CopyValues, Page, SeasonHeader],
   template: `
-    <app-page-header title="Season colors">
-      <button type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
+    <app-page title="Season colors">
+      <button pageAction type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
         Back to the game's colors
       </button>
-    </app-page-header>
-    <app-season-header [view]="view()" />
-    <div class="seasons">
-      @for (season of seasons; track season) {
-        <div
-          class="season"
-          role="group"
-          [attr.aria-label]="names[season]"
-          [style.--top]="starts()[season][0]"
-          [style.--bottom]="starts()[season][1]"
-        >
-          <span class="name">{{ names[season] }}</span>
-          @for (end of ends; track end.index) {
-            <button
-              type="button"
-              [class]="'swatch ' + end.label"
-              [style.background]="starts()[season][end.index]"
-              [attr.aria-label]="names[season] + ' ' + end.label"
-              [attr.aria-pressed]="isSelected(season, end.index)"
-              (click)="selected.set({ season, end: end.index })"
-            ></button>
+      <app-season-header [view]="view()" />
+      <div class="seasons">
+        @for (season of seasons; track season) {
+          <div
+            class="season"
+            role="group"
+            [attr.aria-label]="names[season]"
+            [style.--top]="starts()[season][0]"
+            [style.--bottom]="starts()[season][1]"
+          >
+            <span class="name">{{ names[season] }}</span>
+            @for (end of ends; track end.index) {
+              <button
+                type="button"
+                [class]="'swatch ' + end.label"
+                [style.background]="starts()[season][end.index]"
+                [attr.aria-label]="names[season] + ' ' + end.label"
+                [attr.aria-pressed]="isSelected(season, end.index)"
+                (click)="selected.set({ season, end: end.index })"
+              ></button>
+            }
+          </div>
+        }
+      </div>
+      <app-color-picker
+        [color]="selectedColor()"
+        [name]="selectedName()"
+        [neighbors]="neighbors()"
+        (colorChange)="pick($event)"
+      />
+      <label class="space">
+        Blend colors in
+        <select class="frosted pill" (change)="blendIn($event)">
+          @for (space of colorSpaces; track space) {
+            <option [value]="space" [selected]="space === colorSpace()">
+              {{ spaceNames[space] }}{{ space === gameSpace ? ' (the game’s)' : '' }}
+            </option>
           }
-        </div>
-      }
-    </div>
-    <app-color-picker
-      [color]="selectedColor()"
-      [name]="selectedName()"
-      [neighbors]="neighbors()"
-      (colorChange)="pick($event)"
-    />
-    <label class="space">
-      Blend colors in
-      <select class="frosted pill" (change)="blendIn($event)">
-        @for (space of colorSpaces; track space) {
-          <option [value]="space" [selected]="space === colorSpace()">
-            {{ spaceNames[space] }}{{ space === gameSpace ? ' (the game’s)' : '' }}
-          </option>
-        }
-      </select>
-    </label>
-    <label class="slider turn">
-      {{ turnText() }}
-      <input
-        type="range"
-        min="1"
-        [max]="placesPerSeason"
-        step="1"
-        [value]="seasonTurn()"
-        (input)="turnOver($event)"
-      />
-    </label>
-    <label class="slider place">
-      Place in the year
-      <input
-        type="range"
-        [min]="-placesPerSeason"
-        [max]="placesPerYear + placesPerSeason"
-        step="1"
-        [value]="place()"
-        (input)="moveTo($event)"
-      />
-      <span class="marks" aria-hidden="true">
-        @for (mark of yearEnds; track mark.place) {
-          <span [style.--at]="mark.at">{{ mark.place }}</span>
-        }
-      </span>
-    </label>
-    <app-copy-values [text]="copyText()" />
+        </select>
+      </label>
+      <label class="slider turn">
+        {{ turnText() }}
+        <input
+          type="range"
+          min="1"
+          [max]="placesPerSeason"
+          step="1"
+          [value]="seasonTurn()"
+          (input)="turnOver($event)"
+        />
+      </label>
+      <label class="slider place">
+        Place in the year
+        <input
+          type="range"
+          [min]="-placesPerSeason"
+          [max]="placesPerYear + placesPerSeason"
+          step="1"
+          [value]="place()"
+          (input)="moveTo($event)"
+        />
+        <span class="marks" aria-hidden="true">
+          @for (mark of yearEnds; track mark.place) {
+            <span [style.--at]="mark.at">{{ mark.place }}</span>
+          }
+        </span>
+      </label>
+      <app-copy-values [text]="copyText()" />
+    </app-page>
   `,
   styleUrl: './season-colors.css',
 })
