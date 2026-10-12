@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791847816417,
+  "lastUpdate": 1791848705806,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -680,6 +680,46 @@ window.BENCHMARK_DATA = {
             "value": 335,
             "unit": "ms",
             "extra": "Data says there are no runs yet"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "d856a2a95293e48fb8ce2ae5c2c194b874a1c64d",
+          "message": "feat: give every page opened from the main menu the same frosted top bar\n\nA Page component now holds the whole page, not only its header: the frosted top bar with the back button, the title and the action marked pageAction, then the page's contents, scrolling under it. Your data, which has no action, used to get a plain header instead.\n\nClaude-Session: https://claude.ai/code/session_01QzQMfoxVfZRXeX7qv93UC7",
+          "timestamp": "2026-10-13T01:44:39+02:00",
+          "tree_id": "db06ab0c1060140a506fef5df93f297f43c7e6b5",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/d856a2a95293e48fb8ce2ae5c2c194b874a1c64d"
+        },
+        "date": 1791848704868,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5782,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 9681,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 361,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
           }
         ]
       }
