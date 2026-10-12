@@ -44,6 +44,7 @@ import { seasonAt } from '../seasons/seasons';
       [style.right.px]="dropdownAt().right"
       (beforetoggle)="placeDropdown()"
     >
+      <a routerLink="/runs">Your runs</a>
       <a routerLink="/data">Your data</a>
       @if (developerMode.enabled()) {
         <div class="section" role="group" aria-labelledby="developer-title">

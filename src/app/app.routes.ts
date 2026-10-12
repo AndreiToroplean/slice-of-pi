@@ -10,6 +10,10 @@ export const routes: Routes = [
     loadComponent: () => import('./play/play').then((m) => m.Play),
   },
   {
+    path: 'runs',
+    loadComponent: () => import('./data/your-runs').then((m) => m.YourRuns),
+  },
+  {
     path: 'data',
     loadComponent: () => import('./data/data').then((m) => m.Data),
   },
