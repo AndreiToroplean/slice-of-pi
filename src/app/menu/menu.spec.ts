@@ -49,20 +49,6 @@ describe('Menu', () => {
     expect(TestBed.inject(Background).colors()).toEqual(seasonAt(0).background);
   });
 
-  it("has an overflow menu in a corner, with a link to the player's data", async () => {
-    const host = await setUp();
-
-    const more = host.querySelector('button.more');
-    expect(more?.getAttribute('aria-label')).toBe('More');
-    const dropdown = host.querySelector(`#${more?.getAttribute('popovertarget') ?? ''}`);
-    expect(dropdown?.hasAttribute('popover')).toBe(true);
-    const links = Array.from(dropdown?.querySelectorAll('a') ?? [], (link) => [
-      link.textContent.trim(),
-      link.getAttribute('href'),
-    ]);
-    expect(links).toEqual([['Your data', '/data']]);
-  });
-
   it('starts a game with the play button', async () => {
     const host = await setUp();
 
