@@ -96,7 +96,6 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
             />
             Count unchecked runs
           </label>
-          <p>{{ uncheckedNote() }}</p>
           <button
             type="button"
             class="candy danger"
@@ -302,14 +301,6 @@ export class Data {
       trusted: group.trusted,
     })),
   );
-
-  protected readonly uncheckedNote = computed(() => {
-    const count = this.uncheckedRuns().length;
-    return (
-      `${count === 1 ? '1 run is' : `${String(count)} runs are`} unchecked: played without checking the digits, or before the game checked them, so they may hold mistakes. ` +
-      `${count === 1 ? 'It counts' : 'They count'} in your groups only when this is on.`
-    );
-  });
 
   /** The run long pressed, to play from once the player confirms. */
   protected readonly picked = signal<{ readonly id: string; readonly title: string } | undefined>(
