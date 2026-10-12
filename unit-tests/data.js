@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791750922791,
+  "lastUpdate": 1791806329862,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -478,6 +478,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 264,
+            "unit": "ms",
+            "extra": "Data says there are no runs yet"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "e087f7f4041c93c1214b3163b5f2e6f49074cea4",
+          "message": "fix: keep each saved grouping setting when others are added or dropped\n\nA saved grouping tweak was dropped as a whole whenever the settings it was saved with didn't match the current ones, so adding a hyperparameter would throw away every value tuned so far. Now each setting saved and in range is kept, and only the missing ones take their defaults. The timing model's settings share no names with the break model's, so they're still left out, once.\n\nClaude-Session: https://claude.ai/code/session_018s66UwrLiWGw1baNqrSixR",
+          "timestamp": "2026-10-12T13:58:27+02:00",
+          "tree_id": "c17715f9f435eabcc283c80ac1395060ce9e966f",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/e087f7f4041c93c1214b3163b5f2e6f49074cea4"
+        },
+        "date": 1791806329315,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 4331,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 7054,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 220,
             "unit": "ms",
             "extra": "Data says there are no runs yet"
           }
