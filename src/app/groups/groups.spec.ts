@@ -1,6 +1,7 @@
 import {
   BreakModel,
   breakModel,
+  BreakSettings,
   DEFAULT_BREAK_SETTINGS,
   finishedRuns,
 } from '../timing/break-model';
@@ -8,7 +9,8 @@ import { groupAt, groupDigits, groupEnds, slotCount } from './groups';
 
 const DEFAULT_GROUP_SIZE = DEFAULT_BREAK_SETTINGS.startingSlots;
 
-const settings = DEFAULT_BREAK_SETTINGS;
+// Only the runs given, without synthetic ones.
+const settings = { ...DEFAULT_BREAK_SETTINGS, syntheticRuns: 0 };
 
 /**
  * The times of a run of `length` digits typed about 200 ms apart (an uneven 180, 200, 230), with a pause of 1 s before
@@ -30,9 +32,14 @@ function by3(length: number): number[] {
 }
 
 /** A player who groups the first `length` decimals by 3, `count` times, then types `current`. */
-function model(count: number, current: readonly number[], length = 30): BreakModel {
+function model(
+  count: number,
+  current: readonly number[],
+  length = 30,
+  tuned: BreakSettings = settings,
+): BreakModel {
   const runs = Array.from({ length: count }, () => timesOf(length, by3(length)));
-  return breakModel(finishedRuns(runs, settings.window), current, settings);
+  return breakModel(finishedRuns(runs, tuned.window), current, tuned);
 }
 
 describe('groupDigits', () => {
@@ -148,9 +155,9 @@ describe('the thresholds', () => {
   });
 
   it('asks for a likelier break past the trust horizon at a higher break threshold', () => {
-    // A borderline wait: the first one this new player's break is about even odds for.
+    // A borderline wait: the first one this new player's break is about even odds for, judged by the synthetic runs.
     const borderline = Array.from({ length: 60 }, (_, k) => {
-      const found = model(0, [0, 200, 430, 630 + 10 * k]);
+      const found = model(0, [0, 200, 430, 630 + 10 * k], 30, DEFAULT_BREAK_SETTINGS);
       return { found, p: found.runs[0]?.breakProbability[3] ?? 0 };
     }).find(({ p }) => p > 0.3 && p < 0.7);
     if (borderline === undefined) {

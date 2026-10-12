@@ -69,9 +69,37 @@ export const CONTROLS: readonly Control[] = [
     format: (value) => `${String(value)} intervals`,
     help: {
       what: 'At the start of a run, its own few intervals say little about its speed, so its baseline starts from a prior, what earlier runs say, and the run’s own intervals take over as they come. The prior counts as this many intervals: at 5, it weighs half after 5 intervals and a fifth after 20.',
-      why: 'Without it, the first interval of a run would be its own baseline, so never a break, and a break among the next few would pull the baseline up towards itself and hide. The prior is how much faster or slower than the speed curve your earlier runs were, recent ones weighing more; in your very first run, the prior baseline.',
+      why: 'Without it, the first interval of a run would be its own baseline, so never a break, and a break among the next few would pull the baseline up towards itself and hide. The prior is how much faster or slower than the speed curve your earlier runs were, synthetic ones included, recent ones weighing more.',
       moving:
         'Higher trusts your usual speed longer, so breaks show from the first digit, but a run much faster or slower than usual is misjudged for longer. Lower follows each run’s own speed sooner. 0 is no prior at all.',
+    },
+  },
+  {
+    key: 'syntheticRuns',
+    label: 'Synthetic runs',
+    min: 0,
+    max: 20,
+    step: 1,
+    format: (value) => `${String(value)} runs`,
+    help: {
+      what: 'How many made-up runs the game counts besides yours, older than all of them. They’re never made up digit by digit nor shown: the game adds what they would add up to. Each is typed at the prior baseline, pauses as the prior mixture below says, and breaks nowhere in particular. They count everywhere your runs do: in telling breaks apart, in your usual break spots and in how far those are trusted.',
+      why: 'Before you’ve played enough, your own runs can’t say what a break looks like for you, how fast you type, or where you usually break: the synthetic runs stand in for them. Since they’re just older runs, nothing switches from them to yours: like any old run, they fade as yours come.',
+      moving:
+        'More makes your first runs count for less against them: breaks are judged more by the prior mixture, and your groups are trusted after more runs. Fewer lets your own runs take over sooner. 0 counts none.',
+    },
+  },
+  {
+    key: 'syntheticDecay',
+    label: 'Synthetic decay',
+    min: 0.05,
+    max: 1,
+    step: 0.05,
+    format: (value) => value.toFixed(2),
+    help: {
+      what: 'The recency decay between synthetic runs, where the recency decay above is between yours: the newest synthetic run counts as much as a run just older than your oldest, and each one before it this much as the one after it. At 0.5, the 5 synthetic runs together count about as much as 2 of your runs would there.',
+      why: 'So the synthetic runs are just older runs, fading like all of them as you play, while how much they count in all can be tuned apart from your own runs.',
+      moving:
+        'Higher makes them count for more, for longer; lower lets your own runs take over sooner. 1 counts each synthetic run like a run of yours.',
     },
   },
   {
@@ -82,24 +110,10 @@ export const CONTROLS: readonly Control[] = [
     step: 10,
     format: (value) => `${String(value)} ms`,
     help: {
-      what: 'The typical interval the game expects in your very first run, before it has any history to go on: the prior its baseline starts from there.',
-      why: 'Your first run has no earlier runs to say how fast you type, so the game needs a best guess. It only matters for the first few digits of the first run: your own intervals soon take over.',
+      what: 'The typical interval of the synthetic runs: how fast the game expects you to type before your own runs say so.',
+      why: 'Your first run has no earlier runs to say how fast you type, so the game needs a best guess. It mostly matters for the first digits of your first runs: your own intervals soon take over.',
       moving:
         'Higher makes the first digits’ pauses need to be longer to count as breaks; lower makes them count sooner. Set it near how fast a player types digits they know.',
-    },
-  },
-  {
-    key: 'priorMixtureStrength',
-    label: 'Prior mixture strength',
-    min: 0,
-    max: 200,
-    step: 1,
-    format: (value) => `${String(value)} intervals`,
-    help: {
-      what: 'How much the prior mixture below counts in the fit, as a number of intervals: the fit treats it as that many made-up intervals, normal ones and breaks as the prior mixture says, added to yours. At 50, after 50 of your intervals (counted with their recency weights) the fitted mixture is half yours, half the prior; after 200, four fifths yours.',
-      why: 'A mixture fitted to a handful of intervals can’t learn yet what a break looks like for you: one slow digit could become the whole break component. Counting a reasonable guess for every player as data lets breaks be told from the first digit, and your own intervals take over smoothly as they come, with no point where the game switches from one to the other.',
-      moving:
-        'Higher keeps the fit close to the prior mixture longer, so your first runs are judged by it rather than by your own rhythm, and even later the prior keeps a little weight. Lower lets your own intervals take over sooner, so the first breaks found are less reliable. 0 fits your intervals alone.',
     },
   },
   {

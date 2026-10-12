@@ -2,6 +2,7 @@ import {
   betaCdf,
   breakModel,
   BreakModel,
+  BreakSettings,
   centeredMedian,
   DEFAULT_BREAK_SETTINGS,
   finishedRuns,
@@ -14,6 +15,8 @@ import { REFERENCE } from './break-model.reference';
 
 describe('break model', () => {
   const settings = DEFAULT_BREAK_SETTINGS;
+  /** Only the runs given, without synthetic ones. */
+  const alone = { ...settings, syntheticRuns: 0 };
 
   /** A run's times from its intervals (the first digit takes none). */
   function timesOf(intervals: readonly number[]): number[] {
@@ -41,7 +44,7 @@ describe('break model', () => {
   function model(
     finished: readonly (readonly number[])[],
     current?: readonly number[],
-    tuned = settings,
+    tuned: BreakSettings = alone,
   ): BreakModel {
     return breakModel(finishedRuns(finished, tuned.window), current, tuned);
   }
@@ -124,8 +127,8 @@ describe('break model', () => {
   describe('the model', () => {
     it("matches the Python implementation it's translated from", () => {
       const runs = REFERENCE.intervals.map(timesOf);
-      // The Python implementation fits the mixture without a prior.
-      const found = model(runs.slice(0, -1), runs.at(-1), { ...settings, priorMixtureStrength: 0 });
+      // The Python implementation has no synthetic runs.
+      const found = model(runs.slice(0, -1), runs.at(-1));
 
       expect(found.horizon).toBe(REFERENCE.horizon);
       found.mixture.mean.forEach((mean, k) => {
@@ -142,13 +145,9 @@ describe('break model', () => {
       });
     });
 
-    it("matches it on a first run, judged against the prior baseline, once there's enough to fit", () => {
+    it('matches its prior baseline on a first run, with synthetic runs of next to no weight', () => {
       const first = timesOf(REFERENCE.intervals[0] ?? []);
-      const found = model([], first, {
-        ...settings,
-        priorBaseline: 300,
-        priorMixtureStrength: 0,
-      });
+      const found = model([], first, { ...settings, syntheticRuns: 1, recencyDecay: 1e-9 });
 
       REFERENCE.firstRun.forEach((p, i) => {
         expect(found.runs[0]?.breakProbability[i + 1]).toBeCloseTo(p, 4);
@@ -193,23 +192,30 @@ describe('break model', () => {
     });
 
     it('fits the prior mixture alone without intervals', () => {
-      expect(model([], []).mixture.mean[1]).toBeCloseTo(priorMixture(settings).mean[1], 6);
+      expect(model([], [], settings).mixture.mean[1]).toBeCloseTo(
+        priorMixture(settings).mean[1],
+        6,
+      );
     });
 
-    it('moves the mixture smoothly from the prior to the intervals’ own as they come', () => {
+    it('moves the mixture from the prior to the runs’ own as they come and the synthetic runs fade', () => {
       // Breaks 4 times the baseline, where the prior expects 2.5 times.
-      const breaky = (digits: number): number[] =>
+      const breaky = (k: number): number[] =>
         timesOf(
-          Array.from({ length: digits - 1 }, (_, p) =>
-            (p + 1) % 3 === 0 ? 800 : ([180, 200, 230][p % 3] ?? 0),
+          Array.from({ length: 59 }, (_, p) =>
+            (p + 1) % 3 === 0 ? 800 + 10 * k : ([180, 200, 230][(p + k) % 3] ?? 0),
           ),
         );
-      const breakSize = (digits: number, tuned = settings): number => {
-        const { mean } = model([breaky(digits)], undefined, tuned).mixture;
+      const breakSize = (runs: number, tuned: BreakSettings): number => {
+        const { mean } = model(
+          Array.from({ length: runs }, (_, k) => breaky(k)),
+          undefined,
+          tuned,
+        ).mixture;
         return Math.exp(mean[1] - mean[0]);
       };
-      const own = breakSize(320, { ...settings, priorMixtureStrength: 0 });
-      const sizes = [10, 20, 40, 80, 160, 320].map((digits) => breakSize(digits));
+      const own = breakSize(8, alone);
+      const sizes = [1, 2, 3, 4, 6, 8].map((runs) => breakSize(runs, settings));
 
       sizes.reduce((previous, size) => {
         expect(size).toBeGreaterThan(previous);
@@ -217,19 +223,34 @@ describe('break model', () => {
       }, settings.priorBreakSize);
       expect(sizes.at(-1) ?? 0).toBeLessThan(own);
       expect(sizes.at(-1) ?? 0).toBeGreaterThan(
-        settings.priorBreakSize + 0.8 * (own - settings.priorBreakSize),
+        settings.priorBreakSize + 0.85 * (own - settings.priorBreakSize),
       );
     });
 
+    it('counts the synthetic runs as the oldest runs, with their own decay between them', () => {
+      const found = model([run(30, []), run(30, [])], run(30, []), settings);
+
+      // The synthetic runs go on from the oldest run, each one this much as the one after it.
+      const synthetic = 0.729 * (1 + 0.5 + 0.25 + 0.125 + 0.0625);
+      expect(found.coverage[1]).toBeCloseTo(1 + 0.9 + 0.81 + synthetic, 10);
+      expect(found.coverage[29]).toBeCloseTo(1 + 0.9 + 0.81 + synthetic, 10);
+    });
+
+    it('holds back the groups of a single run until the synthetic runs fade', () => {
+      expect(spots(model([run(40, by3(40))], undefined, settings).usual)).toEqual([]);
+      const runs = Array.from({ length: 4 }, () => run(40, by3(40)));
+      expect(spots(model(runs, undefined, settings).usual)).toEqual(by3(40));
+    });
+
     it('tells breaks from the first digits on, with the prior mixture', () => {
-      const found = model([], run(10, [3, 6]));
+      const found = model([], run(10, [3, 6]), settings);
 
       expect(spots(found.runs[0]?.breakProbability ?? [])).toEqual([3, 6]);
     });
 
     it("judges a first run's first intervals against the prior baseline", () => {
       // A break right away: 3 s, where the prior expects 300 ms.
-      const found = model([], timesOf([3000, 200, 230]));
+      const found = model([], timesOf([3000, 200, 230]), settings);
 
       expect(found.runs[0]?.breakProbability[1] ?? 0).toBeGreaterThan(0.5);
       expect(found.runs[0]?.baseline[1] ?? 0).toBeGreaterThan(300);
@@ -249,7 +270,7 @@ describe('break model', () => {
       const found = model(
         Array.from({ length: 3 }, () => run(30, by3(30))),
         timesOf([1500, 200]),
-        { ...settings, priorStrength: 0 },
+        { ...alone, priorStrength: 0 },
       );
 
       expect(found.runs.at(-1)?.breakProbability[1] ?? 1).toBeLessThan(0.5);
@@ -276,7 +297,7 @@ describe('break model', () => {
 
     it('counts every run the same at a recency decay of 1', () => {
       const found = model([run(30, []), run(30, [])], run(30, []), {
-        ...settings,
+        ...alone,
         recencyDecay: 1,
       });
 
@@ -314,7 +335,7 @@ describe('break model', () => {
       const runs = Array.from({ length: 3 }, () => run(30, by3(30)));
 
       expect(model(runs).horizon).toBe(29);
-      expect(model(runs, undefined, { ...settings, level: 0.99 }).horizon).toBe(0);
+      expect(model(runs, undefined, { ...alone, level: 0.99 }).horizon).toBe(0);
     });
 
     it('cuts the groups at the usual break spots', () => {

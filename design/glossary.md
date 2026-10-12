@@ -29,6 +29,7 @@
 ## Play
 
 - **Run:** one attempt, from the start of π until the player stops. For now a mistake doesn't end it (`groupings.md` §2): a run ends when the player restarts or ends the game, or leaves it; deleting every digit typed deletes the run.
+- **Synthetic run:** a run the break model counts as if the player had played it, before their own runs say enough; never shown (`groupings.md` §4.1).
 - **Mistake:** a wrong digit, checked against the decimals of π the game knows (`src/app/pi/`). It shows in its slot as a red digit outlined in red on almost white, as does every digit typed on after it, until the player deletes back to it (`groupings.md` §2). Runs played with checking turned off, in developer mode, are **unchecked**.
 - **Learn mode / challenge mode:** the two families of modes: guided practice, and typing from memory.
 - **Interval:** the time between typing one digit and the next.

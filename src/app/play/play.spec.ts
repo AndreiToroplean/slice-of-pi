@@ -298,7 +298,7 @@ describe('Play', () => {
       installDialogs();
       try {
         // Too few runs to trust the player's groups, until the restarted one counts too.
-        const { host, type, stable } = await setUpWithRuns(2);
+        const { host, type, stable } = await setUpWithRuns(3);
         expect(slots(host)).toEqual(['', '', '', '', '']);
         await typeAll(type, '141 592 653 589 793 ');
 
