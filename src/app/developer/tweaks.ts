@@ -218,7 +218,6 @@ export function parseTweaks(stored: unknown): TweakValues {
   }
   const palette = 'palette' in stored ? stored.palette : undefined;
   const seasons = 'seasons' in stored ? stored.seasons : undefined;
-  // Settings saved for the timing model the break model replaced have none of its keys, so they're left out.
   const grouping = 'grouping' in stored ? stored.grouping : undefined;
   const colorSpace = 'colorSpace' in stored ? stored.colorSpace : undefined;
   const seasonTurn = 'seasonTurn' in stored ? stored.seasonTurn : undefined;
@@ -227,7 +226,7 @@ export function parseTweaks(stored: unknown): TweakValues {
   return tweakValues({
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
-    grouping: isBreakSettings(grouping) ? grouping : undefined,
+    grouping: breakSettingsOf(grouping),
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
@@ -266,34 +265,41 @@ function isSeasonTurn(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) >= 1 && Number(value) <= PLACES_PER_SEASON;
 }
 
-function isBreakSettings(value: unknown): value is BreakSettings {
+/** Whether a value is in range for each grouping setting. */
+const BREAK_SETTING_CHECKS: { readonly [K in keyof BreakSettings]: (value: number) => boolean } = {
+  window: (value) => Number.isInteger(value) && value > 0,
+  recencyDecay: (value) => value > 0 && value <= 1,
+  level: (value) => value >= 0 && value <= 1,
+  priorStrength: (value) => value >= 0,
+  syntheticRuns: (value) => Number.isInteger(value) && value >= 0,
+  syntheticDecay: (value) => value > 0 && value <= 1,
+  priorBaseline: (value) => value > 0,
+  priorBreakShare: (value) => value > 0 && value < 1,
+  priorBreakSize: (value) => value > 0,
+  priorNormalSpread: (value) => value > 0,
+  priorBreakSpread: (value) => value > 0,
+  breakThreshold: (value) => value > 0 && value < 1,
+  usualThreshold: (value) => value > 0 && value < 1,
+  startingSlots: (value) => Number.isInteger(value) && value > 0,
+};
+
+/**
+ * The grouping settings stored, each one that's missing or out of range at its default, so that adding or dropping a
+ * setting keeps the others. `undefined` if none is kept, as with the settings of the timing model the break model
+ * replaced, which share none of its names.
+ */
+function breakSettingsOf(value: unknown): BreakSettings | undefined {
   if (typeof value !== 'object' || value === null) {
-    return false;
+    return undefined;
   }
-  const settings = value as Partial<Record<keyof BreakSettings, unknown>>;
-  const within = (key: keyof BreakSettings, above: number, upTo = Infinity): boolean => {
-    const setting = settings[key];
-    return typeof setting === 'number' && setting > above && setting <= upTo;
-  };
-  return (
-    Number.isInteger(settings.window) &&
-    within('window', 0) &&
-    within('recencyDecay', 0, 1) &&
-    within('level', -1e-9, 1) &&
-    within('priorStrength', -1e-9) &&
-    Number.isInteger(settings.syntheticRuns) &&
-    within('syntheticRuns', -1e-9) &&
-    within('syntheticDecay', 0, 1) &&
-    within('priorBaseline', 0) &&
-    within('priorBreakShare', 0, 0.999) &&
-    within('priorBreakSize', 0) &&
-    within('priorNormalSpread', 0) &&
-    within('priorBreakSpread', 0) &&
-    within('breakThreshold', 0, 0.999) &&
-    within('usualThreshold', 0, 0.999) &&
-    Number.isInteger(settings.startingSlots) &&
-    within('startingSlots', 0)
+  const stored = value as Record<string, unknown>;
+  const kept = Object.entries(stored).filter(
+    ([key, setting]) =>
+      key in BREAK_SETTING_CHECKS &&
+      typeof setting === 'number' &&
+      BREAK_SETTING_CHECKS[key as keyof BreakSettings](setting),
   );
+  return kept.length === 0 ? undefined : { ...DEFAULT_BREAK_SETTINGS, ...Object.fromEntries(kept) };
 }
 
 function isColor(value: unknown): value is string {
