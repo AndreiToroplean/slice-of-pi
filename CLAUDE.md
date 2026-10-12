@@ -18,6 +18,8 @@
 # Quality
 
 - Keep test coverage high: every feature and bug fix comes with unit tests (Vitest).
+- Test behavior, not where things sit in the UI: no tests pinning which button is where or which menu holds what.
+- Keep each commit as small as its title promises. If a change turns out to touch far more than its intent suggests (many tests, docs or files for a small feature or fix), the code around it needs refactoring: refactor first, in its own commit, so the change itself stays small, and mention it in the pull request.
 
 # Development
 
