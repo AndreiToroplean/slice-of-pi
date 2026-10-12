@@ -37,7 +37,7 @@ describe('Data', () => {
   );
   const groupsBy3 = PI_DECIMALS.slice(0, 30).match(/.../g) ?? [];
   /** Enough runs grouped by 3 for the game to trust their groups. */
-  const trusted = ['d', 'e', 'f'].map((id, i) => ({ ...grouped, id, startedAt: 4_000 + i }));
+  const trusted = ['d', 'e', 'f', 'g'].map((id, i) => ({ ...grouped, id, startedAt: 4_000 + i }));
   let saved: { name: string; text: string }[];
   /** The questions the player was asked to confirm, and their answer. */
   let questions: string[];
@@ -376,10 +376,12 @@ describe('Data', () => {
     expect(host.querySelector('.summary .confidence')).not.toBeNull();
   });
 
-  it('trusts no group of a single run', async () => {
+  it('finds no group in a single run, outweighed by the synthetic runs', async () => {
     const { host } = await setUp([grouped]);
 
-    expect(host.querySelectorAll('.groups li.unsure')).toHaveLength(10);
+    expect(Array.from(host.querySelectorAll('.groups li'), (group) => group.className)).toEqual([
+      'unsure',
+    ]);
   });
 
   describe('unchecked runs', () => {
@@ -395,7 +397,7 @@ describe('Data', () => {
       expect(host.querySelectorAll('.runs article:not(.summary)')).toHaveLength(1);
       expect(host.querySelector('.runs .badge')).toBeNull();
       expect(text(host)).toContain('1 run kept on this device.');
-      expect(groupsShown(host)).toEqual(groupsBy3);
+      expect(groupsShown(host)).toEqual([PI_DECIMALS.slice(0, 30)]);
       expect(host.querySelector('.unchecked')).toBeNull();
     });
 
@@ -410,13 +412,15 @@ describe('Data', () => {
     });
 
     it('counts unchecked runs in the groups when told to, in developer mode', async () => {
-      const { host, until } = await setUp([unchecked], false, false, undefined, true);
+      const { host, until } = await setUp([grouped, unchecked], false, false, undefined, true);
       const checkbox = host.querySelector<HTMLInputElement>('.unchecked input[type="checkbox"]');
       expect(host.querySelector('.unchecked p')?.textContent).toContain('1 run is unchecked');
       expect(checkbox?.checked).toBe(false);
 
+      expect(groupsShown(host)).toEqual([PI_DECIMALS.slice(0, 30)]);
+
       checkbox?.click();
-      await until(() => groupsShown(host).length > 0);
+      await until(() => groupsShown(host).length > 1);
 
       expect(groupsShown(host)).toEqual(groupsBy3);
       expect(TestBed.inject(Tweaks).values()).toEqual({ includeUnchecked: true });

@@ -6,14 +6,12 @@
  * 2. Each run has a baseline, its expected log-interval at each place without the breaks. A finished run's is a
  *    centered rolling median along the places. The run in progress uses only what has been typed so far: the historical
  *    speed curve (the recency-weighted mean of the finished runs' baselines) plus this run's own offset from it, a
- *    trailing rolling median shrunk toward the finished runs' typical offset while it has few intervals to go on; past
- *    the end of all history, a trailing rolling median of the run itself, shrunk toward a prior baseline in the very
- *    first run. The baseline is smooth along the places on purpose: a median at each place across runs would absorb
- *    breaks the player makes at the same place every time.
+ *    trailing rolling median shrunk toward the finished runs' typical offset while it has few intervals to go on. The
+ *    baseline is smooth along the places on purpose: a median at each place across runs would absorb breaks the player
+ *    makes at the same place every time.
  * 3. The residual of an interval is its log minus the baseline.
  * 4. A mixture of two normal distributions (normal and break) is fitted to all the residuals pooled, each weighted by
- *    its run's recency weight, by weighted EM (expectation–maximization). A prior mixture counts in the fit as so
- *    many residuals, so with few residuals the fit stays close to it, moving smoothly to their own as they come.
+ *    its run's recency weight, by weighted EM (expectation–maximization).
  * 5. P(break) is the posterior probability of the break component, 0 below the normal mean: a break is never faster.
  *    An interval is taken for a break when it's over the break threshold.
  * 6. The usual-break probability at a place is the recency-weighted average of P(break) over the runs that reached it.
@@ -22,6 +20,10 @@
  *    break rate is on the verdict's side of the usual threshold, from a Beta posterior over the rate. It drops as fewer runs reach a place and as they disagree, but it's noisy,
  *    so a non-increasing curve is fitted to it (isotonic regression), the confidence trend. That crosses the required
  *    level once: the trust horizon.
+ *
+ * Synthetic runs, older than all the player's, count in every step like the player's runs, with their own recency
+ * decay between them: they give the model something to go on before the player's runs say enough, and fade as those
+ * come.
  *
  * Nothing here is stored; it's always computed from the times of the runs. Places are indexed like the digits of a
  * run: index 0 is the first digit typed. The interval at index i is the time from digit i - 1 to digit i, and the
@@ -41,13 +43,15 @@ export interface BreakSettings {
    * mostly the prior, and the run's own intervals take over as they come. 0 uses no prior.
    */
   readonly priorStrength: number;
-  /** The typical interval, in milliseconds, that the prior is when there's no history at all: the very first run. */
-  readonly priorBaseline: number;
+  /** How many synthetic runs the model counts, older than all the player's. 0 counts none. */
+  readonly syntheticRuns: number;
   /**
-   * How many intervals' worth of weight the prior mixture gets in the fit: with few intervals, the fitted mixture is
-   * mostly the prior one, and the player's own intervals take over as they come. 0 uses no prior.
+   * The recency decay between synthetic runs, where `recencyDecay` is between the player's: with n runs of the player's,
+   * synthetic run j (from 0) weighs `recencyDecay ** n * syntheticDecay ** j`.
    */
-  readonly priorMixtureStrength: number;
+  readonly syntheticDecay: number;
+  /** The typical interval of the synthetic runs, in milliseconds. */
+  readonly priorBaseline: number;
   /** The prior mixture's share of breaks among the intervals, from 0 to 1. */
   readonly priorBreakShare: number;
   /** How many times its baseline the prior mixture's typical break is. */
@@ -69,8 +73,9 @@ export const DEFAULT_BREAK_SETTINGS: BreakSettings = {
   recencyDecay: 0.9,
   level: 0.9,
   priorStrength: 5,
+  syntheticRuns: 5,
+  syntheticDecay: 0.5,
   priorBaseline: 300,
-  priorMixtureStrength: 50,
   priorBreakShare: 0.15,
   priorBreakSize: 2.5,
   priorNormalSpread: 0.25,
@@ -80,7 +85,7 @@ export const DEFAULT_BREAK_SETTINGS: BreakSettings = {
   startingSlots: 5,
 };
 
-/** The mixture the settings give before there's enough data to fit one. */
+/** The mixture of the synthetic runs' intervals, and the one the fit starts from without a better one. */
 export function priorMixture(settings: BreakSettings): Mixture {
   return {
     weight: [1 - settings.priorBreakShare, settings.priorBreakShare],
@@ -121,9 +126,9 @@ export interface Group {
 export interface BreakModel {
   /** Each run, in the order given: the finished runs, oldest first, then the run in progress, if any. */
   readonly runs: readonly RunBreaks[];
-  /** The recency-weighted P(break) at each index, over the runs that reached it. */
+  /** The recency-weighted P(break) at each index, over the runs that reached it, synthetic ones included. */
   readonly usual: Values;
-  /** The total recency weight of the runs that reached each index. */
+  /** The total recency weight of the runs that reached each index, synthetic ones included. */
   readonly coverage: Values;
   /** How likely the verdict at each index (usual break or not) is right, from 0 to 1. */
   readonly confidence: Values;
@@ -134,11 +139,14 @@ export interface BreakModel {
    * the level.
    */
   readonly horizon: number;
-  /** The historical speed curve: the recency-weighted typical interval of the finished runs, in milliseconds. */
+  /**
+   * The historical speed curve: the recency-weighted typical interval of the finished runs, synthetic ones included, in
+   * milliseconds.
+   */
   readonly speedCurve: Values;
-  /** The recency-weighted average interval at each index, in milliseconds, for display only. */
+  /** The recency-weighted average interval of the player's runs at each index, in milliseconds, for display only. */
   readonly averageTime: Values;
-  /** The mixture fitted, to warm-start the next fit, or the prior mixture while there's too little data to fit one. */
+  /** The mixture fitted, to warm-start the next fit, or the prior mixture without any interval. */
   readonly mixture: Mixture;
   readonly groups: readonly Group[];
 }
@@ -174,6 +182,11 @@ export function finishedRuns(runs: readonly (readonly number[])[], window: numbe
 /**
  * Runs the model over the finished runs and, if given, the times of the run in progress (in milliseconds since its
  * first digit), which is then the newest. `init` is the last mixture fitted, to start the fit from.
+ *
+ * Besides the player's runs, the model counts synthetic runs, older than all of them, so that it has something to go
+ * on before the player's own runs say enough. No synthetic run is ever made up: the model adds what they would add up
+ * to, at each step, as their weight times the prior: the prior baseline to the speed curve, the prior mixture's
+ * pseudo-intervals to the fit (which makes it a MAP estimate), and its break share to the breaks at every place.
  */
 export function breakModel(
   finished: FinishedRuns,
@@ -188,12 +201,25 @@ export function breakModel(
   const count = logs.length;
   const weights = logs.map((_, k) => settings.recencyDecay ** (count - 1 - k));
   const longest = Math.max(0, ...logs.map((log) => log.length));
+  // The synthetic runs' weight, all together: they're the oldest runs, after the player's.
+  let synthetic = 0;
+  for (let j = 0; j < settings.syntheticRuns; j++) {
+    synthetic += settings.recencyDecay ** count * settings.syntheticDecay ** j;
+  }
+  const earlier = [
+    ...done.baselines,
+    new Float64Array(longest).fill(Math.log(settings.priorBaseline)),
+  ];
+  const earlierWeights = [...weights.slice(0, done.times.length), synthetic];
 
   // The historical speed curve: the weighted mean of the finished runs' baselines where they exist.
   const sums = new Float64Array(longest);
   const totals = new Float64Array(longest);
-  done.baselines.forEach((baseline, k) => {
-    const weight = weights[k] ?? 0;
+  earlier.forEach((baseline, k) => {
+    const weight = earlierWeights[k] ?? 0;
+    if (weight === 0) {
+      return;
+    }
     baseline.forEach((value, p) => {
       sums[p] = (sums[p] ?? 0) + weight * value;
       totals[p] = (totals[p] ?? 0) + weight;
@@ -210,7 +236,7 @@ export function breakModel(
       currentBaseline(
         logs[count - 1] ?? new Float64Array(),
         history,
-        priorOffset(done.baselines, history, weights),
+        priorOffset(earlier, history, earlierWeights),
         settings,
       ),
     );
@@ -229,10 +255,10 @@ export function breakModel(
       at++;
     });
   });
-  // Too few intervals can't show what a break looks like: the prior mixture counts as so many intervals of data.
-  const fit = fitMixture(residuals, pooledWeights, init, {
-    mixture: priorMixture(settings),
-    strength: settings.priorMixtureStrength,
+  const prior = priorMixture(settings);
+  const fit = fitMixture(residuals, pooledWeights, init ?? (total === 0 ? prior : undefined), {
+    mixture: prior,
+    strength: synthetic * longest,
   });
   const posterior = fit.posterior.map((p, i) =>
     (residuals[i] ?? 0) < fit.mixture.mean[0] ? 0 : p,
@@ -254,8 +280,9 @@ export function breakModel(
   const averageTime: (number | undefined)[] = [undefined];
   const breakSums: number[] = [];
   for (let p = 0; p < longest; p++) {
-    let reached = 0;
-    let breaks = 0;
+    let reached = synthetic;
+    let breaks = synthetic * settings.priorBreakShare;
+    let timed = 0;
     let time = 0;
     logs.forEach((log, k) => {
       const value = log[p];
@@ -265,10 +292,11 @@ export function breakModel(
       const weight = weights[k] ?? 0;
       reached += weight;
       breaks += weight * (runs[k]?.breakProbability[p + 1] ?? 0);
+      timed += weight;
       time += weight * Math.exp(value);
     });
     coverage.push(reached);
-    averageTime.push(time / reached);
+    averageTime.push(time / timed);
     usual.push(breaks / reached);
     breakSums.push(breaks);
   }
@@ -309,7 +337,7 @@ function byIndex(values: readonly number[]): Values {
   return [undefined, ...values];
 }
 
-/** The recency-weighted mean offset of the finished runs from the history: each run's median of baseline − history. */
+/** The recency-weighted mean offset of the earlier runs from the history: each run's median of baseline − history. */
 function priorOffset(
   baselines: readonly Float64Array[],
   history: Float64Array,
@@ -330,9 +358,9 @@ function priorOffset(
 
 /**
  * The run in progress's baseline. Where there's history, the history plus this run's offset from it: a trailing median,
- * shrunk toward the finished runs' offset while it has few intervals to go on, so the first intervals are judged
- * against history. Past the end of history, a trailing median of the run itself; in the very first run, shrunk the
- * same way toward the prior baseline.
+ * shrunk toward the earlier runs' offset while it has few intervals to go on, so the first intervals are judged
+ * against history. Past the end of history, which only ends without synthetic runs, a trailing median of the run
+ * itself.
  */
 function currentBaseline(
   log: Float64Array,
@@ -352,14 +380,9 @@ function currentBaseline(
     window,
   );
   const own = log.length > known ? trailingMedian(log, window) : new Float64Array();
-  const anchor = Math.log(settings.priorBaseline);
-  return log.map((_, p) => {
-    if (p < known) {
-      return (history[p] ?? 0) + shrunk(offsets[p] ?? 0, p, prior);
-    }
-    // Past the end of history, the run already has as many intervals of its own as there is history.
-    return known === 0 ? shrunk(own[p] ?? 0, p, anchor) : (own[p] ?? 0);
-  });
+  return log.map((_, p) =>
+    p < known ? (history[p] ?? 0) + shrunk(offsets[p] ?? 0, p, prior) : (own[p] ?? 0),
+  );
 }
 
 /** A causal rolling median: the value at p is the median of the values from p - window + 1 to p. */

@@ -281,9 +281,10 @@ function isBreakSettings(value: unknown): value is BreakSettings {
     within('recencyDecay', 0, 1) &&
     within('level', -1e-9, 1) &&
     within('priorStrength', -1e-9) &&
+    Number.isInteger(settings.syntheticRuns) &&
+    within('syntheticRuns', -1e-9) &&
+    within('syntheticDecay', 0, 1) &&
     within('priorBaseline', 0) &&
-    Number.isInteger(settings.priorMixtureStrength) &&
-    within('priorMixtureStrength', -1e-9) &&
     within('priorBreakShare', 0, 0.999) &&
     within('priorBreakSize', 0) &&
     within('priorNormalSpread', 0) &&
