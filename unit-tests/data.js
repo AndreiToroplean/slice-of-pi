@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791847712697,
+  "lastUpdate": 1791847816417,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -640,6 +640,46 @@ window.BENCHMARK_DATA = {
             "value": 295,
             "unit": "ms",
             "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "f76b65097bf518adbe7026b02945ee10f48b1283",
+          "message": "fix: freeze the trust horizon for the run, from the earlier runs\n\nThe run being typed counted in the trust horizon. It only reaches the place being typed, and as the newest run it made the earlier runs weigh less everywhere (one more step of recency decay), so just past the player the evidence dropped while behind them it rose, and the confidence trend cut right at the player: groups ahead fell back to 5 slots, then came back as the run caught up. With one earlier run, the confidence sits close to the required level, so this mostly showed on the second run.\n\nNot decaying the earlier runs until the run ends keeps the horizon put in those cases, but can't keep it from moving backward: each digit refits the model, and a run whose breaks disagree with the earlier ones lowers the confidence behind the player too (one earlier run breaking every 4 digits, horizon 39: a run breaking every 3 takes it back to 26 and flips it, one breaking after every other digit takes it to 2). A horizon moving backward would switch a group shown as the player's own back to growing slots while it's typed.\n\nSo the horizon is taken from the earlier runs before the run and stays put, so that the groups shown don't flicker. The run being typed still counts like any other run in the breaks and so in the groups: a break long enough to outweigh the earlier runs still ends a group.\n\nClaude-Session: https://claude.ai/code/session_01L977XY6DtunT8GMiyp7oVq",
+          "timestamp": "2026-10-13T01:29:52+02:00",
+          "tree_id": "d3578244679ecbb69efa99f49f16b04c18cfb2a2",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/f76b65097bf518adbe7026b02945ee10f48b1283"
+        },
+        "date": 1791847815593,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 6034,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 10382,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 335,
+            "unit": "ms",
+            "extra": "Data says there are no runs yet"
           }
         ]
       }
