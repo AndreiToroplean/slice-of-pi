@@ -184,10 +184,14 @@ describe('Play', () => {
   it("grows a new player's group past 5 until they pause", async () => {
     const { host, type } = await setUp();
 
-    await typeAll(type, '1415926');
+    await typeAll(type, '14159');
+
+    expect(slots(host)).toEqual(['1', '4', '1', '5', '9']);
+
+    await typeAll(type, '26');
 
     expect(words(host)).toEqual([]);
-    expect(slots(host)).toEqual(['1', '4', '1', '5', '9', '2', '6', '']);
+    expect(slots(host)).toEqual(['1', '4', '1', '5', '9', '2', '6']);
 
     await typeAll(type, ' ');
     expect(words(host)).toEqual(['1415926']);
@@ -196,10 +200,14 @@ describe('Play', () => {
   it('adds slots past 5 until the player pauses, where their own groups are not trusted yet', async () => {
     const { host, type } = await setUpPlayed();
 
-    await typeAll(type, '1415926');
+    await typeAll(type, '14159');
+
+    expect(slots(host)).toEqual(['1', '4', '1', '5', '9']);
+
+    await typeAll(type, '26');
 
     expect(words(host)).toEqual([]);
-    expect(slots(host)).toEqual(['1', '4', '1', '5', '9', '2', '6', '']);
+    expect(slots(host)).toEqual(['1', '4', '1', '5', '9', '2', '6']);
 
     await typeAll(type, ' ');
     expect(words(host)).toEqual(['1415926']);

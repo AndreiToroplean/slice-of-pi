@@ -107,13 +107,14 @@ describe('slotCount', () => {
     expect(slotCount({ size: 3, trusted: true }, 3)).toBe(3);
   });
 
-  it('is one more than the digits typed in an untrusted group, from its size on', () => {
+  it('grows an untrusted group past its size with the digits typed, never ahead of them', () => {
     const plan = { size: 5, trusted: false };
 
     expect(slotCount(plan, 0)).toBe(5);
     expect(slotCount(plan, 4)).toBe(5);
-    expect(slotCount(plan, 5)).toBe(6);
-    expect(slotCount(plan, 12)).toBe(13);
+    expect(slotCount(plan, 5)).toBe(5);
+    expect(slotCount(plan, 6)).toBe(6);
+    expect(slotCount(plan, 12)).toBe(12);
   });
 });
 

@@ -195,7 +195,7 @@ export const CONTROLS: readonly Control[] = [
     format: (value) => `${String(value)} slots`,
     help: {
       what: 'How many slots a group starts with where the game doesn’t know your groups yet: past the trust horizon, and everywhere for a new player.',
-      why: 'Groups of 5 are a common way to learn π, and a good default until your own show. The group still grows a slot at a time until you pause, so it never forces a size on you.',
+      why: 'Groups of 5 are a common way to learn π, and a good default until your own show. The group still grows a slot with each digit typed past them until you pause, so it never forces a size on you.',
       moving: 'Only what the empty slots show: the group still ends where you pause.',
     },
   },
