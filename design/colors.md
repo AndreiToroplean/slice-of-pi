@@ -41,5 +41,4 @@ We're not pursuing these, but they're recorded in case we come back to them.
 ## 5. Open questions
 
 - **Mistakes and backspace.** If the player types a wrong digit (in a lenient mode) or deletes one, what do the keys show? A natural rule: a key always shows the color of the next occurrence of its digit after the last correctly typed place, so backspace gives a key its previous color back.
-- **Free typing.** The current prototype doesn't check digits against π yet. Until it does, keys can count how many times their digit has been typed in the run, which matches π whenever the player types correctly.
 - **Contrast.** The digit label must stay readable with every accent and fill, and the colors must stay distinguishable from the season theme (`vision.md` §5.4).

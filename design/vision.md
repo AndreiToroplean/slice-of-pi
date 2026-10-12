@@ -36,19 +36,17 @@ Exact modes are to be defined.
 
 Each layer adds an independent "channel" of information on top of the digits.
 
-### 5.1 Five-digit groups (chunking)
+### 5.1 Groups (chunking)
 
-Digits are grouped into **packets of 5**. Groups are visually linked as the player types, so π is perceived as a sequence of chunks rather than a flat stream. Most other layers build on this grouping.
-
-Under discussion: letting each player discover their own groups, detected from their typing rhythm, instead of imposing fixed groups of 5. See [`groupings.md`](groupings.md).
+Digits are typed and shown in **groups**, so π is perceived as a sequence of chunks rather than a flat stream. Each player discovers their own groups, detected from their typing rhythm. Most other layers build on them. See [`groupings.md`](groupings.md).
 
 ### 5.2 Keypad gesture patterns ("constellations")
 
-As the player types a group of 5 digits, the movement of their finger across the keypad traces a path. We draw that path as a **clean geometric figure**:
+As the player types a group, the movement of their finger across the keypad traces a path. We draw that path as a **clean geometric figure**:
 
 - Each digit maps to its key position on the keypad. E.g. if 1 is bottom-left and 9 is top-right, typing 1 then 9 draws a diagonal line.
 - The figure is structured/idealized — straight lines between key centers — not a literal trace of the finger.
-- The 5 points of a group are connected into one symbol.
+- The points of a group are connected into one symbol.
 - When the group is complete, the symbol **lifts off the keypad** and joins the record of the player's progress, so the player can imprint the shape.
 
 **Constellations — going further.** Internally, we categorize these symbols and pattern-match them to recognizable images, the way constellations are named after the figures they resemble. Ideally, when the symbol lifts off the keypad it **morphs** from the abstract geometric shape into a more representational, realistic image that resembles it. This creates a strong association of ideas: the group "is" that image.

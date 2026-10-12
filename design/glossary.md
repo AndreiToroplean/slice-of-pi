@@ -19,8 +19,8 @@
 - **Key color:** the color a digit key currently shows: the place color of the next occurrence of its digit. See `colors.md`.
 - **Typing area:** where the group being typed appears, as **slots** to fill.
 - **Slot:** an empty space in the typing area waiting for a digit.
-- **Group size:** the number of slots, which is the size of the group being typed: the group finishes when they're all filled, or earlier when the player breaks. Past the trust horizon, filled slots don't finish the group: each digit typed past them adds a slot, until the player breaks. There's no separate "hint": the slots always show the group the game plays.
-- **Trusted groups:** the detected groups the game follows, those ending within the trust horizon; past it, it plays groups of 5 that grow until the player breaks (`groupings.md` §4.3).
+- **Group size:** the number of slots, which is the size of the group being typed (`groupings.md` §3).
+- **Trusted groups:** the detected groups the game follows, those ending within the trust horizon.
 - **Typed digits:** the digits typed so far in the run, shown smaller above the typing area: after a "3." lead, each finished group is a **word** of joined tiles, and rows wrap between words like text (the `TypedDigits` component).
 - **Background:** the season-colored gradient behind every screen; it stays in place from screen to screen. Never call it the sky.
 - **Season header:** the top of the play screen: the season's icon and name, the year and place in it ("Year 1 · digit 42 of 100"), and the **year bar**, one part per season.
@@ -29,7 +29,7 @@
 ## Play
 
 - **Run:** one attempt, from the start of π until the player stops. For now a mistake doesn't end it (`groupings.md` §2): a run ends when the player restarts or ends the game, or leaves it; deleting every digit typed deletes the run.
-- **Mistake:** a wrong digit. The game checks every digit against the decimals of π it knows (`src/app/pi/`, 100,000 of them): a wrong one shows in its slot as a red digit outlined in red on almost white, as does every digit typed on after it, until the player deletes back to it with backspace. Developer mode can turn checking off; runs played that way are **unchecked**.
+- **Mistake:** a wrong digit, checked against the decimals of π the game knows (`src/app/pi/`). It shows in its slot as a red digit outlined in red on almost white, as does every digit typed on after it, until the player deletes back to it (`groupings.md` §2). Runs played with checking turned off, in developer mode, are **unchecked**.
 - **Learn mode / challenge mode:** the two families of modes: guided practice, and typing from memory.
 - **Interval:** the time between typing one digit and the next.
 - **Baseline:** the interval expected at a place of a run without a break, from a rolling median of the run's intervals (`groupings.md` §4.1).
@@ -55,5 +55,5 @@
 
 ## Developer
 
-- **Developer mode:** a hidden mode for tuning the game, turned on and off by holding the main menu's ⋮ button for 5 seconds, then dragging it onto the target that appears at the bottom of the screen. It adds a Developer section to the ⋮ menu, with a page per thing to tune and a "Check digits" toggle, to play without checking the digits.
-- **Tweaks:** values tuned in developer mode, such as the key colors, the seasons' colors and the grouping settings, and developer settings such as checking the digits. They're kept with the player data and apply to the game only while developer mode is on. Each page's "Copy hyperparameter values" button, at the bottom of the page, copies its values as text, to be written into the code (on the "Your data" page, at the bottom of the grouping settings).
+- **Developer mode:** a hidden mode for tuning the game, turned on and off with a secret gesture on the main menu's ⋮ button (`developer-mode.ts`). It adds a Developer section to the ⋮ menu, with a page per thing to tune and a "Check digits" toggle.
+- **Tweaks:** values tuned in developer mode, such as the key colors or the grouping settings, and developer settings such as checking the digits. They're kept with the player data and apply to the game only while developer mode is on. Each page's "Copy hyperparameter values" button copies them as text, to be written into the code.
