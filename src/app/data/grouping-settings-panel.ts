@@ -122,9 +122,9 @@ export const CONTROLS: readonly Control[] = [
     min: 0.02,
     max: 0.5,
     step: 0.01,
-    format: (value) => `${String(Math.round(value * 100))}% of intervals`,
+    format: (value) => `1 / ${oneIn(value)} digits`,
     help: {
-      what: 'The share of intervals the prior mixture expects to be breaks. At 15%, about one interval in 7: groups of 6 or 7 on average.',
+      what: 'The share of intervals the prior mixture expects to be breaks, as one digit out of how many. At 1 / 6.7 digits, groups of 6 or 7 on average.',
       why: 'The mixture has two kinds of intervals, normal ones and breaks, each in some share. How likely an interval is a break depends on how common breaks are, not only on how long it is.',
       moving:
         'Higher makes shorter pauses count as breaks, so more and smaller groups at first. Lower asks for longer pauses.',
@@ -214,6 +214,11 @@ export const CONTROLS: readonly Control[] = [
     },
   },
 ];
+
+/** How many digits hold one, for a share of them: `0.15` is one digit out of 6.7. */
+export function oneIn(share: number): string {
+  return String(Number((1 / share).toFixed(1)));
+}
 
 /**
  * Developer mode's sliders for every hyperparameter of the break model, each with a button bringing back the game's value and a

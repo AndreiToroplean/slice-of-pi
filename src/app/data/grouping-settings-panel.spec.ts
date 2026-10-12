@@ -6,7 +6,7 @@ import { DeveloperMode } from '../developer/developer-mode';
 import { groupingText, Tweaks } from '../developer/tweaks';
 import { INDEXED_DB, IS_PREVIEW } from '../runs/run-store';
 import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
-import { CONTROLS, GroupingSettingsPanel } from './grouping-settings-panel';
+import { CONTROLS, GroupingSettingsPanel, oneIn } from './grouping-settings-panel';
 
 describe('GroupingSettingsPanel', () => {
   beforeEach(installDialogs);
@@ -106,6 +106,19 @@ describe('GroupingSettingsPanel', () => {
     detect();
 
     expect(output()).toBe('1, every run the same');
+  });
+
+  it('says a share of intervals as one digit out of how many', async () => {
+    const { host, detect } = await setUp();
+    const output = (): string | undefined =>
+      host.querySelector('output[for="setting-priorBreakShare"]')?.textContent;
+
+    expect(output()).toBe('1 / 6.7 digits');
+    move(slider(host, 'priorBreakShare'), 0.2);
+    detect();
+
+    expect(output()).toBe('1 / 5 digits');
+    expect(oneIn(1 / 3.5)).toBe('3.5');
   });
 
   it('brings back the game’s value of one setting, keeping the others', async () => {
