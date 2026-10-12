@@ -72,6 +72,22 @@ export function countsInGroups(run: Run, includeUnchecked: boolean): boolean {
 }
 
 /**
+ * The runs the player's groups are computed from, out of all their runs, oldest first: those that count in them (see
+ * {@link countsInGroups}), and only those before the run played from, if there's one (in developer mode, to play as if
+ * that run and the ones after it had never been played). A run played from that isn't there anymore is ignored.
+ */
+export function groupRuns(
+  runs: readonly Run[],
+  includeUnchecked: boolean,
+  playFrom: string | undefined,
+): Run[] {
+  const end = runs.findIndex((run) => run.id === playFrom);
+  return (end === -1 ? runs : runs.slice(0, end)).filter((run) =>
+    countsInGroups(run, includeUnchecked),
+  );
+}
+
+/**
  * The run with the backspace that deleted a wrong digit typed after its last one, at `place` (the first wrong digit is
  * at the place after the run's last digit, and any typed after it further on). The game never kept those digits, so
  * only the backspace is recorded.

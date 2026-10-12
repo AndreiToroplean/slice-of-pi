@@ -84,6 +84,33 @@ h3 {
   padding: 0.875rem var(--space-3) var(--space-3);
 }
 
+/* In developer mode, the line the game plays from, as if the runs after it had never been played. */
+.here {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-digits);
+  font-weight: 600;
+  text-shadow: var(--text-shadow);
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    border-top: 2px solid currentColor;
+  }
+}
+
+/* The runs after it, left out of the groups. */
+.runs .panel.later {
+  opacity: 0.7;
+}
+
+.runs .panel:focus-visible {
+  outline: 0.1875rem solid var(--focus-ring);
+  outline-offset: 0.25rem;
+}
+
 /* Unchecked runs, only shown in developer mode, may hold mistakes: dashed, with a badge. */
 .runs .panel.unchecked {
   outline: 2px dashed var(--ink);

@@ -276,6 +276,18 @@ describe('Play', () => {
       expect(words(host)).toEqual(['141']);
     });
 
+    it('plays as if only the runs before the one played from existed, in developer mode', async () => {
+      const { host, type } = await setUpWithRuns(4, true, async () => {
+        await TestBed.inject(Tweaks).setPlayFrom('earlier-0');
+        await TestBed.inject(DeveloperMode).set(true);
+      });
+
+      await typeAll(type, '141');
+
+      expect(words(host)).toEqual([]);
+      expect(slots(host)).toEqual(['1', '4', '1', '', '']);
+    });
+
     it('shows as many slots as the group expected', async () => {
       const { host, type } = await setUpWithRuns(4);
 

@@ -45,7 +45,7 @@ During a run, the run being typed is one of the runs like any other. Its next di
 
 ### 4.2 Combining runs
 
-The groupings come from **all of the player's runs** (except unchecked ones, unless developer mode counts them), with no overriding: each run just adds to the stats. **Recent runs weigh more**, so a player who deliberately regroups some digits sees the game follow. A place is a **usual break spot** when enough of the recent runs break there, and those spots cut the digits into the player's groups. All the judging is local to each place in π.
+The groupings come from **all of the player's runs** (except unchecked ones, unless developer mode counts them, and, while developer mode plays from an earlier run, that run and those after it, §4.5), with no overriding: each run just adds to the stats. **Recent runs weigh more**, so a player who deliberately regroups some digits sees the game follow. A place is a **usual break spot** when enough of the recent runs break there, and those spots cut the digits into the player's groups. All the judging is local to each place in π.
 
 ### 4.3 How far the game follows the player
 
@@ -57,7 +57,7 @@ The raw timings of every run **must never be lost** (`architecture.md` §5): the
 
 ### 4.5 Stats page
 
-The "Your data" page, opened from the main menu's overflow menu, shows what the groupings come from: every run's time per digit with its baseline and likely breaks, and at the bottom, sticky, all runs together with the usual break spots, the confidence trend and the groups used during play, dotted past the trust horizon. In developer mode, it adds a slider for every hyperparameter, each with a help text saying what it is, why it works that way and what moving it does.
+The "Your data" page, opened from the main menu's overflow menu, shows what the groupings come from: every run's time per digit with its baseline and likely breaks, and at the bottom, sticky, all runs together with the usual break spots, the confidence trend and the groups used during play, dotted past the trust horizon. In developer mode, it adds a slider for every hyperparameter, each with a help text saying what it is, why it works that way and what moving it does. A long press on a run there also plays from it: the game, the groups and the chart of all runs act as if it and the runs after it had never been played, while new runs are still kept, until the "You are here" line it draws is undone.
 
 [`prototypes/groupings-lab.html`](prototypes/groupings-lab.html) is the standalone prototype of the game's first take on groupings, whose model the break model has since replaced.
 

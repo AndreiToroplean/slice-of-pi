@@ -1,0 +1,84 @@
+import { Component } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { LONG_PRESS_MS, LONG_PRESS_SLOP, LongPress } from './long-press';
+
+@Component({
+  imports: [LongPress],
+  template: `<div (appLongPress)="presses = presses + 1"></div>`,
+})
+class Host {
+  presses = 0;
+}
+
+describe('LongPress', () => {
+  let host: Host;
+  let element: HTMLElement;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    const fixture = TestBed.createComponent(Host);
+    fixture.detectChanges();
+    host = fixture.componentInstance;
+    element = (fixture.nativeElement as HTMLElement).querySelector('div') as HTMLElement;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function pointer(type: string, x = 0, button = 0): void {
+    element.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: 0, button }));
+  }
+
+  it('tells a press held still long enough', () => {
+    pointer('pointerdown');
+    vi.advanceTimersByTime(LONG_PRESS_MS - 1);
+    expect(host.presses).toBe(0);
+
+    vi.advanceTimersByTime(1);
+    expect(host.presses).toBe(1);
+  });
+
+  it('gives up a press let go of too soon', () => {
+    pointer('pointerdown');
+    vi.advanceTimersByTime(LONG_PRESS_MS / 2);
+    pointer('pointerup');
+    vi.advanceTimersByTime(LONG_PRESS_MS);
+
+    expect(host.presses).toBe(0);
+  });
+
+  it('gives up a press that moves, as when scrolling, but not one that wobbles', () => {
+    pointer('pointerdown');
+    pointer('pointermove', LONG_PRESS_SLOP);
+    vi.advanceTimersByTime(LONG_PRESS_MS);
+    expect(host.presses).toBe(1);
+
+    pointer('pointerup');
+    pointer('pointerdown');
+    pointer('pointermove', LONG_PRESS_SLOP + 1);
+    vi.advanceTimersByTime(LONG_PRESS_MS);
+    expect(host.presses).toBe(1);
+
+    pointer('pointerdown');
+    pointer('pointercancel');
+    vi.advanceTimersByTime(LONG_PRESS_MS);
+    expect(host.presses).toBe(1);
+  });
+
+  it('tells a request for the context menu, once per press', () => {
+    element.dispatchEvent(new MouseEvent('contextmenu'));
+    expect(host.presses).toBe(1);
+
+    pointer('pointerdown');
+    vi.advanceTimersByTime(LONG_PRESS_MS);
+    element.dispatchEvent(new MouseEvent('contextmenu'));
+    expect(host.presses).toBe(2);
+    pointer('pointerup');
+
+    pointer('pointerdown', 0, 2);
+    element.dispatchEvent(new MouseEvent('contextmenu'));
+    vi.advanceTimersByTime(LONG_PRESS_MS);
+    expect(host.presses).toBe(3);
+  });
+});
