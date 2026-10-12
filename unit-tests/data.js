@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791841969387,
+  "lastUpdate": 1791847712697,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -600,6 +600,46 @@ window.BENCHMARK_DATA = {
             "value": 359,
             "unit": "ms",
             "extra": "Data says there are no runs yet"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "2dc4aaf6335e9330f5e69e3f990c953f2d656167",
+          "message": "fix: keep the runs in the order shown when playing from a run while already playing from one\n\nPicking \"Play from here\" while a line was already drawn put the runs back in start order first, so the new line landed above where the run would be by start, not where it was shown. Each line now remembers the one before it, and the runs keep the order the game took them in.\n\nClaude-Session: https://claude.ai/code/session_01GyCioFQArNesXfmGXS7k85",
+          "timestamp": "2026-10-13T01:28:07+02:00",
+          "tree_id": "abd8ca3a07180168f6192f7ccd258184a8947788",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/2dc4aaf6335e9330f5e69e3f990c953f2d656167"
+        },
+        "date": 1791847712371,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 6288,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 10630,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 295,
+            "unit": "ms",
+            "extra": "Play when a group is finished flies each slot into its tile, which shows as its slot lands, so no digit ever goes missing"
           }
         ]
       }
