@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791827932910,
+  "lastUpdate": 1791841969387,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -558,6 +558,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 306,
+            "unit": "ms",
+            "extra": "Data says there are no runs yet"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "1083c7bd764c6a93e14c1304201024c372974159",
+          "message": "docs: keep commits as small as their titles, refactoring first when they aren't\n\nClaude-Session: https://claude.ai/code/session_01X9gxeZ1kwjUGeLEHVBpt1N",
+          "timestamp": "2026-10-12T23:52:29+02:00",
+          "tree_id": "410cd8124e9e38ad62100ef0c087f987bce0a064",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/1083c7bd764c6a93e14c1304201024c372974159"
+        },
+        "date": 1791841968851,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5830,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 9899,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 359,
             "unit": "ms",
             "extra": "Data says there are no runs yet"
           }
