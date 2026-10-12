@@ -1,11 +1,11 @@
 :host {
-  flex: 1;
-  min-height: 0;
+  display: contents;
+}
+
+/* Fitting the screen, without scrolling. */
+app-page {
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
   gap: var(--space-2);
-  padding: 0.625rem var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
 }
 
 .seasons {

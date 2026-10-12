@@ -1,17 +1,23 @@
 :host {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0.625rem var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
+}
+
+/* A frosted top bar that stays at the top of the page as it scrolls. */
+.top-bar {
   display: grid;
   grid-template-columns: 2.75rem 1fr 2.75rem;
   align-items: center;
-}
-
-/* With something in its corner, a frosted top bar that stays at the top of the page as it scrolls. */
-:host:has(.actions > *) {
+  gap: var(--space-2);
   position: sticky;
   /* Flush with the top of the page, over its padding. */
   top: -0.625rem;
   z-index: 1;
-  grid-template-columns: 2.75rem 1fr auto;
-  gap: var(--space-2);
   /* Out to the edges of the page, which scrolls under it. */
   margin: -0.625rem calc(-1 * var(--space-3)) 0;
   padding: 0.625rem var(--space-3);
@@ -20,11 +26,11 @@
   -webkit-backdrop-filter: blur(24px);
   backdrop-filter: blur(24px);
   box-shadow: 0 1px 0 var(--frost-highlight);
+}
 
-  & h1 {
-    font-size: 1.25rem;
-    line-height: 1.15;
-  }
+/* Making room for what is in its corner. */
+.top-bar:has(.actions > *) {
+  grid-template-columns: 2.75rem 1fr auto;
 }
 
 .actions {
@@ -37,7 +43,8 @@ h1 {
   margin: 0;
   text-align: center;
   font-family: var(--font-digits);
-  font-size: 1.75rem;
+  font-size: 1.25rem;
+  line-height: 1.15;
   font-weight: 600;
   text-shadow: var(--text-shadow-large);
 }

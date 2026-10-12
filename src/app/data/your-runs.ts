@@ -2,7 +2,7 @@ import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { DeveloperMode } from '../developer/developer-mode';
 import { Tweaks } from '../developer/tweaks';
-import { PageHeader } from '../page-header/page-header';
+import { Page } from '../page/page';
 import { PI_DECIMALS } from '../pi/pi-decimals';
 import { groupRuns, playOrder, Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
@@ -23,11 +23,11 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
  */
 @Component({
   selector: 'app-your-runs',
-  imports: [GroupingSettingsPanel, LongPress, NgTemplateOutlet, PageHeader, RunChart],
-  host: { class: 'screen' },
+  imports: [GroupingSettingsPanel, LongPress, NgTemplateOutlet, Page, RunChart],
   template: `
-    <app-page-header title="Your runs">
+    <app-page title="Your runs">
       <button
+        pageAction
         type="button"
         class="candy danger small"
         [disabled]="runs().length === 0"
@@ -35,128 +35,129 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
       >
         Delete all runs
       </button>
-    </app-page-header>
-    @if (developerMode()) {
-      <app-grouping-settings-panel>
-        <div class="unchecked">
-          <label class="check">
-            <input
-              type="checkbox"
-              [checked]="includeUnchecked()"
-              (change)="setIncludeUnchecked($event)"
-            />
-            Count unchecked runs
-          </label>
-          <button
-            type="button"
-            class="candy danger"
-            [disabled]="uncheckedRuns().length === 0"
-            (click)="deleteUnchecked()"
-          >
-            Delete unchecked runs
-          </button>
-        </div>
-      </app-grouping-settings-panel>
-    }
-    <section class="runs">
-      <p class="message" role="status">{{ message() }}</p>
-      @if (charts().length === 0) {
-        @if (loaded()) {
-          <p>None yet: each game you play shows up here.</p>
-        }
-      } @else {
-        <p>
-          How long you took to type each digit, so pauses are peaks, along every place you've
-          reached. Breaks are drawn where they're more likely than not, the darker the more likely.
-        </p>
-        <ul class="legend">
-          <li><i class="time"></i>Time per digit</li>
-          <li><i class="baseline"></i>Baseline</li>
-          <li><i class="break"></i>Break</li>
-          <li><i class="confidence"></i>Confidence trend, for all runs</li>
-        </ul>
-        @for (chart of charts(); track chart.id) {
-          @if (chart.here) {
+      @if (developerMode()) {
+        <app-grouping-settings-panel>
+          <div class="unchecked">
+            <label class="check">
+              <input
+                type="checkbox"
+                [checked]="includeUnchecked()"
+                (change)="setIncludeUnchecked($event)"
+              />
+              Count unchecked runs
+            </label>
+            <button
+              type="button"
+              class="candy danger"
+              [disabled]="uncheckedRuns().length === 0"
+              (click)="deleteUnchecked()"
+            >
+              Delete unchecked runs
+            </button>
+          </div>
+        </app-grouping-settings-panel>
+      }
+      <section class="runs">
+        <p class="message" role="status">{{ message() }}</p>
+        @if (charts().length === 0) {
+          @if (loaded()) {
+            <p>None yet: each game you play shows up here.</p>
+          }
+        } @else {
+          <p>
+            How long you took to type each digit, so pauses are peaks, along every place you've
+            reached. Breaks are drawn where they're more likely than not, the darker the more
+            likely.
+          </p>
+          <ul class="legend">
+            <li><i class="time"></i>Time per digit</li>
+            <li><i class="baseline"></i>Baseline</li>
+            <li><i class="break"></i>Break</li>
+            <li><i class="confidence"></i>Confidence trend, for all runs</li>
+          </ul>
+          @for (chart of charts(); track chart.id) {
+            @if (chart.here) {
+              <ng-container [ngTemplateOutlet]="here" />
+            }
+            <article
+              class="panel"
+              [class.unchecked]="!chart.checked"
+              [class.later]="chart.later"
+              [attr.tabindex]="developerMode() ? 0 : null"
+              (appLongPress)="pick(chart.id, $event)"
+            >
+              <h3>
+                {{ chart.title }}
+                @if (!chart.checked) {
+                  <span class="badge">Unchecked</span>
+                }
+              </h3>
+              <p class="meta">{{ chart.meta }}</p>
+              <app-run-chart
+                [values]="chart.times"
+                [baseline]="chart.baseline"
+                [breaks]="chart.breaks"
+                [places]="places()"
+                [top]="top()"
+                [label]="'Time per digit, ' + chart.title"
+              />
+            </article>
+          }
+          @if (hereAtEnd()) {
             <ng-container [ngTemplateOutlet]="here" />
           }
-          <article
-            class="panel"
-            [class.unchecked]="!chart.checked"
-            [class.later]="chart.later"
-            [attr.tabindex]="developerMode() ? 0 : null"
-            (appLongPress)="pick(chart.id, $event)"
+        }
+      </section>
+      <ng-template #here>
+        <div class="here" role="group" aria-label="You are here">
+          <span>You are here</span>
+          <button
+            type="button"
+            class="undo"
+            aria-label="Play from after all the runs again"
+            (click)="undoPlayFrom()"
           >
-            <h3>
-              {{ chart.title }}
-              @if (!chart.checked) {
-                <span class="badge">Unchecked</span>
-              }
-            </h3>
-            <p class="meta">{{ chart.meta }}</p>
-            <app-run-chart
-              [values]="chart.times"
-              [baseline]="chart.baseline"
-              [breaks]="chart.breaks"
-              [places]="places()"
-              [top]="top()"
-              [label]="'Time per digit, ' + chart.title"
-            />
-          </article>
-        }
-        @if (hereAtEnd()) {
-          <ng-container [ngTemplateOutlet]="here" />
-        }
-      }
-    </section>
-    <ng-template #here>
-      <div class="here" role="group" aria-label="You are here">
-        <span>You are here</span>
-        <button
-          type="button"
-          class="undo"
-          aria-label="Play from after all the runs again"
-          (click)="undoPlayFrom()"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M9 14 4 9l5-5" />
-            <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
-          </svg>
-        </button>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 14 4 9l5-5" />
+              <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+            </svg>
+          </button>
+        </div>
+      </ng-template>
+      <!-- A run's context menu, opened by a long press on it, in developer mode. -->
+      <div
+        #runMenu
+        class="run-menu"
+        popover
+        [style.top.px]="menuAt().y"
+        [style.left.px]="menuAt().x"
+        (toggle)="menuToggled($event)"
+      >
+        <button type="button" (click)="playFromPicked()">Play from here</button>
       </div>
-    </ng-template>
-    <!-- A run's context menu, opened by a long press on it, in developer mode. -->
-    <div
-      #runMenu
-      class="run-menu"
-      popover
-      [style.top.px]="menuAt().y"
-      [style.left.px]="menuAt().x"
-      (toggle)="menuToggled($event)"
-    >
-      <button type="button" (click)="playFromPicked()">Play from here</button>
-    </div>
-    @if (charts().length > 0) {
-      <article class="panel summary">
-        <h3>{{ playFrom() === undefined ? 'All runs' : 'Runs before here' }}</h3>
-        <app-run-chart
-          [values]="aggregateChart().times"
-          [baseline]="aggregateChart().baseline"
-          [breaks]="aggregateChart().breaks"
-          [confidence]="aggregateChart().confidence"
-          [places]="places()"
-          [top]="top()"
-          label="Time per digit over all runs, recent ones weighing more, with your usual break spots"
-        />
-        <p class="axis" aria-hidden="true">
-          <span>Place 1</span><span>Place {{ places() }}</span>
-        </p>
-        <ul class="groups" aria-label="Your groups" tabindex="0">
-          @for (group of groups(); track group.start) {
-            <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
-          }
-        </ul>
-      </article>
-    }
+      @if (charts().length > 0) {
+        <article class="panel summary">
+          <h3>{{ playFrom() === undefined ? 'All runs' : 'Runs before here' }}</h3>
+          <app-run-chart
+            [values]="aggregateChart().times"
+            [baseline]="aggregateChart().baseline"
+            [breaks]="aggregateChart().breaks"
+            [confidence]="aggregateChart().confidence"
+            [places]="places()"
+            [top]="top()"
+            label="Time per digit over all runs, recent ones weighing more, with your usual break spots"
+          />
+          <p class="axis" aria-hidden="true">
+            <span>Place 1</span><span>Place {{ places() }}</span>
+          </p>
+          <ul class="groups" aria-label="Your groups" tabindex="0">
+            @for (group of groups(); track group.start) {
+              <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
+            }
+          </ul>
+        </article>
+      }
+    </app-page>
   `,
   styleUrl: './your-runs.css',
 })

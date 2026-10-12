@@ -1,7 +1,7 @@
 import { Component, computed, inject, InjectionToken, signal } from '@angular/core';
 import { DeveloperMode } from '../developer/developer-mode';
 import { Tweaks } from '../developer/tweaks';
-import { PageHeader } from '../page-header/page-header';
+import { Page } from '../page/page';
 import { backupFileName, readBackup, writeBackup } from '../runs/backup';
 import { Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
@@ -29,44 +29,45 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
  */
 @Component({
   selector: 'app-data',
-  imports: [PageHeader],
-  host: { class: 'screen' },
+  imports: [Page],
   template: `
-    <app-page-header title="Your data" />
-    <section class="panel" aria-labelledby="backup-title">
-      <h2 id="backup-title">Backup</h2>
-      <p>{{ count() }}</p>
-      @if (separatePreview()) {
-        <p>
-          This preview of the game stores runs in a different format from the main game, so it keeps
-          them apart: it has a copy of the main game's runs, and the runs played here stay here.
-        </p>
-      }
-      <p>
-        @if (persisted()) {
-          Your browser keeps them until this site's data is cleared.
-        } @else {
-          Your browser may delete them when your device runs low on space.
+    <app-page title="Your data">
+      <section class="panel" aria-labelledby="backup-title">
+        <h2 id="backup-title">Backup</h2>
+        <p>{{ count() }}</p>
+        @if (separatePreview()) {
+          <p>
+            This preview of the game stores runs in a different format from the main game, so it
+            keeps them apart: it has a copy of the main game's runs, and the runs played here stay
+            here.
+          </p>
         }
-        A backup file keeps them safe even then.
-      </p>
-      @if (tuned()) {
-        <p>It also keeps what you tuned in developer mode.</p>
-      }
-      <div class="buttons">
-        <button type="button" class="candy" (click)="save()">Save a backup</button>
-        <label class="candy">
-          Restore a backup
-          <input
-            type="file"
-            accept=".json,application/json"
-            class="visually-hidden"
-            (change)="restore($event)"
-          />
-        </label>
-      </div>
-      <p class="message" role="status">{{ message() }}</p>
-    </section>
+        <p>
+          @if (persisted()) {
+            Your browser keeps them until this site's data is cleared.
+          } @else {
+            Your browser may delete them when your device runs low on space.
+          }
+          A backup file keeps them safe even then.
+        </p>
+        @if (tuned()) {
+          <p>It also keeps what you tuned in developer mode.</p>
+        }
+        <div class="buttons">
+          <button type="button" class="candy" (click)="save()">Save a backup</button>
+          <label class="candy">
+            Restore a backup
+            <input
+              type="file"
+              accept=".json,application/json"
+              class="visually-hidden"
+              (change)="restore($event)"
+            />
+          </label>
+        </div>
+        <p class="message" role="status">{{ message() }}</p>
+      </section>
+    </app-page>
   `,
   styleUrl: './data.css',
 })
