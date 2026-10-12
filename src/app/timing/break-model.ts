@@ -12,8 +12,8 @@
  *    breaks the player makes at the same place every time.
  * 3. The residual of an interval is its log minus the baseline.
  * 4. A mixture of two normal distributions (normal and break) is fitted to all the residuals pooled, each weighted by
- *    its run's recency weight, by weighted EM (expectation–maximization). Until there are enough residuals to fit it,
- *    a prior mixture stands in for it, as it is.
+ *    its run's recency weight, by weighted EM (expectation–maximization). A prior mixture counts in the fit as so
+ *    many residuals, so with few residuals the fit stays close to it, moving smoothly to their own as they come.
  * 5. P(break) is the posterior probability of the break component, 0 below the normal mean: a break is never faster.
  *    An interval is taken for a break when it's over the break threshold, ½ by default.
  * 6. The usual-break probability at a place is the recency-weighted average of P(break) over the runs that reached it.
@@ -43,8 +43,11 @@ export interface BreakSettings {
   readonly priorStrength: number;
   /** The typical interval, in milliseconds, that the prior is when there's no history at all: the very first run. */
   readonly priorBaseline: number;
-  /** Until there are this many intervals over all runs, the mixture isn't fitted: the prior mixture is used as it is. */
-  readonly fitFrom: number;
+  /**
+   * How many intervals' worth of weight the prior mixture gets in the fit: with few intervals, the fitted mixture is
+   * mostly the prior one, and the player's own intervals take over as they come. 0 uses no prior.
+   */
+  readonly priorMixtureStrength: number;
   /** The prior mixture's share of breaks among the intervals, from 0 to 1. */
   readonly priorBreakShare: number;
   /** How many times its baseline the prior mixture's typical break is. */
@@ -67,7 +70,7 @@ export const DEFAULT_BREAK_SETTINGS: BreakSettings = {
   level: 0.9,
   priorStrength: 5,
   priorBaseline: 300,
-  fitFrom: 50,
+  priorMixtureStrength: 50,
   priorBreakShare: 0.15,
   priorBreakSize: 2.5,
   priorNormalSpread: 0.25,
@@ -226,11 +229,11 @@ export function breakModel(
       at++;
     });
   });
-  // Too few intervals can't show what a break looks like: until there are enough, the prior mixture stands as it is.
-  const fit =
-    total >= settings.fitFrom
-      ? fitMixture(residuals, pooledWeights, init)
-      : fitMixture(residuals, pooledWeights, priorMixture(settings), 0);
+  // Too few intervals can't show what a break looks like: the prior mixture counts as so many intervals of data.
+  const fit = fitMixture(residuals, pooledWeights, init, {
+    mixture: priorMixture(settings),
+    strength: settings.priorMixtureStrength,
+  });
   const posterior = fit.posterior.map((p, i) =>
     (residuals[i] ?? 0) < fit.mixture.mean[0] ? 0 : p,
   );
@@ -394,29 +397,39 @@ function normalDensity(x: number, mean: number, sd: number): number {
 }
 
 /**
- * Fits a mixture of two normal distributions to the residuals, each counting with its weight, by weighted EM, in at most
- * `rounds` rounds (0 keeps `init`). Without `init`, it starts from a normal component at the median and a break
- * component 3 spreads above it (taking the median absolute deviation as the spread).
+ * Fits a mixture of two normal distributions to the residuals, each counting with its weight, by weighted EM. Without
+ * `init`, it starts from the prior mixture, if any, else from a normal component at the median and a break component 3
+ * spreads above it (taking the median absolute deviation as the spread).
+ *
+ * With a prior of some strength, the fit is a MAP estimate (maximum a posteriori): the prior mixture counts as that many
+ * intervals of data, each component's share of them drawn from it. With few intervals, the fit stays close to the prior;
+ * as they come, it moves smoothly to the intervals' own mixture.
  */
 export function fitMixture(
   residuals: Float64Array,
   weights: Float64Array,
   init?: Mixture,
-  rounds = MAXIMUM_ROUNDS,
+  prior?: { readonly mixture: Mixture; readonly strength: number },
 ): { mixture: Mixture; posterior: Float64Array } {
+  const start = init ?? (prior !== undefined && prior.strength > 0 ? prior.mixture : undefined);
+  // The prior's pseudo-intervals for each component.
+  const pseudo = [0, 1].map((j) => (prior?.strength ?? 0) * (prior?.mixture.weight[j] ?? 0));
+  const [normalPseudo = 0, pausePseudo = 0] = pseudo;
+  const priorMean = prior?.mixture.mean ?? [0, 0];
+  const priorSd = prior?.mixture.sd ?? [0, 0];
   let share: [number, number];
   let mean: [number, number];
   let sd: [number, number];
-  if (init === undefined) {
+  if (start !== undefined) {
+    share = [...start.weight];
+    mean = [...start.mean];
+    sd = [...start.sd];
+  } else {
     const middle = median(residuals.slice());
     const spread = 1.4826 * median(residuals.map((r) => Math.abs(r - middle))) + 1e-6;
     share = [0.9, 0.1];
     mean = [middle, middle + 3 * spread];
     sd = [spread, 2 * spread];
-  } else {
-    share = [...init.weight];
-    mean = [...init.mean];
-    sd = [...init.sd];
   }
   const count = residuals.length;
   const posterior = new Float64Array(count);
@@ -434,12 +447,13 @@ export function fitMixture(
     return likelihood;
   };
   let previous = -Infinity;
-  for (let round = 0; round < rounds; round++) {
+  for (let round = 0; round < MAXIMUM_ROUNDS; round++) {
     const likelihood = expect();
-    let pauses = 0;
-    let all = 0;
-    let pauseSum = 0;
-    let normalSum = 0;
+    const before = [...share, ...mean, ...sd];
+    let pauses = pausePseudo;
+    let all = normalPseudo + pausePseudo;
+    let pauseSum = pausePseudo * priorMean[1];
+    let normalSum = normalPseudo * priorMean[0];
     for (let i = 0; i < count; i++) {
       const w = weights[i] ?? 0;
       const p = posterior[i] ?? 0;
@@ -455,8 +469,9 @@ export function fitMixture(
       break;
     }
     mean = [normalSum / normals, pauseSum / pauses];
-    let normalSquares = 0;
-    let pauseSquares = 0;
+    // The pseudo-intervals spread around the prior's means as its spreads say.
+    let normalSquares = normalPseudo * (priorSd[0] ** 2 + (mean[0] - priorMean[0]) ** 2);
+    let pauseSquares = pausePseudo * (priorSd[1] ** 2 + (mean[1] - priorMean[1]) ** 2);
     for (let i = 0; i < count; i++) {
       const w = weights[i] ?? 0;
       const p = posterior[i] ?? 0;
@@ -469,7 +484,11 @@ export function fitMixture(
       Math.max(Math.sqrt(normalSquares / normals), SMALLEST_SD),
       Math.max(Math.sqrt(pauseSquares / pauses), SMALLEST_SD),
     ];
-    if (likelihood - previous < TOLERANCE) {
+    // With a prior, the fit maximizes more than the likelihood, so it stops once the mixture no longer moves.
+    const moved = Math.max(
+      ...[...share, ...mean, ...sd].map((value, k) => Math.abs(value - (before[k] ?? 0))),
+    );
+    if (normalPseudo + pausePseudo > 0 ? moved < TOLERANCE : likelihood - previous < TOLERANCE) {
       break;
     }
     previous = likelihood;

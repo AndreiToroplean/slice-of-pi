@@ -124,7 +124,8 @@ describe('break model', () => {
   describe('the model', () => {
     it("matches the Python implementation it's translated from", () => {
       const runs = REFERENCE.intervals.map(timesOf);
-      const found = model(runs.slice(0, -1), runs.at(-1));
+      // The Python implementation fits the mixture without a prior.
+      const found = model(runs.slice(0, -1), runs.at(-1), { ...settings, priorMixtureStrength: 0 });
 
       expect(found.horizon).toBe(REFERENCE.horizon);
       found.mixture.mean.forEach((mean, k) => {
@@ -143,9 +144,12 @@ describe('break model', () => {
 
     it("matches it on a first run, judged against the prior baseline, once there's enough to fit", () => {
       const first = timesOf(REFERENCE.intervals[0] ?? []);
-      const found = model([], first, { ...settings, priorBaseline: 300 });
+      const found = model([], first, {
+        ...settings,
+        priorBaseline: 300,
+        priorMixtureStrength: 0,
+      });
 
-      expect(first.length - 1).toBeGreaterThanOrEqual(settings.fitFrom);
       REFERENCE.firstRun.forEach((p, i) => {
         expect(found.runs[0]?.breakProbability[i + 1]).toBeCloseTo(p, 4);
       });
@@ -188,12 +192,33 @@ describe('break model', () => {
       expect(spots(found.usual)).toEqual(by3(60));
     });
 
-    it('keeps the prior mixture as it is until there are enough intervals to fit one', () => {
-      const few = model([], run(settings.fitFrom, [3, 6]));
-      const enough = model([], run(settings.fitFrom + 1, [3, 6]));
+    it('fits the prior mixture alone without intervals', () => {
+      expect(model([], []).mixture.mean[1]).toBeCloseTo(priorMixture(settings).mean[1], 6);
+    });
 
-      expect(few.mixture).toEqual(priorMixture(settings));
-      expect(enough.mixture).not.toEqual(priorMixture(settings));
+    it('moves the mixture smoothly from the prior to the intervals’ own as they come', () => {
+      // Breaks 4 times the baseline, where the prior expects 2.5 times.
+      const breaky = (digits: number): number[] =>
+        timesOf(
+          Array.from({ length: digits - 1 }, (_, p) =>
+            (p + 1) % 3 === 0 ? 800 : ([180, 200, 230][p % 3] ?? 0),
+          ),
+        );
+      const breakSize = (digits: number, tuned = settings): number => {
+        const { mean } = model([breaky(digits)], undefined, tuned).mixture;
+        return Math.exp(mean[1] - mean[0]);
+      };
+      const own = breakSize(320, { ...settings, priorMixtureStrength: 0 });
+      const sizes = [10, 20, 40, 80, 160, 320].map((digits) => breakSize(digits));
+
+      sizes.reduce((previous, size) => {
+        expect(size).toBeGreaterThan(previous);
+        return size;
+      }, settings.priorBreakSize);
+      expect(sizes.at(-1) ?? 0).toBeLessThan(own);
+      expect(sizes.at(-1) ?? 0).toBeGreaterThan(
+        settings.priorBreakSize + 0.8 * (own - settings.priorBreakSize),
+      );
     });
 
     it('tells breaks from the first digits on, with the prior mixture', () => {

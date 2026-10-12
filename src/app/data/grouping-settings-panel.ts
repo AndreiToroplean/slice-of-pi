@@ -89,17 +89,17 @@ export const CONTROLS: readonly Control[] = [
     },
   },
   {
-    key: 'fitFrom',
-    label: 'Fit from',
+    key: 'priorMixtureStrength',
+    label: 'Prior mixture strength',
     min: 0,
     max: 200,
-    step: 10,
+    step: 1,
     format: (value) => `${String(value)} intervals`,
     help: {
-      what: 'Until there are this many intervals over all your runs, the game doesn’t fit the mixture to them: it uses the prior mixture below as it is.',
-      why: 'A mixture fitted to a handful of intervals can’t learn yet what a break looks like for you: one slow digit could become the whole break component. Starting from a reasonable guess for every player, and only fitting once there’s enough, lets breaks be told from the first digit.',
+      what: 'How much the prior mixture below counts in the fit, as a number of intervals: the fit treats it as that many made-up intervals, normal ones and breaks as the prior mixture says, added to yours. At 50, after 50 of your intervals (counted with their recency weights) the fitted mixture is half yours, half the prior; after 200, four fifths yours.',
+      why: 'A mixture fitted to a handful of intervals can’t learn yet what a break looks like for you: one slow digit could become the whole break component. Counting a reasonable guess for every player as data lets breaks be told from the first digit, and your own intervals take over smoothly as they come, with no point where the game switches from one to the other.',
       moving:
-        'Higher keeps the prior mixture longer, so your first runs are judged by it rather than by your own rhythm. Lower fits sooner, on fewer intervals, so the first breaks found are less reliable.',
+        'Higher keeps the fit close to the prior mixture longer, so your first runs are judged by it rather than by your own rhythm, and even later the prior keeps a little weight. Lower lets your own intervals take over sooner, so the first breaks found are less reliable. 0 fits your intervals alone.',
     },
   },
   {
