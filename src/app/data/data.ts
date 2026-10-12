@@ -43,9 +43,10 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
 
 /**
  * The player's data, opened from the main menu's overflow menu: how many runs are kept and how safe they are, with a
- * backup file to save and restore, then a chart of each run and, sticking to the bottom, one of them all. In
- * developer mode, the hyperparameters of the break model can be tuned between the two, and a long press on a run plays
- * from it, as if it and the runs after it had never been played, until undone.
+ * backup file to save and restore, then a chart of each run and one of them all, sticking to the bottom of the whole
+ * page. In developer mode, the hyperparameters of the break model can be tuned above the runs, staying in view of the
+ * chart of them all, and a long press on a run plays from it, as if it and the runs after it had never been played,
+ * until undone.
  */
 @Component({
   selector: 'app-data',
@@ -161,27 +162,6 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
             />
           </article>
         }
-        <article class="panel summary">
-          <h3>{{ playFrom() === undefined ? 'All runs' : 'Runs before here' }}</h3>
-          <p class="meta">{{ aggregateMeta() }}</p>
-          <app-run-chart
-            [values]="aggregateChart().times"
-            [baseline]="aggregateChart().baseline"
-            [breaks]="aggregateChart().breaks"
-            [confidence]="aggregateChart().confidence"
-            [places]="places()"
-            [top]="top()"
-            label="Time per digit over all runs, recent ones weighing more, with your usual break spots"
-          />
-          <p class="axis" aria-hidden="true">
-            <span>Place 1</span><span>Place {{ places() }}</span>
-          </p>
-          <ul class="groups" aria-label="Your groups">
-            @for (group of groups(); track group.start) {
-              <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
-            }
-          </ul>
-        </article>
       }
     </section>
     <dialog
@@ -203,6 +183,29 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
         <button type="button" class="candy" autofocus (click)="closePick()">Cancel</button>
       }
     </dialog>
+    @if (charts().length > 0) {
+      <article class="panel summary">
+        <h3>{{ playFrom() === undefined ? 'All runs' : 'Runs before here' }}</h3>
+        <p class="meta">{{ aggregateMeta() }}</p>
+        <app-run-chart
+          [values]="aggregateChart().times"
+          [baseline]="aggregateChart().baseline"
+          [breaks]="aggregateChart().breaks"
+          [confidence]="aggregateChart().confidence"
+          [places]="places()"
+          [top]="top()"
+          label="Time per digit over all runs, recent ones weighing more, with your usual break spots"
+        />
+        <p class="axis" aria-hidden="true">
+          <span>Place 1</span><span>Place {{ places() }}</span>
+        </p>
+        <ul class="groups" aria-label="Your groups">
+          @for (group of groups(); track group.start) {
+            <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
+          }
+        </ul>
+      </article>
+    }
   `,
   styleUrl: './data.css',
 })

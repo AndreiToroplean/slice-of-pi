@@ -330,12 +330,10 @@ describe('Data', () => {
   it('charts each run, oldest first, then all of them', async () => {
     const { host } = await setUp([second, first]);
 
-    const titles = Array.from(host.querySelectorAll('.runs h3'), (title) =>
-      title.textContent.trim(),
-    );
+    const titles = Array.from(host.querySelectorAll('h3'), (title) => title.textContent.trim());
     const format = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
     expect(titles).toEqual([format.format(1_000), format.format(2_000), 'All runs']);
-    expect(Array.from(host.querySelectorAll('.runs .meta'), (meta) => meta.textContent)).toEqual([
+    expect(Array.from(host.querySelectorAll('.meta'), (meta) => meta.textContent)).toEqual([
       '2 digits in 0.3 s · 1 group',
       '1 digit in 0.0 s · 1 group',
       '1 group, none within the trust horizon; from the first dotted one on, the game plays groups of 5 that grow until you pause',
@@ -348,6 +346,13 @@ describe('Data', () => {
       `Time per digit, ${format.format(2_000)}`,
       'Time per digit over all runs, recent ones weighing more, with your usual break spots',
     ]);
+  });
+
+  it('sticks the chart of all runs to the bottom of the whole page, not only of the runs', async () => {
+    const { host } = await setUp([first]);
+
+    expect(host.querySelector(':scope > .summary')).not.toBeNull();
+    expect(host.querySelector('.runs .summary')).toBeNull();
   });
 
   it('marks the breaks of each run on its chart, and counts its groups', async () => {
@@ -395,7 +400,7 @@ describe('Data', () => {
     it('hides unchecked runs outside developer mode, and leaves them out of the groups', async () => {
       const { host } = await setUp([grouped, unchecked]);
 
-      expect(host.querySelectorAll('.runs article:not(.summary)')).toHaveLength(1);
+      expect(host.querySelectorAll('.runs article')).toHaveLength(1);
       expect(host.querySelector('.runs .badge')).toBeNull();
       expect(text(host)).toContain('1 run kept on this device.');
       expect(groupsShown(host)).toEqual([PI_DECIMALS.slice(0, 30)]);
@@ -462,7 +467,7 @@ describe('Data', () => {
     }
 
     function article(host: HTMLElement, index: number): HTMLElement {
-      const found = host.querySelectorAll<HTMLElement>('.runs article:not(.summary)')[index];
+      const found = host.querySelectorAll<HTMLElement>('.runs article')[index];
       if (found === undefined) {
         throw new Error(`No run ${String(index)}`);
       }
@@ -489,7 +494,7 @@ describe('Data', () => {
       expect(TestBed.inject(Tweaks).values()).toEqual({ playFrom: 'from' });
       expect(article(host, 1).previousElementSibling?.textContent).toContain('You are here');
       expect(
-        Array.from(host.querySelectorAll('.runs article:not(.summary)'), (run) =>
+        Array.from(host.querySelectorAll('.runs article'), (run) =>
           run.classList.contains('later'),
         ),
       ).toEqual([false, true, true, true, true]);
