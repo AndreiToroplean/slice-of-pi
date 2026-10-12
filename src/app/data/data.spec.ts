@@ -1,27 +1,16 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter, Router } from '@angular/router';
-import { IDBFactory } from 'fake-indexeddb';
+import { Router } from '@angular/router';
 import { Digit } from '../digit';
 import { BACKUP_KIND, readBackup, writeBackup } from '../runs/backup';
 import { addDigit, newRun, Run, RUN_FORMAT } from '../runs/run';
-import { RUN_CLOCK } from '../runs/run-recorder';
-import {
-  DATABASE_NAME,
-  DATABASE_VERSION,
-  INDEXED_DB,
-  IS_PREVIEW,
-  MAIN_FORMAT,
-  META,
-  RunStore,
-  RUNS,
-  STORAGE_MANAGER,
-} from '../runs/run-store';
-import { DEVELOPER_MODE, DEVELOPER_MODE_FORMAT, DeveloperMode } from '../developer/developer-mode';
+import { RunStore } from '../runs/run-store';
+import { DEVELOPER_MODE, DEVELOPER_MODE_FORMAT } from '../developer/developer-mode';
 import { Tweaks, TWEAKS, TWEAKS_FORMAT } from '../developer/tweaks';
 import { PI_DECIMALS } from '../pi/pi-decimals';
 import { DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
 import { installPopovers, uninstallPopovers } from '../../testing/fake-popovers';
-import { CONFIRM, Data, SAVE_FILE } from './data';
+import { button, message, OpenPage, openPage, text } from '../../testing/player-data-pages';
+import { Data } from './data';
 
 describe('Data', () => {
   const first = addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250);
@@ -50,107 +39,26 @@ describe('Data', () => {
     confirming = true;
   });
 
-  async function setUp(
+  function setUp(
     runs: Run[] = [],
     persisted = false,
     preview = false,
     mainFormat?: number,
     developer = false,
-  ): Promise<{
-    host: HTMLElement;
-    until: (ready: () => boolean) => Promise<void>;
-  }> {
-    const indexedDb = new IDBFactory();
-    if (mainFormat !== undefined) {
-      await noteMainFormat(indexedDb, mainFormat);
-    }
-    TestBed.configureTestingModule({
-      providers: [
-        provideRouter([]),
-        { provide: INDEXED_DB, useValue: indexedDb },
-        { provide: IS_PREVIEW, useValue: preview },
-        {
-          provide: STORAGE_MANAGER,
-          useValue: { persisted: () => Promise.resolve(persisted) },
-        },
-        {
-          provide: RUN_CLOCK,
-          useValue: {
-            now: () => 0,
-            epoch: () => new Date(2026, 9, 10, 12).getTime(),
-            newId: () => 'id',
-          },
-        },
-        {
-          provide: CONFIRM,
-          useValue: (question: string) => {
-            questions.push(question);
-            return confirming;
-          },
-        },
-        {
-          provide: SAVE_FILE,
-          useValue: (name: string, text: string) => saved.push({ name, text }),
-        },
-      ],
-    });
-    for (const run of runs) {
-      await TestBed.inject(RunStore).save(run);
-    }
-    if (developer) {
-      await TestBed.inject(DeveloperMode).set(true);
-    }
-    const fixture = TestBed.createComponent(Data);
-    await fixture.whenStable();
-    const host = fixture.nativeElement as HTMLElement;
-    // Waits for the database to answer and the view to show it.
-    const until = (ready: () => boolean): Promise<void> =>
-      vi.waitFor(async () => {
-        await fixture.whenStable();
-        if (!ready()) {
-          throw new Error('Not ready yet');
-        }
-      });
+  ): Promise<OpenPage> {
     // The page reads the runs as it opens.
-    await until(() => host.querySelector('section p')?.textContent.trim() !== '');
-    return { host, until };
-  }
-
-  /** Notes the main game's run format, as the main game does when it opens the database. */
-  function noteMainFormat(indexedDb: IDBFactory, format: number): Promise<void> {
-    return new Promise((resolve) => {
-      const request = indexedDb.open(DATABASE_NAME, DATABASE_VERSION);
-      request.onupgradeneeded = () => {
-        request.result.createObjectStore(RUNS, { keyPath: 'id' });
-        request.result.createObjectStore(META);
-      };
-      request.onsuccess = () => {
-        const transaction = request.result.transaction(META, 'readwrite');
-        transaction.objectStore(META).put({ format }, MAIN_FORMAT);
-        transaction.oncomplete = () => {
-          request.result.close();
-          resolve();
-        };
-      };
+    return openPage(Data, (host) => host.querySelector('section p')?.textContent.trim() !== '', {
+      runs,
+      persisted,
+      preview,
+      mainFormat,
+      developer,
+      confirm: (question) => {
+        questions.push(question);
+        return confirming;
+      },
+      saveFile: (name, text) => saved.push({ name, text }),
     });
-  }
-
-  function text(host: HTMLElement): string {
-    return host.textContent.replace(/\s+/g, ' ').trim();
-  }
-
-  function message(host: HTMLElement): string | undefined {
-    return host.querySelector('[role="status"]')?.textContent.trim();
-  }
-
-  function button(host: HTMLElement, label: string): HTMLButtonElement {
-    const found = Array.from(host.querySelectorAll('button')).find(
-      (candidate) => candidate.textContent.trim() === label,
-    );
-    if (found === undefined) {
-      throw new Error(`No button "${label}"`);
-    }
-    return found;
   }
 
   async function choose(
