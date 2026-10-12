@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791806329862,
+  "lastUpdate": 1791827932910,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -518,6 +518,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 220,
+            "unit": "ms",
+            "extra": "Data says there are no runs yet"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "37079ccee0362b87ffca365e317c26f6b246963e",
+          "message": "feat: count the runs played from a line, picked from a run's context menu\n\nPlaying from a run is now a plain context menu action, with no confirmation, and plays from just before that run. The runs played meanwhile go just above the \"You are here\" line and count, so the game can be replayed from there with them; undoing it puts every run back in the order they were played. The line is kept with the tweaks as how many runs are above it and when it was drawn, so it's in backups too, and the order follows from the runs and the line whichever is read first.\n\nClaude-Session: https://claude.ai/code/session_01C71LudSpCcKv8nPDjWHTJH",
+          "timestamp": "2026-10-12T19:58:30+02:00",
+          "tree_id": "e8ac6dea9c64756df248c0e17f210e47c6082742",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/37079ccee0362b87ffca365e317c26f6b246963e"
+        },
+        "date": 1791827932088,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 6054,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 10270,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 306,
             "unit": "ms",
             "extra": "Data says there are no runs yet"
           }
