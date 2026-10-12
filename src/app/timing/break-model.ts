@@ -15,9 +15,9 @@
  *    its run's recency weight, by weighted EM (expectation–maximization). A prior mixture counts in the fit as so
  *    many residuals, so with few residuals the fit stays close to it, moving smoothly to their own as they come.
  * 5. P(break) is the posterior probability of the break component, 0 below the normal mean: a break is never faster.
- *    An interval is taken for a break when it's over the break threshold, ½ by default.
+ *    An interval is taken for a break when it's over the break threshold.
  * 6. The usual-break probability at a place is the recency-weighted average of P(break) over the runs that reached it.
- *    The usual break spots are the places where it's over the usual threshold, ½ by default.
+ *    The usual break spots are the places where it's over the usual threshold.
  * 7. The confidence at a place is the probability that its verdict (usual break or not) is right, that is that its
  *    break rate is on the verdict's side of the usual threshold, from a Beta posterior over the rate. It drops as fewer runs reach a place and as they disagree, but it's noisy,
  *    so a non-increasing curve is fitted to it (isotonic regression), the confidence trend. That crosses the required

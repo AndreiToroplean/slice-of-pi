@@ -38,8 +38,8 @@ export function occurrenceColor(digit: Digit, before: number, palette: Palette =
 
 /**
  * The colors of the typed places: the color of place p is at index p - 1. Only the decimals count, so the leading 3
- * uses up no color. The game doesn't check digits against π yet, so a place's color comes from how many times its
- * digit was typed before it, which matches π whenever the player types correctly (`colors.md` §5).
+ * uses up no color. A place's color comes from how many times its digit was typed before it, which matches π whenever
+ * the digits typed are right (`colors.md` §2).
  */
 export function placeColors(digits: string, palette: Palette = PALETTE): readonly string[] {
   const seen = occurrenceCounts();
