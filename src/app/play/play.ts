@@ -37,7 +37,8 @@ import { TIMER } from './timer';
  * player pauses.
  * Every digit is checked against π, unless developer mode turns that off: a wrong one, and any typed on after it, show
  * as mistakes in their slots, and never finish the group, until backspace deletes them.
- * Backspace deletes the last digit, reopening the last word when the slots are empty. Pausing offers to restart the game
+ * Backspace deletes the last digit, reopening the last word when the slots are empty, and brings the last word back when
+ * it empties them, for the player to carry on, until they break there again. Pausing offers to restart the game
  * or end it, back to the main menu. Every key is recorded, with its time, in the player's runs; restarting or ending the
  * game ends the run.
  */
@@ -182,7 +183,7 @@ export class Play {
       if (key === 'backspace') {
         this.recorder.deleteMistake(this.digits().length + this.mistakes().length);
         this.mistakes.update((mistakes) => mistakes.slice(0, -1));
-        this.watchForPause();
+        this.bringBackEmptied(this.sizes().length);
       } else {
         this.mistakes.update((mistakes) => mistakes + key);
       }
@@ -201,14 +202,30 @@ export class Play {
     this.recorder.record(key);
     if (key === 'backspace') {
       this.landFlights();
+      const words = this.sizes().length;
       if (this.grouping().current === '') {
         this.sizes.update((sizes) => sizes.slice(0, -1));
       }
       this.digits.update((digits) => digits.slice(0, -1));
+      this.bringBackEmptied(words);
     } else {
       this.digits.update((digits) => digits + key);
+      this.watchForPause();
     }
-    this.watchForPause();
+  }
+
+  /**
+   * Brings the last word back into the slots once backspace has emptied them: the clock back to its last digit, the
+   * player can carry it on, until they break there again. Then watches for a break, as after any key. `words` is how
+   * many there were before the backspace.
+   */
+  private bringBackEmptied(words: number): void {
+    if (this.grouping().current === '' && this.mistakes() === '' && this.sizes().length > 0) {
+      this.landFlights();
+      this.sizes.update((sizes) => sizes.slice(0, -1));
+    }
+    // A word reopened and finished again at once never left its place: it has nothing to fly from.
+    this.watchForPause(this.sizes().length === words);
   }
 
   /** Starts a new game: no digits typed, back to the first spring. */
@@ -231,19 +248,21 @@ export class Play {
    * for that: a next digit typed fast enough outweighs the break the earlier runs have there, and carries the group on.
    * Never while a mistake shows.
    */
-  private watchForPause(): void {
+  private watchForPause(flyNow = true): void {
     this.stopWatching();
     if (this.grouping().current === '' || this.mistakes() !== '') {
       return;
     }
-    const check = (): void => {
+    const check = (fly: boolean): void => {
       if (this.pausedLongEnough(this.plan().trusted)) {
         this.stopWatching();
-        this.finishGroup();
+        this.finishGroup(fly);
       }
     };
-    this.stopWatching = this.timer.every(PAUSE_CHECK, check);
-    check();
+    this.stopWatching = this.timer.every(PAUSE_CHECK, () => {
+      check(true);
+    });
+    check(flyNow);
   }
 
   /** Whether the group being typed, the player's own if `trusted`, ends before the next digit, were it typed now. */
@@ -268,11 +287,11 @@ export class Play {
     return model;
   }
 
-  /** Turns the group being typed into a word, its slots flying into it. */
-  private finishGroup(): void {
+  /** Turns the group being typed into a word, its slots flying into it if `fly`. */
+  private finishGroup(fly: boolean): void {
     const length = this.grouping().current.length;
     const firstPlace = this.digits().length - length + 1;
-    const slots = this.slotsToFly(length);
+    const slots = fly ? this.slotsToFly(length) : [];
     this.sizes.update((sizes) => [...sizes, length]);
     if (slots.length === 0) {
       return;

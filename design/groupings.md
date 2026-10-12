@@ -30,6 +30,7 @@ The play screen is centred on the group being typed. The typing area shows its *
 - **Past it**, which for a new player is everywhere, the group starts with a few slots (the **starting slots**, a hyperparameter) and finishes only when the player **breaks** (§4.1). Each digit typed past the slots adds one, never ahead of it, so the player shows the game their groups.
 - Groups have **no minimum or maximum size**: a single digit between two breaks is a group of one, and its constellation is a dot.
 - A finished group flies off to the **typed digits**, as a word.
+- When backspace empties the slots, the last word comes back into them. Backspace takes the clock back to its last digit (§4.4), so the player can carry it on, until they break there again.
 
 ## 4. Stats and detected groupings
 
