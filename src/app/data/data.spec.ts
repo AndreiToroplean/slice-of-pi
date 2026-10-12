@@ -348,6 +348,12 @@ describe('Data', () => {
     ]);
   });
 
+  it('lets the groups of all runs scroll, from the keyboard too', async () => {
+    const { host } = await setUp([first]);
+
+    expect(host.querySelector('.groups')?.getAttribute('tabindex')).toBe('0');
+  });
+
   it('sticks the chart of all runs to the bottom of the whole page, not only of the runs', async () => {
     const { host } = await setUp([first]);
 

@@ -200,22 +200,36 @@ h3 {
   }
 }
 
-/* The groups of all runs, as words of digits; those past the trust horizon are dotted. */
+/*
+ * The groups of all runs, as words of digits; those past the trust horizon are dotted. However many there are, they take
+ * at most 5 rows, and scroll.
+ */
 .groups {
+  --row: 1.25rem;
+  --row-gap: 0.25rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 0.625rem;
+  gap: var(--row-gap) 0.5rem;
+  max-height: calc(5 * var(--row) + 4 * var(--row-gap));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   margin: 0.25rem 0 0;
   padding: 0;
   list-style: none;
   font-family: var(--font-digits);
-  font-size: 1.125rem;
+  font-size: 0.875rem;
   font-weight: 500;
+  line-height: var(--row);
   letter-spacing: 0.04em;
+
+  &:focus-visible {
+    outline: 0.1875rem solid var(--focus-ring);
+    outline-offset: 0.125rem;
+  }
 
   & .unsure {
     opacity: 0.6;
     text-decoration: underline dotted;
-    text-underline-offset: 0.25em;
+    text-underline-offset: 0.2em;
   }
 }
