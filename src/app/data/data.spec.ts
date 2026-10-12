@@ -336,7 +336,6 @@ describe('Data', () => {
     expect(Array.from(host.querySelectorAll('.meta'), (meta) => meta.textContent)).toEqual([
       '2 digits in 0.3 s · 1 group',
       '1 digit in 0.0 s · 1 group',
-      '1 group, none within the trust horizon; from the first dotted one on, the game plays groups of 5 that grow until you pause',
     ]);
     const labels = Array.from(host.querySelectorAll('app-run-chart svg'), (svg) =>
       svg.getAttribute('aria-label'),
@@ -346,6 +345,14 @@ describe('Data', () => {
       `Time per digit, ${format.format(2_000)}`,
       'Time per digit over all runs, recent ones weighing more, with your usual break spots',
     ]);
+  });
+
+  it('puts the button deleting all runs next to the title of the runs, not on the chart of all runs', async () => {
+    const { host } = await setUp([first]);
+
+    expect(host.querySelector('.runs-top button')?.textContent.trim()).toBe('Delete all runs');
+    expect(host.querySelector('.summary button')).toBeNull();
+    expect(host.querySelector('.summary .meta')).toBeNull();
   });
 
   it('lets the groups of all runs scroll, from the keyboard too', async () => {
@@ -381,9 +388,6 @@ describe('Data', () => {
         group.classList.contains('unsure'),
       ]),
     ).toEqual(groupsBy3.map((digits, i) => [digits, i === 9]));
-    expect(host.querySelector('.summary .meta')?.textContent).toBe(
-      '10 groups, the first 9 within the trust horizon; from the first dotted one on, the game plays groups of 5 that grow until you pause',
-    );
     expect(host.querySelectorAll('.summary .break')).toHaveLength(9);
     expect(host.querySelector('.summary .confidence')).not.toBeNull();
   });
@@ -563,7 +567,7 @@ describe('Data', () => {
     slider.dispatchEvent(new Event('input'));
     await until(() => host.querySelectorAll('.groups li.unsure').length === 10);
 
-    expect(host.querySelector('.summary .meta')?.textContent).toContain('none within');
+    expect(host.querySelectorAll('.groups li:not(.unsure)')).toHaveLength(0);
   });
 
   it('spans every chart over the places of the longest run', async () => {
