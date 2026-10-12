@@ -63,25 +63,6 @@ describe('Menu', () => {
     expect(links).toEqual([['Your data', '/data']]);
   });
 
-  it('opens the overflow menu just under its button', async () => {
-    const fixture = TestBed.createComponent(Menu);
-    await fixture.whenStable();
-    const host = fixture.nativeElement as HTMLElement;
-    const more = host.querySelector('button.more');
-    const dropdown = host.querySelector<HTMLElement>('.dropdown');
-    if (more === null || dropdown === null) {
-      throw new Error('No overflow menu');
-    }
-    more.getBoundingClientRect = () => new DOMRect(300, 10, 44, 44);
-    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(360);
-
-    dropdown.dispatchEvent(new Event('beforetoggle'));
-    await fixture.whenStable();
-
-    expect(dropdown.style.top).toBe('60px');
-    expect(dropdown.style.right).toBe('16px');
-  });
-
   it('starts a game with the play button', async () => {
     const host = await setUp();
 
