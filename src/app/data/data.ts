@@ -82,14 +82,6 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
             (change)="restore($event)"
           />
         </label>
-        <button
-          type="button"
-          class="candy danger"
-          [disabled]="runs().length === 0"
-          (click)="deleteAll()"
-        >
-          Delete all runs
-        </button>
       </div>
       <p class="message" role="status">{{ message() }}</p>
     </section>
@@ -117,7 +109,17 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
       </app-grouping-settings-panel>
     }
     <section class="runs" aria-labelledby="runs-title">
-      <h2 id="runs-title">Your runs</h2>
+      <div class="runs-top">
+        <h2 id="runs-title">Your runs</h2>
+        <button
+          type="button"
+          class="candy danger small"
+          [disabled]="runs().length === 0"
+          (click)="deleteAll()"
+        >
+          Delete all runs
+        </button>
+      </div>
       @if (charts().length === 0) {
         <p>None yet: each game you play shows up here.</p>
       } @else {
@@ -186,7 +188,6 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
     @if (charts().length > 0) {
       <article class="panel summary">
         <h3>{{ playFrom() === undefined ? 'All runs' : 'Runs before here' }}</h3>
-        <p class="meta">{{ aggregateMeta() }}</p>
         <app-run-chart
           [values]="aggregateChart().times"
           [baseline]="aggregateChart().baseline"
@@ -301,10 +302,6 @@ export class Data {
       trusted: group.trusted,
     })),
   );
-  protected readonly aggregateMeta = computed(() => {
-    const trusted = this.groups().filter((group) => group.trusted).length;
-    return `${plural(this.groups().length, 'group')}, ${trusted === 0 ? 'none' : `the first ${String(trusted)}`} within the trust horizon; from the first dotted one on, the game plays groups of ${String(this.settings().startingSlots)} that grow until you pause`;
-  });
 
   protected readonly uncheckedNote = computed(() => {
     const count = this.uncheckedRuns().length;
