@@ -118,19 +118,18 @@ describe('groupAt', () => {
 });
 
 describe('slotCount', () => {
-  it('is the size of a trusted group', () => {
-    expect(slotCount({ size: 3, trusted: true }, 3)).toBe(3);
-  });
+  it.each([true, false])(
+    'grows a group past its size with the digits typed, never ahead of them, trusted or not (%s)',
+    (trusted) => {
+      const plan = { size: 5, trusted };
 
-  it('grows an untrusted group past its size with the digits typed, never ahead of them', () => {
-    const plan = { size: 5, trusted: false };
-
-    expect(slotCount(plan, 0)).toBe(5);
-    expect(slotCount(plan, 4)).toBe(5);
-    expect(slotCount(plan, 5)).toBe(5);
-    expect(slotCount(plan, 6)).toBe(6);
-    expect(slotCount(plan, 12)).toBe(12);
-  });
+      expect(slotCount(plan, 0)).toBe(5);
+      expect(slotCount(plan, 4)).toBe(5);
+      expect(slotCount(plan, 5)).toBe(5);
+      expect(slotCount(plan, 6)).toBe(6);
+      expect(slotCount(plan, 12)).toBe(12);
+    },
+  );
 });
 
 describe('groupEnds', () => {

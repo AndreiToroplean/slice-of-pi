@@ -30,8 +30,8 @@ export interface GroupPlan {
   /** How many slots it starts with. */
   readonly size: number;
   /**
-   * Whether it's the player's own group, within the trust horizon, which finishes when its slots are filled. Past the
-   * horizon, a group grows past its slots, one at a time, until the player breaks.
+   * Whether it's the player's own group, within the trust horizon, which finishes where the player usually breaks.
+   * Past the horizon, a group finishes where this run breaks.
    */
   readonly trusted: boolean;
 }
@@ -54,11 +54,11 @@ export function groupAt(
 }
 
 /**
- * How many slots a group shows once `typed` digits are in it. A group that grows gets a slot for each digit typed past
- * its slots, never one ahead of it: the player shows where their group ends.
+ * How many slots a group shows once `typed` digits are in it: a group gets a slot for each digit typed past its slots,
+ * never one ahead of it, as it finishes only when the player breaks: the player shows where their group ends.
  */
 export function slotCount(plan: GroupPlan, typed: number): number {
-  return plan.trusted ? plan.size : Math.max(plan.size, typed);
+  return Math.max(plan.size, typed);
 }
 
 /**

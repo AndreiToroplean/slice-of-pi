@@ -107,12 +107,16 @@ describe('Play', () => {
     });
   }
 
-  /** Sets up with `count` earlier runs grouped by 3, of `length` digits, once `before` has run. */
+  /**
+   * Sets up with `count` earlier runs of `length` digits, timed by `times` (grouped by 3 by default), once `before` has
+   * run.
+   */
   async function setUpWithRuns(
     count: number,
     checked = true,
     before = (): Promise<void> => Promise.resolve(),
     length = 15,
+    times = (run: number): number[] => by3(length, run),
   ): ReturnType<typeof setUp> {
     TestBed.overrideProvider(INDEXED_DB, { useValue: new IDBFactory() });
     await before();
@@ -121,7 +125,7 @@ describe('Play', () => {
       await store.save({
         ...newRun(`earlier-${String(i)}`, i, checked),
         digits: PI_DECIMALS.slice(0, length),
-        times: by3(length, i),
+        times: times(i),
       });
     }
     const setup = await setUp();
@@ -304,6 +308,41 @@ describe('Play', () => {
 
       expect(words(host)).toEqual(['141']);
       expect(slots(host)).toEqual(['', '', '']);
+    });
+
+    describe('where the earlier runs only just break', () => {
+      /** Grouped by 3, except that the 3 oldest runs typed the first 6 digits as one group. */
+      async function setUpRegrouped(): ReturnType<typeof setUp> {
+        return setUpWithRuns(6, true, undefined, 15, (run) => {
+          const times = by3(15, run);
+          return run < 3
+            ? times.map((time, i) => (i >= 3 ? time - PAUSE - 50 * run : time))
+            : times;
+        });
+      }
+
+      it("keeps the player's own group open while a fast next digit could still carry it on", async () => {
+        const { host, type } = await setUpRegrouped();
+
+        await typeAll(type, '141');
+        expect(words(host)).toEqual([]);
+        expect(slots(host)).toEqual(['1', '4', '1']);
+
+        await typeAll(type, '5');
+        expect(words(host)).toEqual([]);
+        expect(slots(host)).toEqual(['1', '4', '1', '5', '', '']);
+
+        await typeAll(type, '92');
+        expect(words(host)).toEqual(['141592']);
+      });
+
+      it("finishes the player's own group once the player pauses after it", async () => {
+        const { host, type } = await setUpRegrouped();
+
+        await typeAll(type, '141 ');
+
+        expect(words(host)).toEqual(['141']);
+      });
     });
 
     it('keeps to the groups of the earlier runs all along the run, wherever it has got to', async () => {
