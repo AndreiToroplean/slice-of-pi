@@ -2,6 +2,7 @@ import { Digit } from '../digit';
 import {
   addDigit,
   countsInGroups,
+  groupRuns,
   deleteMistake,
   isOlderFormat,
   newRun,
@@ -88,6 +89,17 @@ describe('run', () => {
     expect(countsInGroups(checked, false)).toBe(true);
     expect(countsInGroups(unchecked, false)).toBe(false);
     expect(countsInGroups(unchecked, true)).toBe(true);
+  });
+
+  it('computes the groups from the runs before the one played from, if any', () => {
+    const runs = [newRun('a', 0), newRun('b', 1, false), newRun('c', 2), newRun('d', 3)];
+
+    expect(groupRuns(runs, false, undefined).map((run) => run.id)).toEqual(['a', 'c', 'd']);
+    expect(groupRuns(runs, true, undefined).map((run) => run.id)).toEqual(['a', 'b', 'c', 'd']);
+    expect(groupRuns(runs, true, 'c').map((run) => run.id)).toEqual(['a', 'b']);
+    expect(groupRuns(runs, false, 'c').map((run) => run.id)).toEqual(['a']);
+    expect(groupRuns(runs, false, 'a')).toEqual([]);
+    expect(groupRuns(runs, false, 'gone').map((run) => run.id)).toEqual(['a', 'c', 'd']);
   });
 
   describe('parseRun', () => {

@@ -40,6 +40,8 @@ export interface TweakValues {
   readonly checking?: false;
   /** `true` to count unchecked runs in the player's groups, which otherwise leave them out. */
   readonly includeUnchecked?: true;
+  /** The run to play from, as if it and the runs after it had never been played (see `groupRuns` in run.ts). */
+  readonly playFrom?: string;
 }
 
 /** The game's own starting colors of each season. */
@@ -102,6 +104,11 @@ export class Tweaks {
     () => this.developerMode.enabled() && this.tweaks().includeUnchecked === true,
   );
 
+  /** The run the game plays from, as if it and the runs after it had never been played, if any. */
+  readonly playFrom = computed(() =>
+    this.developerMode.enabled() ? this.tweaks().playFrom : undefined,
+  );
+
   constructor() {
     this.loaded = this.store.setting(TWEAKS).then((stored) => {
       // Unless they were changed in the meantime.
@@ -151,6 +158,11 @@ export class Tweaks {
     return this.save(
       tweakValues({ ...this.tweaks(), includeUnchecked: includeUnchecked ? true : undefined }),
     );
+  }
+
+  /** Plays from a run, as if it and the runs after it had never been played; `undefined` plays from the last one again. */
+  setPlayFrom(playFrom: string | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), playFrom }));
   }
 
   private async save(next: TweakValues): Promise<void> {
@@ -223,6 +235,7 @@ export function parseTweaks(stored: unknown): TweakValues {
   const seasonTurn = 'seasonTurn' in stored ? stored.seasonTurn : undefined;
   const checking = 'checking' in stored ? stored.checking : undefined;
   const includeUnchecked = 'includeUnchecked' in stored ? stored.includeUnchecked : undefined;
+  const playFrom = 'playFrom' in stored ? stored.playFrom : undefined;
   return tweakValues({
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
@@ -231,6 +244,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
     includeUnchecked: includeUnchecked === true ? includeUnchecked : undefined,
+    playFrom: typeof playFrom === 'string' && playFrom !== '' ? playFrom : undefined,
   });
 }
 
@@ -243,6 +257,7 @@ function tweakValues({
   seasonTurn,
   checking,
   includeUnchecked,
+  playFrom,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -254,6 +269,7 @@ function tweakValues({
     ...(seasonTurn === undefined ? {} : { seasonTurn }),
     ...(checking === undefined ? {} : { checking }),
     ...(includeUnchecked === undefined ? {} : { includeUnchecked }),
+    ...(playFrom === undefined ? {} : { playFrom }),
   };
 }
 

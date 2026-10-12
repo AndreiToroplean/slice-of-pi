@@ -1,14 +1,23 @@
-import { Component, computed, inject, InjectionToken, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  InjectionToken,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { DeveloperMode } from '../developer/developer-mode';
 import { Tweaks } from '../developer/tweaks';
 import { PageHeader } from '../page-header/page-header';
 import { backupFileName, readBackup, writeBackup } from '../runs/backup';
 import { PI_DECIMALS } from '../pi/pi-decimals';
-import { countsInGroups, Run } from '../runs/run';
+import { groupRuns, Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
 import { RunStore } from '../runs/run-store';
 import { breakModel, finishedRuns, Values } from '../timing/break-model';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
+import { LongPress } from './long-press';
 import { RunChart } from './run-chart';
 import { ChartBreak, chartTop, digitTimes } from './run-charts';
 
@@ -35,11 +44,12 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
 /**
  * The player's data, opened from the main menu's overflow menu: how many runs are kept and how safe they are, with a
  * backup file to save and restore, then a chart of each run and, sticking to the bottom, one of them all. In
- * developer mode, the hyperparameters of the break model can be tuned between the two.
+ * developer mode, the hyperparameters of the break model can be tuned between the two, and a long press on a run plays
+ * from it, as if it and the runs after it had never been played, until undone.
  */
 @Component({
   selector: 'app-data',
-  imports: [GroupingSettingsPanel, PageHeader, RunChart],
+  imports: [GroupingSettingsPanel, LongPress, PageHeader, RunChart],
   host: { class: 'screen' },
   template: `
     <app-page-header title="Your data" />
@@ -121,7 +131,19 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
           <li><i class="confidence"></i>Confidence trend, for all runs</li>
         </ul>
         @for (chart of charts(); track chart.id) {
-          <article class="panel" [class.unchecked]="!chart.checked">
+          @if (chart.id === playFrom()) {
+            <div class="here" role="group" aria-label="You are here">
+              <span>You are here</span>
+              <button type="button" class="frosted pill" (click)="undoPlayFrom()">Undo</button>
+            </div>
+          }
+          <article
+            class="panel"
+            [class.unchecked]="!chart.checked"
+            [class.later]="chart.later"
+            [attr.tabindex]="developerMode() ? 0 : null"
+            (appLongPress)="pick(chart)"
+          >
             <h3>
               {{ chart.title }}
               @if (!chart.checked) {
@@ -140,7 +162,7 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
           </article>
         }
         <article class="panel summary">
-          <h3>All runs</h3>
+          <h3>{{ playFrom() === undefined ? 'All runs' : 'Runs before here' }}</h3>
           <p class="meta">{{ aggregateMeta() }}</p>
           <app-run-chart
             [values]="aggregateChart().times"
@@ -162,6 +184,25 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
         </article>
       }
     </section>
+    <dialog
+      #playFromDialog
+      class="card"
+      aria-labelledby="play-from-title"
+      (close)="picked.set(undefined)"
+    >
+      @if (picked(); as chart) {
+        <h2 id="play-from-title">Play from here?</h2>
+        <p>
+          The game will play as if this run, of {{ chart.title }}, and the ones after it had never
+          been played: your groups and the chart of all runs leave them out. The runs you play
+          meanwhile are still kept, and count again once you undo.
+        </p>
+        <button type="button" class="candy primary" (click)="playFromPicked()">
+          Play from here
+        </button>
+        <button type="button" class="candy" autofocus (click)="closePick()">Cancel</button>
+      }
+    </dialog>
   `,
   styleUrl: './data.css',
 })
@@ -179,12 +220,19 @@ export class Data {
   protected readonly developerMode = this.developer.enabled;
   private readonly settings = this.tweaks.grouping;
   protected readonly includeUnchecked = this.tweaks.includeUnchecked;
+  /** The run played from, in developer mode, if any. */
+  protected readonly playFrom = this.tweaks.playFrom;
   protected readonly runs = signal<readonly Run[]>([]);
   protected readonly uncheckedRuns = computed(() => this.runs().filter((run) => !run.checked));
   /** The runs the groups are computed from, oldest first. */
   private readonly counted = computed(() =>
-    this.runs().filter((run) => countsInGroups(run, this.includeUnchecked())),
+    groupRuns(this.runs(), this.includeUnchecked(), this.playFrom()),
   );
+  /** Where the runs played from start, if any: they're left out of the groups. */
+  private readonly playedFrom = computed(() => {
+    const index = this.runs().findIndex((run) => run.id === this.playFrom());
+    return index === -1 ? this.runs().length : index;
+  });
   /** What the break model makes of them: the groups the game plays with. */
   private readonly model = computed(() =>
     breakModel(
@@ -201,7 +249,7 @@ export class Data {
     this.runs().filter((run) => run.checked || this.developerMode()),
   );
   protected readonly charts = computed(() =>
-    this.runs().flatMap((run) => {
+    this.runs().flatMap((run, index) => {
       if (!run.checked && !this.developerMode()) {
         return [];
       }
@@ -212,6 +260,7 @@ export class Data {
         id: run.id,
         title: dateAndTime.format(run.startedAt),
         checked: run.checked,
+        later: index >= this.playedFrom(),
         meta:
           `${plural(run.digits.length, 'digit')} in ${seconds(run.times.at(-1) ?? 0)}` +
           (run.digits.length > 0 ? ` · ${plural(breaks.length + 1, 'group')}` : ''),
@@ -262,6 +311,13 @@ export class Data {
     );
   });
 
+  /** The run long pressed, to play from once the player confirms. */
+  protected readonly picked = signal<{ readonly id: string; readonly title: string } | undefined>(
+    undefined,
+  );
+  private readonly playFromDialog =
+    viewChild.required<ElementRef<HTMLDialogElement>>('playFromDialog');
+
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
   private readonly clock = inject(RUN_CLOCK);
@@ -274,6 +330,31 @@ export class Data {
 
   protected setIncludeUnchecked(event: Event): void {
     void this.tweaks.setIncludeUnchecked((event.target as HTMLInputElement).checked);
+  }
+
+  /** Offers to play from a run long pressed, in developer mode. */
+  protected pick(chart: { readonly id: string; readonly title: string }): void {
+    if (!this.developerMode() || this.picked() !== undefined) {
+      return;
+    }
+    this.picked.set(chart);
+    this.playFromDialog().nativeElement.showModal();
+  }
+
+  protected playFromPicked(): void {
+    const picked = this.picked();
+    if (picked !== undefined) {
+      void this.tweaks.setPlayFrom(picked.id);
+    }
+    this.closePick();
+  }
+
+  protected closePick(): void {
+    this.playFromDialog().nativeElement.close();
+  }
+
+  protected undoPlayFrom(): void {
+    void this.tweaks.setPlayFrom(undefined);
   }
 
   protected async save(): Promise<void> {

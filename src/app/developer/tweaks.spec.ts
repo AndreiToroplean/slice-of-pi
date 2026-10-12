@@ -139,6 +139,20 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({});
   });
 
+  it('plays from a run only while developer mode is on, and keeps it until undone', async () => {
+    const tweaks = await load();
+    expect(tweaks.playFrom()).toBeUndefined();
+
+    await tweaks.setPlayFrom('run');
+    expect(tweaks.playFrom()).toBeUndefined();
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.playFrom()).toBe('run');
+    expect((await load()).values()).toEqual({ playFrom: 'run' });
+
+    await TestBed.inject(Tweaks).setPlayFrom(undefined);
+    expect((await load()).values()).toEqual({});
+  });
+
   it('reads the stored tweaks again once something else changed them', async () => {
     const tweaks = await load();
     await TestBed.inject(RunStore).saveSetting(TWEAKS, { format: TWEAKS_FORMAT, grouping });
@@ -279,6 +293,9 @@ describe('Tweaks', () => {
       includeUnchecked: true,
     });
     expect(parseTweaks({ format: TWEAKS_FORMAT, includeUnchecked: false })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: 'run' })).toEqual({ playFrom: 'run' });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: '' })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: 3 })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 0 })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 26 })).toEqual({});
     expect(parseTweaks(null)).toEqual({});

@@ -17,7 +17,7 @@ import { Keypad } from '../keypad/keypad';
 import { keyColors, placeColors } from '../place-colors/place-colors';
 import { Pause } from '../pause/pause';
 import { isPiDecimal } from '../pi/pi';
-import { countsInGroups, Run } from '../runs/run';
+import { groupRuns, Run } from '../runs/run';
 import { RunRecorder } from '../runs/run-recorder';
 import { RunStore } from '../runs/run-store';
 import { KeypadKey } from '../keypad/keypad-layout';
@@ -88,9 +88,9 @@ export class Play {
   /** What the break model makes of the earlier runs that count in the groups, before this one. */
   private readonly finished = computed(() =>
     finishedRuns(
-      this.earlierRuns()
-        .filter((run) => countsInGroups(run, this.tweaks.includeUnchecked()))
-        .map((run) => run.times),
+      groupRuns(this.earlierRuns(), this.tweaks.includeUnchecked(), this.tweaks.playFrom()).map(
+        (run) => run.times,
+      ),
       this.settings().window,
     ),
   );
