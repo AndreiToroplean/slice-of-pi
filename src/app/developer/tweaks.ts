@@ -245,7 +245,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
     includeUnchecked: includeUnchecked === true ? includeUnchecked : undefined,
-    playFrom: isPlayFrom(playFrom) ? { at: playFrom.at, since: playFrom.since } : undefined,
+    playFrom: playFromOf(playFrom),
   });
 }
 
@@ -274,18 +274,27 @@ function tweakValues({
   };
 }
 
-function isPlayFrom(value: unknown): value is PlayFrom {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'at' in value &&
-    Number.isInteger(value.at) &&
-    Number(value.at) >= 0 &&
-    'since' in value &&
-    typeof value.since === 'number' &&
-    Number.isFinite(value.since) &&
-    value.since >= 0
-  );
+/** Where to play from, read from untrusted data: the lines it was drawn after included, or `undefined` if invalid. */
+function playFromOf(value: unknown): PlayFrom | undefined {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !('at' in value) ||
+    !Number.isInteger(value.at) ||
+    Number(value.at) < 0 ||
+    !('since' in value) ||
+    typeof value.since !== 'number' ||
+    !Number.isFinite(value.since) ||
+    value.since < 0
+  ) {
+    return undefined;
+  }
+  const at = Number(value.at);
+  if (!('previous' in value)) {
+    return { at, since: value.since };
+  }
+  const previous = playFromOf(value.previous);
+  return previous === undefined ? undefined : { at, since: value.since, previous };
 }
 
 function isColorSpace(value: unknown): value is ColorSpace {

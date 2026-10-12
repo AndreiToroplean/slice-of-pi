@@ -521,6 +521,21 @@ describe('Data', () => {
       expect(groupsShown(host)).toEqual(groupsBy3);
     });
 
+    it('keeps the runs in the order shown when playing from a run while already playing from one', async () => {
+      const { host, until } = await setUp(runs, false, false, undefined, true);
+      await TestBed.inject(Tweaks).setPlayFrom({ at: 1, since });
+      await until(() => here(host) === 4);
+      const shown = articles(host).map((run) => run.querySelector('h3')?.textContent);
+
+      article(host, 3).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
+      await until(() => menu(host)?.hasAttribute('data-popover-open') === true);
+      button(host, 'Play from here').click();
+      await until(() => here(host) === 3);
+
+      expect(articles(host).map((run) => run.querySelector('h3')?.textContent)).toEqual(shown);
+      expect(later(host)).toEqual([false, false, false, true, true]);
+    });
+
     it('puts the runs back in the order they were played once undone', async () => {
       const { host, until } = await setUp(runs, false, false, undefined, true);
       const before = articles(host).map((run) => run.querySelector('h3')?.textContent);
