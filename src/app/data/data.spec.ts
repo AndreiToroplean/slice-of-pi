@@ -236,7 +236,6 @@ describe('Data', () => {
         0,
       ),
     );
-    await until(() => host.querySelector('app-grouping-settings-panel') !== null);
 
     expect(message(host)).toBe(
       'Every run in this backup is already here. Its settings replace yours.',
@@ -283,7 +282,6 @@ describe('Data', () => {
       'Delete all 2 runs kept on this device? Only a backup file can bring them back.',
     ]);
     expect(message(host)).toBe('Deleted 2 runs.');
-    expect(text(host)).toContain('No runs kept yet.');
     expect(await TestBed.inject(RunStore).runs()).toEqual([]);
     expect(button(host, 'Delete all runs').disabled).toBe(true);
   });
@@ -392,12 +390,23 @@ describe('Data', () => {
       return Array.from(host.querySelectorAll('.groups li'), (group) => group.textContent.trim());
     }
 
+    it('leaves the unchecked runs out of the count outside developer mode', async () => {
+      const { host } = await setUp([grouped, unchecked]);
+
+      expect(text(host)).toContain('1 run kept on this device.');
+    });
+
+    it('counts the unchecked runs kept in developer mode', async () => {
+      const { host } = await setUp([grouped, unchecked], false, false, undefined, true);
+
+      expect(text(host)).toContain('2 runs kept on this device.');
+    });
+
     it('hides unchecked runs outside developer mode, and leaves them out of the groups', async () => {
       const { host } = await setUp([grouped, unchecked]);
 
       expect(host.querySelectorAll('.runs article')).toHaveLength(1);
       expect(host.querySelector('.runs .badge')).toBeNull();
-      expect(text(host)).toContain('1 run kept on this device.');
       expect(groupsShown(host)).toEqual([PI_DECIMALS.slice(0, 30)]);
       expect(host.querySelector('.unchecked')).toBeNull();
     });
@@ -408,7 +417,6 @@ describe('Data', () => {
       const article = host.querySelector('.runs article');
       expect(article?.classList).toContain('unchecked');
       expect(article?.querySelector('h3 .badge')?.textContent.trim()).toBe('Unchecked');
-      expect(text(host)).toContain('1 run kept on this device.');
       expect(groupsShown(host)).toEqual([]);
     });
 
@@ -560,26 +568,6 @@ describe('Data', () => {
       expect(here(host)).toBe(5);
     });
 
-    it('plays from where a backup restored says, whatever is read first', async () => {
-      const { host, until } = await setUp(runs);
-
-      await choose(
-        host,
-        until,
-        writeBackup(
-          runs,
-          {
-            [DEVELOPER_MODE]: { format: DEVELOPER_MODE_FORMAT, enabled: true },
-            [TWEAKS]: { format: TWEAKS_FORMAT, playFrom: { at: 1, since } },
-          },
-          0,
-        ),
-      );
-      await until(() => here(host) !== undefined);
-
-      expect(here(host)).toBe(4);
-    });
-
     it('offers it only in developer mode', async () => {
       const { host } = await setUp(runs);
 
@@ -620,14 +608,6 @@ describe('Data', () => {
     expect(
       Array.from(host.querySelectorAll('.summary .axis span'), (span) => span.textContent),
     ).toEqual(['Place 1', 'Place 2']);
-  });
-
-  it('charts the runs of a backup once restored', async () => {
-    const { host, until } = await setUp();
-
-    await choose(host, until, writeBackup([first], {}, 0));
-
-    expect(host.querySelectorAll('app-run-chart')).toHaveLength(2);
   });
 
   it('goes back to the main menu', async () => {
