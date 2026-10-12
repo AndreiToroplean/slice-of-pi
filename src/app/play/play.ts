@@ -33,7 +33,8 @@ import { TIMER } from './timer';
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
  * flies up to the typed digits as a word, as the seasons go by. Each typed digit takes the color its key showed.
  * The groups follow the player's timings, over all their runs and this one (`groupings.md` §4): the slots show the
- * player's own group where it's trusted, else 5 slots that grow until the player pauses.
+ * player's own group where it's trusted, up to the trust horizon the earlier runs give, else 5 slots that grow until the
+ * player pauses.
  * Every digit is checked against π, unless developer mode turns that off: a wrong one, and any typed on after it, show
  * as mistakes in their slots, and never finish the group, until backspace deletes them.
  * Backspace deletes the last digit, reopening the last word when the slots are empty. Pausing offers to restart the game
@@ -94,6 +95,13 @@ export class Play {
       this.settings().window,
     ),
   );
+  /**
+   * The trust horizon, as the earlier runs have it, before this run: frozen for the run, so that the groups shown don't
+   * flicker between the player's own and growing ones as they type.
+   */
+  private readonly horizon = computed(
+    () => breakModel(this.finished(), undefined, this.settings()).horizon,
+  );
   /** The last mixture fitted, to start the next fit from, so that it takes only a few rounds. */
   private mixture: Mixture | undefined;
   /** The groups of all the player's runs, this one so far included. */
@@ -104,7 +112,12 @@ export class Play {
   protected readonly grouping = computed(() => groupDigits(this.digits(), this.sizes()));
   /** How the group being typed is played. */
   private readonly plan = computed(() =>
-    groupAt(this.found(), this.digits().length - this.grouping().current.length, this.settings()),
+    groupAt(
+      this.found(),
+      this.digits().length - this.grouping().current.length,
+      this.settings(),
+      this.horizon(),
+    ),
   );
   /** The slots of the group being typed. */
   protected readonly size = computed(() => slotCount(this.plan(), this.grouping().current.length));

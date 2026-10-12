@@ -306,6 +306,18 @@ describe('Play', () => {
       expect(slots(host)).toEqual(['', '', '']);
     });
 
+    it('keeps to the groups of the earlier runs all along the run, wherever it has got to', async () => {
+      const { host, type } = await setUpWithRuns(4);
+
+      for (const word of ['141', '592', '653']) {
+        await typeAll(type, word);
+        expect(slots(host)).toEqual(['', '', '']);
+      }
+      await typeAll(type, '589');
+
+      expect(words(host)).toEqual(['141', '592', '653', '589']);
+    });
+
     it('counts the run of a game restarted as an earlier run', async () => {
       installDialogs();
       try {
