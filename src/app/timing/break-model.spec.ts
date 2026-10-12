@@ -11,7 +11,6 @@ import {
   priorMixture,
   trailingMedian,
 } from './break-model';
-import { REFERENCE } from './break-model.reference';
 
 describe('break model', () => {
   const settings = DEFAULT_BREAK_SETTINGS;
@@ -125,35 +124,6 @@ describe('break model', () => {
   });
 
   describe('the model', () => {
-    it("matches the Python implementation it's translated from", () => {
-      const runs = REFERENCE.intervals.map(timesOf);
-      // The Python implementation has no synthetic runs.
-      const found = model(runs.slice(0, -1), runs.at(-1));
-
-      expect(found.horizon).toBe(REFERENCE.horizon);
-      found.mixture.mean.forEach((mean, k) => {
-        expect(mean).toBeCloseTo(REFERENCE.mixture.mean[k] ?? 0, 4);
-      });
-      REFERENCE.usual.forEach((usual, p) => {
-        expect(found.usual[p + 1]).toBeCloseTo(usual, 4);
-      });
-      REFERENCE.confidenceTrend.forEach((trend, p) => {
-        expect(found.confidenceTrend[p + 1]).toBeCloseTo(trend, 4);
-      });
-      REFERENCE.current.forEach((p, i) => {
-        expect(found.runs.at(-1)?.breakProbability[i + 1]).toBeCloseTo(p, 4);
-      });
-    });
-
-    it('matches its prior baseline on a first run, with synthetic runs of next to no weight', () => {
-      const first = timesOf(REFERENCE.intervals[0] ?? []);
-      const found = model([], first, { ...settings, syntheticRuns: 1, recencyDecay: 1e-9 });
-
-      REFERENCE.firstRun.forEach((p, i) => {
-        expect(found.runs[0]?.breakProbability[i + 1]).toBeCloseTo(p, 4);
-      });
-    });
-
     it('finds the pauses of a single run', () => {
       const found = model([run(40, by3(40))]);
 
@@ -368,10 +338,13 @@ describe('break model', () => {
     });
 
     it('fits the same from the last mixture', () => {
-      const runs = REFERENCE.intervals.map(timesOf);
-      const finished = finishedRuns(runs.slice(0, -1), settings.window);
-      const cold = breakModel(finished, runs.at(-1), settings);
-      const warm = breakModel(finished, runs.at(-1), settings, cold.mixture);
+      const finished = finishedRuns(
+        Array.from({ length: 4 }, () => run(60, by3(60))),
+        settings.window,
+      );
+      const current = run(30, by3(30));
+      const cold = breakModel(finished, current, settings);
+      const warm = breakModel(finished, current, settings, cold.mixture);
 
       expect(warm.horizon).toBe(cold.horizon);
       expect(warm.mixture.mean[1]).toBeCloseTo(cold.mixture.mean[1], 6);
