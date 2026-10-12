@@ -72,19 +72,49 @@ export function countsInGroups(run: Run, includeUnchecked: boolean): boolean {
 }
 
 /**
- * The runs the player's groups are computed from, out of all their runs, oldest first: those that count in them (see
- * {@link countsInGroups}), and only those before the run played from, if there's one (in developer mode, to play as if
- * that run and the ones after it had never been played). A run played from that isn't there anymore is ignored.
+ * Where the game plays from, in developer mode, as if only some of the player's runs had been played: those before a
+ * line drawn among them, which the runs played since go on top of.
+ */
+export interface PlayFrom {
+  /** How many runs, by start, were before the line when it was drawn. */
+  readonly at: number;
+  /** When it was drawn, in milliseconds since the Unix epoch: the runs started since are played from it. */
+  readonly since: number;
+}
+
+/**
+ * The player's runs in the order the game takes them, from oldest by start, and how many of them come before the line
+ * played from: all of them unless the game plays from one. Then the runs played since go just before the line, after
+ * the runs that were before it, so they count as the newest; the runs that were after it come after them all, and
+ * don't count.
+ */
+export function playOrder(
+  runs: readonly Run[],
+  playFrom: PlayFrom | undefined,
+): { readonly runs: readonly Run[]; readonly before: number } {
+  if (playFrom === undefined) {
+    return { runs, before: runs.length };
+  }
+  const earlier = runs.filter((run) => run.startedAt < playFrom.since);
+  const since = runs.filter((run) => run.startedAt >= playFrom.since);
+  const at = Math.min(playFrom.at, earlier.length);
+  return {
+    runs: [...earlier.slice(0, at), ...since, ...earlier.slice(at)],
+    before: at + since.length,
+  };
+}
+
+/**
+ * The runs the player's groups are computed from, out of all their runs, oldest first: those before the line played
+ * from, if any (see {@link playOrder}), that count in them (see {@link countsInGroups}).
  */
 export function groupRuns(
   runs: readonly Run[],
   includeUnchecked: boolean,
-  playFrom: string | undefined,
+  playFrom: PlayFrom | undefined,
 ): Run[] {
-  const end = runs.findIndex((run) => run.id === playFrom);
-  return (end === -1 ? runs : runs.slice(0, end)).filter((run) =>
-    countsInGroups(run, includeUnchecked),
-  );
+  const order = playOrder(runs, playFrom);
+  return order.runs.slice(0, order.before).filter((run) => countsInGroups(run, includeUnchecked));
 }
 
 /**

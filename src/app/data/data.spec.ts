@@ -20,7 +20,7 @@ import { DEVELOPER_MODE, DEVELOPER_MODE_FORMAT, DeveloperMode } from '../develop
 import { Tweaks, TWEAKS, TWEAKS_FORMAT } from '../developer/tweaks';
 import { PI_DECIMALS } from '../pi/pi-decimals';
 import { DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
-import { installDialogs, uninstallDialogs } from '../../testing/fake-dialogs';
+import { installPopovers, uninstallPopovers } from '../../testing/fake-popovers';
 import { CONFIRM, Data, SAVE_FILE } from './data';
 
 describe('Data', () => {
@@ -458,86 +458,126 @@ describe('Data', () => {
   });
 
   describe('playing from a run', () => {
-    // A run grouped by 3, then the one played from and three after it.
-    const runs: Run[] = [
-      grouped,
-      { ...grouped, id: 'from', startedAt: 3_001 },
-      ...trusted.slice(0, 3),
-    ];
+    // A run grouped by 3, one to play from, then three grouped by 3 played after it.
+    const from = { ...grouped, id: 'from', startedAt: 3_001 };
+    const runs: Run[] = [grouped, from, ...trusted.slice(0, 3)];
+    /** When the game started playing from before the run to play from, in the tests where it did. */
+    const since = 3_500;
 
-    beforeEach(installDialogs);
-    afterEach(uninstallDialogs);
+    beforeEach(installPopovers);
+    afterEach(uninstallPopovers);
 
     function groupsShown(host: HTMLElement): string[] {
       return Array.from(host.querySelectorAll('.groups li'), (group) => group.textContent.trim());
     }
 
-    function dialog(host: HTMLElement): HTMLDialogElement | null {
-      return host.querySelector('dialog[aria-labelledby="play-from-title"]');
+    function articles(host: HTMLElement): HTMLElement[] {
+      return Array.from(host.querySelectorAll<HTMLElement>('.runs article'));
     }
 
     function article(host: HTMLElement, index: number): HTMLElement {
-      const found = host.querySelectorAll<HTMLElement>('.runs article')[index];
+      const found = articles(host)[index];
       if (found === undefined) {
         throw new Error(`No run ${String(index)}`);
       }
       return found;
     }
 
-    async function playFrom(
-      host: HTMLElement,
-      until: (ready: () => boolean) => Promise<void>,
-    ): Promise<void> {
-      article(host, 1).dispatchEvent(new MouseEvent('contextmenu'));
-      await until(() => dialog(host)?.open === true);
-      button(host, 'Play from here').click();
-      await until(() => host.querySelector('.here') !== null);
+    function later(host: HTMLElement): boolean[] {
+      return articles(host).map((run) => run.classList.contains('later'));
     }
 
-    it('plays from a run long pressed, in developer mode, as if it and the later ones had never been played', async () => {
+    function menu(host: HTMLElement): HTMLElement | null {
+      return host.querySelector('.run-menu');
+    }
+
+    /** Where the "You are here" line is among the runs: how many come before it. */
+    function here(host: HTMLElement): number | undefined {
+      const children = Array.from(host.querySelectorAll('.runs > article, .runs > .here'));
+      const line = children.findIndex((child) => child.classList.contains('here'));
+      return line === -1 ? undefined : line;
+    }
+
+    it('plays from before a run long pressed, from its context menu, in developer mode', async () => {
       const { host, until } = await setUp(runs, false, false, undefined, true);
       const before = groupsShown(host);
 
-      await playFrom(host, until);
+      article(host, 1).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
+      await until(() => menu(host)?.hasAttribute('data-popover-open') === true);
+      button(host, 'Play from here').click();
+      await until(() => here(host) !== undefined);
 
-      expect(dialog(host)?.open).toBe(false);
-      expect(TestBed.inject(Tweaks).values()).toEqual({ playFrom: 'from' });
-      expect(article(host, 1).previousElementSibling?.textContent).toContain('You are here');
-      expect(
-        Array.from(host.querySelectorAll('.runs article'), (run) =>
-          run.classList.contains('later'),
-        ),
-      ).toEqual([false, true, true, true, true]);
+      expect(menu(host)?.hasAttribute('data-popover-open')).toBe(false);
+      expect(TestBed.inject(Tweaks).values()).toEqual({
+        playFrom: { at: 1, since: new Date(2026, 9, 10, 12).getTime() },
+      });
+      expect(here(host)).toBe(1);
+      expect(host.querySelector('.here')?.textContent).toContain('You are here');
+      expect(later(host)).toEqual([false, true, true, true, true]);
       expect(host.querySelector('.summary h3')?.textContent.trim()).toBe('Runs before here');
       expect(article(host, 1).querySelector('.meta')?.textContent).toContain('1 group');
       expect(before).toEqual(groupsBy3);
       expect(groupsShown(host)).toEqual([PI_DECIMALS.slice(0, 30)]);
     });
 
-    it('counts every run again once undone', async () => {
+    it('puts the runs played since just before the line, and counts them', async () => {
       const { host, until } = await setUp(runs, false, false, undefined, true);
-      const before = groupsShown(host);
-      await playFrom(host, until);
 
-      button(host, 'Undo').click();
-      await until(() => host.querySelector('.here') === null);
+      await TestBed.inject(Tweaks).setPlayFrom({ at: 1, since });
+      await until(() => here(host) !== undefined);
 
-      expect(TestBed.inject(Tweaks).values()).toEqual({});
-      expect(host.querySelectorAll('.runs article.later')).toHaveLength(0);
-      expect(host.querySelector('.summary h3')?.textContent.trim()).toBe('All runs');
-      expect(groupsShown(host)).toEqual(before);
+      expect(here(host)).toBe(4);
+      expect(article(host, 4).querySelector('h3')?.textContent).toContain(
+        new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
+          from.startedAt,
+        ),
+      );
+      expect(later(host)).toEqual([false, false, false, false, true]);
+      expect(groupsShown(host)).toEqual(groupsBy3);
     });
 
-    it('leaves the runs as they are when the player cancels', async () => {
+    it('puts the runs back in the order they were played once undone', async () => {
       const { host, until } = await setUp(runs, false, false, undefined, true);
+      const before = articles(host).map((run) => run.querySelector('h3')?.textContent);
+      await TestBed.inject(Tweaks).setPlayFrom({ at: 1, since });
+      await until(() => here(host) !== undefined);
 
-      article(host, 1).dispatchEvent(new MouseEvent('contextmenu'));
-      await until(() => dialog(host)?.open === true);
-      button(host, 'Cancel').click();
-      await until(() => dialog(host)?.open === false);
+      host.querySelector<HTMLButtonElement>('.here .undo')?.click();
+      await until(() => here(host) === undefined);
 
       expect(TestBed.inject(Tweaks).values()).toEqual({});
-      expect(host.querySelector('.here')).toBeNull();
+      expect(articles(host).map((run) => run.querySelector('h3')?.textContent)).toEqual(before);
+      expect(later(host)).toEqual([false, false, false, false, false]);
+      expect(host.querySelector('.summary h3')?.textContent.trim()).toBe('All runs');
+    });
+
+    it('draws the line after all the runs when they all come before it', async () => {
+      const { host, until } = await setUp(runs, false, false, undefined, true);
+
+      await TestBed.inject(Tweaks).setPlayFrom({ at: 9, since: 9_000 });
+      await until(() => here(host) !== undefined);
+
+      expect(here(host)).toBe(5);
+    });
+
+    it('plays from where a backup restored says, whatever is read first', async () => {
+      const { host, until } = await setUp(runs);
+
+      await choose(
+        host,
+        until,
+        writeBackup(
+          runs,
+          {
+            [DEVELOPER_MODE]: { format: DEVELOPER_MODE_FORMAT, enabled: true },
+            [TWEAKS]: { format: TWEAKS_FORMAT, playFrom: { at: 1, since } },
+          },
+          0,
+        ),
+      );
+      await until(() => here(host) !== undefined);
+
+      expect(here(host)).toBe(4);
     });
 
     it('offers it only in developer mode', async () => {
@@ -545,7 +585,7 @@ describe('Data', () => {
 
       article(host, 1).dispatchEvent(new MouseEvent('contextmenu'));
 
-      expect(dialog(host)?.open).toBe(false);
+      expect(menu(host)?.hasAttribute('data-popover-open')).toBe(false);
       expect(article(host, 1).hasAttribute('tabindex')).toBe(false);
     });
   });

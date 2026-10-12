@@ -1,6 +1,7 @@
 import { computed, inject, Service, signal } from '@angular/core';
 import { COLOR_SPACE_NAMES, COLOR_SPACES, ColorSpace } from '../colors/color-spaces';
 import { Palette, PALETTE } from '../place-colors/place-colors';
+import { PlayFrom } from '../runs/run';
 import { RunStore } from '../runs/run-store';
 import {
   BackgroundColors,
@@ -40,8 +41,8 @@ export interface TweakValues {
   readonly checking?: false;
   /** `true` to count unchecked runs in the player's groups, which otherwise leave them out. */
   readonly includeUnchecked?: true;
-  /** The run to play from, as if it and the runs after it had never been played (see `groupRuns` in run.ts). */
-  readonly playFrom?: string;
+  /** Where to play from, as if only the runs before it had been played, and those played since (see {@link PlayFrom}). */
+  readonly playFrom?: PlayFrom;
 }
 
 /** The game's own starting colors of each season. */
@@ -104,7 +105,7 @@ export class Tweaks {
     () => this.developerMode.enabled() && this.tweaks().includeUnchecked === true,
   );
 
-  /** The run the game plays from, as if it and the runs after it had never been played, if any. */
+  /** Where the game plays from, as if only the runs before it had been played, and those played since, if anywhere. */
   readonly playFrom = computed(() =>
     this.developerMode.enabled() ? this.tweaks().playFrom : undefined,
   );
@@ -160,8 +161,8 @@ export class Tweaks {
     );
   }
 
-  /** Plays from a run, as if it and the runs after it had never been played; `undefined` plays from the last one again. */
-  setPlayFrom(playFrom: string | undefined): Promise<void> {
+  /** Plays from a line among the runs; `undefined` plays from after them all again. */
+  setPlayFrom(playFrom: PlayFrom | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), playFrom }));
   }
 
@@ -244,7 +245,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
     includeUnchecked: includeUnchecked === true ? includeUnchecked : undefined,
-    playFrom: typeof playFrom === 'string' && playFrom !== '' ? playFrom : undefined,
+    playFrom: isPlayFrom(playFrom) ? { at: playFrom.at, since: playFrom.since } : undefined,
   });
 }
 
@@ -271,6 +272,20 @@ function tweakValues({
     ...(includeUnchecked === undefined ? {} : { includeUnchecked }),
     ...(playFrom === undefined ? {} : { playFrom }),
   };
+}
+
+function isPlayFrom(value: unknown): value is PlayFrom {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'at' in value &&
+    Number.isInteger(value.at) &&
+    Number(value.at) >= 0 &&
+    'since' in value &&
+    typeof value.since === 'number' &&
+    Number.isFinite(value.since) &&
+    value.since >= 0
+  );
 }
 
 function isColorSpace(value: unknown): value is ColorSpace {

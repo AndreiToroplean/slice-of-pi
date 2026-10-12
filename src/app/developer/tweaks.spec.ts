@@ -143,11 +143,11 @@ describe('Tweaks', () => {
     const tweaks = await load();
     expect(tweaks.playFrom()).toBeUndefined();
 
-    await tweaks.setPlayFrom('run');
+    await tweaks.setPlayFrom({ at: 2, since: 1000 });
     expect(tweaks.playFrom()).toBeUndefined();
     await TestBed.inject(DeveloperMode).set(true);
-    expect(tweaks.playFrom()).toBe('run');
-    expect((await load()).values()).toEqual({ playFrom: 'run' });
+    expect(tweaks.playFrom()).toEqual({ at: 2, since: 1000 });
+    expect((await load()).values()).toEqual({ playFrom: { at: 2, since: 1000 } });
 
     await TestBed.inject(Tweaks).setPlayFrom(undefined);
     expect((await load()).values()).toEqual({});
@@ -293,9 +293,12 @@ describe('Tweaks', () => {
       includeUnchecked: true,
     });
     expect(parseTweaks({ format: TWEAKS_FORMAT, includeUnchecked: false })).toEqual({});
-    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: 'run' })).toEqual({ playFrom: 'run' });
-    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: '' })).toEqual({});
-    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: 3 })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: { at: 0, since: 5, other: 1 } })).toEqual(
+      { playFrom: { at: 0, since: 5 } },
+    );
+    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: { at: 1.5, since: 5 } })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: { at: 1 } })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: 'run' })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 0 })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 26 })).toEqual({});
     expect(parseTweaks(null)).toEqual({});

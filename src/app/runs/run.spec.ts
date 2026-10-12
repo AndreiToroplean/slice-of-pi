@@ -3,6 +3,7 @@ import {
   addDigit,
   countsInGroups,
   groupRuns,
+  playOrder,
   deleteMistake,
   isOlderFormat,
   newRun,
@@ -91,15 +92,36 @@ describe('run', () => {
     expect(countsInGroups(unchecked, true)).toBe(true);
   });
 
-  it('computes the groups from the runs before the one played from, if any', () => {
+  describe('playing from a line among the runs', () => {
     const runs = [newRun('a', 0), newRun('b', 1, false), newRun('c', 2), newRun('d', 3)];
+    const ids = (some: readonly Run[]): string[] => some.map((run) => run.id);
 
-    expect(groupRuns(runs, false, undefined).map((run) => run.id)).toEqual(['a', 'c', 'd']);
-    expect(groupRuns(runs, true, undefined).map((run) => run.id)).toEqual(['a', 'b', 'c', 'd']);
-    expect(groupRuns(runs, true, 'c').map((run) => run.id)).toEqual(['a', 'b']);
-    expect(groupRuns(runs, false, 'c').map((run) => run.id)).toEqual(['a']);
-    expect(groupRuns(runs, false, 'a')).toEqual([]);
-    expect(groupRuns(runs, false, 'gone').map((run) => run.id)).toEqual(['a', 'c', 'd']);
+    it('keeps the runs in order, all before the line, when not playing from one', () => {
+      expect(playOrder(runs, undefined)).toEqual({ runs, before: 4 });
+      expect(ids(groupRuns(runs, false, undefined))).toEqual(['a', 'c', 'd']);
+      expect(ids(groupRuns(runs, true, undefined))).toEqual(['a', 'b', 'c', 'd']);
+    });
+
+    it('counts only the runs before the line', () => {
+      expect(playOrder(runs, { at: 2, since: 10 })).toEqual({ runs, before: 2 });
+      expect(ids(groupRuns(runs, true, { at: 2, since: 10 }))).toEqual(['a', 'b']);
+      expect(ids(groupRuns(runs, false, { at: 2, since: 10 }))).toEqual(['a']);
+      expect(groupRuns(runs, false, { at: 0, since: 10 })).toEqual([]);
+    });
+
+    it('puts the runs played since just before the line, counting them as the newest', () => {
+      const played = [...runs, newRun('e', 11), newRun('f', 12)];
+
+      const order = playOrder(played, { at: 1, since: 10 });
+
+      expect(ids(order.runs)).toEqual(['a', 'e', 'f', 'b', 'c', 'd']);
+      expect(order.before).toBe(3);
+      expect(ids(groupRuns(played, false, { at: 1, since: 10 }))).toEqual(['a', 'e', 'f']);
+    });
+
+    it('draws the line after all the runs there are, if fewer are left', () => {
+      expect(playOrder(runs, { at: 9, since: 10 }).before).toBe(4);
+    });
   });
 
   describe('parseRun', () => {
