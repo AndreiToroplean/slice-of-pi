@@ -60,6 +60,104 @@ export const CONTROLS: readonly Control[] = [
         'At 0.9, about three recent runs need to agree. Higher asks for more of them, so the trust horizon comes sooner. Lower follows your groups further, into places fewer runs agree on.',
     },
   },
+  {
+    key: 'priorStrength',
+    label: 'Prior strength',
+    min: 0,
+    max: 20,
+    step: 0.5,
+    format: (value) => `${String(value)} intervals`,
+    help: {
+      what: 'At the start of a run, its own few intervals say little about its speed, so its baseline starts from a prior, what earlier runs say, and the run’s own intervals take over as they come. The prior counts as this many intervals: at 5, it weighs half after 5 intervals and a fifth after 20.',
+      why: 'Without it, the first interval of a run would be its own baseline, so never a break, and a break among the next few would pull the baseline up towards itself and hide. The prior is how much faster or slower than the speed curve your earlier runs were, recent ones weighing more; in your very first run, the prior baseline.',
+      moving:
+        'Higher trusts your usual speed longer, so breaks show from the first digit, but a run much faster or slower than usual is misjudged for longer. Lower follows each run’s own speed sooner. 0 is no prior at all.',
+    },
+  },
+  {
+    key: 'priorBaseline',
+    label: 'Prior baseline',
+    min: 100,
+    max: 1000,
+    step: 10,
+    format: (value) => `${String(value)} ms`,
+    help: {
+      what: 'The typical interval the game expects in your very first run, before it has any history to go on: the prior its baseline starts from there.',
+      why: 'Your first run has no earlier runs to say how fast you type, so the game needs a best guess. It only matters for the first few digits of the first run: your own intervals soon take over.',
+      moving:
+        'Higher makes the first digits’ pauses need to be longer to count as breaks; lower makes them count sooner. Set it near how fast a player types digits they know.',
+    },
+  },
+  {
+    key: 'fitFrom',
+    label: 'Fit from',
+    min: 0,
+    max: 200,
+    step: 10,
+    format: (value) => `${String(value)} intervals`,
+    help: {
+      what: 'Until there are this many intervals over all your runs, the game doesn’t fit the mixture to them: it uses the prior mixture below as it is.',
+      why: 'A mixture fitted to a handful of intervals can’t learn yet what a break looks like for you: one slow digit could become the whole break component. Starting from a reasonable guess for every player, and only fitting once there’s enough, lets breaks be told from the first digit.',
+      moving:
+        'Higher keeps the prior mixture longer, so your first runs are judged by it rather than by your own rhythm. Lower fits sooner, on fewer intervals, so the first breaks found are less reliable.',
+    },
+  },
+  {
+    key: 'priorBreakShare',
+    label: 'Prior break share',
+    min: 0.02,
+    max: 0.5,
+    step: 0.01,
+    format: (value) => `${String(Math.round(value * 100))}% of intervals`,
+    help: {
+      what: 'The share of intervals the prior mixture expects to be breaks. At 15%, about one interval in 7: groups of 6 or 7 on average.',
+      why: 'The mixture has two kinds of intervals, normal ones and breaks, each in some share. How likely an interval is a break depends on how common breaks are, not only on how long it is.',
+      moving:
+        'Higher makes shorter pauses count as breaks, so more and smaller groups at first. Lower asks for longer pauses.',
+    },
+  },
+  {
+    key: 'priorBreakSize',
+    label: 'Prior break size',
+    min: 1.2,
+    max: 6,
+    step: 0.1,
+    format: (value) => `${value.toFixed(1)} × baseline`,
+    help: {
+      what: 'How long the prior mixture expects a typical break to be, as a multiple of the baseline: at 2.5, a break where you usually take 200 ms takes about 500 ms.',
+      why: 'Breaks are relative to your speed, so their size is a ratio. Together with the spreads and the share, it sets the line between normal intervals and breaks: with the defaults, an interval over about 1.8 times its baseline counts as a break.',
+      moving: 'Higher asks for longer pauses before a break counts; lower lets shorter ones count.',
+    },
+  },
+  {
+    key: 'priorNormalSpread',
+    label: 'Prior normal spread',
+    min: 0.05,
+    max: 0.8,
+    step: 0.01,
+    format: (value) =>
+      `${value.toFixed(2)} (about ${String(Math.round((Math.exp(value) - 1) * 100))}%)`,
+    help: {
+      what: 'How much the prior mixture expects normal intervals to vary around their baseline, as the standard deviation of their logs: 0.25 is about 28% either way.',
+      why: 'An interval a little longer than its baseline is normal variation; how far normal goes decides how long a break must be to stand out.',
+      moving:
+        'Higher takes more of the slow intervals for normal ones, so fewer breaks; lower makes slightly slow intervals count as breaks.',
+    },
+  },
+  {
+    key: 'priorBreakSpread',
+    label: 'Prior break spread',
+    min: 0.05,
+    max: 1.5,
+    step: 0.01,
+    format: (value) => value.toFixed(2),
+    help: {
+      what: 'How much the prior mixture expects breaks to vary around their typical size, as the standard deviation of their logs.',
+      why: 'Some breaks are short hesitations, others long thinks; a wide spread lets both count as breaks.',
+      moving:
+        'Higher lets both short and very long pauses count as breaks. Lower expects breaks of about one size, so pauses much shorter or longer than it count less.',
+    },
+  },
 ];
 
 /**

@@ -6,12 +6,14 @@
  * 2. Each run has a baseline, its expected log-interval at each place without the breaks. A finished run's is a
  *    centered rolling median along the places. The run in progress uses only what has been typed so far: the historical
  *    speed curve (the recency-weighted mean of the finished runs' baselines) plus this run's own offset from it, a
- *    trailing rolling median; past the end of all history, a trailing rolling median of the run itself. The baseline is
- *    smooth along the places on purpose: a median at each place across runs would absorb breaks the player makes at
- *    the same place every time.
+ *    trailing rolling median shrunk toward the finished runs' typical offset while it has few intervals to go on; past
+ *    the end of all history, a trailing rolling median of the run itself, shrunk toward a prior baseline in the very
+ *    first run. The baseline is smooth along the places on purpose: a median at each place across runs would absorb
+ *    breaks the player makes at the same place every time.
  * 3. The residual of an interval is its log minus the baseline.
  * 4. A mixture of two normal distributions (normal and break) is fitted to all the residuals pooled, each weighted by
- *    its run's recency weight, by weighted EM (expectation–maximization).
+ *    its run's recency weight, by weighted EM (expectation–maximization). Until there are enough residuals to fit it,
+ *    a prior mixture stands in for it, as it is.
  * 5. P(break) is the posterior probability of the break component, 0 below the normal mean: a break is never faster.
  * 6. The usual-break probability at a place is the recency-weighted average of P(break) over the runs that reached it.
  *    The usual break spots are the places where it's over ½.
@@ -33,9 +35,46 @@ export interface BreakSettings {
   readonly recencyDecay: number;
   /** The confidence required for the trust horizon, from 0 to 1. */
   readonly level: number;
+  /**
+   * How many intervals' worth of weight the prior gets in the run in progress's baseline: at its start, the baseline is
+   * mostly the prior, and the run's own intervals take over as they come. 0 uses no prior.
+   */
+  readonly priorStrength: number;
+  /** The typical interval, in milliseconds, that the prior is when there's no history at all: the very first run. */
+  readonly priorBaseline: number;
+  /** Until there are this many intervals over all runs, the mixture isn't fitted: the prior mixture is used as it is. */
+  readonly fitFrom: number;
+  /** The prior mixture's share of breaks among the intervals, from 0 to 1. */
+  readonly priorBreakShare: number;
+  /** How many times its baseline the prior mixture's typical break is. */
+  readonly priorBreakSize: number;
+  /** The spread of the prior mixture's normal intervals around their baseline, in log-interval (0.25 is about 25%). */
+  readonly priorNormalSpread: number;
+  /** The spread of the prior mixture's breaks around their typical size, in log-interval. */
+  readonly priorBreakSpread: number;
 }
 
-export const DEFAULT_BREAK_SETTINGS: BreakSettings = { window: 21, recencyDecay: 0.9, level: 0.9 };
+export const DEFAULT_BREAK_SETTINGS: BreakSettings = {
+  window: 21,
+  recencyDecay: 0.9,
+  level: 0.9,
+  priorStrength: 5,
+  priorBaseline: 300,
+  fitFrom: 50,
+  priorBreakShare: 0.15,
+  priorBreakSize: 2.5,
+  priorNormalSpread: 0.25,
+  priorBreakSpread: 0.4,
+};
+
+/** The mixture the settings give before there's enough data to fit one. */
+export function priorMixture(settings: BreakSettings): Mixture {
+  return {
+    weight: [1 - settings.priorBreakShare, settings.priorBreakShare],
+    mean: [0, Math.log(settings.priorBreakSize)],
+    sd: [settings.priorNormalSpread, settings.priorBreakSpread],
+  };
+}
 
 /** The fitted mixture: component 0 is normal intervals, component 1 breaks. */
 export interface Mixture {
@@ -51,7 +90,7 @@ export type Values = readonly (number | undefined)[];
 export interface RunBreaks {
   /** The baseline at each index: the interval expected there without a break, in milliseconds. */
   readonly baseline: Values;
-  /** P(break) at each index, from 0 to 1; none until there's enough data to fit the mixture. */
+  /** P(break) at each index, from 0 to 1. */
   readonly breakProbability: Values;
 }
 
@@ -86,8 +125,8 @@ export interface BreakModel {
   readonly speedCurve: Values;
   /** The recency-weighted average interval at each index, in milliseconds, for display only. */
   readonly averageTime: Values;
-  /** The mixture fitted, to warm-start the next fit; `undefined` while there's too little data to fit one. */
-  readonly mixture: Mixture | undefined;
+  /** The mixture fitted, to warm-start the next fit, or the prior mixture while there's too little data to fit one. */
+  readonly mixture: Mixture;
   readonly groups: readonly Group[];
 }
 
@@ -102,7 +141,7 @@ export interface FinishedRuns {
 
 /** No interval is taken as shorter than this, in milliseconds, so it has a log. */
 const SHORTEST_INTERVAL = 1;
-/** Weighted EM stops after this many rounds, or once the log-likelihood gains less than {@link TOLERANCE}. */
+/** Weighted EM stops after this many rounds by default, or once the log-likelihood gains less than {@link TOLERANCE}. */
 const MAXIMUM_ROUNDS = 200;
 const TOLERANCE = 1e-8;
 /** The smallest spread a component can have, in log-interval: 0.1%. */
@@ -155,7 +194,12 @@ export function breakModel(
   const baselines = [...done.baselines];
   if (current !== undefined) {
     baselines.push(
-      currentBaseline(logs[count - 1] ?? new Float64Array(), history, settings.window),
+      currentBaseline(
+        logs[count - 1] ?? new Float64Array(),
+        history,
+        priorOffset(done.baselines, history, weights),
+        settings,
+      ),
     );
   }
 
@@ -172,9 +216,12 @@ export function breakModel(
       at++;
     });
   });
+  // Too few intervals can't show what a break looks like: until there are enough, the prior mixture stands as it is.
   const fit =
-    total >= settings.window && total > 1 ? fitMixture(residuals, pooledWeights, init) : undefined;
-  const posterior = fit?.posterior.map((p, i) =>
+    total >= settings.fitFrom
+      ? fitMixture(residuals, pooledWeights, init)
+      : fitMixture(residuals, pooledWeights, priorMixture(settings), 0);
+  const posterior = fit.posterior.map((p, i) =>
     (residuals[i] ?? 0) < fit.mixture.mean[0] ? 0 : p,
   );
 
@@ -186,8 +233,7 @@ export function breakModel(
     at += log.length;
     return {
       baseline: byIndex(Array.from(baseline, Math.exp)),
-      breakProbability:
-        posterior === undefined ? [] : byIndex(Array.from(posterior.subarray(start, at))),
+      breakProbability: byIndex(Array.from(posterior.subarray(start, at))),
     };
   });
   const usual: (number | undefined)[] = [undefined];
@@ -210,18 +256,15 @@ export function breakModel(
     });
     coverage.push(reached);
     averageTime.push(time / reached);
-    usual.push(fit === undefined ? undefined : breaks / reached);
+    usual.push(breaks / reached);
     breakSums.push(breaks);
   }
 
   // The confidence in the verdict at each index, its trend, and the horizon.
-  const raw =
-    fit === undefined
-      ? []
-      : breakSums.map((breaks, p) => {
-          const below = betaCdf(0.5, 1 + breaks, 1 + (coverage[p + 1] ?? 0) - breaks);
-          return Math.max(below, 1 - below);
-        });
+  const raw = breakSums.map((breaks, p) => {
+    const below = betaCdf(0.5, 1 + breaks, 1 + (coverage[p + 1] ?? 0) - breaks);
+    return Math.max(below, 1 - below);
+  });
   const trend = isotonicDecreasing(raw);
   const horizon = trend.filter((value) => value >= settings.level).length;
 
@@ -229,12 +272,12 @@ export function breakModel(
     runs,
     usual,
     coverage,
-    confidence: fit === undefined ? [] : [undefined, ...raw],
-    confidenceTrend: fit === undefined ? [] : [undefined, ...trend],
+    confidence: [undefined, ...raw],
+    confidenceTrend: [undefined, ...trend],
     horizon,
     speedCurve: byIndex(Array.from(history, Math.exp)),
     averageTime,
-    mixture: fit?.mixture,
+    mixture: fit.mixture,
     groups: groupsOf(usual, Math.max(0, ...all.map((times) => times.length)), horizon),
   };
 }
@@ -251,18 +294,57 @@ function byIndex(values: readonly number[]): Values {
   return [undefined, ...values];
 }
 
+/** The recency-weighted mean offset of the finished runs from the history: each run's median of baseline − history. */
+function priorOffset(
+  baselines: readonly Float64Array[],
+  history: Float64Array,
+  weights: readonly number[],
+): number {
+  let sum = 0;
+  let total = 0;
+  baselines.forEach((baseline, k) => {
+    if (baseline.length === 0) {
+      return;
+    }
+    const weight = weights[k] ?? 0;
+    sum += weight * median(baseline.map((value, p) => value - (history[p] ?? 0)));
+    total += weight;
+  });
+  return total > 0 ? sum / total : 0;
+}
+
 /**
- * The run in progress's baseline: the history plus this run's offset from it, a trailing median, where there's history,
- * and a trailing median of the run itself past it.
+ * The run in progress's baseline. Where there's history, the history plus this run's offset from it: a trailing median,
+ * shrunk toward the finished runs' offset while it has few intervals to go on, so the first intervals are judged
+ * against history. Past the end of history, a trailing median of the run itself; in the very first run, shrunk the
+ * same way toward the prior baseline.
  */
-function currentBaseline(log: Float64Array, history: Float64Array, window: number): Float64Array {
+function currentBaseline(
+  log: Float64Array,
+  history: Float64Array,
+  prior: number,
+  settings: BreakSettings,
+): Float64Array {
+  const { window, priorStrength } = settings;
   const known = Math.min(log.length, history.length);
+  // The estimate from `n` intervals, with `prior` counting as `priorStrength` of them.
+  const shrunk = (estimate: number, p: number, toward: number): number => {
+    const n = Math.min(p + 1, window);
+    return (priorStrength * toward + n * estimate) / (priorStrength + n);
+  };
   const offsets = trailingMedian(
     log.subarray(0, known).map((value, p) => value - (history[p] ?? 0)),
     window,
   );
   const own = log.length > known ? trailingMedian(log, window) : new Float64Array();
-  return log.map((_, p) => (p < known ? (history[p] ?? 0) + (offsets[p] ?? 0) : (own[p] ?? 0)));
+  const anchor = Math.log(settings.priorBaseline);
+  return log.map((_, p) => {
+    if (p < known) {
+      return (history[p] ?? 0) + shrunk(offsets[p] ?? 0, p, prior);
+    }
+    // Past the end of history, the run already has as many intervals of its own as there is history.
+    return known === 0 ? shrunk(own[p] ?? 0, p, anchor) : (own[p] ?? 0);
+  });
 }
 
 /** A causal rolling median: the value at p is the median of the values from p - window + 1 to p. */
@@ -300,14 +382,15 @@ function normalDensity(x: number, mean: number, sd: number): number {
 }
 
 /**
- * Fits a mixture of two normal distributions to the residuals, each counting with its weight, by weighted EM. Without
- * `init`, it starts from a normal component at the median and a break component 3 spreads above it (taking the median
- * absolute deviation as the spread).
+ * Fits a mixture of two normal distributions to the residuals, each counting with its weight, by weighted EM, in at most
+ * `rounds` rounds (0 keeps `init`). Without `init`, it starts from a normal component at the median and a break
+ * component 3 spreads above it (taking the median absolute deviation as the spread).
  */
 export function fitMixture(
   residuals: Float64Array,
   weights: Float64Array,
   init?: Mixture,
+  rounds = MAXIMUM_ROUNDS,
 ): { mixture: Mixture; posterior: Float64Array } {
   let share: [number, number];
   let mean: [number, number];
@@ -339,7 +422,7 @@ export function fitMixture(
     return likelihood;
   };
   let previous = -Infinity;
-  for (let round = 0; round < MAXIMUM_ROUNDS; round++) {
+  for (let round = 0; round < rounds; round++) {
     const likelihood = expect();
     let pauses = 0;
     let all = 0;

@@ -33,7 +33,7 @@ import { TIMER } from './timer';
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
  * flies up to the typed digits as a word, as the seasons go by. Each typed digit takes the color its key showed.
  * The groups follow the player's timings, over all their runs and this one (`groupings.md` §4): the slots show the
- * player's own group where it's trusted, else 5 slots that grow, once breaks can be told, until the player pauses.
+ * player's own group where it's trusted, else 5 slots that grow until the player pauses.
  * Every digit is checked against π, unless developer mode turns that off: a wrong one, and any typed on after it, show
  * as mistakes in their slots, and never finish the group, until backspace deletes them.
  * Backspace deletes the last digit, reopening the last word when the slots are empty. Pausing offers to restart the game
@@ -213,7 +213,7 @@ export class Play {
   }
 
   /**
-   * Finishes the group being typed once it has all its digits, unless it grows, or as soon as the player breaks: where
+   * Finishes the player's own group once it has all its digits, and any group as soon as the player breaks: where
    * they usually do, within the trust horizon, or where this run does, past it, its next digit timed as if typed now.
    * Never while a mistake shows.
    */
@@ -225,7 +225,7 @@ export class Play {
     const check = (): void => {
       const plan = this.plan();
       if (
-        (!plan.grows && this.grouping().current.length >= plan.size) ||
+        (plan.trusted && this.grouping().current.length >= plan.size) ||
         this.pausedLongEnough(plan.trusted)
       ) {
         this.stopWatching();

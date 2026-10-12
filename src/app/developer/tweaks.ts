@@ -270,16 +270,24 @@ function isBreakSettings(value: unknown): value is BreakSettings {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
-  const { window, recencyDecay, level } = value as Partial<Record<keyof BreakSettings, unknown>>;
+  const settings = value as Partial<Record<keyof BreakSettings, unknown>>;
+  const within = (key: keyof BreakSettings, above: number, upTo = Infinity): boolean => {
+    const setting = settings[key];
+    return typeof setting === 'number' && setting > above && setting <= upTo;
+  };
   return (
-    Number.isInteger(window) &&
-    Number(window) >= 1 &&
-    typeof recencyDecay === 'number' &&
-    recencyDecay > 0 &&
-    recencyDecay <= 1 &&
-    typeof level === 'number' &&
-    level >= 0 &&
-    level <= 1
+    Number.isInteger(settings.window) &&
+    within('window', 0) &&
+    within('recencyDecay', 0, 1) &&
+    within('level', -1e-9, 1) &&
+    within('priorStrength', -1e-9) &&
+    within('priorBaseline', 0) &&
+    Number.isInteger(settings.fitFrom) &&
+    within('fitFrom', -1e-9) &&
+    within('priorBreakShare', 0, 0.999) &&
+    within('priorBreakSize', 0) &&
+    within('priorNormalSpread', 0) &&
+    within('priorBreakSpread', 0)
   );
 }
 

@@ -66,19 +66,18 @@ describe('groupDigits', () => {
 });
 
 describe('groupAt', () => {
-  it('is a group of 5 for a new player, finished once filled', () => {
+  it('is a group of 5 that grows for a new player', () => {
     expect(groupAt(model(0, []), 0)).toEqual({
       size: DEFAULT_GROUP_SIZE,
       trusted: false,
-      grows: false,
     });
   });
 
   it("follows the player's groups within the trust horizon", () => {
     const found = model(3, []);
 
-    expect(groupAt(found, 0)).toEqual({ size: 3, trusted: true, grows: false });
-    expect(groupAt(found, 3)).toEqual({ size: 3, trusted: true, grows: false });
+    expect(groupAt(found, 0)).toEqual({ size: 3, trusted: true });
+    expect(groupAt(found, 3)).toEqual({ size: 3, trusted: true });
   });
 
   it('counts the digits left in a group starting inside it', () => {
@@ -89,26 +88,25 @@ describe('groupAt', () => {
     const found = model(3, []);
 
     expect(found.horizon).toBe(29);
-    expect(groupAt(found, 27)).toEqual({ size: DEFAULT_GROUP_SIZE, trusted: false, grows: true });
-    expect(groupAt(found, 40)).toEqual({ size: DEFAULT_GROUP_SIZE, trusted: false, grows: true });
+    expect(groupAt(found, 27)).toEqual({ size: DEFAULT_GROUP_SIZE, trusted: false });
+    expect(groupAt(found, 40)).toEqual({ size: DEFAULT_GROUP_SIZE, trusted: false });
   });
 
   it('grows everywhere when too few runs agree', () => {
     expect(groupAt(model(1, []), 3)).toEqual({
       size: DEFAULT_GROUP_SIZE,
       trusted: false,
-      grows: true,
     });
   });
 });
 
 describe('slotCount', () => {
-  it('is the size of a group that doesn’t grow', () => {
-    expect(slotCount({ size: 3, trusted: true, grows: false }, 3)).toBe(3);
+  it('is the size of a trusted group', () => {
+    expect(slotCount({ size: 3, trusted: true }, 3)).toBe(3);
   });
 
-  it('is one more than the digits typed in a group that grows, from its size on', () => {
-    const plan = { size: 5, trusted: false, grows: true };
+  it('is one more than the digits typed in an untrusted group, from its size on', () => {
+    const plan = { size: 5, trusted: false };
 
     expect(slotCount(plan, 0)).toBe(5);
     expect(slotCount(plan, 4)).toBe(5);
@@ -133,7 +131,10 @@ describe('groupEnds', () => {
     expect(groupEnds(found, 33, false)).toBe(false);
   });
 
-  it("never finishes where there's too little data to tell breaks", () => {
-    expect(groupEnds(model(0, timesOf(4, [3])), 3, false)).toBe(false);
+  it("finishes a new player's group where they break", () => {
+    const found = model(0, timesOf(4, [3]));
+
+    expect(groupEnds(found, 3, false)).toBe(true);
+    expect(groupEnds(found, 2, false)).toBe(false);
   });
 });
