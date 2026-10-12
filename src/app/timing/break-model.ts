@@ -15,10 +15,11 @@
  *    its run's recency weight, by weighted EM (expectation–maximization). Until there are enough residuals to fit it,
  *    a prior mixture stands in for it, as it is.
  * 5. P(break) is the posterior probability of the break component, 0 below the normal mean: a break is never faster.
+ *    An interval is taken for a break when it's over the break threshold, ½ by default.
  * 6. The usual-break probability at a place is the recency-weighted average of P(break) over the runs that reached it.
- *    The usual break spots are the places where it's over ½.
- * 7. The confidence at a place is the probability that its verdict (usual break or not) is right, from a Beta
- *    posterior over the place's break rate. It drops as fewer runs reach a place and as they disagree, but it's noisy,
+ *    The usual break spots are the places where it's over the usual threshold, ½ by default.
+ * 7. The confidence at a place is the probability that its verdict (usual break or not) is right, that is that its
+ *    break rate is on the verdict's side of the usual threshold, from a Beta posterior over the rate. It drops as fewer runs reach a place and as they disagree, but it's noisy,
  *    so a non-increasing curve is fitted to it (isotonic regression), the confidence trend. That crosses the required
  *    level once: the trust horizon.
  *
@@ -52,6 +53,12 @@ export interface BreakSettings {
   readonly priorNormalSpread: number;
   /** The spread of the prior mixture's breaks around their typical size, in log-interval. */
   readonly priorBreakSpread: number;
+  /** How likely an interval must be a break, from 0 to 1, for the game to take it for one. */
+  readonly breakThreshold: number;
+  /** The share of the runs' weight, from 0 to 1, that must break at a place for it to be a usual break spot. */
+  readonly usualThreshold: number;
+  /** How many slots a group past the trust horizon starts with. */
+  readonly startingSlots: number;
 }
 
 export const DEFAULT_BREAK_SETTINGS: BreakSettings = {
@@ -65,6 +72,9 @@ export const DEFAULT_BREAK_SETTINGS: BreakSettings = {
   priorBreakSize: 2.5,
   priorNormalSpread: 0.25,
   priorBreakSpread: 0.4,
+  breakThreshold: 0.5,
+  usualThreshold: 0.5,
+  startingSlots: 5,
 };
 
 /** The mixture the settings give before there's enough data to fit one. */
@@ -260,10 +270,12 @@ export function breakModel(
     breakSums.push(breaks);
   }
 
-  // The confidence in the verdict at each index, its trend, and the horizon.
+  // The confidence in the verdict at each index (that the break rate is on its side of the threshold), its trend, and
+  // the horizon.
+  const threshold = settings.usualThreshold;
   const raw = breakSums.map((breaks, p) => {
-    const below = betaCdf(0.5, 1 + breaks, 1 + (coverage[p + 1] ?? 0) - breaks);
-    return Math.max(below, 1 - below);
+    const below = betaCdf(threshold, 1 + breaks, 1 + (coverage[p + 1] ?? 0) - breaks);
+    return (usual[p + 1] ?? 0) > threshold ? 1 - below : below;
   });
   const trend = isotonicDecreasing(raw);
   const horizon = trend.filter((value) => value >= settings.level).length;
@@ -278,7 +290,7 @@ export function breakModel(
     speedCurve: byIndex(Array.from(history, Math.exp)),
     averageTime,
     mixture: fit.mixture,
-    groups: groupsOf(usual, Math.max(0, ...all.map((times) => times.length)), horizon),
+    groups: groupsOf(usual, threshold, Math.max(0, ...all.map((times) => times.length)), horizon),
   };
 }
 
@@ -556,12 +568,12 @@ function logGamma(x: number): number {
  * The groups cut by the usual break spots, over `digits` digits; a group is trusted when the break ending it is within
  * the horizon.
  */
-function groupsOf(usual: Values, digits: number, horizon: number): Group[] {
+function groupsOf(usual: Values, threshold: number, digits: number, horizon: number): Group[] {
   const found: Group[] = [];
   let start = 0;
   for (let i = 1; i <= digits; i++) {
     const open = i === digits;
-    if (!open && (usual[i] ?? 0) <= 0.5) {
+    if (!open && (usual[i] ?? 0) <= threshold) {
       continue;
     }
     found.push({ start, size: i - start, open, trusted: !open && i <= horizon });

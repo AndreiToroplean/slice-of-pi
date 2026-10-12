@@ -104,7 +104,7 @@ export class Play {
   protected readonly grouping = computed(() => groupDigits(this.digits(), this.sizes()));
   /** How the group being typed is played. */
   private readonly plan = computed(() =>
-    groupAt(this.found(), this.digits().length - this.grouping().current.length),
+    groupAt(this.found(), this.digits().length - this.grouping().current.length, this.settings()),
   );
   /** The slots of the group being typed. */
   protected readonly size = computed(() => slotCount(this.plan(), this.grouping().current.length));
@@ -242,7 +242,12 @@ export class Play {
     const last = times.at(-1);
     return (
       last !== undefined &&
-      groupEnds(this.fit([...times, last + this.recorder.waited()]), times.length, trusted)
+      groupEnds(
+        this.fit([...times, last + this.recorder.waited()]),
+        times.length,
+        trusted,
+        this.settings(),
+      )
     );
   }
 

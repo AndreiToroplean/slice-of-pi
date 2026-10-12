@@ -207,7 +207,7 @@ export class Data {
       }
       // Runs left out of the groups have only their times.
       const found = this.model().runs[this.counted().indexOf(run)];
-      const breaks = breaksOf(found?.breakProbability ?? []);
+      const breaks = breaksOf(found?.breakProbability ?? [], this.settings().breakThreshold);
       return {
         id: run.id,
         title: dateAndTime.format(run.startedAt),
@@ -238,7 +238,7 @@ export class Data {
     return {
       times: model.averageTime,
       baseline: model.speedCurve,
-      breaks: breaksOf(model.usual),
+      breaks: breaksOf(model.usual, this.settings().usualThreshold),
       confidence: model.confidenceTrend,
     };
   });
@@ -251,7 +251,7 @@ export class Data {
   );
   protected readonly aggregateMeta = computed(() => {
     const trusted = this.groups().filter((group) => group.trusted).length;
-    return `${plural(this.groups().length, 'group')}, ${trusted === 0 ? 'none' : `the first ${String(trusted)}`} within the trust horizon; from the first dotted one on, the game plays groups of 5 that grow until you pause`;
+    return `${plural(this.groups().length, 'group')}, ${trusted === 0 ? 'none' : `the first ${String(trusted)}`} within the trust horizon; from the first dotted one on, the game plays groups of ${String(this.settings().startingSlots)} that grow until you pause`;
   });
 
   protected readonly uncheckedNote = computed(() => {
@@ -358,10 +358,12 @@ export class Data {
   }
 }
 
-/** A break wherever one is more likely than not, the stronger the more likely. */
-function breaksOf(probabilities: Values): ChartBreak[] {
+/** A break wherever the probability is over the threshold, the stronger the further over it. */
+function breaksOf(probabilities: Values, threshold: number): ChartBreak[] {
   return probabilities.flatMap((p, i) =>
-    p !== undefined && p > 0.5 ? [{ place: i, strength: 2 * p - 1 }] : [],
+    p !== undefined && p > threshold
+      ? [{ place: i, strength: (p - threshold) / (1 - threshold) }]
+      : [],
   );
 }
 
