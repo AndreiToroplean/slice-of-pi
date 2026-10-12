@@ -101,6 +101,14 @@ describe('groupAt', () => {
     expect(groupAt(found, 40, settings)).toEqual({ size: DEFAULT_GROUP_SIZE, trusted: false });
   });
 
+  it("follows the player's groups up to the trust horizon given", () => {
+    expect(groupAt(model(1, []), 3, settings, 30)).toEqual({ size: 3, trusted: true });
+    expect(groupAt(model(3, []), 3, settings, 5)).toEqual({
+      size: DEFAULT_GROUP_SIZE,
+      trusted: false,
+    });
+  });
+
   it('grows everywhere when too few runs agree', () => {
     expect(groupAt(model(1, []), 3, settings)).toEqual({
       size: DEFAULT_GROUP_SIZE,
@@ -131,6 +139,14 @@ describe('groupEnds', () => {
 
     expect(groupEnds(found, 3, true, settings)).toBe(true);
     expect(groupEnds(found, 2, true, settings)).toBe(false);
+  });
+
+  it('finishes where this run breaks long enough to outweigh the earlier runs, within the trust horizon', () => {
+    // A break before index 2, where the earlier runs never break.
+    const breaking = timesOf(4, [2]);
+
+    expect(groupEnds(model(1, breaking), 2, true, settings)).toBe(true);
+    expect(groupEnds(model(3, breaking), 2, true, settings)).toBe(false);
   });
 
   it('finishes where this run breaks, past the trust horizon', () => {

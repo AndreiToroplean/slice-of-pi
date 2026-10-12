@@ -39,11 +39,16 @@ export interface GroupPlan {
 /**
  * How the group starting at index `start` (index 0 is the first decimal) is played: within the trust horizon, as the
  * player's own group there, as many slots as it has digits left; past it, groups of the starting slots (5 by default)
- * that grow until the player breaks (`groupings.md` §4.3).
+ * that grow until the player breaks (`groupings.md` §4.3). The horizon is the model's, unless another is given.
  */
-export function groupAt(model: BreakModel, start: number, settings: BreakSettings): GroupPlan {
+export function groupAt(
+  model: BreakModel,
+  start: number,
+  settings: BreakSettings,
+  horizon = model.horizon,
+): GroupPlan {
   const group = model.groups.find((g) => start >= g.start && start < g.start + g.size);
-  return group?.trusted === true
+  return group !== undefined && !group.open && group.start + group.size <= horizon
     ? { size: group.start + group.size - start, trusted: true }
     : { size: settings.startingSlots, trusted: false };
 }
