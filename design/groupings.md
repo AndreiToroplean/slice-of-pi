@@ -26,7 +26,7 @@ The first version of this mode is **strict**: a mistake (`glossary.md`) blocks t
 
 The play screen is centred on the group being typed. The typing area shows its **slots**, nothing else: the slots are the group, with no separate hint.
 
-- **Within the trust horizon** (§4.3), the slots are the player's own group at that place, and the group finishes when they're filled, or earlier where the player usually breaks.
+- **Within the trust horizon** (§4.3), the slots are the player's own group at that place, and the group finishes where the player usually breaks, this run included (§4.1): earlier, if they pause long enough mid-group, or later, if they type on fast enough past the slots.
 - **Past it**, which for a new player is everywhere, the group starts with a few slots (the **starting slots**, a hyperparameter) and finishes only when the player **breaks** (§4.1). Each digit typed past the slots adds one, never ahead of it, so the player shows the game their groups.
 - Groups have **no minimum or maximum size**: a single digit between two breaks is a group of one, and its constellation is a dot.
 - A finished group flies off to the **typed digits**, as a word.

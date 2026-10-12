@@ -226,8 +226,9 @@ export class Play {
   }
 
   /**
-   * Finishes the player's own group once it has all its digits, and any group as soon as the player breaks: where
-   * they usually do, within the trust horizon, or where this run does, past it, its next digit timed as if typed now.
+   * Finishes the group being typed as soon as the player breaks: where they usually do, within the trust horizon, or
+   * where this run does, past it, its next digit timed as if typed now. Even a group with all its slots filled waits
+   * for that: a next digit typed fast enough outweighs the break the earlier runs have there, and carries the group on.
    * Never while a mistake shows.
    */
   private watchForPause(): void {
@@ -236,11 +237,7 @@ export class Play {
       return;
     }
     const check = (): void => {
-      const plan = this.plan();
-      if (
-        (plan.trusted && this.grouping().current.length >= plan.size) ||
-        this.pausedLongEnough(plan.trusted)
-      ) {
+      if (this.pausedLongEnough(this.plan().trusted)) {
         this.stopWatching();
         this.finishGroup();
       }
