@@ -76,17 +76,20 @@ export function countsInGroups(run: Run, includeUnchecked: boolean): boolean {
  * line drawn among them, which the runs played since go on top of.
  */
 export interface PlayFrom {
-  /** How many runs, by start, were before the line when it was drawn. */
+  /** How many runs, in the order the game took them then, were before the line when it was drawn. */
   readonly at: number;
   /** When it was drawn, in milliseconds since the Unix epoch: the runs started since are played from it. */
   readonly since: number;
+  /** The line the game played from when this one was drawn, if any: the order the game took the runs in then. */
+  readonly previous?: PlayFrom;
 }
 
 /**
  * The player's runs in the order the game takes them, from oldest by start, and how many of them come before the line
- * played from: all of them unless the game plays from one. Then the runs played since go just before the line, after
- * the runs that were before it, so they count as the newest; the runs that were after it come after them all, and
- * don't count.
+ * played from: all of them unless the game plays from one. Then the runs there were when the line was drawn keep the
+ * order the game took them in then, so drawing a line never reorders them, and the runs played since go just before
+ * the line, after the runs that were before it, so they count as the newest; the runs that were after it come after
+ * them all, and don't count.
  */
 export function playOrder(
   runs: readonly Run[],
@@ -95,7 +98,10 @@ export function playOrder(
   if (playFrom === undefined) {
     return { runs, before: runs.length };
   }
-  const earlier = runs.filter((run) => run.startedAt < playFrom.since);
+  const earlier = playOrder(
+    runs.filter((run) => run.startedAt < playFrom.since),
+    playFrom.previous,
+  ).runs;
   const since = runs.filter((run) => run.startedAt >= playFrom.since);
   const at = Math.min(playFrom.at, earlier.length);
   return {

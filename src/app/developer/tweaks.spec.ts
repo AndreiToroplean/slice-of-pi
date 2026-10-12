@@ -299,6 +299,13 @@ describe('Tweaks', () => {
     expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: { at: 1.5, since: 5 } })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: { at: 1 } })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: 'run' })).toEqual({});
+    const previous = { at: 1, since: 5 };
+    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: { at: 2, since: 9, previous } })).toEqual(
+      { playFrom: { at: 2, since: 9, previous } },
+    );
+    expect(
+      parseTweaks({ format: TWEAKS_FORMAT, playFrom: { at: 2, since: 9, previous: { at: 1 } } }),
+    ).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 0 })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 26 })).toEqual({});
     expect(parseTweaks(null)).toEqual({});

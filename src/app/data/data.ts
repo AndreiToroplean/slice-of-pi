@@ -356,13 +356,18 @@ export class Data {
   }
 
   /**
-   * Plays from just before the run picked, as if only the runs before it had been played: by start, whether or not the
-   * game already plays from somewhere, so the runs played since go back where they started.
+   * Plays from just before the run picked, as if only the runs before it had been played, in the order shown: if the
+   * game already plays from somewhere, the runs keep the order it takes them in.
    */
   protected playFromPicked(): void {
-    const at = this.runs().findIndex((run) => run.id === this.picked());
+    const at = this.order().runs.findIndex((run) => run.id === this.picked());
+    const previous = this.playFrom();
     if (at !== -1) {
-      void this.tweaks.setPlayFrom({ at, since: this.clock.epoch() });
+      void this.tweaks.setPlayFrom({
+        at,
+        since: this.clock.epoch(),
+        ...(previous === undefined ? {} : { previous }),
+      });
     }
     this.runMenu().nativeElement.hidePopover();
   }

@@ -119,6 +119,16 @@ describe('run', () => {
       expect(ids(groupRuns(played, false, { at: 1, since: 10 }))).toEqual(['a', 'e', 'f']);
     });
 
+    it('keeps the order the game took the runs in when a line is drawn while playing from another', () => {
+      const first = { at: 1, since: 10 };
+      const played = [...runs, newRun('e', 11), newRun('f', 21)];
+
+      const order = playOrder(played, { at: 2, since: 20, previous: first });
+
+      expect(ids(order.runs)).toEqual(['a', 'e', 'f', 'b', 'c', 'd']);
+      expect(order.before).toBe(3);
+    });
+
     it('draws the line after all the runs there are, if fewer are left', () => {
       expect(playOrder(runs, { at: 9, since: 10 }).before).toBe(4);
     });
