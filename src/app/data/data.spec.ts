@@ -430,7 +430,7 @@ describe('Data', () => {
     it('counts unchecked runs in the groups when told to, in developer mode', async () => {
       const { host, until } = await setUp([grouped, unchecked], false, false, undefined, true);
       const checkbox = host.querySelector<HTMLInputElement>('.unchecked input[type="checkbox"]');
-      expect(host.querySelector('.unchecked p')?.textContent).toContain('1 run is unchecked');
+      expect(host.querySelector('app-grouping-settings-panel .unchecked p')).toBeNull();
       expect(checkbox?.checked).toBe(false);
 
       expect(groupsShown(host)).toEqual([PI_DECIMALS.slice(0, 30)]);
