@@ -28,7 +28,7 @@ The play screen is centred on the group being typed, as in the chunk-centred moc
 
 - The **typing area** shows **empty slots** for the group being typed, one per digit of its size. The slots are the group: there's no separate hint, and the group finishes as soon as they're all filled.
 - Within the trust horizon (§4.3), the size is the player's own group at that place in π, and the group finishes when they're filled, or earlier where the player usually breaks.
-- Past it, the group starts with **5** slots (the **starting slots**, tunable in developer mode) and finishes when the player **breaks** (§4.1): typing three digits into five slots and pausing makes a group of three. Filling the slots without a break adds one more, so the group grows until the player breaks. So a player whose groups the game doesn't know yet shows it their groups.
+- Past it, the group starts with **5** slots (the **starting slots**, tunable in developer mode) and finishes when the player **breaks** (§4.1): typing three digits into five slots and pausing makes a group of three. Filled slots don't finish it: each digit typed past them adds a slot (never one ahead of it), so the group grows until the player breaks. So a player whose groups the game doesn't know yet shows it their groups.
 - This is the same from a new player's very first digit (§4.1), and in every mode for now.
 - The group then **flies off** the typing area to join the **typed digits**, shown smaller.
 - The typed digits are laid out over a few rows, like text: each group is a **word**, separated from the next by a space, and rows wrap between words like text does.

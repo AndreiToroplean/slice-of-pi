@@ -48,9 +48,12 @@ export function groupAt(model: BreakModel, start: number, settings: BreakSetting
     : { size: settings.startingSlots, trusted: false };
 }
 
-/** How many slots a group shows once `typed` digits are in it: one more than those typed, for a group that grows. */
+/**
+ * How many slots a group shows once `typed` digits are in it. A group that grows gets a slot for each digit typed past
+ * its slots, never one ahead of it: the player shows where their group ends.
+ */
 export function slotCount(plan: GroupPlan, typed: number): number {
-  return plan.trusted ? plan.size : Math.max(plan.size, typed + 1);
+  return plan.trusted ? plan.size : Math.max(plan.size, typed);
 }
 
 /**
