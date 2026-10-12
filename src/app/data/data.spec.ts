@@ -78,6 +78,16 @@ describe('Data', () => {
     expect(text(host)).toContain("keeps them until this site's data is cleared");
   });
 
+  it('says when a backup also keeps what was tuned in developer mode', async () => {
+    const { host, until } = await setUp();
+    expect(text(host)).not.toContain('developer mode');
+
+    await TestBed.inject(Tweaks).setChecking(false);
+    await until(() => text(host).includes('developer mode'));
+
+    expect(text(host)).toContain('It also keeps what you tuned in developer mode.');
+  });
+
   it('saves a backup of every run and setting, named after the date', async () => {
     const { host, until } = await setUp([first, second], false, false, undefined, true);
 

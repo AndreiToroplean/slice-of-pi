@@ -25,7 +25,7 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
 
 /**
  * The player's data, opened from the main menu's overflow menu: how many runs are kept and how safe they are, with a
- * backup file to save and restore.
+ * backup file to save and restore, which also keeps what was tuned in developer mode.
  */
 @Component({
   selector: 'app-data',
@@ -50,6 +50,9 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
         }
         A backup file keeps them safe even then.
       </p>
+      @if (tuned()) {
+        <p>It also keeps what you tuned in developer mode.</p>
+      }
       <div class="buttons">
         <button type="button" class="candy" (click)="save()">Save a backup</button>
         <label class="candy">
@@ -89,6 +92,9 @@ export class Data {
     const count = this.shown().length;
     return count === 0 ? 'No runs kept yet.' : `${plural(count, 'run')} kept on this device.`;
   });
+
+  /** What was tuned in developer mode, whether or not it's on, which a backup keeps too. */
+  protected readonly tuned = computed(() => Object.keys(this.tweaks.values()).length > 0);
 
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
