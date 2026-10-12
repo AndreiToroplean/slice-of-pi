@@ -8,7 +8,7 @@ import {
   SEASON_COLOR_SPACE,
   SEASON_TURN,
 } from '../seasons/seasons';
-import { DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
+import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
 import { DeveloperMode } from './developer-mode';
 import {
   groupingText,
@@ -202,7 +202,7 @@ describe('Tweaks', () => {
     );
   });
 
-  it('leaves out stored grouping settings that are missing one or out of range', () => {
+  it('puts back the default of each stored grouping setting that is missing or out of range', () => {
     expect(parseTweaks({ format: TWEAKS_FORMAT, grouping })).toEqual({ grouping });
     for (const wrong of [
       { window: 0 },
@@ -222,19 +222,23 @@ describe('Tweaks', () => {
       { usualThreshold: 0 },
       { startingSlots: 0 },
     ]) {
-      expect(parseTweaks({ format: TWEAKS_FORMAT, grouping: { ...grouping, ...wrong } })).toEqual(
-        {},
-      );
+      const [key] = Object.keys(wrong) as (keyof BreakSettings)[];
+      expect(parseTweaks({ format: TWEAKS_FORMAT, grouping: { ...grouping, ...wrong } })).toEqual({
+        grouping: {
+          ...grouping,
+          ...(key === undefined ? {} : { [key]: DEFAULT_BREAK_SETTINGS[key] }),
+        },
+      });
     }
   });
 
-  it('leaves out the settings saved before the priors', () => {
+  it('keeps the grouping settings stored when others were added or dropped since', () => {
     expect(
       parseTweaks({
         format: TWEAKS_FORMAT,
-        grouping: { window: 21, recencyDecay: 0.9, level: 0.9 },
+        grouping: { window: 31, recencyDecay: 0.95, droppedSince: 2 },
       }),
-    ).toEqual({});
+    ).toEqual({ grouping: { ...DEFAULT_BREAK_SETTINGS, window: 31, recencyDecay: 0.95 } });
   });
 
   it('leaves out the settings saved for the timing model the break model replaced', () => {
