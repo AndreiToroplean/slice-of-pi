@@ -35,6 +35,16 @@ describe('SeasonColors', () => {
     return element;
   }
 
+  function reset(host: HTMLElement): HTMLButtonElement {
+    const found = Array.from(host.querySelectorAll('button')).find((button) =>
+      button.textContent.includes("Back to the game's colors"),
+    );
+    if (found === undefined) {
+      throw new Error('No reset button');
+    }
+    return found;
+  }
+
   function slider(host: HTMLElement): HTMLInputElement {
     const element = host.querySelector<HTMLInputElement>('label.place input[type="range"]');
     if (element === null) {
@@ -106,10 +116,7 @@ describe('SeasonColors', () => {
     expect(TestBed.inject(Tweaks).values().seasons).toEqual(tuned);
     expect(background()).toEqual(seasonAt(30, backgroundsFrom(tuned)).background);
 
-    const reset = Array.from(host.querySelectorAll('button')).find((button) =>
-      button.textContent.includes("Back to the game's colors"),
-    );
-    reset?.click();
+    reset(host).click();
     await stable();
 
     expect(TestBed.inject(Tweaks).values()).toEqual({});
@@ -140,7 +147,7 @@ describe('SeasonColors', () => {
     await set(turn, '25', stable);
     expect(label()).toBe('Each season turns into the next all season long');
 
-    host.querySelector<HTMLButtonElement>('app-page-header button.pill')?.click();
+    reset(host).click();
     await stable();
 
     expect(TestBed.inject(Tweaks).values()).toEqual({});
@@ -171,7 +178,7 @@ describe('SeasonColors', () => {
     expect(TestBed.inject(Tweaks).values()).toEqual({ colorSpace: 'srgb' });
     expect(background()).toEqual(seasonAt(72, SEASON_BACKGROUNDS, 'srgb').background);
 
-    host.querySelector<HTMLButtonElement>('app-page-header button.pill')?.click();
+    reset(host).click();
     await stable();
 
     expect(TestBed.inject(Tweaks).values()).toEqual({});
