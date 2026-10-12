@@ -108,6 +108,24 @@ describe('GroupingSettingsPanel', () => {
     expect(output()).toBe('1, every run the same');
   });
 
+  it('brings back the game’s value of one setting, keeping the others', async () => {
+    const { host, detect } = await setUp();
+    const revert = (): HTMLButtonElement | null =>
+      host.querySelector<HTMLButtonElement>('button[aria-label="Back to the game\'s window"]');
+
+    expect(revert()?.disabled).toBe(true);
+    move(slider(host, 'window'), 11);
+    move(slider(host, 'level'), 0.95);
+    detect();
+    expect(revert()?.disabled).toBe(false);
+    revert()?.click();
+    detect();
+
+    expect(settings()).toEqual({ ...DEFAULT_BREAK_SETTINGS, level: 0.95 });
+    expect(slider(host, 'window').value).toBe('21');
+    expect(revert()?.disabled).toBe(true);
+  });
+
   it('opens the help of a setting in a dialog, and closes it', async () => {
     const { host, detect } = await setUp();
     const dialog = host.querySelector('dialog');

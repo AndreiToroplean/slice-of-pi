@@ -216,8 +216,8 @@ export const CONTROLS: readonly Control[] = [
 ];
 
 /**
- * Developer mode's sliders for every hyperparameter of the break model, each with a help button opening a dialog that says
- * what it does, a button to bring back the game's settings, and one to copy their values so they go into the code.
+ * Developer mode's sliders for every hyperparameter of the break model, each with a button bringing back the game's value and a
+ * help button opening a dialog that says what it does, a button to bring back the game's settings, and one to copy their values so they go into the code.
  * Content given to it goes above the sliders.
  */
 @Component({
@@ -239,7 +239,19 @@ export const CONTROLS: readonly Control[] = [
           <output [for]="'setting-' + control.key">{{ formatted(control) }}</output>
           <button
             type="button"
-            class="help"
+            class="round"
+            [attr.aria-label]="revertLabel(control)"
+            [disabled]="isDefault(control)"
+            (click)="revert(control)"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 14 4 9l5-5" />
+              <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="round"
             aria-haspopup="dialog"
             [attr.aria-label]="'About ' + control.label"
             (click)="showHelp(control)"
@@ -317,7 +329,7 @@ export const CONTROLS: readonly Control[] = [
       text-shadow: var(--text-shadow);
     }
 
-    .help {
+    .round {
       display: grid;
       place-items: center;
       width: 1.75rem;
@@ -331,7 +343,21 @@ export const CONTROLS: readonly Control[] = [
       font-weight: 600;
     }
 
-    .help:focus-visible {
+    .round:disabled {
+      opacity: 0.4;
+    }
+
+    .round svg {
+      width: 1rem;
+      height: 1rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .round:focus-visible {
       outline: 0.1875rem solid var(--focus-ring);
       outline-offset: 0.125rem;
     }
@@ -378,8 +404,24 @@ export class GroupingSettingsPanel {
     return this.settings()[control.key];
   }
 
+  protected revertLabel(control: Control): string {
+    return `Back to the game's ${control.label.toLowerCase()}`;
+  }
+
+  protected isDefault(control: Control): boolean {
+    return this.settings()[control.key] === DEFAULT_BREAK_SETTINGS[control.key];
+  }
+
   protected set(control: Control, event: Event): void {
-    const value = Number((event.target as HTMLInputElement).value);
+    this.apply(control, Number((event.target as HTMLInputElement).value));
+  }
+
+  /** Brings back the game's value of one setting. */
+  protected revert(control: Control): void {
+    this.apply(control, DEFAULT_BREAK_SETTINGS[control.key]);
+  }
+
+  private apply(control: Control, value: number): void {
     const settings = { ...this.settings(), [control.key]: value };
     const tuned = CONTROLS.some(({ key }) => settings[key] !== DEFAULT_BREAK_SETTINGS[key]);
     void this.tweaks.setGrouping(tuned ? settings : undefined);
