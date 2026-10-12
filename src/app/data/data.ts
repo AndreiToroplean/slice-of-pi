@@ -199,7 +199,7 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
         <p class="axis" aria-hidden="true">
           <span>Place 1</span><span>Place {{ places() }}</span>
         </p>
-        <ul class="groups" aria-label="Your groups">
+        <ul class="groups" aria-label="Your groups" tabindex="0">
           @for (group of groups(); track group.start) {
             <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
           }
