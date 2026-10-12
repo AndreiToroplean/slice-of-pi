@@ -4,10 +4,13 @@ import { LONG_PRESS_MS, LONG_PRESS_SLOP, LongPress } from './long-press';
 
 @Component({
   imports: [LongPress],
-  template: `<div (appLongPress)="presses = presses + 1"></div>`,
+  template: `<div (appLongPress)="points.push($event)"></div>`,
 })
 class Host {
-  presses = 0;
+  points: { x: number; y: number }[] = [];
+  get presses(): number {
+    return this.points.length;
+  }
 }
 
 describe('LongPress', () => {
@@ -30,13 +33,13 @@ describe('LongPress', () => {
     element.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: 0, button }));
   }
 
-  it('tells a press held still long enough', () => {
-    pointer('pointerdown');
+  it('tells a press held still long enough, and where it started', () => {
+    pointer('pointerdown', 30);
     vi.advanceTimersByTime(LONG_PRESS_MS - 1);
     expect(host.presses).toBe(0);
 
     vi.advanceTimersByTime(1);
-    expect(host.presses).toBe(1);
+    expect(host.points).toEqual([{ x: 30, y: 0 }]);
   });
 
   it('gives up a press let go of too soon', () => {
@@ -66,9 +69,9 @@ describe('LongPress', () => {
     expect(host.presses).toBe(1);
   });
 
-  it('tells a request for the context menu, once per press', () => {
-    element.dispatchEvent(new MouseEvent('contextmenu'));
-    expect(host.presses).toBe(1);
+  it('tells a request for the context menu, and where, once per press', () => {
+    element.dispatchEvent(new MouseEvent('contextmenu', { clientX: 5, clientY: 7 }));
+    expect(host.points).toEqual([{ x: 5, y: 7 }]);
 
     pointer('pointerdown');
     vi.advanceTimersByTime(LONG_PRESS_MS);

@@ -276,9 +276,9 @@ describe('Play', () => {
       expect(words(host)).toEqual(['141']);
     });
 
-    it('plays as if only the runs before the one played from existed, in developer mode', async () => {
+    it('plays as if only the runs before the line played from existed, in developer mode', async () => {
       const { host, type } = await setUpWithRuns(4, true, async () => {
-        await TestBed.inject(Tweaks).setPlayFrom('earlier-0');
+        await TestBed.inject(Tweaks).setPlayFrom({ at: 0, since: 100 });
         await TestBed.inject(DeveloperMode).set(true);
       });
 

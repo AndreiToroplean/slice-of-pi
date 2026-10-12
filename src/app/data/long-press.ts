@@ -8,7 +8,7 @@ export const LONG_PRESS_SLOP = 10;
 /**
  * A long press on an element: holding it still for {@link LONG_PRESS_MS}, or what the browser takes for a request for
  * its context menu (a right click, the keyboard's menu key or, on some phones, the long press itself), which the app
- * otherwise ignores. Either way, it's told once per press.
+ * otherwise ignores. Either way, it's told once per press, with where it was, in window coordinates.
  */
 @Directive({
   selector: '[appLongPress]',
@@ -17,11 +17,11 @@ export const LONG_PRESS_SLOP = 10;
     '(pointermove)': 'move($event)',
     '(pointerup)': 'end()',
     '(pointercancel)': 'end()',
-    '(contextmenu)': 'contextMenu()',
+    '(contextmenu)': 'contextMenu($event)',
   },
 })
 export class LongPress {
-  readonly appLongPress = output();
+  readonly appLongPress = output<{ readonly x: number; readonly y: number }>();
 
   private timer: ReturnType<typeof setTimeout> | undefined;
   private start = { x: 0, y: 0 };
@@ -42,7 +42,7 @@ export class LongPress {
     this.start = { x: event.clientX, y: event.clientY };
     this.timer = setTimeout(() => {
       this.timer = undefined;
-      this.tell();
+      this.tell(this.start);
     }, LONG_PRESS_MS);
   }
 
@@ -60,10 +60,10 @@ export class LongPress {
     this.told = false;
   }
 
-  protected contextMenu(): void {
+  protected contextMenu(event: MouseEvent): void {
     if (!this.told) {
       this.cancel();
-      this.tell();
+      this.tell({ x: event.clientX, y: event.clientY });
     }
   }
 
@@ -72,8 +72,8 @@ export class LongPress {
     this.timer = undefined;
   }
 
-  private tell(): void {
+  private tell(point: { readonly x: number; readonly y: number }): void {
     this.told = true;
-    this.appLongPress.emit();
+    this.appLongPress.emit(point);
   }
 }

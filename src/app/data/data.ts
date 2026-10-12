@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import {
   Component,
   computed,
@@ -12,10 +13,11 @@ import { Tweaks } from '../developer/tweaks';
 import { PageHeader } from '../page-header/page-header';
 import { backupFileName, readBackup, writeBackup } from '../runs/backup';
 import { PI_DECIMALS } from '../pi/pi-decimals';
-import { groupRuns, Run } from '../runs/run';
+import { groupRuns, playOrder, Run } from '../runs/run';
 import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
 import { RunStore } from '../runs/run-store';
 import { breakModel, finishedRuns, Values } from '../timing/break-model';
+import { NgTemplateOutlet } from '@angular/common';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { LongPress } from './long-press';
 import { RunChart } from './run-chart';
@@ -50,7 +52,7 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
  */
 @Component({
   selector: 'app-data',
-  imports: [GroupingSettingsPanel, LongPress, PageHeader, RunChart],
+  imports: [GroupingSettingsPanel, LongPress, NgTemplateOutlet, PageHeader, RunChart],
   host: { class: 'screen' },
   template: `
     <app-page-header title="Your data" />
@@ -133,18 +135,15 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
           <li><i class="confidence"></i>Confidence trend, for all runs</li>
         </ul>
         @for (chart of charts(); track chart.id) {
-          @if (chart.id === playFrom()) {
-            <div class="here" role="group" aria-label="You are here">
-              <span>You are here</span>
-              <button type="button" class="frosted pill" (click)="undoPlayFrom()">Undo</button>
-            </div>
+          @if (chart.here) {
+            <ng-container [ngTemplateOutlet]="here" />
           }
           <article
             class="panel"
             [class.unchecked]="!chart.checked"
             [class.later]="chart.later"
             [attr.tabindex]="developerMode() ? 0 : null"
-            (appLongPress)="pick(chart)"
+            (appLongPress)="pick(chart.id, $event)"
           >
             <h3>
               {{ chart.title }}
@@ -163,27 +162,38 @@ export const CONFIRM = new InjectionToken<(question: string) => boolean>('CONFIR
             />
           </article>
         }
+        @if (hereAtEnd()) {
+          <ng-container [ngTemplateOutlet]="here" />
+        }
       }
     </section>
-    <dialog
-      #playFromDialog
-      class="card"
-      aria-labelledby="play-from-title"
-      (close)="picked.set(undefined)"
-    >
-      @if (picked(); as chart) {
-        <h2 id="play-from-title">Play from here?</h2>
-        <p>
-          The game will play as if this run, of {{ chart.title }}, and the ones after it had never
-          been played: your groups and the chart of all runs leave them out. The runs you play
-          meanwhile are still kept, and count again once you undo.
-        </p>
-        <button type="button" class="candy primary" (click)="playFromPicked()">
-          Play from here
+    <ng-template #here>
+      <div class="here" role="group" aria-label="You are here">
+        <span>You are here</span>
+        <button
+          type="button"
+          class="undo"
+          aria-label="Play from after all the runs again"
+          (click)="undoPlayFrom()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 14 4 9l5-5" />
+            <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+          </svg>
         </button>
-        <button type="button" class="candy" autofocus (click)="closePick()">Cancel</button>
-      }
-    </dialog>
+      </div>
+    </ng-template>
+    <!-- A run's context menu, opened by a long press on it, in developer mode. -->
+    <div
+      #runMenu
+      class="run-menu"
+      popover
+      [style.top.px]="menuAt().y"
+      [style.left.px]="menuAt().x"
+      (toggle)="menuToggled($event)"
+    >
+      <button type="button" (click)="playFromPicked()">Play from here</button>
+    </div>
     @if (charts().length > 0) {
       <article class="panel summary">
         <h3>{{ playFrom() === undefined ? 'All runs' : 'Runs before here' }}</h3>
@@ -223,7 +233,7 @@ export class Data {
   protected readonly developerMode = this.developer.enabled;
   private readonly settings = this.tweaks.grouping;
   protected readonly includeUnchecked = this.tweaks.includeUnchecked;
-  /** The run played from, in developer mode, if any. */
+  /** Where the game plays from, in developer mode, if anywhere. */
   protected readonly playFrom = this.tweaks.playFrom;
   protected readonly runs = signal<readonly Run[]>([]);
   protected readonly uncheckedRuns = computed(() => this.runs().filter((run) => !run.checked));
@@ -231,11 +241,8 @@ export class Data {
   private readonly counted = computed(() =>
     groupRuns(this.runs(), this.includeUnchecked(), this.playFrom()),
   );
-  /** Where the runs played from start, if any: they're left out of the groups. */
-  private readonly playedFrom = computed(() => {
-    const index = this.runs().findIndex((run) => run.id === this.playFrom());
-    return index === -1 ? this.runs().length : index;
-  });
+  /** The runs in the order the game takes them, and how many come before the line played from, if any. */
+  private readonly order = computed(() => playOrder(this.runs(), this.playFrom()));
   /** What the break model makes of them: the groups the game plays with. */
   private readonly model = computed(() =>
     breakModel(
@@ -252,7 +259,7 @@ export class Data {
     this.runs().filter((run) => run.checked || this.developerMode()),
   );
   protected readonly charts = computed(() =>
-    this.runs().flatMap((run, index) => {
+    this.order().runs.flatMap((run, index) => {
       if (!run.checked && !this.developerMode()) {
         return [];
       }
@@ -263,7 +270,8 @@ export class Data {
         id: run.id,
         title: dateAndTime.format(run.startedAt),
         checked: run.checked,
-        later: index >= this.playedFrom(),
+        here: this.playFrom() !== undefined && index === this.order().before,
+        later: index >= this.order().before,
         meta:
           `${plural(run.digits.length, 'digit')} in ${seconds(run.times.at(-1) ?? 0)}` +
           (run.digits.length > 0 ? ` · ${plural(breaks.length + 1, 'group')}` : ''),
@@ -302,12 +310,15 @@ export class Data {
     })),
   );
 
-  /** The run long pressed, to play from once the player confirms. */
-  protected readonly picked = signal<{ readonly id: string; readonly title: string } | undefined>(
-    undefined,
+  /** Whether the line played from comes after all the runs. */
+  protected readonly hereAtEnd = computed(
+    () => this.playFrom() !== undefined && this.order().before === this.order().runs.length,
   );
-  private readonly playFromDialog =
-    viewChild.required<ElementRef<HTMLDialogElement>>('playFromDialog');
+  /** The run whose context menu is open, if any, and where the menu opens. */
+  private readonly picked = signal<string | undefined>(undefined);
+  protected readonly menuAt = signal({ x: 0, y: 0 });
+  private readonly runMenu = viewChild.required<ElementRef<HTMLElement>>('runMenu');
+  private readonly window = inject(DOCUMENT).defaultView;
 
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
@@ -323,25 +334,37 @@ export class Data {
     void this.tweaks.setIncludeUnchecked((event.target as HTMLInputElement).checked);
   }
 
-  /** Offers to play from a run long pressed, in developer mode. */
-  protected pick(chart: { readonly id: string; readonly title: string }): void {
-    if (!this.developerMode() || this.picked() !== undefined) {
+  /** Opens the context menu of a run long pressed, where it was pressed, in developer mode. */
+  protected pick(id: string, at: { readonly x: number; readonly y: number }): void {
+    if (!this.developerMode()) {
       return;
     }
-    this.picked.set(chart);
-    this.playFromDialog().nativeElement.showModal();
+    // Over the run pressed, within the window.
+    const width = this.window?.innerWidth ?? Infinity;
+    this.menuAt.set({
+      x: Math.max(MENU_MARGIN, Math.min(at.x - MENU_WIDTH / 2, width - MENU_WIDTH - MENU_MARGIN)),
+      y: at.y + 8,
+    });
+    this.picked.set(id);
+    this.runMenu().nativeElement.showPopover();
   }
 
-  protected playFromPicked(): void {
-    const picked = this.picked();
-    if (picked !== undefined) {
-      void this.tweaks.setPlayFrom(picked.id);
+  protected menuToggled(event: Event): void {
+    if ((event as ToggleEvent).newState === 'closed') {
+      this.picked.set(undefined);
     }
-    this.closePick();
   }
 
-  protected closePick(): void {
-    this.playFromDialog().nativeElement.close();
+  /**
+   * Plays from just before the run picked, as if only the runs before it had been played: by start, whether or not the
+   * game already plays from somewhere, so the runs played since go back where they started.
+   */
+  protected playFromPicked(): void {
+    const at = this.runs().findIndex((run) => run.id === this.picked());
+    if (at !== -1) {
+      void this.tweaks.setPlayFrom({ at, since: this.clock.epoch() });
+    }
+    this.runMenu().nativeElement.hidePopover();
   }
 
   protected undoPlayFrom(): void {
@@ -438,6 +461,10 @@ function breaksOf(probabilities: Values, threshold: number): ChartBreak[] {
       : [],
   );
 }
+
+/** The width of a run's context menu, and how close it comes to the sides of the window, in pixels. */
+const MENU_WIDTH = 176;
+const MENU_MARGIN = 12;
 
 const dateAndTime = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
