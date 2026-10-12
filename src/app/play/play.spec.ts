@@ -236,13 +236,35 @@ describe('Play', () => {
     expect(words(host)).toEqual(['1']);
   });
 
-  it("doesn't finish a group emptied by backspace when the player pauses", async () => {
+  it('brings the last word back when backspace empties the slots, for the player to carry on', async () => {
+    const { host, type } = await setUpPlayed();
+
+    await typeAll(type, '141 5<');
+
+    expect(words(host)).toEqual([]);
+    expect(slots(host)).toEqual(['1', '4', '1', '', '']);
+
+    await typeAll(type, '59 ');
+
+    expect(words(host)).toEqual(['14159']);
+  });
+
+  it('finishes the word brought back by backspace once the player breaks there again', async () => {
     const { host, type } = await setUpPlayed();
 
     await typeAll(type, '141 5< ');
 
     expect(words(host)).toEqual(['141']);
     expect(slots(host)).toEqual(['', '', '', '', '']);
+  });
+
+  it('brings the last word back when backspace deletes a mistake that was alone in the slots', async () => {
+    const { host, type } = await setUpPlayed();
+
+    await typeAll(type, '141 7<');
+
+    expect(words(host)).toEqual([]);
+    expect(slots(host)).toEqual(['1', '4', '1', '', '']);
   });
 
   it('waits for a new pause after backspace, counted from it', async () => {
@@ -659,6 +681,20 @@ describe('Play', () => {
 
       expect(scrollDown).toHaveBeenCalledWith(FLIGHT_DURATION);
       expect(animations[0]?.keyframes[2]?.['transform']).toMatch(/^translate\(0px, -50px\)/);
+    });
+
+    it("doesn't fly a word brought back by backspace that finishes again at once", async () => {
+      const animations = stubAnimations();
+      const { host, type } = await setUpWithRuns(4);
+      await typeAll(type, '141');
+      expect(animations).toHaveLength(3);
+
+      await typeAll(type, '5<');
+
+      expect(words(host)).toEqual(['141']);
+      expect(slots(host)).toEqual(['', '', '']);
+      expect(animations).toHaveLength(3);
+      expect(flyingSlots(host)).toBe('');
     });
 
     it('lands the flights at once on backspace', async () => {
