@@ -1,7 +1,4 @@
-import { BreakModel } from '../timing/break-model';
-
-/** The size of a group where the player's own groups aren't trusted (`groupings.md` §3). */
-export const DEFAULT_GROUP_SIZE = 5;
+import { BreakModel, BreakSettings } from '../timing/break-model';
 
 /** A group the player has finished typing, shown among the typed digits as a word. */
 export interface Word {
@@ -41,14 +38,14 @@ export interface GroupPlan {
 
 /**
  * How the group starting at index `start` (index 0 is the first decimal) is played: within the trust horizon, as the
- * player's own group there, as many slots as it has digits left; past it, groups of 5 that grow until the player breaks
- * (`groupings.md` §4.3).
+ * player's own group there, as many slots as it has digits left; past it, groups of the starting slots (5 by default)
+ * that grow until the player breaks (`groupings.md` §4.3).
  */
-export function groupAt(model: BreakModel, start: number): GroupPlan {
+export function groupAt(model: BreakModel, start: number, settings: BreakSettings): GroupPlan {
   const group = model.groups.find((g) => start >= g.start && start < g.start + g.size);
   return group?.trusted === true
     ? { size: group.start + group.size - start, trusted: true }
-    : { size: DEFAULT_GROUP_SIZE, trusted: false };
+    : { size: settings.startingSlots, trusted: false };
 }
 
 /** How many slots a group shows once `typed` digits are in it: one more than those typed, for a group that grows. */
@@ -61,7 +58,13 @@ export function slotCount(plan: GroupPlan, typed: number): number {
  * includes the run being typed, like any other run, its next digit timed as if typed now. Within the trust horizon, the
  * group ends where the player usually breaks; past it, where this run breaks.
  */
-export function groupEnds(model: BreakModel, next: number, trusted: boolean): boolean {
-  const p = trusted ? model.usual[next] : model.runs.at(-1)?.breakProbability[next];
-  return (p ?? 0) > 0.5;
+export function groupEnds(
+  model: BreakModel,
+  next: number,
+  trusted: boolean,
+  settings: BreakSettings,
+): boolean {
+  return trusted
+    ? (model.usual[next] ?? 0) > settings.usualThreshold
+    : (model.runs.at(-1)?.breakProbability[next] ?? 0) > settings.breakThreshold;
 }

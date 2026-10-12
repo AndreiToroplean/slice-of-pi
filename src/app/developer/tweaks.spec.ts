@@ -194,6 +194,9 @@ describe('Tweaks', () => {
         '  priorBreakSize: 2.5',
         '  priorNormalSpread: 0.25',
         '  priorBreakSpread: 0.4',
+        '  breakThreshold: 0.5',
+        '  usualThreshold: 0.5',
+        '  startingSlots: 5',
       ].join('\n'),
     );
   });
@@ -213,6 +216,9 @@ describe('Tweaks', () => {
       { fitFrom: 1.5 },
       { priorBreakShare: 1 },
       { priorNormalSpread: 0 },
+      { breakThreshold: 1 },
+      { usualThreshold: 0 },
+      { startingSlots: 0 },
     ]) {
       expect(parseTweaks({ format: TWEAKS_FORMAT, grouping: { ...grouping, ...wrong } })).toEqual(
         {},

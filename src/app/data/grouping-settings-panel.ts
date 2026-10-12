@@ -158,6 +158,47 @@ export const CONTROLS: readonly Control[] = [
         'Higher lets both short and very long pauses count as breaks. Lower expects breaks of about one size, so pauses much shorter or longer than it count less.',
     },
   },
+  {
+    key: 'breakThreshold',
+    label: 'Break threshold',
+    min: 0.05,
+    max: 0.95,
+    step: 0.05,
+    format: (value) => value.toFixed(2),
+    help: {
+      what: 'How likely an interval must be a break for the game to take it for one: past the trust horizon, where a group ends while you play, and the red bars on each run’s chart.',
+      why: 'The mixture says how likely each interval is a break; turning that into yes or no is a separate choice, of which mistake is worse. Asking for more than ½ means a false break (a group cut where you didn’t mean it) is worse than a missed one (a group running on). At 0.8, the evidence for a break must be 4 times what ½ asks for. It moves only the decision, never the fit, so the probabilities stay honest.',
+      moving:
+        'Higher finds fewer breaks, so longer groups; lower finds more. Most intervals are clearly one or the other, so it mostly moves the borderline pauses.',
+    },
+  },
+  {
+    key: 'usualThreshold',
+    label: 'Usual threshold',
+    min: 0.05,
+    max: 0.95,
+    step: 0.05,
+    format: (value) => `${String(Math.round(value * 100))}% of runs`,
+    help: {
+      what: 'How much of your runs’ weight must break at a place for it to be one of your usual break spots, which cut your groups within the trust horizon.',
+      why: 'Your groups are where you usually break, and “usually” needs a line: ½ is a majority of your recent runs. The confidence, and so the trust horizon, measure how sure the game is that your break rate is on the same side of this line as its verdict.',
+      moving:
+        'Higher keeps only the breaks you make nearly every time, so longer groups; lower counts breaks you make now and then too, so shorter ones. Near the line, runs are split, so the confidence there is low and the horizon comes sooner.',
+    },
+  },
+  {
+    key: 'startingSlots',
+    label: 'Starting slots',
+    min: 1,
+    max: 10,
+    step: 1,
+    format: (value) => `${String(value)} slots`,
+    help: {
+      what: 'How many slots a group starts with where the game doesn’t know your groups yet: past the trust horizon, and everywhere for a new player.',
+      why: 'Groups of 5 are a common way to learn π, and a good default until your own show. The group still grows a slot at a time until you pause, so it never forces a size on you.',
+      moving: 'Only what the empty slots show: the group still ends where you pause.',
+    },
+  },
 ];
 
 /**

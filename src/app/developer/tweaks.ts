@@ -287,7 +287,11 @@ function isBreakSettings(value: unknown): value is BreakSettings {
     within('priorBreakShare', 0, 0.999) &&
     within('priorBreakSize', 0) &&
     within('priorNormalSpread', 0) &&
-    within('priorBreakSpread', 0)
+    within('priorBreakSpread', 0) &&
+    within('breakThreshold', 0, 0.999) &&
+    within('usualThreshold', 0, 0.999) &&
+    Number.isInteger(settings.startingSlots) &&
+    within('startingSlots', 0)
   );
 }
 
