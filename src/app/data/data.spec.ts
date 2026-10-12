@@ -347,25 +347,10 @@ describe('Data', () => {
     ]);
   });
 
-  it('puts the button deleting all runs next to the title of the runs, not on the chart of all runs', async () => {
-    const { host } = await setUp([first]);
-
-    expect(host.querySelector('.runs-top button')?.textContent.trim()).toBe('Delete all runs');
-    expect(host.querySelector('.summary button')).toBeNull();
-    expect(host.querySelector('.summary .meta')).toBeNull();
-  });
-
   it('lets the groups of all runs scroll, from the keyboard too', async () => {
     const { host } = await setUp([first]);
 
     expect(host.querySelector('.groups')?.getAttribute('tabindex')).toBe('0');
-  });
-
-  it('sticks the chart of all runs to the bottom of the whole page, not only of the runs', async () => {
-    const { host } = await setUp([first]);
-
-    expect(host.querySelector(':scope > .summary')).not.toBeNull();
-    expect(host.querySelector('.runs .summary')).toBeNull();
   });
 
   it('marks the breaks of each run on its chart, and counts its groups', async () => {

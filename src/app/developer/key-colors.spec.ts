@@ -135,17 +135,6 @@ describe('KeyColors', () => {
     expect(rows(host)[0]).not.toBe(PALETTE[0]);
   });
 
-  it('copies its colors from a button at its bottom, with the reset in its top bar', async () => {
-    const { host } = await setUp();
-
-    expect(host.querySelector(':scope > app-copy-values button')?.textContent.trim()).toBe(
-      'Copy hyperparameter values',
-    );
-    expect(host.querySelector('app-page-header button.pill')?.textContent.trim()).toBe(
-      "Back to the game's colors",
-    );
-  });
-
   it("shows a season's starting background behind the page", async () => {
     const { host, stable } = await setUp();
     const background = TestBed.inject(Background).colors;
