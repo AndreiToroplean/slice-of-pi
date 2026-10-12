@@ -181,13 +181,16 @@ describe('Play', () => {
     expect(summary(host)).toBe('9 digits typed, the last one is 3.');
   });
 
-  it('finishes a group of 5 by default once it has all its digits, without a pause', async () => {
+  it("grows a new player's group past 5 until they pause", async () => {
     const { host, type } = await setUp();
 
     await typeAll(type, '1415926');
 
-    expect(words(host)).toEqual(['14159']);
-    expect(slots(host)).toEqual(['2', '6', '', '', '']);
+    expect(words(host)).toEqual([]);
+    expect(slots(host)).toEqual(['1', '4', '1', '5', '9', '2', '6', '']);
+
+    await typeAll(type, ' ');
+    expect(words(host)).toEqual(['1415926']);
   });
 
   it('adds slots past 5 until the player pauses, where their own groups are not trusted yet', async () => {
@@ -213,13 +216,12 @@ describe('Play', () => {
     expect(words(host)).toEqual([]);
   });
 
-  it("doesn't finish a group on a pause before there's enough data to tell breaks", async () => {
+  it("finishes a new player's group on their very first pause", async () => {
     const { host, type } = await setUp();
 
-    await typeAll(type, '141 ');
+    await typeAll(type, '1 ');
 
-    expect(words(host)).toEqual([]);
-    expect(slots(host)).toEqual(['1', '4', '1', '', '']);
+    expect(words(host)).toEqual(['1']);
   });
 
   it("doesn't finish a group emptied by backspace when the player pauses", async () => {

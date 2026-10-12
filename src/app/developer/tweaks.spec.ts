@@ -187,6 +187,13 @@ describe('Tweaks', () => {
         '  window: 21',
         '  recencyDecay: 0.95 (changed)',
         '  level: 0.9',
+        '  priorStrength: 5',
+        '  priorBaseline: 300',
+        '  fitFrom: 50',
+        '  priorBreakShare: 0.15',
+        '  priorBreakSize: 2.5',
+        '  priorNormalSpread: 0.25',
+        '  priorBreakSpread: 0.4',
       ].join('\n'),
     );
   });
@@ -201,11 +208,25 @@ describe('Tweaks', () => {
       { level: -0.1 },
       { level: 1.1 },
       { level: undefined },
+      { priorStrength: -1 },
+      { priorBaseline: 0 },
+      { fitFrom: 1.5 },
+      { priorBreakShare: 1 },
+      { priorNormalSpread: 0 },
     ]) {
       expect(parseTweaks({ format: TWEAKS_FORMAT, grouping: { ...grouping, ...wrong } })).toEqual(
         {},
       );
     }
+  });
+
+  it('leaves out the settings saved before the priors', () => {
+    expect(
+      parseTweaks({
+        format: TWEAKS_FORMAT,
+        grouping: { window: 21, recencyDecay: 0.9, level: 0.9 },
+      }),
+    ).toEqual({});
   });
 
   it('leaves out the settings saved for the timing model the break model replaced', () => {

@@ -32,13 +32,11 @@ export function groupDigits(digits: string, sizes: readonly number[]): Grouping 
 export interface GroupPlan {
   /** How many slots it starts with. */
   readonly size: number;
-  /** Whether it's the player's own group, within the trust horizon. */
-  readonly trusted: boolean;
   /**
-   * Whether it grows past its slots, one at a time, until the player breaks: past the trust horizon, once there's
-   * enough data to tell breaks. Otherwise it finishes when its slots are filled.
+   * Whether it's the player's own group, within the trust horizon, which finishes when its slots are filled. Past the
+   * horizon, a group grows past its slots, one at a time, until the player breaks.
    */
-  readonly grows: boolean;
+  readonly trusted: boolean;
 }
 
 /**
@@ -49,13 +47,13 @@ export interface GroupPlan {
 export function groupAt(model: BreakModel, start: number): GroupPlan {
   const group = model.groups.find((g) => start >= g.start && start < g.start + g.size);
   return group?.trusted === true
-    ? { size: group.start + group.size - start, trusted: true, grows: false }
-    : { size: DEFAULT_GROUP_SIZE, trusted: false, grows: model.mixture !== undefined };
+    ? { size: group.start + group.size - start, trusted: true }
+    : { size: DEFAULT_GROUP_SIZE, trusted: false };
 }
 
 /** How many slots a group shows once `typed` digits are in it: one more than those typed, for a group that grows. */
 export function slotCount(plan: GroupPlan, typed: number): number {
-  return plan.grows ? Math.max(plan.size, typed + 1) : plan.size;
+  return plan.trusted ? plan.size : Math.max(plan.size, typed + 1);
 }
 
 /**

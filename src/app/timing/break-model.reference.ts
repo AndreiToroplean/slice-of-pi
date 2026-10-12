@@ -1,8 +1,9 @@
 /**
  * Six runs of synthetic intervals (in milliseconds, slowing down along the places, with recurring and random breaks), the
- * last one in progress, and what the Python implementation the break model was translated from makes of them, rounded
- * to 6 decimals: `usual`, `confidenceTrend` and `horizon` by interval (index p is the interval before digit p + 1), and
- * `current`, P(break) of the first 40 intervals of the run in progress.
+ * last one in progress, and what the Python implementation the break model was translated from makes of them, with the
+ * default settings and a prior baseline of 300 ms, rounded to 6 decimals: `usual`, `confidenceTrend` and `horizon` by
+ * interval (index p is the interval before digit p + 1), `current`, P(break) of the first 40 intervals of the run in
+ * progress, and `firstRun`, P(break) of each interval of the first run alone, in progress with no history.
  */
 export const REFERENCE = {
   intervals: [
@@ -39,10 +40,10 @@ export const REFERENCE = {
     ],
   ],
   usual: [
-    2e-6, 0.0, 0.0, 0.0, 0.999997, 0.0, 0.0, 0.0, 0.0, 0.844417, 0.0, 0.0, 1e-6, 1.0, 0.0, 0.0, 0.0,
-    0.0, 0.999999, 0.0, 0.0, 0.0, 0.0, 0.21342, 1.0, 0.0, 0.0, 8e-6, 0.0, 0.873977, 0.0, 0.0,
+    2e-6, 0.0, 0.0, 0.0, 0.999995, 0.0, 0.0, 0.0, 0.0, 0.844417, 0.0, 0.0, 1e-6, 1.0, 0.0, 0.0, 0.0,
+    0.0, 0.999998, 0.0, 0.0, 0.0, 0.0, 0.21342, 1.0, 0.0, 0.0, 1e-5, 0.0, 0.873977, 0.0, 0.0,
     0.258025, 1.0, 0.0, 0.0, 0.0, 0.0, 0.232223, 0.0, 0.746487, 0.0, 0.0, 0.312979, 0.0, 0.0, 0.0,
-    1.0, 0.0, 0.0, 0.0, 1.7e-5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.999985, 0.0, 2e-6, 0.0, 0.0, 1.0,
+    1.0, 0.0, 0.0, 0.0, 1.3e-5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.999977, 0.0, 2e-6, 0.0, 0.0, 1.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
   ],
   confidenceTrend: [
@@ -52,14 +53,20 @@ export const REFERENCE = {
     0.962158, 0.954698, 0.954698, 0.954698, 0.938255, 0.938255, 0.938255, 0.938255, 0.938255,
     0.938255, 0.895313, 0.895313, 0.879042, 0.879042, 0.879042, 0.879042, 0.879042, 0.879042,
     0.879042, 0.879042, 0.879042, 0.879042, 0.879042, 0.879042, 0.879042, 0.879042, 0.879042,
-    0.799662, 0.799662, 0.799662, 0.799658, 0.799658, 0.667941, 0.667941, 0.667941, 0.667941,
+    0.799662, 0.799662, 0.799662, 0.799656, 0.799656, 0.667941, 0.667941, 0.667941, 0.667941,
     0.667941, 0.667941, 0.667941, 0.667941, 0.667941, 0.667941,
   ],
   horizon: 38,
-  mixture: { weight: [0.811885, 0.188115], mean: [-0.051244, 1.097338], sd: [0.146283, 0.171076] },
+  mixture: { weight: [0.811885, 0.188115], mean: [-0.048712, 1.100874], sd: [0.147724, 0.170792] },
   current: [
     0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-    0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 3.9e-5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 4.5e-5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0,
+  ],
+  firstRun: [
+    0.0, 0.0, 0.0, 0.0, 0.999793, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 6e-6, 1.0, 0.0, 0.0, 0.0, 0.0,
+    1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.999984, 6e-6, 0.0,
+    3e-6, 0.0, 8e-6, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2e-6, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+    0.0, 1e-6, 0.0, 0.0, 1.0, 0.0, 5.4e-5, 8e-6, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
   ],
 };

@@ -7,6 +7,7 @@ import {
   finishedRuns,
   fitMixture,
   isotonicDecreasing,
+  priorMixture,
   trailingMedian,
 } from './break-model';
 import { REFERENCE } from './break-model.reference';
@@ -126,7 +127,7 @@ describe('break model', () => {
       const found = model(runs.slice(0, -1), runs.at(-1));
 
       expect(found.horizon).toBe(REFERENCE.horizon);
-      found.mixture?.mean.forEach((mean, k) => {
+      found.mixture.mean.forEach((mean, k) => {
         expect(mean).toBeCloseTo(REFERENCE.mixture.mean[k] ?? 0, 4);
       });
       REFERENCE.usual.forEach((usual, p) => {
@@ -137,6 +138,16 @@ describe('break model', () => {
       });
       REFERENCE.current.forEach((p, i) => {
         expect(found.runs.at(-1)?.breakProbability[i + 1]).toBeCloseTo(p, 4);
+      });
+    });
+
+    it("matches it on a first run, judged against the prior baseline, once there's enough to fit", () => {
+      const first = timesOf(REFERENCE.intervals[0] ?? []);
+      const found = model([], first, { ...settings, priorBaseline: 300 });
+
+      expect(first.length - 1).toBeGreaterThanOrEqual(settings.fitFrom);
+      REFERENCE.firstRun.forEach((p, i) => {
+        expect(found.runs[0]?.breakProbability[i + 1]).toBeCloseTo(p, 4);
       });
     });
 
@@ -162,7 +173,7 @@ describe('break model', () => {
       intervals[10] = 5;
       const found = model([timesOf(intervals)]);
 
-      expect(found.mixture?.sd[1] ?? 0).toBeGreaterThan(found.mixture?.sd[0] ?? 0);
+      expect(found.mixture.sd[1]).toBeGreaterThan(found.mixture.sd[0]);
       expect(found.runs[0]?.breakProbability[11]).toBe(0);
     });
 
@@ -177,13 +188,46 @@ describe('break model', () => {
       expect(spots(found.usual)).toEqual(by3(60));
     });
 
-    it("fits no mixture while there's less than a window of intervals, so finds no break", () => {
-      const found = model([run(10, [3, 6])], run(10, [3, 6]));
+    it('keeps the prior mixture as it is until there are enough intervals to fit one', () => {
+      const few = model([], run(settings.fitFrom, [3, 6]));
+      const enough = model([], run(settings.fitFrom + 1, [3, 6]));
 
-      expect(found.mixture).toBeUndefined();
-      expect(found.usual.slice(1)).toEqual(Array<undefined>(9).fill(undefined));
-      expect(found.horizon).toBe(0);
-      expect(found.groups).toEqual([{ start: 0, size: 10, open: true, trusted: false }]);
+      expect(few.mixture).toEqual(priorMixture(settings));
+      expect(enough.mixture).not.toEqual(priorMixture(settings));
+    });
+
+    it('tells breaks from the first digits on, with the prior mixture', () => {
+      const found = model([], run(10, [3, 6]));
+
+      expect(spots(found.runs[0]?.breakProbability ?? [])).toEqual([3, 6]);
+    });
+
+    it("judges a first run's first intervals against the prior baseline", () => {
+      // A break right away: 3 s, where the prior expects 300 ms.
+      const found = model([], timesOf([3000, 200, 230]));
+
+      expect(found.runs[0]?.breakProbability[1] ?? 0).toBeGreaterThan(0.5);
+      expect(found.runs[0]?.baseline[1] ?? 0).toBeGreaterThan(300);
+    });
+
+    it("judges the first intervals of a run against the earlier runs' offset", () => {
+      // Earlier runs at about 200 ms, and this one pauses for 1.5 s right away.
+      const found = model(
+        Array.from({ length: 3 }, () => run(30, by3(30))),
+        timesOf([1500, 200]),
+      );
+
+      expect(found.runs.at(-1)?.breakProbability[1] ?? 0).toBeGreaterThan(0.5);
+    });
+
+    it('judges the first interval of a run against itself without a prior', () => {
+      const found = model(
+        Array.from({ length: 3 }, () => run(30, by3(30))),
+        timesOf([1500, 200]),
+        { ...settings, priorStrength: 0 },
+      );
+
+      expect(found.runs.at(-1)?.breakProbability[1] ?? 1).toBeLessThan(0.5);
     });
 
     it('has no groups without digits', () => {
@@ -266,7 +310,8 @@ describe('break model', () => {
       const found = model(earlier, slow);
 
       expect(found.speedCurve[10]).toBeCloseTo(200, -1);
-      expect(found.runs.at(-1)?.baseline[19]).toBeCloseTo(400, -1);
+      // At 20 intervals in, the prior (the earlier runs' offset, none) still weighs 5 of 25.
+      expect(found.runs.at(-1)?.baseline[19]).toBeCloseTo(200 * 2 ** (20 / 25), -1);
     });
 
     it("bases the run in progress on its own speed past the earlier runs' end", () => {
@@ -283,7 +328,7 @@ describe('break model', () => {
       const warm = breakModel(finished, runs.at(-1), settings, cold.mixture);
 
       expect(warm.horizon).toBe(cold.horizon);
-      expect(warm.mixture?.mean[1]).toBeCloseTo(cold.mixture?.mean[1] ?? 0, 6);
+      expect(warm.mixture.mean[1]).toBeCloseTo(cold.mixture.mean[1], 6);
     });
 
     it('works out the finished runs again for another window', () => {
