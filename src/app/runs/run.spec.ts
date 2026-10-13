@@ -3,6 +3,7 @@ import {
   addDigit,
   countsInGroups,
   groupRuns,
+  moveRun,
   orderRuns,
   deleteMistake,
   isOlderFormat,
@@ -138,6 +139,24 @@ describe('run', () => {
         'a',
         'e',
       ]);
+    });
+
+    it('moves a run to another place among the runs', () => {
+      const order = { ids: ['a', 'b', 'c', 'd'] };
+
+      expect(moveRun(order, 0, 2)).toEqual({ ids: ['b', 'c', 'a', 'd'] });
+      expect(moveRun(order, 3, 0)).toEqual({ ids: ['d', 'a', 'b', 'c'] });
+      expect(moveRun(order, 1, 1)).toEqual(order);
+    });
+
+    it('moves a run across the line, to be counted or not', () => {
+      // a b | c d
+      const order = { ids: ['a', 'b', 'c', 'd'], line: 2 };
+
+      expect(moveRun(order, 0, 2)).toEqual({ ids: ['b', 'a', 'c', 'd'], line: 1 });
+      expect(moveRun(order, 4, 0)).toEqual({ ids: ['d', 'a', 'b', 'c'], line: 3 });
+      expect(moveRun(order, 3, 2)).toEqual({ ids: ['a', 'b', 'c', 'd'], line: 3 });
+      expect(moveRun(order, 1, 2)).toEqual({ ids: ['a', 'b', 'c', 'd'], line: 1 });
     });
 
     it('leaves out the runs deleted since', () => {
