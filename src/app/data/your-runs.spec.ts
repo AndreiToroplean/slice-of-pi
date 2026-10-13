@@ -31,7 +31,39 @@ describe('YourRuns', () => {
   beforeEach(() => {
     questions = [];
     confirming = true;
+    installPopovers();
   });
+
+  afterEach(uninstallPopovers);
+
+  function articles(host: HTMLElement): HTMLElement[] {
+    return Array.from(host.querySelectorAll<HTMLElement>('.runs article'));
+  }
+
+  function article(host: HTMLElement, index: number): HTMLElement {
+    const found = articles(host)[index];
+    if (found === undefined) {
+      throw new Error(`No run ${String(index)}`);
+    }
+    return found;
+  }
+
+  function menu(host: HTMLElement): HTMLElement | null {
+    return host.querySelector('app-context-menu .sheet');
+  }
+
+  /** The items of the context menu open, if any. */
+  function menuItems(host: HTMLElement): string[] {
+    const open = menu(host);
+    return open?.hasAttribute('data-popover-open') === true
+      ? Array.from(open.children, (child) => child.textContent.trim() || '—')
+      : [];
+  }
+
+  /** Opens the context menu of a run, as a long press does. */
+  function openMenu(host: HTMLElement, index: number): void {
+    article(host, index).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
+  }
 
   function setUp(
     runs: Run[] = [],
@@ -211,31 +243,12 @@ describe('YourRuns', () => {
     /** When the game started playing from before the run to play from, in the tests where it did. */
     const since = 3_500;
 
-    beforeEach(installPopovers);
-    afterEach(uninstallPopovers);
-
     function groupsShown(host: HTMLElement): string[] {
       return Array.from(host.querySelectorAll('.groups li'), (group) => group.textContent.trim());
     }
 
-    function articles(host: HTMLElement): HTMLElement[] {
-      return Array.from(host.querySelectorAll<HTMLElement>('.runs article'));
-    }
-
-    function article(host: HTMLElement, index: number): HTMLElement {
-      const found = articles(host)[index];
-      if (found === undefined) {
-        throw new Error(`No run ${String(index)}`);
-      }
-      return found;
-    }
-
     function later(host: HTMLElement): boolean[] {
       return articles(host).map((run) => run.classList.contains('later'));
-    }
-
-    function menu(host: HTMLElement): HTMLElement | null {
-      return host.querySelector('app-context-menu .sheet');
     }
 
     /** Where the "You are here" line is among the runs: how many come before it. */
@@ -325,10 +338,51 @@ describe('YourRuns', () => {
     it('offers it only in developer mode', async () => {
       const { host } = await setUp(runs);
 
-      article(host, 1).dispatchEvent(new MouseEvent('contextmenu'));
+      openMenu(host, 1);
 
-      expect(menu(host)?.hasAttribute('data-popover-open')).toBe(false);
-      expect(article(host, 1).hasAttribute('tabindex')).toBe(false);
+      expect(menuItems(host)).toEqual(['Delete Run']);
+    });
+  });
+
+  describe("a run's context menu", () => {
+    it('deletes the run once the player confirms', async () => {
+      const { host, until } = await setUp([first, second]);
+
+      openMenu(host, 0);
+      button(host, 'Delete Run').click();
+      await until(() => message(host) !== '');
+
+      expect(questions).toEqual(['Delete this run? Only a backup file can bring it back.']);
+      expect(message(host)).toBe('Deleted the run.');
+      expect(await TestBed.inject(RunStore).runs()).toEqual([second]);
+      expect(articles(host)).toHaveLength(1);
+    });
+
+    it('keeps the run when the player does not confirm', async () => {
+      const { host } = await setUp([first, second]);
+      confirming = false;
+
+      openMenu(host, 0);
+      button(host, 'Delete Run').click();
+      await vi.waitFor(() => {
+        expect(questions).toHaveLength(1);
+      });
+
+      expect(await TestBed.inject(RunStore).runs()).toEqual([first, second]);
+    });
+
+    it('sets playing from a run apart from deleting it, in developer mode', async () => {
+      const { host } = await setUp([first], false, false, undefined, true);
+
+      openMenu(host, 0);
+
+      expect(menuItems(host)).toEqual(['Delete Run', '—', 'Play from Here']);
+    });
+
+    it('opens from the keyboard too', async () => {
+      const { host } = await setUp([first]);
+
+      expect(article(host, 0).getAttribute('tabindex')).toBe('0');
     });
   });
 
