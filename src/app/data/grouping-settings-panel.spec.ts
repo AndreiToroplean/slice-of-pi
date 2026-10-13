@@ -101,11 +101,11 @@ describe('GroupingSettingsPanel', () => {
     const output = (): string | undefined =>
       host.querySelector('output[for="setting-recencyDecay"]')?.textContent;
 
-    expect(output()).toBe('0.90, half weight 6.6 runs back');
+    expect(output()).toBe('0.90 (half weight 6.6 runs back)');
     move(slider(host, 'recencyDecay'), 1);
     detect();
 
-    expect(output()).toBe('1, every run the same');
+    expect(output()).toBe('1 (every run the same)');
   });
 
   it('says a share of intervals as one digit out of how many', async () => {
@@ -113,12 +113,24 @@ describe('GroupingSettingsPanel', () => {
     const output = (): string | undefined =>
       host.querySelector('output[for="setting-priorBreakShare"]')?.textContent;
 
-    expect(output()).toBe('1 / 6.7 digits');
+    expect(output()).toBe('0.15 (1 in 6.7 digits)');
     move(slider(host, 'priorBreakShare'), 0.2);
     detect();
 
-    expect(output()).toBe('1 / 5 digits');
+    expect(output()).toBe('0.20 (1 in 5 digits)');
     expect(oneIn(1 / 3.5)).toBe('3.5');
+  });
+
+  it('says an interval as how many digits a second it makes', async () => {
+    const { host, detect } = await setUp();
+    const output = (): string | undefined =>
+      host.querySelector('output[for="setting-priorBaseline"]')?.textContent;
+
+    expect(output()).toBe('300 ms (3.3 digits/s)');
+    move(slider(host, 'priorBaseline'), 250);
+    detect();
+
+    expect(output()).toBe('250 ms (4 digits/s)');
   });
 
   it('brings back the game’s value of one setting, keeping the others', async () => {
