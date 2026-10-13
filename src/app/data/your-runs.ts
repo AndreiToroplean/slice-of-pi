@@ -24,6 +24,8 @@ import { breakModel, finishedRuns, Values } from '../timing/break-model';
 import { CONFIRM } from './confirm';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { LongPress } from './long-press';
+import { modelViews } from './model-views';
+import { PlotChart } from './plot-chart';
 import { plural } from './plural';
 import { RunChart } from './run-chart';
 import { ChartBreak, chartTop, digitTimes } from './run-charts';
@@ -46,6 +48,7 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
     LongPress,
     NgTemplateOutlet,
     Page,
+    PlotChart,
     RunChart,
   ],
   template: `
@@ -61,20 +64,36 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
       </button>
       @if (charts().length > 0) {
         <article class="panel summary">
-          <h3>{{ summaryTitle() }}</h3>
-          <app-run-chart
-            [values]="aggregateShown() ? aggregateChart().times : []"
-            [baseline]="aggregateShown() ? aggregateChart().baseline : []"
-            [breaks]="aggregateShown() ? aggregateChart().breaks : []"
-            [confidence]="aggregateShown() ? aggregateChart().confidence : []"
-            [others]="selectedTimes()"
-            [places]="places()"
-            [top]="top()"
-            label="Time per digit over all runs, recent ones weighing more, with your usual break spots"
-          />
-          <p class="axis" aria-hidden="true">
-            <span>Place 1</span><span>Place {{ places() }}</span>
-          </p>
+          @if (developerMode()) {
+            <!-- In developer mode, the steps of the break model, one after the other: swiped through. -->
+            <div class="views" role="group" tabindex="0" aria-label="The break model, step by step">
+              <section class="view">
+                <div class="heading">
+                  <h3>{{ summaryTitle() }}</h3>
+                  <span class="step">1/{{ views().length + 1 }}</span>
+                </div>
+                <ng-container [ngTemplateOutlet]="timesChart" />
+                <p class="caption">The time per digit, along the places.</p>
+              </section>
+              @for (plot of views(); track plot.title; let index = $index) {
+                <section class="view">
+                  <div class="heading">
+                    <h3>{{ plot.title }}</h3>
+                    <span class="step">{{ index + 2 }}/{{ views().length + 1 }}</span>
+                  </div>
+                  <app-plot-chart [plot]="plot" />
+                  <p class="axis" aria-hidden="true">
+                    <span>{{ plot.x.labels[0] }}</span
+                    ><span>{{ plot.x.labels[1] }}</span>
+                  </p>
+                  <p class="caption">{{ plot.caption }}</p>
+                </section>
+              }
+            </div>
+          } @else {
+            <h3>{{ summaryTitle() }}</h3>
+            <ng-container [ngTemplateOutlet]="timesChart" />
+          }
           <ul class="groups" aria-label="Your groups" tabindex="0">
             @for (group of groups(); track group.start) {
               <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
@@ -117,6 +136,22 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
       <!-- A run's context menu, opened by a long press on it. -->
       <app-context-menu [entries]="runMenuEntries()" />
     </app-page>
+    <!-- The chart of the times of all runs, and of the runs picked. -->
+    <ng-template #timesChart>
+      <app-run-chart
+        [values]="aggregateShown() ? aggregateChart().times : []"
+        [baseline]="aggregateShown() ? aggregateChart().baseline : []"
+        [breaks]="aggregateShown() ? aggregateChart().breaks : []"
+        [confidence]="aggregateShown() ? aggregateChart().confidence : []"
+        [others]="selectedTimes()"
+        [places]="places()"
+        [top]="top()"
+        label="Time per digit over all runs, recent ones weighing more, with your usual break spots"
+      />
+      <p class="axis" aria-hidden="true">
+        <span>Place 1</span><span>Place {{ places() }}</span>
+      </p>
+    </ng-template>
     <!-- The runs, scrolling under the chart of them all: the only part of the page that scrolls. -->
     <ng-template #runList>
       <section class="runs" cdkScrollable>
@@ -325,6 +360,18 @@ export class YourRuns {
       ? this.charts()
           .filter((chart) => this.selected().has(chart.id))
           .map((chart) => chart.times)
+      : [],
+  );
+  /** In developer mode, the steps of the break model after the times, for all the runs and those picked. */
+  protected readonly views = computed(() =>
+    this.developerMode()
+      ? modelViews({
+          model: this.model(),
+          picked: this.counted().flatMap((run, k) => (this.selected().has(run.id) ? [k] : [])),
+          aggregate: this.aggregateShown(),
+          places: this.places(),
+          settings: this.settings(),
+        })
       : [],
   );
   protected readonly summaryTitle = computed(() => {
