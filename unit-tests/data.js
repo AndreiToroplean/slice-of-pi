@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791854736757,
+  "lastUpdate": 1791854843253,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -838,6 +838,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 370,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "01e3563d358f614c53720fdb21eac693b98b680d",
+          "message": "feat: wait for a pull request preview that isn't built yet\n\nOpening pr-<number>/ before its preview is published served the main game, which sent it to the main menu. It now says the preview isn't built yet, checks for it every 10 seconds and opens it as soon as it's there.\n\nClaude-Session: https://claude.ai/code/session_01WufhSXTzMb33BDLqTLL9kb",
+          "timestamp": "2026-10-13T03:26:55+02:00",
+          "tree_id": "df65dfbde9750f8e6a1cc1d4dabd8c57a56503b8",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/01e3563d358f614c53720fdb21eac693b98b680d"
+        },
+        "date": 1791854842503,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 6218,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 10418,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 353,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
