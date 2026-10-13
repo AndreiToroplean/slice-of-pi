@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791854843253,
+  "lastUpdate": 1791920162997,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -878,6 +878,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 353,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "noreply@anthropic.com",
+            "name": "Claude",
+            "username": "claude"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "8e9fce3cc4507380bcd083933eea711b52ff133d",
+          "message": "feat: put the runs back in chronological order in developer mode\n\nA Reorder Chronologically button over the runs on Your Runs, in developer mode, puts them back in the order they were played in. The \"You are here\" line stays under as many runs. It's disabled while they already are.\n\nClaude-Session: https://claude.ai/code/session_01V4tNUM6Dzriir7WcQ7Kr8E",
+          "timestamp": "2026-10-13T21:35:37+02:00",
+          "tree_id": "2ff5ea7d2facdc413ceceb00be439b9808753c36",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/8e9fce3cc4507380bcd083933eea711b52ff133d"
+        },
+        "date": 1791920162356,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 6820,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 12302,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 366,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
