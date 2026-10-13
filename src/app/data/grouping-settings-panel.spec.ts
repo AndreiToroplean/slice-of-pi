@@ -1,16 +1,23 @@
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { installDialogs, uninstallDialogs } from '../../testing/fake-dialogs';
+import { installPopovers, uninstallPopovers } from '../../testing/fake-popovers';
 import { WRITE_CLIPBOARD } from '../developer/copy-values';
 import { DeveloperMode } from '../developer/developer-mode';
 import { groupingText, Tweaks } from '../developer/tweaks';
 import { INDEXED_DB, IS_PREVIEW } from '../runs/run-store';
 import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
-import { CONTROLS, GroupingSettingsPanel, oneIn } from './grouping-settings-panel';
+import { CONTROLS, GroupingSettingsPanel, oneIn, SETTING_TABS } from './grouping-settings-panel';
 
 describe('GroupingSettingsPanel', () => {
-  beforeEach(installDialogs);
-  afterEach(uninstallDialogs);
+  beforeEach(() => {
+    installDialogs();
+    installPopovers();
+  });
+  afterEach(() => {
+    uninstallDialogs();
+    uninstallPopovers();
+  });
 
   let copied: string[];
 
@@ -84,6 +91,32 @@ describe('GroupingSettingsPanel', () => {
     }
     expect(slider(host, 'window').value).toBe('21');
     expect(slider(host, 'window').getAttribute('aria-valuetext')).toBe('21 intervals');
+  });
+
+  it('puts every setting in one tab, a few to a tab', () => {
+    const keys = SETTING_TABS.flatMap((tab) => tab.keys);
+
+    expect(keys).toHaveLength(CONTROLS.length);
+    expect(new Set(keys)).toEqual(new Set(CONTROLS.map((control) => control.key)));
+    expect(Math.max(...SETTING_TABS.map((tab) => tab.keys.length))).toBeLessThanOrEqual(5);
+  });
+
+  it('shows one tab at a time, the runs first', async () => {
+    const { host, detect } = await setUp();
+    const shown = (): string[] =>
+      Array.from(
+        host.querySelectorAll<HTMLElement>('[role="tabpanel"]:not([hidden])'),
+        (pane) => pane.id,
+      );
+
+    expect(shown()).toEqual(['pane-Runs']);
+    buttonLabelled(host, 'Mixture').click();
+    detect();
+
+    expect(shown()).toEqual(['pane-Mixture']);
+    expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent.trim()).toBe(
+      'Mixture',
+    );
   });
 
   it('changes the setting as its slider moves, and shows its value', async () => {

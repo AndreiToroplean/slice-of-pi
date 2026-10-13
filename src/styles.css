@@ -423,6 +423,7 @@ html:active-view-transition-type(zoom-out) {
 }
 
 .dropdown a,
+.dropdown button,
 .dropdown .toggle {
   display: block;
   padding: 0.75rem 1rem;
@@ -450,12 +451,36 @@ html:active-view-transition-type(zoom-out) {
   accent-color: var(--candy-primary);
 }
 
+.dropdown button {
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdown button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* A line between the items of a dropdown. */
+.dropdown hr {
+  margin: var(--space-1) 0.5rem;
+  border: none;
+  border-top: 1px solid var(--frost-highlight);
+}
+
 .dropdown a:active,
+.dropdown button:not(:disabled):active,
 .dropdown .toggle:active {
   background: var(--frost-pressed);
 }
 
-.dropdown a:focus-visible {
+.dropdown a:focus-visible,
+.dropdown button:focus-visible {
   outline: 0.1875rem solid var(--focus-ring);
   outline-offset: -0.1875rem;
 }

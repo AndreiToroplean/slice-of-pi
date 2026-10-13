@@ -1,5 +1,6 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
 import { CdkScrollable } from '@angular/cdk/scrolling';
+import { NgTemplateOutlet } from '@angular/common';
 import {
   afterNextRender,
   ChangeDetectorRef,
@@ -28,9 +29,9 @@ import { RunChart } from './run-chart';
 import { ChartBreak, chartTop, digitTimes } from './run-charts';
 
 /**
- * The player's runs, opened from the main menu's overflow menu: a chart of each run and one of them all, sticking to the
- * bottom of the whole page. In developer mode, the hyperparameters of the break model can be tuned above the runs,
- * staying in view of the chart of them all. A long press on a run opens its context menu, to delete it or, in developer
+ * The player's runs, opened from the main menu's overflow menu, on one screen: a chart of them all on top, and under it
+ * a chart of each run, scrolling. In developer mode, tabs beside the runs hold sliders for the hyperparameters of the
+ * break model, so they can be tuned in view of the chart of them all, and never moved by scrolling. A long press on a run opens its context menu, to delete it or, in developer
  * mode, play from it, as if it and the runs after it had never been played, until undone.
  */
 @Component({
@@ -43,11 +44,12 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
     ContextMenu,
     GroupingSettingsPanel,
     LongPress,
+    NgTemplateOutlet,
     Page,
     RunChart,
   ],
   template: `
-    <app-page title="Your Runs" cdkScrollable>
+    <app-page title="Your Runs">
       <button
         pageAction
         type="button"
@@ -57,29 +59,66 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
       >
         Delete All Runs
       </button>
-      @if (developerMode()) {
-        <app-grouping-settings-panel>
-          <div class="unchecked">
-            <label class="check">
-              <input
-                type="checkbox"
-                [checked]="includeUnchecked()"
-                (change)="setIncludeUnchecked($event)"
-              />
-              Count unchecked runs
-            </label>
-            <button
-              type="button"
-              class="candy danger"
-              [disabled]="uncheckedRuns().length === 0"
-              (click)="deleteUnchecked()"
-            >
-              Delete Unchecked Runs
-            </button>
-          </div>
-        </app-grouping-settings-panel>
+      @if (charts().length > 0) {
+        <article class="panel summary">
+          <h3>{{ order().line === undefined ? 'All runs' : 'Runs before here' }}</h3>
+          <app-run-chart
+            [values]="aggregateChart().times"
+            [baseline]="aggregateChart().baseline"
+            [breaks]="aggregateChart().breaks"
+            [confidence]="aggregateChart().confidence"
+            [places]="places()"
+            [top]="top()"
+            label="Time per digit over all runs, recent ones weighing more, with your usual break spots"
+          />
+          <p class="axis" aria-hidden="true">
+            <span>Place 1</span><span>Place {{ places() }}</span>
+          </p>
+          <ul class="groups" aria-label="Your groups" tabindex="0">
+            @for (group of groups(); track group.start) {
+              <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
+            }
+          </ul>
+        </article>
       }
-      <section class="runs">
+      @if (developerMode()) {
+        <app-grouping-settings-panel (told)="message.set($event)">
+          <ng-container [ngTemplateOutlet]="runList" />
+          <label menuItem class="toggle unchecked">
+            <input
+              type="checkbox"
+              [checked]="includeUnchecked()"
+              (change)="setIncludeUnchecked($event)"
+            />
+            Count Unchecked Runs
+          </label>
+          <button
+            menuItem
+            type="button"
+            [disabled]="chronological()"
+            (click)="reorderChronologically()"
+          >
+            Reorder Runs Chronologically
+          </button>
+          <hr menuItem />
+          <button
+            menuItem
+            type="button"
+            [disabled]="uncheckedRuns().length === 0"
+            (click)="deleteUnchecked()"
+          >
+            Delete Unchecked Runs
+          </button>
+        </app-grouping-settings-panel>
+      } @else {
+        <ng-container [ngTemplateOutlet]="runList" />
+      }
+      <!-- A run's context menu, opened by a long press on it. -->
+      <app-context-menu [entries]="runMenuEntries()" />
+    </app-page>
+    <!-- The runs, scrolling under the chart of them all: the only part of the page that scrolls. -->
+    <ng-template #runList>
+      <section class="runs" cdkScrollable>
         <p class="message" role="status">{{ message() }}</p>
         @if (charts().length === 0) {
           @if (loaded()) {
@@ -97,16 +136,6 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
             <li><i class="break"></i>Break</li>
             <li><i class="confidence"></i>Confidence trend, for all runs</li>
           </ul>
-          @if (developerMode()) {
-            <button
-              type="button"
-              class="candy small reorder"
-              [disabled]="chronological()"
-              (click)="reorderChronologically()"
-            >
-              Reorder Chronologically
-            </button>
-          }
           <!-- In developer mode, the runs can be dragged into another order, across the line too. -->
           <div
             class="list"
@@ -182,31 +211,7 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
           </div>
         }
       </section>
-      <!-- A run's context menu, opened by a long press on it. -->
-      <app-context-menu [entries]="runMenuEntries()" />
-      @if (charts().length > 0) {
-        <article class="panel summary">
-          <h3>{{ order().line === undefined ? 'All runs' : 'Runs before here' }}</h3>
-          <app-run-chart
-            [values]="aggregateChart().times"
-            [baseline]="aggregateChart().baseline"
-            [breaks]="aggregateChart().breaks"
-            [confidence]="aggregateChart().confidence"
-            [places]="places()"
-            [top]="top()"
-            label="Time per digit over all runs, recent ones weighing more, with your usual break spots"
-          />
-          <p class="axis" aria-hidden="true">
-            <span>Place 1</span><span>Place {{ places() }}</span>
-          </p>
-          <ul class="groups" aria-label="Your groups" tabindex="0">
-            @for (group of groups(); track group.start) {
-              <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
-            }
-          </ul>
-        </article>
-      }
-    </app-page>
+    </ng-template>
   `,
   styleUrl: './your-runs.css',
 })

@@ -2,9 +2,9 @@
   display: contents;
 }
 
-/* No padding at the bottom, where the chart of all runs sticks. */
+/* One screen: the chart of all runs on top, and the runs under it scrolling on their own. */
 app-page {
-  padding-bottom: 0;
+  overflow: hidden;
 }
 
 p {
@@ -21,26 +21,6 @@ p {
   display: none;
 }
 
-.unchecked {
-  display: grid;
-  gap: 0.25rem;
-}
-
-.check {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-weight: 500;
-  text-shadow: var(--text-shadow);
-}
-
-.check input {
-  width: 1.125rem;
-  height: 1.125rem;
-  margin: 0;
-  accent-color: var(--candy);
-}
-
 h3 {
   margin: 0;
   font-size: 1rem;
@@ -49,13 +29,16 @@ h3 {
 }
 
 .runs {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: grid;
+  align-content: start;
   gap: 0.75rem;
-  padding-bottom: var(--space-3);
-}
-
-app-page:has(> .summary) .runs {
-  padding-bottom: 0;
+  /* Out to the edges of the page, so that the runs scroll under its padding, keeping room for focus rings. */
+  margin: 0 calc(-1 * var(--space-3)) calc(-1 * var(--space-3) - env(safe-area-inset-bottom));
+  padding: 0.25rem var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
 }
 
 .runs .panel,
@@ -144,17 +127,11 @@ app-page:has(> .summary) .runs {
   opacity: 0.85;
 }
 
-/*
- * The chart of all runs stays at the bottom of the screen while the whole page scrolls under it, so it can be watched
- * while tuning the settings above the runs: a white sheet, like the candy buttons, so it stands out from them.
- */
+/* The chart of all runs, on top: a white sheet, like the candy buttons, so it stands out from the runs. */
 .summary {
-  position: sticky;
-  bottom: 0;
-  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
-  border-radius: 1.5rem 1.5rem 0 0;
+  flex: none;
   background: rgb(255 255 255 / 96%);
-  box-shadow: 0 -6px 24px rgb(30 20 60 / 22%);
+  box-shadow: 0 6px 24px rgb(30 20 60 / 22%);
   color: var(--ink);
 
   & h3,
@@ -208,7 +185,7 @@ app-page:has(> .summary) .runs {
   }
 }
 
-/* The top of the runs: their title, and a small button to delete them all. */
+/* A small button in the top bar, to delete all the runs. */
 .candy.small {
   padding: 0.375rem 0.75rem;
   border-radius: 0.875rem;
@@ -223,7 +200,7 @@ app-page:has(> .summary) .runs {
 
 /*
  * The groups of all runs, as words of digits; those past the trust horizon are dotted. However many there are, they take
- * at most 5 rows, and scroll.
+ * at most 3 rows, and scroll.
  */
 .groups {
   --row: 1.25rem;
@@ -231,7 +208,7 @@ app-page:has(> .summary) .runs {
   display: flex;
   flex-wrap: wrap;
   gap: var(--row-gap) 0.5rem;
-  max-height: calc(5 * var(--row) + 4 * var(--row-gap));
+  max-height: calc(3 * var(--row) + 2 * var(--row-gap));
   overflow-y: auto;
   overscroll-behavior: contain;
   margin: 0.25rem 0 0;
@@ -330,9 +307,4 @@ app-page:has(> .summary) .runs {
     background: var(--frost-pressed);
     box-shadow: 0 8px 28px rgb(30 20 60 / 30%);
   }
-}
-
-/* In developer mode, a button to put the runs back in the order they were played in, over them. */
-.reorder {
-  justify-self: end;
 }
