@@ -228,18 +228,22 @@ export function oneIn(share: number): string {
   return String(Number((1 / share).toFixed(1)));
 }
 
-/** The tabs the sliders are split into, four at most to a tab, the rows of a tab's grid, so that none of them need scrolling. */
+/**
+ * The tabs the sliders are split into, in the order the model uses them: how the runs are weighed, then each run's
+ * baseline, then the mixture that tells breaks from normal intervals, then how breaks make groups. Four at most to a tab,
+ * the rows of a tab's grid, so that none of them need scrolling.
+ */
 export const SETTING_TABS: readonly {
   readonly name: string;
   readonly keys: readonly (keyof BreakSettings)[];
 }[] = [
-  { name: 'Breaks', keys: ['window', 'priorStrength', 'breakThreshold'] },
-  { name: 'Groups', keys: ['recencyDecay', 'level', 'usualThreshold', 'startingSlots'] },
-  { name: 'Prior', keys: ['syntheticRuns', 'syntheticDecay', 'priorBaseline'] },
+  { name: 'Weights', keys: ['recencyDecay', 'syntheticRuns', 'syntheticDecay', 'priorBaseline'] },
+  { name: 'Baseline', keys: ['window', 'priorStrength'] },
   {
     name: 'Mixture',
     keys: ['priorBreakShare', 'priorBreakSize', 'priorNormalSpread', 'priorBreakSpread'],
   },
+  { name: 'Groups', keys: ['breakThreshold', 'usualThreshold', 'level', 'startingSlots'] },
 ];
 
 /** The tab of what is given to the panel. */
@@ -551,7 +555,7 @@ export class GroupingSettingsPanel {
   protected readonly guides = this.chartGuides.shown;
   protected readonly tabs = SETTING_TABS.map(({ name, keys }) => ({
     name,
-    controls: CONTROLS.filter(({ key }) => keys.includes(key)),
+    controls: keys.flatMap((key) => CONTROLS.filter((control) => control.key === key)),
   }));
   protected readonly tabNames = [RUNS_TAB, ...SETTING_TABS.map(({ name }) => name)];
   /** The tab shown. */
