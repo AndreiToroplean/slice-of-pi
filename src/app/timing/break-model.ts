@@ -110,6 +110,8 @@ export interface RunBreaks {
   readonly baseline: Values;
   /** P(break) at each index, from 0 to 1. */
   readonly breakProbability: Values;
+  /** The residual at each index: the log of its interval over its baseline. */
+  readonly residual: Values;
 }
 
 /** A group of digits cut by the usual break spots. */
@@ -273,6 +275,7 @@ export function breakModel(
     return {
       baseline: byIndex(Array.from(baseline, Math.exp)),
       breakProbability: byIndex(Array.from(posterior.subarray(start, at))),
+      residual: byIndex(Array.from(residuals.subarray(start, at))),
     };
   });
   const usual: (number | undefined)[] = [undefined];
@@ -413,6 +416,42 @@ function median(values: Float64Array): number {
   return sorted.length % 2 === 1
     ? (sorted[middle] ?? 0)
     : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+}
+
+/** How dense each component of the mixture is at a residual, weighted by its share: normal intervals, then breaks. */
+export function mixtureDensity(mixture: Mixture, x: number): readonly [number, number] {
+  return [
+    mixture.weight[0] * normalDensity(x, mixture.mean[0], mixture.sd[0]),
+    mixture.weight[1] * normalDensity(x, mixture.mean[1], mixture.sd[1]),
+  ];
+}
+
+/**
+ * The residual over which an interval is taken for a break, as `breakModel` decides with this threshold: where P(break)
+ * first reaches it above the normal mean. `undefined` if it never does within a few spreads of the breaks.
+ */
+export function breakBoundary(mixture: Mixture, threshold: number): number | undefined {
+  const probability = (x: number): number => {
+    const [normal, pause] = mixtureDensity(mixture, x);
+    return pause / (normal + pause || 1);
+  };
+  let low = mixture.mean[0];
+  let high = Math.max(mixture.mean[1], low) + 4 * mixture.sd[1];
+  if (probability(low) >= threshold) {
+    return low;
+  }
+  if (probability(high) < threshold) {
+    return undefined;
+  }
+  for (let round = 0; round < 50; round++) {
+    const middle = (low + high) / 2;
+    if (probability(middle) < threshold) {
+      low = middle;
+    } else {
+      high = middle;
+    }
+  }
+  return high;
 }
 
 function normalDensity(x: number, mean: number, sd: number): number {

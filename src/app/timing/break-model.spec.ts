@@ -1,5 +1,6 @@
 import {
   betaCdf,
+  breakBoundary,
   breakModel,
   BreakModel,
   BreakSettings,
@@ -8,6 +9,7 @@ import {
   finishedRuns,
   fitMixture,
   isotonicDecreasing,
+  mixtureDensity,
   priorMixture,
   trailingMedian,
 } from './break-model';
@@ -129,6 +131,15 @@ describe('break model', () => {
 
       expect(spots(found.runs[0]?.breakProbability ?? [])).toEqual(by3(40));
       expect(spots(found.usual)).toEqual(by3(40));
+    });
+
+    it('gives each interval its residual, the log of its interval over its baseline', () => {
+      const found = model([run(40, by3(40))]);
+      const residual = found.runs[0]?.residual ?? [];
+
+      expect(residual[0]).toBeUndefined();
+      expect(residual[3]).toBeCloseTo(Math.log(700 / (found.runs[0]?.baseline[3] ?? 1)), 6);
+      expect(Math.abs(residual[2] ?? 1)).toBeLessThan(0.2);
     });
 
     it('has no verdict at the first digit', () => {
@@ -357,6 +368,23 @@ describe('break model', () => {
       expect(breakModel(finished, undefined, { ...settings, window: 5 })).toEqual(
         model(runs, undefined, { ...settings, window: 5 }),
       );
+    });
+  });
+
+  describe('the break boundary', () => {
+    const mixture = priorMixture(settings);
+
+    it('is where P(break) reaches the threshold, higher for a higher one', () => {
+      const half = breakBoundary(mixture, 0.5) ?? 0;
+      const [normal, pause] = mixtureDensity(mixture, half);
+
+      expect(pause / (normal + pause)).toBeCloseTo(0.5, 6);
+      expect(breakBoundary(mixture, 0.9) ?? 0).toBeGreaterThan(half);
+      expect(half).toBeGreaterThan(mixture.mean[0]);
+    });
+
+    it('is the normal mean when anything slower is already likely a break', () => {
+      expect(breakBoundary(mixture, 0.0001)).toBe(mixture.mean[0]);
     });
   });
 });

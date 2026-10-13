@@ -390,7 +390,7 @@ describe('YourRuns', () => {
       expect(line()).not.toBe('');
 
       tap(article(host, 1));
-      host.querySelector<HTMLButtonElement>('.aggregate')?.click();
+      host.querySelector<HTMLButtonElement>('button.aggregate')?.click();
       await until(() => line() === '');
 
       expect(others(host)).toBe(1);
