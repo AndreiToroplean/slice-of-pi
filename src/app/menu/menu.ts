@@ -2,9 +2,8 @@ import { NgOptimizedImage } from '@angular/common';
 import { Component, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Background } from '../background/background';
-import { DeveloperGesture } from '../developer/developer-gesture';
 import { DeveloperMode } from '../developer/developer-mode';
-import { DeveloperOverlay } from '../developer/developer-overlay';
+import { DeveloperTaps } from '../developer/developer-taps';
 import { Tweaks } from '../developer/tweaks';
 import { seasonAt } from '../seasons/seasons';
 
@@ -14,20 +13,10 @@ import { seasonAt } from '../seasons/seasons';
  */
 @Component({
   selector: 'app-menu',
-  imports: [NgOptimizedImage, RouterLink, DeveloperGesture, DeveloperOverlay],
+  imports: [NgOptimizedImage, RouterLink, DeveloperTaps],
   host: { class: 'screen' },
   template: `
-    <!-- Holding it opens developer mode's secret gesture. -->
-    <app-developer-overlay [gesture]="gesture" />
-    <button
-      #more
-      #gesture="developerGesture"
-      appDeveloperGesture
-      type="button"
-      class="frosted more"
-      aria-label="More"
-      popovertarget="more-menu"
-    >
+    <button #more type="button" class="frosted more" aria-label="More" popovertarget="more-menu">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="5.5" r="2" />
         <circle cx="12" cy="12" r="2" />
@@ -59,7 +48,16 @@ import { seasonAt } from '../seasons/seasons';
       }
     </nav>
     <div class="title">
-      <img class="icon" ngSrc="icons/icon.webp" width="136" height="136" alt="" priority />
+      <!-- Tapping it ten times in a row turns developer mode on or off. -->
+      <button
+        #taps="developerTaps"
+        appDeveloperTaps
+        type="button"
+        class="icon-button"
+        aria-label="Slice of Pi"
+      >
+        <img class="icon" ngSrc="icons/icon.webp" width="136" height="136" alt="" priority />
+      </button>
       <h1>
         <span class="visually-hidden">{{ name }}</span>
         <!-- The name written in tiles, like the typed digits. -->
@@ -78,6 +76,9 @@ import { seasonAt } from '../seasons/seasons';
         </span>
       </h1>
     </div>
+    <p class="developer-message" role="status" [class.shown]="taps.shown()">
+      {{ taps.message() }}
+    </p>
     <div class="actions">
       <a class="candy primary" routerLink="/play">Play</a>
     </div>
