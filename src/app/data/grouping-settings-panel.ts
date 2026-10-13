@@ -2,6 +2,8 @@ import { Component, computed, ElementRef, inject, output, signal, viewChild } fr
 import { WRITE_CLIPBOARD } from '../developer/copy-values';
 import { groupingText, Tweaks } from '../developer/tweaks';
 import { OverflowMenu } from '../overflow-menu/overflow-menu';
+import { ChartGuides } from './chart-guides';
+import { GUIDE_COLORS } from './model-views';
 import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
 
 /** A slider for one hyperparameter of the break model, with what it means behind a help button. */
@@ -246,8 +248,9 @@ const RUNS_TAB = 'Runs';
 /**
  * Developer mode's tabs on Your Runs: one with what is given to it, the runs, and the others with the sliders for every
  * hyperparameter of the break model, a few to a tab, each with a button bringing back the game's value and a help button
- * opening a dialog that says what it does. Beside the tabs, an overflow menu has buttons to copy the settings' values so
- * they go into the code and to bring back the game's settings, then what is given to it marked `menuItem`.
+ * opening a dialog that says what it does, and, where it acts on a chart, a checkbox to show it there as dashed lines.
+ * Beside the tabs, an overflow menu has buttons to copy the settings' values so they go into the code and to bring back
+ * the game's settings, then what is given to it marked `menuItem`.
  */
 @Component({
   selector: 'app-grouping-settings-panel',
@@ -298,6 +301,16 @@ const RUNS_TAB = 'Runs';
           <div class="setting">
             <div class="top">
               <label [for]="'setting-' + control.key">{{ control.label }}</label>
+              @if (guideColors[control.key]; as color) {
+                <input
+                  type="checkbox"
+                  class="guide"
+                  [style.accent-color]="color"
+                  [attr.aria-label]="'Show ' + control.label.toLowerCase() + ' on the charts'"
+                  [checked]="guides().has(control.key)"
+                  (change)="chartGuides.toggle(control.key)"
+                />
+              }
               <button
                 type="button"
                 class="round"
@@ -465,6 +478,13 @@ const RUNS_TAB = 'Runs';
       font-variant-numeric: tabular-nums;
       opacity: 0.9;
     }
+    /* Shows the setting on the charts, where it acts, as dashed lines. */
+    .guide {
+      width: 1.25rem;
+      height: 1.25rem;
+      margin: 0 0.25rem;
+    }
+
     .round {
       display: grid;
       place-items: center;
@@ -525,6 +545,10 @@ export class GroupingSettingsPanel {
   readonly told = output<string>();
 
   protected readonly runsTab = RUNS_TAB;
+  /** The settings that can be shown on the charts, and those shown. */
+  protected readonly guideColors = GUIDE_COLORS;
+  protected readonly chartGuides = inject(ChartGuides);
+  protected readonly guides = this.chartGuides.shown;
   protected readonly tabs = SETTING_TABS.map(({ name, keys }) => ({
     name,
     controls: CONTROLS.filter(({ key }) => keys.includes(key)),

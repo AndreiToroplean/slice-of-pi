@@ -31,6 +31,9 @@ import { areaPath, CHART_HEIGHT, ChartBreak, chartPath, Series } from './run-cha
           [attr.stroke-opacity]="0.25 + 0.75 * bar.strength"
         />
       }
+      @for (guide of guidePaths(); track $index) {
+        <path class="guide" [style.stroke]="guide.color" [attr.d]="guide.d" />
+      }
       @for (path of otherPaths(); track $index) {
         <path class="other" [attr.d]="path" />
       }
@@ -75,6 +78,14 @@ import { areaPath, CHART_HEIGHT, ChartBreak, chartPath, Series } from './run-cha
       stroke-opacity: 0.7;
     }
 
+    .guide {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.25;
+      stroke-dasharray: 4 3;
+      vector-effect: non-scaling-stroke;
+    }
+
     .other {
       fill: none;
       stroke: currentColor;
@@ -111,6 +122,8 @@ export class RunChart {
   readonly confidence = input<Series>([]);
   /** Other series to compare the values with, drawn thinner and fainter, such as the times of other runs. */
   readonly others = input<readonly Series[]>([]);
+  /** The settings shown on the chart, as dashed lines of times, each in its color. */
+  readonly guides = input<readonly { readonly series: Series; readonly color: string }[]>([]);
 
   protected readonly height = CHART_HEIGHT;
   /** From place 1 at x = 0 to the last place. */
@@ -120,6 +133,9 @@ export class RunChart {
   );
   protected readonly path = computed(() => chartPath(this.values(), this.top()));
   protected readonly baselinePath = computed(() => chartPath(this.baseline(), this.top()));
+  protected readonly guidePaths = computed(() =>
+    this.guides().map(({ series, color }) => ({ d: chartPath(series, this.top()), color })),
+  );
   protected readonly otherPaths = computed(() =>
     this.others().map((series) => chartPath(series, this.top())),
   );
