@@ -15,7 +15,22 @@
   gap: 1.5rem;
 }
 
+/* The game's icon is a button only for developer mode's secret taps: it looks like the icon alone. */
+.icon-button {
+  padding: 0;
+  border: none;
+  border-radius: 1.75rem;
+  background: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.icon-button:focus-visible {
+  outline: 0.1875rem solid var(--focus-ring);
+  outline-offset: 0.25rem;
+}
+
 .icon {
+  display: block;
   border-radius: 1.75rem;
   box-shadow: 0 6px 24px rgb(40 20 60 / 22%);
 }
@@ -81,19 +96,9 @@ h1 {
   height: 2.75rem;
   padding: 0;
   border-radius: 50%;
-  z-index: 2;
-  /* Dragged in developer mode's gesture, without scrolling the page. */
-  touch-action: none;
   transition:
     scale 0.08s,
-    background-color 0.15s,
-    translate var(--duration-screen) var(--ease);
-}
-
-/* Follows the finger, without lagging behind. */
-.more.dragged {
-  scale: 1.15;
-  transition: scale var(--duration-dialog) var(--ease);
+    background-color 0.15s;
 }
 
 .more svg {
@@ -192,4 +197,27 @@ h1 {
   text-transform: uppercase;
   opacity: 0.85;
   text-shadow: var(--text-shadow);
+}
+
+/* What developer mode's secret taps say, above the title, without covering it. */
+.developer-message {
+  position: absolute;
+  top: 16vh;
+  left: var(--space-3);
+  right: var(--space-3);
+  margin: 0 auto;
+  max-width: 16rem;
+  text-align: center;
+  font-family: var(--font-digits);
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-wrap: balance;
+  text-shadow: var(--text-shadow-large);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-screen) var(--ease);
+}
+
+.developer-message.shown {
+  opacity: 1;
 }
