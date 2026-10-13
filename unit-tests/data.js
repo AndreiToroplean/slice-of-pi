@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791850229194,
+  "lastUpdate": 1791851330072,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -758,6 +758,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 339,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "a7f08767ee7a8be3e15c516cdf52086750b5bcdd",
+          "message": "feat: title-case page titles\n\nThe pages opened from the main menu's ⋮ menu now have the same title case as the menu items opening them.\n\nClaude-Session: https://claude.ai/code/session_01DvdnMk1DwDH1eJNjF8xav8",
+          "timestamp": "2026-10-13T02:28:27+02:00",
+          "tree_id": "49aed3f6cb0d09b308efc7fe8d54b6d75646f956",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/a7f08767ee7a8be3e15c516cdf52086750b5bcdd"
+        },
+        "date": 1791851329530,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5946,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 9937,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 363,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
