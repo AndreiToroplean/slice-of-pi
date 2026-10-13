@@ -228,7 +228,7 @@ export function oneIn(share: number): string {
   return String(Number((1 / share).toFixed(1)));
 }
 
-/** The tabs the sliders are split into, a few to a tab, so that none of them need scrolling. */
+/** The tabs the sliders are split into, four at most to a tab, the rows of a tab's grid, so that none of them need scrolling. */
 export const SETTING_TABS: readonly {
   readonly name: string;
   readonly keys: readonly (keyof BreakSettings)[];
@@ -426,17 +426,16 @@ const RUNS_TAB = 'Runs';
       display: none;
     }
 
-    /* The sliders, from the top, each as tall as the others whatever its label and value. */
+    /* Four rows sharing the height left, one slider to a row, so that a tab's sliders always fit. */
     .settings {
       display: grid;
-      align-content: start;
-      gap: var(--space-3);
-      padding: var(--space-1) var(--space-1) 0;
+      grid-template-rows: repeat(4, minmax(min-content, 1fr));
+      padding: 0 var(--space-1);
     }
 
     .setting {
       display: grid;
-      gap: 0.125rem;
+      align-content: center;
     }
 
     .top {
@@ -462,6 +461,7 @@ const RUNS_TAB = 'Runs';
     /* The label and the value on lines of their own, so that neither wraps the other. */
     label,
     output {
+      line-height: 1.2;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
@@ -474,22 +474,22 @@ const RUNS_TAB = 'Runs';
     }
 
     output {
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
       font-variant-numeric: tabular-nums;
       opacity: 0.9;
     }
     /* Shows the setting on the charts, where it acts, as dashed lines. */
     .guide {
-      width: 1.25rem;
-      height: 1.25rem;
+      width: 1.125rem;
+      height: 1.125rem;
       margin: 0 0.25rem;
     }
 
     .round {
       display: grid;
       place-items: center;
-      width: 1.75rem;
-      height: 1.75rem;
+      width: 1.5rem;
+      height: 1.5rem;
       padding: 0;
       border: none;
       border-radius: 50%;
@@ -504,8 +504,8 @@ const RUNS_TAB = 'Runs';
     }
 
     .round svg {
-      width: 1rem;
-      height: 1rem;
+      width: 0.875rem;
+      height: 0.875rem;
       fill: none;
       stroke: currentColor;
       stroke-width: 2.4;
