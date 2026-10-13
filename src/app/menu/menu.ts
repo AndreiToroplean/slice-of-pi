@@ -1,10 +1,11 @@
 import { NgOptimizedImage } from '@angular/common';
-import { Component, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Background } from '../background/background';
 import { DeveloperMode } from '../developer/developer-mode';
 import { DeveloperTaps } from '../developer/developer-taps';
 import { Tweaks } from '../developer/tweaks';
+import { OverflowMenu } from '../overflow-menu/overflow-menu';
 import { seasonAt } from '../seasons/seasons';
 
 /**
@@ -13,26 +14,10 @@ import { seasonAt } from '../seasons/seasons';
  */
 @Component({
   selector: 'app-menu',
-  imports: [NgOptimizedImage, RouterLink, DeveloperTaps],
+  imports: [NgOptimizedImage, RouterLink, DeveloperTaps, OverflowMenu],
   host: { class: 'screen' },
   template: `
-    <button #more type="button" class="frosted more" aria-label="More" popovertarget="more-menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="5.5" r="2" />
-        <circle cx="12" cy="12" r="2" />
-        <circle cx="12" cy="18.5" r="2" />
-      </svg>
-    </button>
-    <!-- A simple dropdown under the button: the browser closes it on a tap outside or on Escape. -->
-    <nav
-      id="more-menu"
-      class="dropdown"
-      popover
-      aria-label="More"
-      [style.top.px]="dropdownAt().top"
-      [style.right.px]="dropdownAt().right"
-      (beforetoggle)="placeDropdown()"
-    >
+    <app-overflow-menu>
       <a routerLink="/runs">Your Runs</a>
       <a routerLink="/data">Your Data</a>
       @if (developerMode.enabled()) {
@@ -46,7 +31,7 @@ import { seasonAt } from '../seasons/seasons';
           </label>
         </div>
       }
-    </nav>
+    </app-overflow-menu>
     <div class="title">
       <!-- Tapping it ten times in a row turns developer mode on or off. -->
       <button
@@ -89,14 +74,10 @@ export class Menu {
   protected readonly name = 'Slice of Pi';
   /** The name's words, line by line: "Pi" stands on its own line, bigger. */
   protected readonly lines = [['Slice', 'of'], ['Pi']];
-  /** Where the dropdown opens, from the top right corner of the window, just under its button. */
-  protected readonly dropdownAt = signal({ top: 0, right: 0 });
   protected readonly developerMode = inject(DeveloperMode);
 
   /** The values tuned in developer mode, checking the digits among them. */
   protected readonly tweaks = inject(Tweaks);
-
-  private readonly more = viewChild.required<ElementRef<HTMLButtonElement>>('more');
 
   constructor() {
     // The background of a new game, so that playing starts on the same colors.
@@ -111,14 +92,5 @@ export class Menu {
   /** Turns checking the digits on or off, from developer mode. */
   protected setChecking(event: Event): void {
     void this.tweaks.setChecking((event.target as HTMLInputElement).checked);
-  }
-
-  /** Puts the dropdown under its button. It opens in the top layer, positioned against the window. */
-  protected placeDropdown(): void {
-    const button = this.more().nativeElement.getBoundingClientRect();
-    this.dropdownAt.set({
-      top: button.bottom + 6,
-      right: document.documentElement.clientWidth - button.right,
-    });
   }
 }
