@@ -331,3 +331,8 @@ app-page:has(> .summary) .runs {
     box-shadow: 0 8px 28px rgb(30 20 60 / 30%);
   }
 }
+
+/* In developer mode, a button to put the runs back in the order they were played in, over them. */
+.reorder {
+  justify-self: end;
+}
