@@ -81,60 +81,6 @@ app-page:has(> .summary) .runs {
   }
 }
 
-/* A run's context menu: a small white sheet over the run pressed, like the chart of all runs, that fades in and grows. */
-.run-menu {
-  position: fixed;
-  inset: auto;
-  margin: 0;
-  width: 11rem;
-  padding: var(--space-1);
-  border: none;
-  border-radius: 1.125rem;
-  background: rgb(255 255 255 / 96%);
-  box-shadow: 0 8px 28px rgb(30 20 60 / 30%);
-  color: var(--ink);
-  opacity: 0;
-  scale: 0.85;
-  transition:
-    opacity var(--duration-dialog) var(--ease),
-    scale var(--duration-dialog) var(--ease),
-    overlay var(--duration-dialog) allow-discrete,
-    display var(--duration-dialog) allow-discrete;
-
-  &:popover-open {
-    opacity: 1;
-    scale: 1;
-
-    @starting-style {
-      opacity: 0;
-      scale: 0.85;
-    }
-  }
-
-  & button {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: none;
-    border-radius: 0.75rem;
-    background: none;
-    color: inherit;
-    font: inherit;
-    font-weight: 500;
-    text-align: left;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  & button:active {
-    background: rgb(30 20 60 / 8%);
-  }
-
-  & button:focus-visible {
-    outline: 0.1875rem solid var(--focus-ring);
-    outline-offset: -0.1875rem;
-  }
-}
-
 /* Its button to undo it, like those bringing back a grouping setting. */
 .here .undo {
   display: grid;
