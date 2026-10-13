@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791920162997,
+  "lastUpdate": 1791929089863,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -918,6 +918,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 366,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "10708d638f8292968d362da939d91823faa789f3",
+          "message": "feat: put Your Runs on one screen, with the grouping sliders in tabs\n\nThe chart of all runs is now a card at the top, and the runs scroll under it on their own. In developer mode, tabs beside the runs hold the sliders, three or four to a tab, so they never scroll and scrolling never moves them; each slider shows its label and its value on lines of their own, so a long value no longer wraps the label. The page's other developer buttons move into an overflow menu on the tabs' row, Delete All Runs staying in the top bar, and Reorder Chronologically becomes Reorder Runs Chronologically.\n\nClaude-Session: https://claude.ai/code/session_015oLHHDsncG24iChrwqcjnG",
+          "timestamp": "2026-10-14T00:04:24+02:00",
+          "tree_id": "72d24c872d16482038d91382ce045c6755b7d309",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/10708d638f8292968d362da939d91823faa789f3"
+        },
+        "date": 1791929089008,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 6750,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 11865,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 388,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
