@@ -94,12 +94,12 @@ describe('GroupingSettingsPanel', () => {
     expect(slider(host, 'window').getAttribute('aria-valuetext')).toBe('21 intervals');
   });
 
-  it('puts every setting in one tab, a few to a tab', () => {
+  it('puts every setting in one tab, four at most to a tab', () => {
     const keys = SETTING_TABS.flatMap((tab) => tab.keys);
 
     expect(keys).toHaveLength(CONTROLS.length);
     expect(new Set(keys)).toEqual(new Set(CONTROLS.map((control) => control.key)));
-    expect(Math.max(...SETTING_TABS.map((tab) => tab.keys.length))).toBeLessThanOrEqual(5);
+    expect(Math.max(...SETTING_TABS.map((tab) => tab.keys.length))).toBeLessThanOrEqual(4);
   });
 
   it('shows one tab at a time, the runs first', async () => {
