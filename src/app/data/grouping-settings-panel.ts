@@ -37,8 +37,8 @@ export const CONTROLS: readonly Control[] = [
     step: 0.01,
     format: (value) =>
       value < 1
-        ? `${value.toFixed(2)}, half weight ${(Math.log(0.5) / Math.log(value)).toFixed(1)} runs back`
-        : '1, every run the same',
+        ? `${value.toFixed(2)} (half weight ${(Math.log(0.5) / Math.log(value)).toFixed(1)} runs back)`
+        : '1 (every run the same)',
     help: {
       what: 'How much each run counts compared with the one after it: a run’s weight is this to the power of its age, the newest run counting 1. At 0.9, the run before the newest counts 0.9, one about 7 runs back half, and one 22 runs back a tenth.',
       why: 'So that the game follows you when you regroup some digits, without one odd run flipping your groups. The weights fade smoothly, so no run suddenly drops out. They count everywhere: in telling breaks apart, in your usual break spots and in how far they’re trusted.',
@@ -108,7 +108,7 @@ export const CONTROLS: readonly Control[] = [
     min: 100,
     max: 1000,
     step: 10,
-    format: (value) => `${String(value)} ms`,
+    format: (value) => `${String(value)} ms (${perSecond(value)} digits/s)`,
     help: {
       what: 'The typical interval of the synthetic runs: how fast the game expects you to type before your own runs say so.',
       why: 'Your first run has no earlier runs to say how fast you type, so the game needs a best guess. It mostly matters for the first digits of your first runs: your own intervals soon take over.',
@@ -122,9 +122,9 @@ export const CONTROLS: readonly Control[] = [
     min: 0.02,
     max: 0.5,
     step: 0.01,
-    format: (value) => `1 / ${oneIn(value)} digits`,
+    format: (value) => `${value.toFixed(2)} (1 in ${oneIn(value)} digits)`,
     help: {
-      what: 'The share of intervals the prior mixture expects to be breaks, as one digit out of how many. At 1 / 6.7 digits, groups of 6 or 7 on average.',
+      what: 'The share of intervals the prior mixture expects to be breaks, shown with one digit out of how many that makes. At 0.15, 1 in 6.7 digits, groups of 6 or 7 on average.',
       why: 'The mixture has two kinds of intervals, normal ones and breaks, each in some share. How likely an interval is a break depends on how common breaks are, not only on how long it is.',
       moving:
         'Higher makes shorter pauses count as breaks, so more and smaller groups at first. Lower asks for longer pauses.',
@@ -214,6 +214,11 @@ export const CONTROLS: readonly Control[] = [
     },
   },
 ];
+
+/** How many digits per second an interval makes: `300` ms is 3.3 digits a second. */
+function perSecond(milliseconds: number): string {
+  return String(Number((1000 / milliseconds).toFixed(1)));
+}
 
 /** How many digits hold one, for a share of them: `0.15` is one digit out of 6.7. */
 export function oneIn(share: number): string {
