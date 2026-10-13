@@ -7,7 +7,13 @@ const HEIGHT = 100;
 
 /** A drawn mark: its SVG element, and where it goes. */
 type Mark =
-  | { readonly shape: 'path'; readonly d: string; readonly role: string; readonly dots: boolean }
+  | {
+      readonly shape: 'path';
+      readonly d: string;
+      readonly role: string;
+      readonly dots: boolean;
+      readonly color?: string | undefined;
+    }
   | {
       readonly shape: 'rect';
       readonly x: number;
@@ -37,7 +43,12 @@ type Mark =
             [attr.height]="mark.height"
           />
         } @else {
-          <path [class]="mark.role" [class.dots]="mark.dots" [attr.d]="mark.d" />
+          <path
+            [class]="mark.role"
+            [class.dots]="mark.dots"
+            [style.stroke]="mark.color"
+            [attr.d]="mark.d"
+          />
         }
       }
     </svg>
@@ -136,7 +147,7 @@ function marksOf(layer: Layer, x: (value: number) => number, y: (value: number) 
         d += drawing ? `L${at(point)}` : `M${at(point)}h0`;
         drawing = true;
       }
-      return [{ shape: 'path', d, role: layer.role, dots: false }];
+      return [{ shape: 'path', d, role: layer.role, dots: false, color: layer.color }];
     }
     case 'dots':
       return [
@@ -154,6 +165,7 @@ function marksOf(layer: Layer, x: (value: number) => number, y: (value: number) 
           d: `M0 ${round(y(layer.y))}H${String(WIDTH)}`,
           role: layer.role,
           dots: false,
+          color: layer.color,
         },
       ];
     case 'vline':
@@ -163,6 +175,7 @@ function marksOf(layer: Layer, x: (value: number) => number, y: (value: number) 
           d: `M${round(x(layer.x))} 0V${String(HEIGHT)}`,
           role: layer.role,
           dots: false,
+          color: layer.color,
         },
       ];
     case 'band': {

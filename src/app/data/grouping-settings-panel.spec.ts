@@ -7,6 +7,7 @@ import { DeveloperMode } from '../developer/developer-mode';
 import { groupingText, Tweaks } from '../developer/tweaks';
 import { INDEXED_DB, IS_PREVIEW } from '../runs/run-store';
 import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
+import { ChartGuides } from './chart-guides';
 import { CONTROLS, GroupingSettingsPanel, oneIn, SETTING_TABS } from './grouping-settings-panel';
 
 describe('GroupingSettingsPanel', () => {
@@ -117,6 +118,23 @@ describe('GroupingSettingsPanel', () => {
     expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent.trim()).toBe(
       'Mixture',
     );
+  });
+
+  it('shows a setting on the charts while its checkbox is checked', async () => {
+    const { host, detect } = await setUp();
+    const checkbox = host.querySelector<HTMLInputElement>(
+      'input[aria-label="Show prior baseline on the charts"]',
+    );
+    const shown = TestBed.inject(ChartGuides).shown;
+
+    checkbox?.click();
+    detect();
+    expect([...shown()]).toEqual(['priorBaseline']);
+    expect(checkbox?.checked).toBe(true);
+
+    checkbox?.click();
+    expect(shown().size).toBe(0);
+    expect(host.querySelector('input[aria-label="Show window on the charts"]')).toBeNull();
   });
 
   it('changes the setting as its slider moves, and shows its value', async () => {
