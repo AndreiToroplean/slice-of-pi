@@ -49,12 +49,22 @@ describe('Menu', () => {
     expect(TestBed.inject(Background).colors()).toEqual(seasonAt(0).background);
   });
 
+  function link(host: HTMLElement, label: string): HTMLAnchorElement | undefined {
+    return Array.from(host.querySelectorAll('a')).find(
+      (anchor) => anchor.textContent.trim() === label,
+    );
+  }
+
   it('starts a game with the play button', async () => {
     const host = await setUp();
 
-    const play = host.querySelector('a.candy');
-    expect(play?.textContent.trim()).toBe('Play');
-    expect(play?.getAttribute('href')).toBe('/play');
+    expect(link(host, 'Play')?.getAttribute('href')).toBe('/play');
+  });
+
+  it('opens the player’s runs', async () => {
+    const host = await setUp();
+
+    expect(link(host, 'Your Runs')?.getAttribute('href')).toBe('/runs');
   });
 
   describe('in developer mode', () => {
