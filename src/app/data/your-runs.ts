@@ -1,5 +1,6 @@
-import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
-import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { ContextMenu, MenuEntry } from '../context-menu/context-menu';
 import { DeveloperMode } from '../developer/developer-mode';
 import { Tweaks } from '../developer/tweaks';
 import { Page } from '../page/page';
@@ -23,7 +24,7 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
  */
 @Component({
   selector: 'app-your-runs',
-  imports: [GroupingSettingsPanel, LongPress, NgTemplateOutlet, Page, RunChart],
+  imports: [ContextMenu, GroupingSettingsPanel, LongPress, NgTemplateOutlet, Page, RunChart],
   template: `
     <app-page title="Your Runs">
       <button
@@ -125,16 +126,7 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
         </div>
       </ng-template>
       <!-- A run's context menu, opened by a long press on it, in developer mode. -->
-      <div
-        #runMenu
-        class="run-menu"
-        popover
-        [style.top.px]="menuAt().y"
-        [style.left.px]="menuAt().x"
-        (toggle)="menuToggled($event)"
-      >
-        <button type="button" (click)="playFromPicked()">Play from Here</button>
-      </div>
+      <app-context-menu [entries]="runMenuEntries()" />
       @if (charts().length > 0) {
         <article class="panel summary">
           <h3>{{ playFrom() === undefined ? 'All runs' : 'Runs before here' }}</h3>
@@ -245,11 +237,18 @@ export class YourRuns {
   protected readonly hereAtEnd = computed(
     () => this.playFrom() !== undefined && this.order().before === this.order().runs.length,
   );
-  /** The run whose context menu is open, if any, and where the menu opens. */
-  private readonly picked = signal<string | undefined>(undefined);
-  protected readonly menuAt = signal({ x: 0, y: 0 });
-  private readonly runMenu = viewChild.required<ElementRef<HTMLElement>>('runMenu');
-  private readonly window = inject(DOCUMENT).defaultView;
+  /** The run whose context menu was last opened. */
+  private picked: string | undefined;
+  private readonly runMenu = viewChild.required(ContextMenu);
+  /** What a run's context menu offers. */
+  protected readonly runMenuEntries = computed((): MenuEntry[] => [
+    {
+      label: 'Play from Here',
+      action: () => {
+        this.playFromPicked();
+      },
+    },
+  ]);
 
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
@@ -269,28 +268,16 @@ export class YourRuns {
     if (!this.developerMode()) {
       return;
     }
-    // Over the run pressed, within the window.
-    const width = this.window?.innerWidth ?? Infinity;
-    this.menuAt.set({
-      x: Math.max(MENU_MARGIN, Math.min(at.x - MENU_WIDTH / 2, width - MENU_WIDTH - MENU_MARGIN)),
-      y: at.y + 8,
-    });
-    this.picked.set(id);
-    this.runMenu().nativeElement.showPopover();
-  }
-
-  protected menuToggled(event: Event): void {
-    if ((event as ToggleEvent).newState === 'closed') {
-      this.picked.set(undefined);
-    }
+    this.picked = id;
+    this.runMenu().open(at);
   }
 
   /**
    * Plays from just before the run picked, as if only the runs before it had been played, in the order shown: if the
    * game already plays from somewhere, the runs keep the order it takes them in.
    */
-  protected playFromPicked(): void {
-    const at = this.order().runs.findIndex((run) => run.id === this.picked());
+  private playFromPicked(): void {
+    const at = this.order().runs.findIndex((run) => run.id === this.picked);
     const previous = this.playFrom();
     if (at !== -1) {
       void this.tweaks.setPlayFrom({
@@ -299,7 +286,6 @@ export class YourRuns {
         ...(previous === undefined ? {} : { previous }),
       });
     }
-    this.runMenu().nativeElement.hidePopover();
   }
 
   protected undoPlayFrom(): void {
@@ -353,10 +339,6 @@ function breaksOf(probabilities: Values, threshold: number): ChartBreak[] {
       : [],
   );
 }
-
-/** The width of a run's context menu, and how close it comes to the sides of the window, in pixels. */
-const MENU_WIDTH = 176;
-const MENU_MARGIN = 12;
 
 const dateAndTime = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
