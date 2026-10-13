@@ -4,10 +4,11 @@ import { LONG_PRESS_MS, LONG_PRESS_SLOP, LongPress } from './long-press';
 
 @Component({
   imports: [LongPress],
-  template: `<div (appLongPress)="points.push($event)"></div>`,
+  template: `<div (appLongPress)="points.push($event)" (appTap)="taps = taps + 1"></div>`,
 })
 class Host {
   points: { x: number; y: number }[] = [];
+  taps = 0;
   get presses(): number {
     return this.points.length;
   }
@@ -42,13 +43,25 @@ describe('LongPress', () => {
     expect(host.points).toEqual([{ x: 30, y: 0 }]);
   });
 
-  it('gives up a press let go of too soon', () => {
+  it('tells a press let go of too soon as a tap', () => {
     pointer('pointerdown');
     vi.advanceTimersByTime(LONG_PRESS_MS / 2);
     pointer('pointerup');
     vi.advanceTimersByTime(LONG_PRESS_MS);
 
     expect(host.presses).toBe(0);
+    expect(host.taps).toBe(1);
+  });
+
+  it('tells no tap for a long press, nor for a press that moved', () => {
+    pointer('pointerdown');
+    vi.advanceTimersByTime(LONG_PRESS_MS);
+    pointer('pointerup');
+    pointer('pointerdown');
+    pointer('pointermove', LONG_PRESS_SLOP + 1);
+    pointer('pointerup');
+
+    expect(host.taps).toBe(0);
   });
 
   it('gives up a press that moves, as when scrolling, but not one that wobbles', () => {

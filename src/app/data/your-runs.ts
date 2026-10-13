@@ -61,12 +61,13 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
       </button>
       @if (charts().length > 0) {
         <article class="panel summary">
-          <h3>{{ order().line === undefined ? 'All runs' : 'Runs before here' }}</h3>
+          <h3>{{ summaryTitle() }}</h3>
           <app-run-chart
-            [values]="aggregateChart().times"
-            [baseline]="aggregateChart().baseline"
-            [breaks]="aggregateChart().breaks"
-            [confidence]="aggregateChart().confidence"
+            [values]="aggregateShown() ? aggregateChart().times : []"
+            [baseline]="aggregateShown() ? aggregateChart().baseline : []"
+            [breaks]="aggregateShown() ? aggregateChart().breaks : []"
+            [confidence]="aggregateShown() ? aggregateChart().confidence : []"
+            [others]="selectedTimes()"
             [places]="places()"
             [top]="top()"
             label="Time per digit over all runs, recent ones weighing more, with your usual break spots"
@@ -136,6 +137,21 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
             <li><i class="break"></i>Break</li>
             <li><i class="confidence"></i>Confidence trend, for all runs</li>
           </ul>
+          @if (developerMode()) {
+            <!-- In developer mode, the chart of all runs can be left out of the chart on top, and runs added to it. -->
+            <button
+              type="button"
+              class="panel aggregate"
+              [class.selected]="aggregateShown()"
+              [attr.aria-pressed]="aggregateShown()"
+              (click)="aggregateShown.set(!aggregateShown())"
+            >
+              <span class="title">{{
+                order().line === undefined ? 'All runs' : 'Runs before here'
+              }}</span>
+              <span class="meta">{{ plural(counted().length, 'run') }}</span>
+            </button>
+          }
           <!-- In developer mode, the runs can be dragged into another order, across the line too. -->
           <div
             class="list"
@@ -171,8 +187,14 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
                     class="panel"
                     [class.unchecked]="!chart.checked"
                     [class.later]="chart.later"
+                    [class.selected]="selected().has(chart.id)"
+                    [attr.role]="developerMode() ? 'button' : null"
+                    [attr.aria-pressed]="developerMode() ? selected().has(chart.id) : null"
                     tabindex="0"
                     (appLongPress)="pick(chart.id, $event)"
+                    (appTap)="select(chart.id)"
+                    (keydown.enter)="select(chart.id)"
+                    (keydown.space)="select(chart.id, $event)"
                   >
                     <h3>
                       {{ chart.title }}
@@ -294,6 +316,27 @@ export class YourRuns {
     })),
   );
 
+  protected readonly plural = plural;
+  /** In developer mode, whether the chart on top shows all the runs, and which runs it shows besides. */
+  protected readonly aggregateShown = signal(true);
+  protected readonly selected = signal<ReadonlySet<string>>(new Set());
+  protected readonly selectedTimes = computed(() =>
+    this.developerMode()
+      ? this.charts()
+          .filter((chart) => this.selected().has(chart.id))
+          .map((chart) => chart.times)
+      : [],
+  );
+  protected readonly summaryTitle = computed(() => {
+    const aggregate = this.order().line === undefined ? 'All runs' : 'Runs before here';
+    if (!this.developerMode()) {
+      return aggregate;
+    }
+    const count = this.selectedTimes().length;
+    const runs = count === 0 ? '' : plural(count, 'run');
+    return this.aggregateShown() ? [aggregate, runs].filter(Boolean).join(' and ') : runs;
+  });
+
   /** The runs, and the line played from among them, if any. */
   protected readonly rows = computed(() => {
     const rows = this.charts().map((chart) => ({ id: chart.id, chart }));
@@ -351,6 +394,21 @@ export class YourRuns {
 
   protected setIncludeUnchecked(event: Event): void {
     void this.tweaks.setIncludeUnchecked((event.target as HTMLInputElement).checked);
+  }
+
+  /** Adds a run tapped to the chart on top, or takes it off, in developer mode. */
+  protected select(id: string, event?: Event): void {
+    if (!this.developerMode()) {
+      return;
+    }
+    event?.preventDefault();
+    this.selected.update((selected) => {
+      const next = new Set(selected);
+      if (!next.delete(id)) {
+        next.add(id);
+      }
+      return next;
+    });
   }
 
   /** Opens the context menu of a run long pressed, where it was pressed. */

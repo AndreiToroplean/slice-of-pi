@@ -308,3 +308,36 @@ h3 {
     box-shadow: 0 8px 28px rgb(30 20 60 / 30%);
   }
 }
+
+/* In developer mode, the runs on the chart on top, outlined, and a row for all of them, on it by default. */
+.runs .panel.selected {
+  outline: 2px solid var(--on-background);
+  outline-offset: -2px;
+}
+
+.aggregate {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  & .title {
+    font-weight: 600;
+    text-shadow: var(--text-shadow);
+  }
+
+  &:focus-visible {
+    outline: 0.1875rem solid var(--focus-ring);
+    outline-offset: 0.25rem;
+  }
+}
+
+.aggregate:not(.selected) {
+  opacity: 0.7;
+}

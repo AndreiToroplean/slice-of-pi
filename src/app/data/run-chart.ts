@@ -4,7 +4,7 @@ import { areaPath, CHART_HEIGHT, ChartBreak, chartPath, Series } from './run-cha
 /**
  * A chart of the time per digit along the places of π: pauses are peaks. It can add what the break model makes of
  * them: the baseline, the time expected without a break, red bars at the breaks, and an area at the bottom for how
- * confident the verdicts are.
+ * confident the verdicts are, and other series to compare with.
  */
 @Component({
   selector: 'app-run-chart',
@@ -30,6 +30,9 @@ import { areaPath, CHART_HEIGHT, ChartBreak, chartPath, Series } from './run-cha
           [attr.y2]="height"
           [attr.stroke-opacity]="0.25 + 0.75 * bar.strength"
         />
+      }
+      @for (path of otherPaths(); track $index) {
+        <path class="other" [attr.d]="path" />
       }
       @if (baselinePath(); as path) {
         <path class="baseline" [attr.d]="path" />
@@ -72,6 +75,15 @@ import { areaPath, CHART_HEIGHT, ChartBreak, chartPath, Series } from './run-cha
       stroke-opacity: 0.7;
     }
 
+    .other {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1;
+      stroke-opacity: 0.4;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
     .break {
       stroke: var(--chart-break);
       stroke-width: 2.5;
@@ -97,6 +109,8 @@ export class RunChart {
   readonly breaks = input<readonly ChartBreak[]>([]);
   /** How confident the verdict at each place is, from 0 to 1. */
   readonly confidence = input<Series>([]);
+  /** Other series to compare the values with, drawn thinner and fainter, such as the times of other runs. */
+  readonly others = input<readonly Series[]>([]);
 
   protected readonly height = CHART_HEIGHT;
   /** From place 1 at x = 0 to the last place. */
@@ -106,6 +120,9 @@ export class RunChart {
   );
   protected readonly path = computed(() => chartPath(this.values(), this.top()));
   protected readonly baselinePath = computed(() => chartPath(this.baseline(), this.top()));
+  protected readonly otherPaths = computed(() =>
+    this.others().map((series) => chartPath(series, this.top())),
+  );
   protected readonly confidenceArea = computed(() => areaPath(this.confidence()));
   /** A line at each whole second, below the top. */
   protected readonly gridlines = computed(() =>
