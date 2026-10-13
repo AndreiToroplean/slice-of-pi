@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { missingPreview } from './preview/missing-preview-path';
 
 export const routes: Routes = [
   {
@@ -24,6 +25,10 @@ export const routes: Routes = [
   {
     path: 'developer/season-colors',
     loadComponent: () => import('./developer/season-colors').then((m) => m.SeasonColors),
+  },
+  {
+    matcher: missingPreview,
+    loadComponent: () => import('./preview/missing-preview').then((m) => m.MissingPreview),
   },
   { path: '**', redirectTo: '' },
 ];
