@@ -8,20 +8,23 @@ export const LONG_PRESS_SLOP = 10;
 /**
  * A long press on an element: holding it still for {@link LONG_PRESS_MS}, or what the browser takes for a request for
  * its context menu (a right click, the keyboard's menu key or, on some phones, the long press itself), which the app
- * otherwise ignores. Either way, it's told once per press, with where it was, in window coordinates.
+ * otherwise ignores. Either way, it's told once per press, with where it was, in window coordinates. A press let go of
+ * sooner, without moving, is told as a tap.
  */
 @Directive({
   selector: '[appLongPress]',
   host: {
     '(pointerdown)': 'down($event)',
     '(pointermove)': 'move($event)',
-    '(pointerup)': 'end()',
+    '(pointerup)': 'up()',
     '(pointercancel)': 'end()',
     '(contextmenu)': 'contextMenu($event)',
   },
 })
 export class LongPress {
   readonly appLongPress = output<{ readonly x: number; readonly y: number }>();
+  /** A press let go of before it was long, without moving. */
+  readonly appTap = output();
 
   private timer: ReturnType<typeof setTimeout> | undefined;
   private start = { x: 0, y: 0 };
@@ -53,6 +56,13 @@ export class LongPress {
     ) {
       this.cancel();
     }
+  }
+
+  protected up(): void {
+    if (this.timer !== undefined) {
+      this.appTap.emit();
+    }
+    this.end();
   }
 
   protected end(): void {

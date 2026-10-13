@@ -358,6 +358,55 @@ describe('YourRuns', () => {
     });
   });
 
+  describe('the runs on the chart on top', () => {
+    function tap(element: Element): void {
+      element.dispatchEvent(new PointerEvent('pointerdown', { button: 0 }));
+      element.dispatchEvent(new PointerEvent('pointerup'));
+    }
+
+    function others(host: HTMLElement): number {
+      return host.querySelectorAll('.summary .other').length;
+    }
+
+    it('adds a run tapped to the chart of all runs, and takes it off when tapped again, in developer mode', async () => {
+      const { host, until } = await setUp([first, second], false, false, undefined, true);
+
+      tap(article(host, 0));
+      await until(() => others(host) === 1);
+      tap(article(host, 1));
+      await until(() => others(host) === 2);
+      expect(host.querySelector('.summary h3')?.textContent.trim()).toBe('All runs and 2 runs');
+
+      tap(article(host, 0));
+      await until(() => others(host) === 1);
+      expect(article(host, 0).getAttribute('aria-pressed')).toBe('false');
+      expect(article(host, 1).getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('leaves all the runs out of the chart on top when told to, in developer mode', async () => {
+      const { host, until } = await setUp([first, second], false, false, undefined, true);
+      const line = (): string | null | undefined =>
+        host.querySelector('.summary .line')?.getAttribute('d');
+      expect(line()).not.toBe('');
+
+      tap(article(host, 1));
+      host.querySelector<HTMLButtonElement>('.aggregate')?.click();
+      await until(() => line() === '');
+
+      expect(others(host)).toBe(1);
+      expect(host.querySelector('.summary h3')?.textContent.trim()).toBe('1 run');
+    });
+
+    it('keeps the chart on top to all the runs outside developer mode', async () => {
+      const { host } = await setUp([first, second]);
+
+      tap(article(host, 0));
+
+      expect(others(host)).toBe(0);
+      expect(article(host, 0).getAttribute('aria-pressed')).toBeNull();
+    });
+  });
+
   describe("a run's context menu", () => {
     it('deletes the run once the player confirms', async () => {
       const { host, until } = await setUp([first, second]);
