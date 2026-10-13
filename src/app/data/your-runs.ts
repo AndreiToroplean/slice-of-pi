@@ -1,11 +1,22 @@
-import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
+import { CdkScrollable } from '@angular/cdk/scrolling';
+import {
+  afterNextRender,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  Injector,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { ContextMenu, MenuEntry, SEPARATOR } from '../context-menu/context-menu';
 import { DeveloperMode } from '../developer/developer-mode';
 import { Tweaks } from '../developer/tweaks';
 import { Page } from '../page/page';
 import { PI_DECIMALS } from '../pi/pi-decimals';
-import { groupRuns, orderRuns, Run } from '../runs/run';
+import { groupRuns, moveRun, orderRuns, Run, RunOrder } from '../runs/run';
 import { RunRecorder } from '../runs/run-recorder';
 import { RunStore } from '../runs/run-store';
 import { breakModel, finishedRuns, Values } from '../timing/break-model';
@@ -24,9 +35,19 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
  */
 @Component({
   selector: 'app-your-runs',
-  imports: [ContextMenu, GroupingSettingsPanel, LongPress, NgTemplateOutlet, Page, RunChart],
+  imports: [
+    CdkDrag,
+    CdkDragHandle,
+    CdkDropList,
+    CdkScrollable,
+    ContextMenu,
+    GroupingSettingsPanel,
+    LongPress,
+    Page,
+    RunChart,
+  ],
   template: `
-    <app-page title="Your Runs">
+    <app-page title="Your Runs" cdkScrollable>
       <button
         pageAction
         type="button"
@@ -76,55 +97,81 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
             <li><i class="break"></i>Break</li>
             <li><i class="confidence"></i>Confidence trend, for all runs</li>
           </ul>
-          @for (chart of charts(); track chart.id) {
-            @if (chart.here) {
-              <ng-container [ngTemplateOutlet]="here" />
+          <!-- In developer mode, the runs can be dragged into another order, across the line too. -->
+          <div
+            class="list"
+            cdkDropList
+            cdkDropListLockAxis="y"
+            [cdkDropListDisabled]="!developerMode()"
+            (cdkDropListDropped)="dropped($event)"
+          >
+            @for (row of rows(); track row.id; let index = $index) {
+              @if (row.chart; as chart) {
+                <div class="run" cdkDrag cdkDragPreviewContainer="parent">
+                  <!-- In developer mode, a handle to drag the run to another place. -->
+                  @if (developerMode()) {
+                    <button
+                      type="button"
+                      class="handle"
+                      cdkDragHandle
+                      [attr.data-run]="chart.id"
+                      [attr.aria-label]="'Move the run of ' + chart.title + ', with the arrow keys'"
+                      (keydown)="step(chart.id, index, $event)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="9" cy="6" r="1.75" />
+                        <circle cx="15" cy="6" r="1.75" />
+                        <circle cx="9" cy="12" r="1.75" />
+                        <circle cx="15" cy="12" r="1.75" />
+                        <circle cx="9" cy="18" r="1.75" />
+                        <circle cx="15" cy="18" r="1.75" />
+                      </svg>
+                    </button>
+                  }
+                  <article
+                    class="panel"
+                    [class.unchecked]="!chart.checked"
+                    [class.later]="chart.later"
+                    tabindex="0"
+                    (appLongPress)="pick(chart.id, $event)"
+                  >
+                    <h3>
+                      {{ chart.title }}
+                      @if (!chart.checked) {
+                        <span class="badge">Unchecked</span>
+                      }
+                    </h3>
+                    <p class="meta">{{ chart.meta }}</p>
+                    <app-run-chart
+                      [values]="chart.times"
+                      [baseline]="chart.baseline"
+                      [breaks]="chart.breaks"
+                      [places]="places()"
+                      [top]="top()"
+                      [label]="'Time per digit, ' + chart.title"
+                    />
+                  </article>
+                </div>
+              } @else {
+                <div class="here" cdkDrag cdkDragDisabled role="group" aria-label="You are here">
+                  <span>You are here</span>
+                  <button
+                    type="button"
+                    class="undo"
+                    aria-label="Play from after all the runs again"
+                    (click)="undoPlayFrom()"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M9 14 4 9l5-5" />
+                      <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+                    </svg>
+                  </button>
+                </div>
+              }
             }
-            <article
-              class="panel"
-              [class.unchecked]="!chart.checked"
-              [class.later]="chart.later"
-              tabindex="0"
-              (appLongPress)="pick(chart.id, $event)"
-            >
-              <h3>
-                {{ chart.title }}
-                @if (!chart.checked) {
-                  <span class="badge">Unchecked</span>
-                }
-              </h3>
-              <p class="meta">{{ chart.meta }}</p>
-              <app-run-chart
-                [values]="chart.times"
-                [baseline]="chart.baseline"
-                [breaks]="chart.breaks"
-                [places]="places()"
-                [top]="top()"
-                [label]="'Time per digit, ' + chart.title"
-              />
-            </article>
-          }
-          @if (hereAtEnd()) {
-            <ng-container [ngTemplateOutlet]="here" />
-          }
+          </div>
         }
       </section>
-      <ng-template #here>
-        <div class="here" role="group" aria-label="You are here">
-          <span>You are here</span>
-          <button
-            type="button"
-            class="undo"
-            aria-label="Play from after all the runs again"
-            (click)="undoPlayFrom()"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M9 14 4 9l5-5" />
-              <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
-            </svg>
-          </button>
-        </div>
-      </ng-template>
       <!-- A run's context menu, opened by a long press on it. -->
       <app-context-menu [entries]="runMenuEntries()" />
       @if (charts().length > 0) {
@@ -200,7 +247,6 @@ export class YourRuns {
         id: run.id,
         title: dateAndTime.format(run.startedAt),
         checked: run.checked,
-        here: index === this.order().line,
         later: index >= (this.order().line ?? Infinity),
         meta:
           `${plural(run.digits.length, 'digit')} in ${seconds(run.times.at(-1) ?? 0)}` +
@@ -233,8 +279,20 @@ export class YourRuns {
     })),
   );
 
-  /** Whether the line played from comes after all the runs. */
-  protected readonly hereAtEnd = computed(() => this.order().line === this.order().runs.length);
+  /** The runs, and the line played from among them, if any. */
+  protected readonly rows = computed(() => {
+    const rows = this.charts().map((chart) => ({ id: chart.id, chart }));
+    const line = this.order().line;
+    return line === undefined
+      ? rows
+      : [...rows.slice(0, line), { id: '', chart: undefined }, ...rows.slice(line)];
+  });
+  /** The order of the runs shown, to change. */
+  private readonly shownOrder = computed((): RunOrder => {
+    const { runs, line } = this.order();
+    const ids = runs.map((run) => run.id);
+    return line === undefined ? { ids } : { ids, line };
+  });
   /** The run whose context menu was last opened. */
   private picked: string | undefined;
   private readonly runMenu = viewChild.required(ContextMenu);
@@ -259,6 +317,9 @@ export class YourRuns {
       : []),
   ]);
 
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly injector = inject(Injector);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
   private readonly confirm = inject(CONFIRM);
@@ -279,7 +340,7 @@ export class YourRuns {
 
   /** Plays from just before the run picked, as if only the runs above it had been played, keeping the order shown. */
   private playFromPicked(): void {
-    const ids = this.order().runs.map((run) => run.id);
+    const { ids } = this.shownOrder();
     const line = ids.indexOf(this.picked ?? '');
     if (line !== -1) {
       void this.tweaks.setRunOrder({ ids, line });
@@ -288,7 +349,39 @@ export class YourRuns {
 
   /** Plays from after all the runs again, keeping them in the order shown. */
   protected undoPlayFrom(): void {
-    void this.tweaks.setRunOrder({ ids: this.order().runs.map((run) => run.id) });
+    void this.tweaks.setRunOrder({ ids: this.shownOrder().ids });
+  }
+
+  /** Moves a run dropped somewhere else among the runs and the line, in developer mode, where all of them show. */
+  protected dropped({ previousIndex, currentIndex }: CdkDragDrop<unknown>): void {
+    this.move(previousIndex, currentIndex);
+    // The drop has just put the rows back in their old places and stopped them making room for the run: show them in
+    // their new order at once, before the page is drawn, or they jump back and forth for a frame.
+    this.changeDetector.detectChanges();
+  }
+
+  /** Moves a run up or down by one place with the arrow keys on its handle, which keeps the focus. */
+  protected step(id: string, index: number, event: KeyboardEvent): void {
+    const to = index + (ARROW_STEPS[event.key] ?? 0);
+    if (to === index || to < 0 || to >= this.rows().length) {
+      return;
+    }
+    event.preventDefault();
+    this.move(index, to);
+    afterNextRender(
+      {
+        write: () => {
+          this.host.querySelector<HTMLElement>(`[data-run="${id}"]`)?.focus();
+        },
+      },
+      { injector: this.injector },
+    );
+  }
+
+  private move(from: number, to: number): void {
+    if (from !== to) {
+      void this.tweaks.setRunOrder(moveRun(this.shownOrder(), from, to));
+    }
   }
 
   /** Deletes every run kept, once the player confirms. */
@@ -353,6 +446,9 @@ function breaksOf(probabilities: Values, threshold: number): ChartBreak[] {
       : [],
   );
 }
+
+/** How far each arrow key moves a run. */
+const ARROW_STEPS: Partial<Record<string, number>> = { ArrowUp: -1, ArrowDown: 1 };
 
 const dateAndTime = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 

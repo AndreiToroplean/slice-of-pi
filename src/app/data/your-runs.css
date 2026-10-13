@@ -254,3 +254,80 @@ app-page:has(> .summary) .runs {
     text-underline-offset: 0.2em;
   }
 }
+
+/* A run, and in developer mode a handle on its left to drag it to another place. */
+.run {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+
+  & > article {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.handle {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 3.5rem;
+  margin-left: calc(-1 * var(--space-1));
+  padding: 0;
+  border: none;
+  border-radius: 0.75rem;
+  background: none;
+  color: inherit;
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  & svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: currentColor;
+    filter: drop-shadow(var(--text-shadow));
+  }
+
+  &:active {
+    background: var(--frost-pressed);
+  }
+
+  &:focus-visible {
+    outline: 0.1875rem solid var(--focus-ring);
+    outline-offset: -0.1875rem;
+  }
+}
+
+/* The runs, and the line among them. */
+.list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+/*
+ * While a run is dragged: a copy of it floats under the finger, the others make room for it, and its place among them
+ * shows where it would go. The copy follows the finger without delay: only the others glide.
+ */
+.cdk-drop-list-dragging > :not(.cdk-drag-placeholder, .cdk-drag-preview),
+.cdk-drag-animating {
+  transition: transform var(--duration-screen) var(--ease);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0;
+}
+
+.run.cdk-drag-preview {
+  & > .handle {
+    cursor: grabbing;
+  }
+
+  & > article {
+    background: var(--frost-pressed);
+    box-shadow: 0 8px 28px rgb(30 20 60 / 30%);
+  }
+}

@@ -1,3 +1,4 @@
+import { DebugElement, getDebugNode } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Digit } from '../digit';
 import { addDigit, newRun, Run } from '../runs/run';
@@ -50,6 +51,18 @@ describe('YourRuns', () => {
 
   function menu(host: HTMLElement): HTMLElement | null {
     return host.querySelector('app-context-menu .sheet');
+  }
+
+  /** Where the "You are here" line is among the runs: how many come before it. */
+  function here(host: HTMLElement): number | undefined {
+    const rows = Array.from(host.querySelectorAll('.runs .list > *'));
+    const line = rows.findIndex((row) => row.classList.contains('here'));
+    return line === -1 ? undefined : line;
+  }
+
+  /** The titles of the runs, in the order shown. */
+  function titles(host: HTMLElement): string[] {
+    return articles(host).map((run) => run.querySelector('h3')?.textContent.trim() ?? '');
   }
 
   /** The items of the context menu open, if any. */
@@ -251,13 +264,6 @@ describe('YourRuns', () => {
       return articles(host).map((run) => run.classList.contains('later'));
     }
 
-    /** Where the "You are here" line is among the runs: how many come before it. */
-    function here(host: HTMLElement): number | undefined {
-      const children = Array.from(host.querySelectorAll('.runs > article, .runs > .here'));
-      const line = children.findIndex((child) => child.classList.contains('here'));
-      return line === -1 ? undefined : line;
-    }
-
     it('plays from before a run long pressed, from its context menu, in developer mode', async () => {
       const { host, until } = await setUp(runs, false, false, undefined, true);
       const before = groupsShown(host);
@@ -385,6 +391,93 @@ describe('YourRuns', () => {
       const { host } = await setUp([first]);
 
       expect(article(host, 0).getAttribute('tabindex')).toBe('0');
+    });
+  });
+
+  describe('reordering the runs', () => {
+    const third = { ...grouped, id: 'third', startedAt: 3_000 };
+    const format = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+
+    function handles(host: HTMLElement): HTMLButtonElement[] {
+      return Array.from(host.querySelectorAll<HTMLButtonElement>('.runs .handle'));
+    }
+
+    function press(handle: HTMLButtonElement | undefined, key: string): void {
+      handle?.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    }
+
+    it('moves a run with its handle, in developer mode', async () => {
+      const { host, until } = await setUp([first, second, third], false, false, undefined, true);
+
+      press(handles(host)[0], 'ArrowDown');
+      await until(() => titles(host)[0] === format.format(2_000));
+
+      expect(titles(host)).toEqual([2_000, 1_000, 3_000].map((time) => format.format(time)));
+      expect(TestBed.inject(Tweaks).values()).toEqual({
+        runOrder: { ids: ['b', 'a', 'third'] },
+      });
+    });
+
+    it('moves a run dropped somewhere else at once, across the line too', async () => {
+      const { host, until } = await setUp([first, second, third], false, false, undefined, true);
+      await TestBed.inject(Tweaks).setRunOrder({ ids: ['a', 'b', 'third'], line: 2 });
+      await until(() => here(host) === 2);
+
+      // Dropping the last run, under the line, at the top.
+      (getDebugNode(host.querySelector('.list')) as DebugElement | null)?.triggerEventHandler(
+        'cdkDropListDropped',
+        {
+          previousIndex: 3,
+          currentIndex: 0,
+        },
+      );
+
+      // At once, before the page is drawn again.
+      expect(here(host)).toBe(3);
+      expect(titles(host)).toEqual([3_000, 1_000, 2_000].map((time) => format.format(time)));
+      expect(TestBed.inject(Tweaks).values()).toEqual({
+        runOrder: { ids: ['third', 'a', 'b'], line: 3 },
+      });
+    });
+
+    it('moves a run across the line, so that it counts or not', async () => {
+      const { host, until } = await setUp([first, second, third], false, false, undefined, true);
+      await TestBed.inject(Tweaks).setRunOrder({ ids: ['a', 'b', 'third'], line: 2 });
+      await until(() => here(host) === 2);
+      const later = (): boolean[] => articles(host).map((run) => run.classList.contains('later'));
+      expect(later()).toEqual([false, false, true]);
+
+      press(handles(host)[2], 'ArrowUp');
+      await until(() => here(host) === 3);
+
+      expect(titles(host)).toEqual([1_000, 2_000, 3_000].map((time) => format.format(time)));
+      expect(later()).toEqual([false, false, false]);
+
+      press(handles(host)[1], 'ArrowDown');
+      await until(() => titles(host)[2] === format.format(2_000));
+      press(handles(host)[2], 'ArrowDown');
+      await until(() => here(host) === 2);
+
+      expect(titles(host)).toEqual([1_000, 3_000, 2_000].map((time) => format.format(time)));
+      expect(later()).toEqual([false, false, true]);
+      expect(TestBed.inject(Tweaks).values()).toEqual({
+        runOrder: { ids: ['a', 'third', 'b'], line: 2 },
+      });
+    });
+
+    it('shows the runs in the order they were played outside developer mode, all counted', async () => {
+      const { host, until } = await setUp([first, second, third]);
+      await TestBed.inject(Tweaks).setRunOrder({ ids: ['third', 'b', 'a'], line: 1 });
+      await until(() => true);
+
+      expect(titles(host)).toEqual([1_000, 2_000, 3_000].map((time) => format.format(time)));
+      expect(here(host)).toBeUndefined();
+    });
+
+    it('offers it only in developer mode', async () => {
+      const { host } = await setUp([first, second]);
+
+      expect(handles(host)).toEqual([]);
     });
   });
 

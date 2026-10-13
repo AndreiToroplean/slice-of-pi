@@ -112,6 +112,22 @@ export function orderRuns(
 }
 
 /**
+ * The order of the runs once one is moved to another place among them, the line counting as a place: moving a run past
+ * the line puts it on the other side of it. `from` and `to` are indexes among the runs and the line, `to` being where
+ * the run ends up.
+ */
+export function moveRun(order: RunOrder, from: number, to: number): RunOrder {
+  const places: (string | undefined)[] = [...order.ids];
+  if (order.line !== undefined) {
+    places.splice(order.line, 0, undefined);
+  }
+  places.splice(to, 0, ...places.splice(from, 1));
+  const ids = places.filter((id) => id !== undefined);
+  const line = places.indexOf(undefined);
+  return line === -1 ? { ids } : { ids, line };
+}
+
+/**
  * The runs the player's groups are computed from, out of all their runs, oldest first: those above the line played
  * from, if any (see {@link orderRuns}), that count in them (see {@link countsInGroups}).
  */
