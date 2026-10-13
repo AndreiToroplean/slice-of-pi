@@ -1,6 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
-import { ContextMenu, MenuEntry } from '../context-menu/context-menu';
+import { ContextMenu, MenuEntry, SEPARATOR } from '../context-menu/context-menu';
 import { DeveloperMode } from '../developer/developer-mode';
 import { Tweaks } from '../developer/tweaks';
 import { Page } from '../page/page';
@@ -19,8 +19,8 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
 /**
  * The player's runs, opened from the main menu's overflow menu: a chart of each run and one of them all, sticking to the
  * bottom of the whole page. In developer mode, the hyperparameters of the break model can be tuned above the runs,
- * staying in view of the chart of them all, and a long press on a run plays from it, as if it and the runs after it had
- * never been played, until undone.
+ * staying in view of the chart of them all. A long press on a run opens its context menu, to delete it or, in developer
+ * mode, play from it, as if it and the runs after it had never been played, until undone.
  */
 @Component({
   selector: 'app-your-runs',
@@ -84,7 +84,7 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
               class="panel"
               [class.unchecked]="!chart.checked"
               [class.later]="chart.later"
-              [attr.tabindex]="developerMode() ? 0 : null"
+              tabindex="0"
               (appLongPress)="pick(chart.id, $event)"
             >
               <h3>
@@ -125,7 +125,7 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
           </button>
         </div>
       </ng-template>
-      <!-- A run's context menu, opened by a long press on it, in developer mode. -->
+      <!-- A run's context menu, opened by a long press on it. -->
       <app-context-menu [entries]="runMenuEntries()" />
       @if (charts().length > 0) {
         <article class="panel summary">
@@ -243,11 +243,22 @@ export class YourRuns {
   /** What a run's context menu offers. */
   protected readonly runMenuEntries = computed((): MenuEntry[] => [
     {
-      label: 'Play from Here',
+      label: 'Delete Run',
       action: () => {
-        this.playFromPicked();
+        void this.deletePicked();
       },
     },
+    SEPARATOR,
+    ...(this.developerMode()
+      ? [
+          {
+            label: 'Play from Here',
+            action: () => {
+              this.playFromPicked();
+            },
+          },
+        ]
+      : []),
   ]);
 
   private readonly store = inject(RunStore);
@@ -263,11 +274,8 @@ export class YourRuns {
     void this.tweaks.setIncludeUnchecked((event.target as HTMLInputElement).checked);
   }
 
-  /** Opens the context menu of a run long pressed, where it was pressed, in developer mode. */
+  /** Opens the context menu of a run long pressed, where it was pressed. */
   protected pick(id: string, at: { readonly x: number; readonly y: number }): void {
-    if (!this.developerMode()) {
-      return;
-    }
     this.picked = id;
     this.runMenu().open(at);
   }
@@ -306,6 +314,21 @@ export class YourRuns {
     await this.store.deleteAllRuns();
     await this.refresh();
     this.message.set(`Deleted ${plural(count, 'run')}.`);
+  }
+
+  /** Deletes the run picked, once the player confirms. */
+  private async deletePicked(): Promise<void> {
+    const id = this.picked;
+    await this.recorder.saved();
+    if (
+      id === undefined ||
+      !this.confirm('Delete this run? Only a backup file can bring it back.')
+    ) {
+      return;
+    }
+    await this.store.deleteRuns([id]);
+    await this.refresh();
+    this.message.set('Deleted the run.');
   }
 
   /** Deletes the unchecked runs, once the player confirms. */
