@@ -8,7 +8,7 @@ export const WRITE_CLIPBOARD = new InjectionToken<(text: string) => Promise<void
 
 /** How long "Copied" shows on the button. */
 export const COPIED_MS = 2000;
-const LABEL = 'Copy hyperparameter values';
+const LABEL = 'Copy Hyperparameter Values';
 
 /**
  * The button of a developer mode page that copies the values tuned on it, as text to hand back so they go into the
@@ -32,7 +32,7 @@ export class CopyValues {
       await this.writeClipboard(this.text());
       this.label.set('Copied');
     } catch {
-      this.label.set("Couldn't copy");
+      this.label.set("Couldn't Copy");
     }
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {

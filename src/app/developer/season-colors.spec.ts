@@ -37,7 +37,7 @@ describe('SeasonColors', () => {
 
   function reset(host: HTMLElement): HTMLButtonElement {
     const found = Array.from(host.querySelectorAll('button')).find((button) =>
-      button.textContent.includes("Back to the game's colors"),
+      button.textContent.includes("Back to the Game's Colors"),
     );
     if (found === undefined) {
       throw new Error('No reset button');
@@ -168,7 +168,7 @@ describe('SeasonColors', () => {
       'sRGB',
       'OKLab',
       'HSL',
-      'OKLCH (the game’s)',
+      'OKLCH (The Game’s)',
     ]);
 
     select.value = 'srgb';

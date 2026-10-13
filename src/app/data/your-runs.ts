@@ -33,7 +33,7 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
         [disabled]="runs().length === 0"
         (click)="deleteAll()"
       >
-        Delete all runs
+        Delete All Runs
       </button>
       @if (developerMode()) {
         <app-grouping-settings-panel>
@@ -52,7 +52,7 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
               [disabled]="uncheckedRuns().length === 0"
               (click)="deleteUnchecked()"
             >
-              Delete unchecked runs
+              Delete Unchecked Runs
             </button>
           </div>
         </app-grouping-settings-panel>
@@ -133,7 +133,7 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
         [style.left.px]="menuAt().x"
         (toggle)="menuToggled($event)"
       >
-        <button type="button" (click)="playFromPicked()">Play from here</button>
+        <button type="button" (click)="playFromPicked()">Play from Here</button>
       </div>
       @if (charts().length > 0) {
         <article class="panel summary">

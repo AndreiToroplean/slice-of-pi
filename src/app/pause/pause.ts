@@ -18,7 +18,7 @@ import { injectBackToMenu } from '../menu/back-to-menu';
       <h2 id="pause-title">Paused</h2>
       <button type="button" class="candy primary" autofocus (click)="resume()">Resume</button>
       <button type="button" class="candy" (click)="restart.emit(); resume()">Restart</button>
-      <button type="button" class="candy danger" (click)="void endGame()">End game</button>
+      <button type="button" class="candy danger" (click)="void endGame()">End Game</button>
     </dialog>
   `,
   styleUrl: './pause.css',

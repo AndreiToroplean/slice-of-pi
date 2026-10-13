@@ -85,8 +85,8 @@ describe('Menu', () => {
           link.getAttribute('href'),
         ]),
       ).toEqual([
-        ['Key colors', '/developer/key-colors'],
-        ['Season colors', '/developer/season-colors'],
+        ['Key Colors', '/developer/key-colors'],
+        ['Season Colors', '/developer/season-colors'],
       ]);
     });
 
@@ -97,7 +97,7 @@ describe('Menu', () => {
         'label.toggle input[type="checkbox"]',
       );
       const tweaks = TestBed.inject(Tweaks);
-      expect(toggle?.closest('label')?.textContent.trim()).toBe('Check digits');
+      expect(toggle?.closest('label')?.textContent.trim()).toBe('Check Digits');
       expect(toggle?.checked).toBe(true);
 
       toggle?.click();

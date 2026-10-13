@@ -846,7 +846,7 @@ describe('Play', () => {
         throw new Error('No play screen');
       }
       pauseItem(host, 'Pause').click();
-      pauseItem(host, 'End game').click();
+      pauseItem(host, 'End Game').click();
       await new Promise((resolve) => setTimeout(resolve));
     }
 

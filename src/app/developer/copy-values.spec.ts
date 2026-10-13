@@ -35,7 +35,7 @@ describe('CopyValues', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     writeClipboard.mockResolvedValue();
     const { button, stable } = await setUp();
-    expect(button?.textContent.trim()).toBe('Copy hyperparameter values');
+    expect(button?.textContent.trim()).toBe('Copy Hyperparameter Values');
 
     button?.click();
     await stable();
@@ -44,7 +44,7 @@ describe('CopyValues', () => {
     expect(button?.textContent.trim()).toBe('Copied');
     vi.advanceTimersByTime(COPIED_MS);
     await stable();
-    expect(button?.textContent.trim()).toBe('Copy hyperparameter values');
+    expect(button?.textContent.trim()).toBe('Copy Hyperparameter Values');
   });
 
   it("says when the clipboard can't be written", async () => {
@@ -54,6 +54,6 @@ describe('CopyValues', () => {
     button?.click();
     await stable();
 
-    expect(button?.textContent.trim()).toBe("Couldn't copy");
+    expect(button?.textContent.trim()).toBe("Couldn't Copy");
   });
 });

@@ -158,7 +158,7 @@ describe('GroupingSettingsPanel', () => {
 
   it('brings back the game’s settings', async () => {
     const { host, detect } = await setUp();
-    const reset = buttonLabelled(host, "Back to the game's settings");
+    const reset = buttonLabelled(host, "Back to the Game's Settings");
 
     expect(reset.disabled).toBe(true);
     move(slider(host, 'window'), 11);
@@ -186,7 +186,7 @@ describe('GroupingSettingsPanel', () => {
 
     move(slider(host, 'level'), 0.95);
     detect();
-    buttonLabelled(host, 'Copy hyperparameter values').click();
+    buttonLabelled(host, 'Copy Hyperparameter Values').click();
     await vi.waitFor(() => {
       expect(copied).toEqual([groupingText({ ...DEFAULT_BREAK_SETTINGS, level: 0.95 })]);
     });

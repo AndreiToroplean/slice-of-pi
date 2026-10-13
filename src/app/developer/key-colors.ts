@@ -37,7 +37,7 @@ export const CLOSE = 15;
   template: `
     <app-page title="Key colors">
       <button pageAction type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
-        Back to the game's colors
+        Back to the Game's Colors
       </button>
       <div class="seasons" role="radiogroup" aria-label="Background">
         @for (season of seasons; track season) {

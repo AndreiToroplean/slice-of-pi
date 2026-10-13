@@ -44,16 +44,16 @@ import { seasonAt } from '../seasons/seasons';
       [style.right.px]="dropdownAt().right"
       (beforetoggle)="placeDropdown()"
     >
-      <a routerLink="/runs">Your runs</a>
-      <a routerLink="/data">Your data</a>
+      <a routerLink="/runs">Your Runs</a>
+      <a routerLink="/data">Your Data</a>
       @if (developerMode.enabled()) {
         <div class="section" role="group" aria-labelledby="developer-title">
           <h2 id="developer-title">Developer</h2>
-          <a routerLink="/developer/key-colors">Key colors</a>
-          <a routerLink="/developer/season-colors">Season colors</a>
+          <a routerLink="/developer/key-colors">Key Colors</a>
+          <a routerLink="/developer/season-colors">Season Colors</a>
           <label class="toggle">
             <input type="checkbox" [checked]="tweaks.checking()" (change)="setChecking($event)" />
-            Check digits
+            Check Digits
           </label>
         </div>
       }
