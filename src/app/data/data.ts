@@ -31,7 +31,7 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
   selector: 'app-data',
   imports: [Page],
   template: `
-    <app-page title="Your data">
+    <app-page title="Your Data">
       <section class="panel" aria-labelledby="backup-title">
         <h2 id="backup-title">Backup</h2>
         <p>{{ count() }}</p>

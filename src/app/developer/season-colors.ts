@@ -32,7 +32,7 @@ const ENDS = [
   selector: 'app-season-colors',
   imports: [ColorPicker, CopyValues, Page, SeasonHeader],
   template: `
-    <app-page title="Season colors">
+    <app-page title="Season Colors">
       <button pageAction type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
         Back to the Game's Colors
       </button>

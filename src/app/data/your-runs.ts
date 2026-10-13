@@ -25,7 +25,7 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
   selector: 'app-your-runs',
   imports: [GroupingSettingsPanel, LongPress, NgTemplateOutlet, Page, RunChart],
   template: `
-    <app-page title="Your runs">
+    <app-page title="Your Runs">
       <button
         pageAction
         type="button"
