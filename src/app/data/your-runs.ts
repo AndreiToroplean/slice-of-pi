@@ -97,6 +97,16 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
             <li><i class="break"></i>Break</li>
             <li><i class="confidence"></i>Confidence trend, for all runs</li>
           </ul>
+          @if (developerMode()) {
+            <button
+              type="button"
+              class="candy small reorder"
+              [disabled]="chronological()"
+              (click)="reorderChronologically()"
+            >
+              Reorder Chronologically
+            </button>
+          }
           <!-- In developer mode, the runs can be dragged into another order, across the line too. -->
           <div
             class="list"
@@ -287,6 +297,12 @@ export class YourRuns {
       ? rows
       : [...rows.slice(0, line), { id: '', chart: undefined }, ...rows.slice(line)];
   });
+  /** Whether the runs are shown in the order they were played in. */
+  protected readonly chronological = computed(() =>
+    this.order().runs.every(
+      (run, i, runs) => i === 0 || (runs[i - 1]?.startedAt ?? 0) <= run.startedAt,
+    ),
+  );
   /** The order of the runs shown, to change. */
   private readonly shownOrder = computed((): RunOrder => {
     const { runs, line } = this.order();
@@ -350,6 +366,13 @@ export class YourRuns {
   /** Plays from after all the runs again, keeping them in the order shown. */
   protected undoPlayFrom(): void {
     void this.tweaks.setRunOrder({ ids: this.shownOrder().ids });
+  }
+
+  /** Puts the runs back in the order they were played in, the line staying where it is, under as many runs. */
+  protected reorderChronologically(): void {
+    const { runs, line } = this.order();
+    const ids = [...runs].sort((a, b) => a.startedAt - b.startedAt).map((run) => run.id);
+    void this.tweaks.setRunOrder(line === undefined ? undefined : { ids, line });
   }
 
   /** Moves a run dropped somewhere else among the runs and the line, in developer mode, where all of them show. */

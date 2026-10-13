@@ -474,10 +474,36 @@ describe('YourRuns', () => {
       expect(here(host)).toBeUndefined();
     });
 
+    it('puts the runs back in the order they were played in', async () => {
+      const { host, until } = await setUp([first, second, third], false, false, undefined, true);
+      expect(button(host, 'Reorder Chronologically').disabled).toBe(true);
+      await TestBed.inject(Tweaks).setRunOrder({ ids: ['third', 'b', 'a'] });
+      await until(() => !button(host, 'Reorder Chronologically').disabled);
+
+      button(host, 'Reorder Chronologically').click();
+      await until(() => button(host, 'Reorder Chronologically').disabled);
+
+      expect(titles(host)).toEqual([1_000, 2_000, 3_000].map((time) => format.format(time)));
+      expect(TestBed.inject(Tweaks).values()).toEqual({});
+    });
+
+    it('keeps the line under as many runs when putting them back in the order they were played in', async () => {
+      const { host, until } = await setUp([first, second, third], false, false, undefined, true);
+      await TestBed.inject(Tweaks).setRunOrder({ ids: ['third', 'b', 'a'], line: 1 });
+      await until(() => here(host) === 1);
+
+      button(host, 'Reorder Chronologically').click();
+      await until(() => button(host, 'Reorder Chronologically').disabled);
+
+      expect(titles(host)).toEqual([1_000, 2_000, 3_000].map((time) => format.format(time)));
+      expect(here(host)).toBe(1);
+    });
+
     it('offers it only in developer mode', async () => {
       const { host } = await setUp([first, second]);
 
       expect(handles(host)).toEqual([]);
+      expect(() => button(host, 'Reorder Chronologically')).toThrow();
     });
   });
 
