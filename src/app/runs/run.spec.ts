@@ -3,7 +3,7 @@ import {
   addDigit,
   countsInGroups,
   groupRuns,
-  playOrder,
+  orderRuns,
   deleteMistake,
   isOlderFormat,
   newRun,
@@ -92,45 +92,59 @@ describe('run', () => {
     expect(countsInGroups(unchecked, true)).toBe(true);
   });
 
-  describe('playing from a line among the runs', () => {
+  describe('the order of the runs', () => {
     const runs = [newRun('a', 0), newRun('b', 1, false), newRun('c', 2), newRun('d', 3)];
     const ids = (some: readonly Run[]): string[] => some.map((run) => run.id);
 
-    it('keeps the runs in order, all before the line, when not playing from one', () => {
-      expect(playOrder(runs, undefined)).toEqual({ runs, before: 4 });
+    it('keeps the runs in the order they were played, all counted, unless put in another', () => {
+      expect(orderRuns(runs, undefined)).toEqual({ runs, line: undefined });
       expect(ids(groupRuns(runs, false, undefined))).toEqual(['a', 'c', 'd']);
       expect(ids(groupRuns(runs, true, undefined))).toEqual(['a', 'b', 'c', 'd']);
     });
 
-    it('counts only the runs before the line', () => {
-      expect(playOrder(runs, { at: 2, since: 10 })).toEqual({ runs, before: 2 });
-      expect(ids(groupRuns(runs, true, { at: 2, since: 10 }))).toEqual(['a', 'b']);
-      expect(ids(groupRuns(runs, false, { at: 2, since: 10 }))).toEqual(['a']);
-      expect(groupRuns(runs, false, { at: 0, since: 10 })).toEqual([]);
+    it('takes the runs in the order they were put in, all counted when there is no line', () => {
+      const order = { ids: ['d', 'a', 'c', 'b'] };
+
+      expect(ids(orderRuns(runs, order).runs)).toEqual(['d', 'a', 'c', 'b']);
+      expect(orderRuns(runs, order).line).toBeUndefined();
+      expect(ids(groupRuns(runs, false, order))).toEqual(['d', 'a', 'c']);
     });
 
-    it('puts the runs played since just before the line, counting them as the newest', () => {
+    it('counts only the runs above the line', () => {
+      const order = { ids: ['a', 'b', 'c', 'd'], line: 2 };
+
+      expect(orderRuns(runs, order)).toEqual({ runs, line: 2 });
+      expect(ids(groupRuns(runs, true, order))).toEqual(['a', 'b']);
+      expect(ids(groupRuns(runs, false, order))).toEqual(['a']);
+      expect(groupRuns(runs, false, { ...order, line: 0 })).toEqual([]);
+    });
+
+    it('puts the runs played since just above the line, counting them as the newest', () => {
       const played = [...runs, newRun('e', 11), newRun('f', 12)];
+      const order = { ids: ['a', 'b', 'c', 'd'], line: 1 };
 
-      const order = playOrder(played, { at: 1, since: 10 });
-
-      expect(ids(order.runs)).toEqual(['a', 'e', 'f', 'b', 'c', 'd']);
-      expect(order.before).toBe(3);
-      expect(ids(groupRuns(played, false, { at: 1, since: 10 }))).toEqual(['a', 'e', 'f']);
+      expect(ids(orderRuns(played, order).runs)).toEqual(['a', 'e', 'f', 'b', 'c', 'd']);
+      expect(orderRuns(played, order).line).toBe(3);
+      expect(ids(groupRuns(played, false, order))).toEqual(['a', 'e', 'f']);
     });
 
-    it('keeps the order the game took the runs in when a line is drawn while playing from another', () => {
-      const first = { at: 1, since: 10 };
-      const played = [...runs, newRun('e', 11), newRun('f', 21)];
+    it('puts the runs played since after all the others when there is no line', () => {
+      const played = [...runs, newRun('e', 11)];
 
-      const order = playOrder(played, { at: 2, since: 20, previous: first });
-
-      expect(ids(order.runs)).toEqual(['a', 'e', 'f', 'b', 'c', 'd']);
-      expect(order.before).toBe(3);
+      expect(ids(orderRuns(played, { ids: ['d', 'c', 'b', 'a'] }).runs)).toEqual([
+        'd',
+        'c',
+        'b',
+        'a',
+        'e',
+      ]);
     });
 
-    it('draws the line after all the runs there are, if fewer are left', () => {
-      expect(playOrder(runs, { at: 9, since: 10 }).before).toBe(4);
+    it('leaves out the runs deleted since', () => {
+      const order = orderRuns(runs.slice(1), { ids: ['a', 'b', 'c', 'd'], line: 2 });
+
+      expect(ids(order.runs)).toEqual(['b', 'c', 'd']);
+      expect(order.line).toBe(1);
     });
   });
 

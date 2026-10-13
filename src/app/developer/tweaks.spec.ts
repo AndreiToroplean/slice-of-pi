@@ -139,17 +139,18 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({});
   });
 
-  it('plays from a run only while developer mode is on, and keeps it until undone', async () => {
+  it('puts the runs in another order only while developer mode is on, and keeps it until undone', async () => {
     const tweaks = await load();
-    expect(tweaks.playFrom()).toBeUndefined();
+    const runOrder = { ids: ['b', 'a'], line: 1 };
+    expect(tweaks.runOrder()).toBeUndefined();
 
-    await tweaks.setPlayFrom({ at: 2, since: 1000 });
-    expect(tweaks.playFrom()).toBeUndefined();
+    await tweaks.setRunOrder(runOrder);
+    expect(tweaks.runOrder()).toBeUndefined();
     await TestBed.inject(DeveloperMode).set(true);
-    expect(tweaks.playFrom()).toEqual({ at: 2, since: 1000 });
-    expect((await load()).values()).toEqual({ playFrom: { at: 2, since: 1000 } });
+    expect(tweaks.runOrder()).toEqual(runOrder);
+    expect((await load()).values()).toEqual({ runOrder });
 
-    await TestBed.inject(Tweaks).setPlayFrom(undefined);
+    await TestBed.inject(Tweaks).setRunOrder(undefined);
     expect((await load()).values()).toEqual({});
   });
 
@@ -293,19 +294,18 @@ describe('Tweaks', () => {
       includeUnchecked: true,
     });
     expect(parseTweaks({ format: TWEAKS_FORMAT, includeUnchecked: false })).toEqual({});
-    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: { at: 0, since: 5, other: 1 } })).toEqual(
-      { playFrom: { at: 0, since: 5 } },
-    );
-    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: { at: 1.5, since: 5 } })).toEqual({});
-    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: { at: 1 } })).toEqual({});
-    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: 'run' })).toEqual({});
-    const previous = { at: 1, since: 5 };
-    expect(parseTweaks({ format: TWEAKS_FORMAT, playFrom: { at: 2, since: 9, previous } })).toEqual(
-      { playFrom: { at: 2, since: 9, previous } },
-    );
-    expect(
-      parseTweaks({ format: TWEAKS_FORMAT, playFrom: { at: 2, since: 9, previous: { at: 1 } } }),
-    ).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, runOrder: { ids: ['a'], other: 1 } })).toEqual({
+      runOrder: { ids: ['a'] },
+    });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, runOrder: { ids: ['a', 'b'], line: 2 } })).toEqual({
+      runOrder: { ids: ['a', 'b'], line: 2 },
+    });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, runOrder: { ids: ['a'], line: 2 } })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, runOrder: { ids: ['a'], line: 0.5 } })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, runOrder: { ids: ['a', 'a'] } })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, runOrder: { ids: [''] } })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, runOrder: { line: 0 } })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, runOrder: 'a' })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 0 })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 26 })).toEqual({});
     expect(parseTweaks(null)).toEqual({});

@@ -1,7 +1,7 @@
 import { computed, inject, Service, signal } from '@angular/core';
 import { COLOR_SPACE_NAMES, COLOR_SPACES, ColorSpace } from '../colors/color-spaces';
 import { Palette, PALETTE } from '../place-colors/place-colors';
-import { PlayFrom } from '../runs/run';
+import { RunOrder } from '../runs/run';
 import { RunStore } from '../runs/run-store';
 import {
   BackgroundColors,
@@ -41,8 +41,8 @@ export interface TweakValues {
   readonly checking?: false;
   /** `true` to count unchecked runs in the player's groups, which otherwise leave them out. */
   readonly includeUnchecked?: true;
-  /** Where to play from, as if only the runs before it had been played, and those played since (see {@link PlayFrom}). */
-  readonly playFrom?: PlayFrom;
+  /** The order the game takes the runs in, and the line it plays from among them (see {@link RunOrder}). */
+  readonly runOrder?: RunOrder;
 }
 
 /** The game's own starting colors of each season. */
@@ -105,9 +105,9 @@ export class Tweaks {
     () => this.developerMode.enabled() && this.tweaks().includeUnchecked === true,
   );
 
-  /** Where the game plays from, as if only the runs before it had been played, and those played since, if anywhere. */
-  readonly playFrom = computed(() =>
-    this.developerMode.enabled() ? this.tweaks().playFrom : undefined,
+  /** The order the game takes the runs in, and the line it plays from among them, unless it's the order they were played in. */
+  readonly runOrder = computed(() =>
+    this.developerMode.enabled() ? this.tweaks().runOrder : undefined,
   );
 
   constructor() {
@@ -161,9 +161,9 @@ export class Tweaks {
     );
   }
 
-  /** Plays from a line among the runs; `undefined` plays from after them all again. */
-  setPlayFrom(playFrom: PlayFrom | undefined): Promise<void> {
-    return this.save(tweakValues({ ...this.tweaks(), playFrom }));
+  /** Puts the runs in an order, maybe with a line to play from among them; `undefined` puts them back in the order played. */
+  setRunOrder(runOrder: RunOrder | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), runOrder }));
   }
 
   private async save(next: TweakValues): Promise<void> {
@@ -236,7 +236,7 @@ export function parseTweaks(stored: unknown): TweakValues {
   const seasonTurn = 'seasonTurn' in stored ? stored.seasonTurn : undefined;
   const checking = 'checking' in stored ? stored.checking : undefined;
   const includeUnchecked = 'includeUnchecked' in stored ? stored.includeUnchecked : undefined;
-  const playFrom = 'playFrom' in stored ? stored.playFrom : undefined;
+  const runOrder = 'runOrder' in stored ? stored.runOrder : undefined;
   return tweakValues({
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
@@ -245,7 +245,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
     includeUnchecked: includeUnchecked === true ? includeUnchecked : undefined,
-    playFrom: playFromOf(playFrom),
+    runOrder: runOrderOf(runOrder),
   });
 }
 
@@ -258,7 +258,7 @@ function tweakValues({
   seasonTurn,
   checking,
   includeUnchecked,
-  playFrom,
+  runOrder,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -270,31 +270,30 @@ function tweakValues({
     ...(seasonTurn === undefined ? {} : { seasonTurn }),
     ...(checking === undefined ? {} : { checking }),
     ...(includeUnchecked === undefined ? {} : { includeUnchecked }),
-    ...(playFrom === undefined ? {} : { playFrom }),
+    ...(runOrder === undefined ? {} : { runOrder }),
   };
 }
 
-/** Where to play from, read from untrusted data: the lines it was drawn after included, or `undefined` if invalid. */
-function playFromOf(value: unknown): PlayFrom | undefined {
+/** The order of the runs, read from untrusted data, or `undefined` if invalid. */
+function runOrderOf(value: unknown): RunOrder | undefined {
   if (
     typeof value !== 'object' ||
     value === null ||
-    !('at' in value) ||
-    !Number.isInteger(value.at) ||
-    Number(value.at) < 0 ||
-    !('since' in value) ||
-    typeof value.since !== 'number' ||
-    !Number.isFinite(value.since) ||
-    value.since < 0
+    !('ids' in value) ||
+    !Array.isArray(value.ids) ||
+    !value.ids.every((id) => typeof id === 'string' && id !== '') ||
+    new Set(value.ids).size !== value.ids.length
   ) {
     return undefined;
   }
-  const at = Number(value.at);
-  if (!('previous' in value)) {
-    return { at, since: value.since };
+  const ids = value.ids as string[];
+  if (!('line' in value)) {
+    return { ids };
   }
-  const previous = playFromOf(value.previous);
-  return previous === undefined ? undefined : { at, since: value.since, previous };
+  const { line } = value;
+  return Number.isInteger(line) && Number(line) >= 0 && Number(line) <= ids.length
+    ? { ids, line: Number(line) }
+    : undefined;
 }
 
 function isColorSpace(value: unknown): value is ColorSpace {
