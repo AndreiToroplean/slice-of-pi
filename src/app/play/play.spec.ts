@@ -304,7 +304,10 @@ describe('Play', () => {
 
     it('plays as if only the runs before the line played from existed, in developer mode', async () => {
       const { host, type } = await setUpWithRuns(4, true, async () => {
-        await TestBed.inject(Tweaks).setPlayFrom({ at: 0, since: 100 });
+        await TestBed.inject(Tweaks).setRunOrder({
+          ids: ['earlier-0', 'earlier-1', 'earlier-2', 'earlier-3'],
+          line: 0,
+        });
         await TestBed.inject(DeveloperMode).set(true);
       });
 

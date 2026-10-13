@@ -240,8 +240,8 @@ describe('YourRuns', () => {
     // A run grouped by 3, one to play from, then three grouped by 3 played after it.
     const from = { ...grouped, id: 'from', startedAt: 3_001 };
     const runs: Run[] = [grouped, from, ...trusted.slice(0, 3)];
-    /** When the game started playing from before the run to play from, in the tests where it did. */
-    const since = 3_500;
+    /** Playing from before the run to play from, with the runs after it played since. */
+    const playedSince = { ids: ['c', 'from'], line: 1 };
 
     function groupsShown(host: HTMLElement): string[] {
       return Array.from(host.querySelectorAll('.groups li'), (group) => group.textContent.trim());
@@ -269,7 +269,7 @@ describe('YourRuns', () => {
 
       expect(menu(host)?.hasAttribute('data-popover-open')).toBe(false);
       expect(TestBed.inject(Tweaks).values()).toEqual({
-        playFrom: { at: 1, since: new Date(2026, 9, 10, 12).getTime() },
+        runOrder: { ids: ['c', 'from', 'd', 'e', 'f'], line: 1 },
       });
       expect(here(host)).toBe(1);
       expect(host.querySelector('.here')?.textContent).toContain('You are here');
@@ -283,7 +283,7 @@ describe('YourRuns', () => {
     it('puts the runs played since just before the line, and counts them', async () => {
       const { host, until } = await setUp(runs, false, false, undefined, true);
 
-      await TestBed.inject(Tweaks).setPlayFrom({ at: 1, since });
+      await TestBed.inject(Tweaks).setRunOrder(playedSince);
       await until(() => here(host) !== undefined);
 
       expect(here(host)).toBe(4);
@@ -298,7 +298,7 @@ describe('YourRuns', () => {
 
     it('keeps the runs in the order shown when playing from a run while already playing from one', async () => {
       const { host, until } = await setUp(runs, false, false, undefined, true);
-      await TestBed.inject(Tweaks).setPlayFrom({ at: 1, since });
+      await TestBed.inject(Tweaks).setRunOrder(playedSince);
       await until(() => here(host) === 4);
       const shown = articles(host).map((run) => run.querySelector('h3')?.textContent);
 
@@ -314,7 +314,7 @@ describe('YourRuns', () => {
     it('puts the runs back in the order they were played once undone', async () => {
       const { host, until } = await setUp(runs, false, false, undefined, true);
       const before = articles(host).map((run) => run.querySelector('h3')?.textContent);
-      await TestBed.inject(Tweaks).setPlayFrom({ at: 1, since });
+      await TestBed.inject(Tweaks).setRunOrder(playedSince);
       await until(() => here(host) !== undefined);
 
       host.querySelector<HTMLButtonElement>('.here .undo')?.click();
@@ -329,7 +329,7 @@ describe('YourRuns', () => {
     it('draws the line after all the runs when they all come before it', async () => {
       const { host, until } = await setUp(runs, false, false, undefined, true);
 
-      await TestBed.inject(Tweaks).setPlayFrom({ at: 9, since: 9_000 });
+      await TestBed.inject(Tweaks).setRunOrder({ ids: runs.map((run) => run.id), line: 5 });
       await until(() => here(host) !== undefined);
 
       expect(here(host)).toBe(5);

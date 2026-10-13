@@ -72,55 +72,56 @@ export function countsInGroups(run: Run, includeUnchecked: boolean): boolean {
 }
 
 /**
- * Where the game plays from, in developer mode, as if only some of the player's runs had been played: those before a
- * line drawn among them, which the runs played since go on top of.
+ * The order the game takes the player's runs in, in developer mode, rather than the order they were played in, and
+ * where the line it plays from is among them, if anywhere: as if only the runs above the line had been played.
  */
-export interface PlayFrom {
-  /** How many runs, in the order the game took them then, were before the line when it was drawn. */
-  readonly at: number;
-  /** When it was drawn, in milliseconds since the Unix epoch: the runs started since are played from it. */
-  readonly since: number;
-  /** The line the game played from when this one was drawn, if any: the order the game took the runs in then. */
-  readonly previous?: PlayFrom;
+export interface RunOrder {
+  /** The ids of the runs, in that order. */
+  readonly ids: readonly string[];
+  /** How many of them are above the line played from, if the game plays from one. */
+  readonly line?: number;
 }
 
 /**
- * The player's runs in the order the game takes them, from oldest by start, and how many of them come before the line
- * played from: all of them unless the game plays from one. Then the runs there were when the line was drawn keep the
- * order the game took them in then, so drawing a line never reorders them, and the runs played since go just before
- * the line, after the runs that were before it, so they count as the newest; the runs that were after it come after
- * them all, and don't count.
+ * The player's runs in the order the game takes them, from oldest by start unless they were put in another order, and
+ * how many of them are above the line played from, if the game plays from one. The runs left out of that order, played
+ * since it was set, go just above the line, after the runs above it, so they count as the newest, or after all the
+ * runs if there is no line.
  */
-export function playOrder(
+export function orderRuns(
   runs: readonly Run[],
-  playFrom: PlayFrom | undefined,
-): { readonly runs: readonly Run[]; readonly before: number } {
-  if (playFrom === undefined) {
-    return { runs, before: runs.length };
+  order: RunOrder | undefined,
+): { readonly runs: readonly Run[]; readonly line: number | undefined } {
+  if (order === undefined) {
+    return { runs, line: undefined };
   }
-  const earlier = playOrder(
-    runs.filter((run) => run.startedAt < playFrom.since),
-    playFrom.previous,
-  ).runs;
-  const since = runs.filter((run) => run.startedAt >= playFrom.since);
-  const at = Math.min(playFrom.at, earlier.length);
+  const byId = new Map(runs.map((run) => [run.id, run]));
+  const runsOf = (ids: readonly string[]): Run[] =>
+    ids.flatMap((id) => {
+      const run = byId.get(id);
+      return run === undefined ? [] : [run];
+    });
+  const above = runsOf(order.ids.slice(0, order.line));
+  const below = runsOf(order.ids.slice(order.line ?? order.ids.length));
+  const ordered = new Set(order.ids);
+  const since = runs.filter((run) => !ordered.has(run.id));
   return {
-    runs: [...earlier.slice(0, at), ...since, ...earlier.slice(at)],
-    before: at + since.length,
+    runs: [...above, ...since, ...below],
+    line: order.line === undefined ? undefined : above.length + since.length,
   };
 }
 
 /**
- * The runs the player's groups are computed from, out of all their runs, oldest first: those before the line played
- * from, if any (see {@link playOrder}), that count in them (see {@link countsInGroups}).
+ * The runs the player's groups are computed from, out of all their runs, oldest first: those above the line played
+ * from, if any (see {@link orderRuns}), that count in them (see {@link countsInGroups}).
  */
 export function groupRuns(
   runs: readonly Run[],
   includeUnchecked: boolean,
-  playFrom: PlayFrom | undefined,
+  order: RunOrder | undefined,
 ): Run[] {
-  const order = playOrder(runs, playFrom);
-  return order.runs.slice(0, order.before).filter((run) => countsInGroups(run, includeUnchecked));
+  const ordered = orderRuns(runs, order);
+  return ordered.runs.slice(0, ordered.line).filter((run) => countsInGroups(run, includeUnchecked));
 }
 
 /**

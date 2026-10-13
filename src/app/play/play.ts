@@ -90,7 +90,7 @@ export class Play {
   /** What the break model makes of the earlier runs that count in the groups, before this one. */
   private readonly finished = computed(() =>
     finishedRuns(
-      groupRuns(this.earlierRuns(), this.tweaks.includeUnchecked(), this.tweaks.playFrom()).map(
+      groupRuns(this.earlierRuns(), this.tweaks.includeUnchecked(), this.tweaks.runOrder()).map(
         (run) => run.times,
       ),
       this.settings().window,

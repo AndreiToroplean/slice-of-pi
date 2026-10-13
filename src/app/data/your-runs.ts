@@ -5,8 +5,8 @@ import { DeveloperMode } from '../developer/developer-mode';
 import { Tweaks } from '../developer/tweaks';
 import { Page } from '../page/page';
 import { PI_DECIMALS } from '../pi/pi-decimals';
-import { groupRuns, playOrder, Run } from '../runs/run';
-import { RUN_CLOCK, RunRecorder } from '../runs/run-recorder';
+import { groupRuns, orderRuns, Run } from '../runs/run';
+import { RunRecorder } from '../runs/run-recorder';
 import { RunStore } from '../runs/run-store';
 import { breakModel, finishedRuns, Values } from '../timing/break-model';
 import { CONFIRM } from './confirm';
@@ -129,7 +129,7 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
       <app-context-menu [entries]="runMenuEntries()" />
       @if (charts().length > 0) {
         <article class="panel summary">
-          <h3>{{ playFrom() === undefined ? 'All runs' : 'Runs before here' }}</h3>
+          <h3>{{ order().line === undefined ? 'All runs' : 'Runs before here' }}</h3>
           <app-run-chart
             [values]="aggregateChart().times"
             [baseline]="aggregateChart().baseline"
@@ -163,16 +163,16 @@ export class YourRuns {
   private readonly tweaks = inject(Tweaks);
   private readonly settings = this.tweaks.grouping;
   protected readonly includeUnchecked = this.tweaks.includeUnchecked;
-  /** Where the game plays from, in developer mode, if anywhere. */
-  protected readonly playFrom = this.tweaks.playFrom;
+  /** The order the game takes the runs in, and the line it plays from among them, in developer mode. */
+  private readonly runOrder = this.tweaks.runOrder;
   protected readonly runs = signal<readonly Run[]>([]);
   protected readonly uncheckedRuns = computed(() => this.runs().filter((run) => !run.checked));
   /** The runs the groups are computed from, oldest first. */
   private readonly counted = computed(() =>
-    groupRuns(this.runs(), this.includeUnchecked(), this.playFrom()),
+    groupRuns(this.runs(), this.includeUnchecked(), this.runOrder()),
   );
-  /** The runs in the order the game takes them, and how many come before the line played from, if any. */
-  private readonly order = computed(() => playOrder(this.runs(), this.playFrom()));
+  /** The runs in the order the game takes them, and how many are above the line played from, if any. */
+  protected readonly order = computed(() => orderRuns(this.runs(), this.runOrder()));
   /** What the break model makes of them: the groups the game plays with. */
   private readonly model = computed(() =>
     breakModel(
@@ -200,8 +200,8 @@ export class YourRuns {
         id: run.id,
         title: dateAndTime.format(run.startedAt),
         checked: run.checked,
-        here: this.playFrom() !== undefined && index === this.order().before,
-        later: index >= this.order().before,
+        here: index === this.order().line,
+        later: index >= (this.order().line ?? Infinity),
         meta:
           `${plural(run.digits.length, 'digit')} in ${seconds(run.times.at(-1) ?? 0)}` +
           (run.digits.length > 0 ? ` · ${plural(breaks.length + 1, 'group')}` : ''),
@@ -234,9 +234,7 @@ export class YourRuns {
   );
 
   /** Whether the line played from comes after all the runs. */
-  protected readonly hereAtEnd = computed(
-    () => this.playFrom() !== undefined && this.order().before === this.order().runs.length,
-  );
+  protected readonly hereAtEnd = computed(() => this.order().line === this.order().runs.length);
   /** The run whose context menu was last opened. */
   private picked: string | undefined;
   private readonly runMenu = viewChild.required(ContextMenu);
@@ -263,7 +261,6 @@ export class YourRuns {
 
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
-  private readonly clock = inject(RUN_CLOCK);
   private readonly confirm = inject(CONFIRM);
 
   constructor() {
@@ -280,24 +277,17 @@ export class YourRuns {
     this.runMenu().open(at);
   }
 
-  /**
-   * Plays from just before the run picked, as if only the runs before it had been played, in the order shown: if the
-   * game already plays from somewhere, the runs keep the order it takes them in.
-   */
+  /** Plays from just before the run picked, as if only the runs above it had been played, keeping the order shown. */
   private playFromPicked(): void {
-    const at = this.order().runs.findIndex((run) => run.id === this.picked);
-    const previous = this.playFrom();
-    if (at !== -1) {
-      void this.tweaks.setPlayFrom({
-        at,
-        since: this.clock.epoch(),
-        ...(previous === undefined ? {} : { previous }),
-      });
+    const ids = this.order().runs.map((run) => run.id);
+    const line = ids.indexOf(this.picked ?? '');
+    if (line !== -1) {
+      void this.tweaks.setRunOrder({ ids, line });
     }
   }
 
   protected undoPlayFrom(): void {
-    void this.tweaks.setPlayFrom(undefined);
+    void this.tweaks.setRunOrder(undefined);
   }
 
   /** Deletes every run kept, once the player confirms. */
