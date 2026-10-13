@@ -286,8 +286,9 @@ export class YourRuns {
     }
   }
 
+  /** Plays from after all the runs again, keeping them in the order shown. */
   protected undoPlayFrom(): void {
-    void this.tweaks.setRunOrder(undefined);
+    void this.tweaks.setRunOrder({ ids: this.order().runs.map((run) => run.id) });
   }
 
   /** Deletes every run kept, once the player confirms. */

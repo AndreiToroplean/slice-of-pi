@@ -311,17 +311,19 @@ describe('YourRuns', () => {
       expect(later(host)).toEqual([false, false, false, true, true]);
     });
 
-    it('puts the runs back in the order they were played once undone', async () => {
+    it('keeps the runs in the order shown once undone, counting them all', async () => {
       const { host, until } = await setUp(runs, false, false, undefined, true);
-      const before = articles(host).map((run) => run.querySelector('h3')?.textContent);
       await TestBed.inject(Tweaks).setRunOrder(playedSince);
       await until(() => here(host) !== undefined);
+      const shown = articles(host).map((run) => run.querySelector('h3')?.textContent);
 
       host.querySelector<HTMLButtonElement>('.here .undo')?.click();
       await until(() => here(host) === undefined);
 
-      expect(TestBed.inject(Tweaks).values()).toEqual({});
-      expect(articles(host).map((run) => run.querySelector('h3')?.textContent)).toEqual(before);
+      expect(TestBed.inject(Tweaks).values()).toEqual({
+        runOrder: { ids: ['c', 'd', 'e', 'f', 'from'] },
+      });
+      expect(articles(host).map((run) => run.querySelector('h3')?.textContent)).toEqual(shown);
       expect(later(host)).toEqual([false, false, false, false, false]);
       expect(host.querySelector('.summary h3')?.textContent.trim()).toBe('All runs');
     });
