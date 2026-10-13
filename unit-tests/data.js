@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791851330072,
+  "lastUpdate": 1791854736757,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -798,6 +798,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 363,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "6044ce03cece32ee7ec770c77d7f2395d11db33d",
+          "message": "feat: turn developer mode on and off by tapping the game icon ten times in a row\n\nReplaces holding the overflow menu button and dragging it onto a target. From the fifth tap on, a message says developer mode is coming (or going); stopping short gives up, with a word that depends on how far the taps went.\n\nClaude-Session: https://claude.ai/code/session_01EpH6UCJEg8FpUuzu9xmtAp",
+          "timestamp": "2026-10-13T03:25:18+02:00",
+          "tree_id": "b1990b73f16b397f808cc737554271f3dbf4e9b8",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/6044ce03cece32ee7ec770c77d7f2395d11db33d"
+        },
+        "date": 1791854736366,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5765,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 9598,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 370,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
