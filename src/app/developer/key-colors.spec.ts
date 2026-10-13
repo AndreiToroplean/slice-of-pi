@@ -94,7 +94,7 @@ describe('KeyColors', () => {
     expect(TestBed.inject(Tweaks).values().palette?.[3]).toBe(tuned);
 
     const reset = Array.from(host.querySelectorAll('button')).find((button) =>
-      button.textContent.includes("Back to the game's colors"),
+      button.textContent.includes("Back to the Game's Colors"),
     );
     reset?.click();
     await stable();

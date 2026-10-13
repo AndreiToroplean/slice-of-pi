@@ -57,7 +57,7 @@ describe('YourRuns', () => {
   it('deletes every run once the player confirms', async () => {
     const { host, until } = await setUp([first, second]);
 
-    button(host, 'Delete all runs').click();
+    button(host, 'Delete All Runs').click();
     await until(() => message(host) !== '');
 
     expect(questions).toEqual([
@@ -65,14 +65,14 @@ describe('YourRuns', () => {
     ]);
     expect(message(host)).toBe('Deleted 2 runs.');
     expect(await TestBed.inject(RunStore).runs()).toEqual([]);
-    expect(button(host, 'Delete all runs').disabled).toBe(true);
+    expect(button(host, 'Delete All Runs').disabled).toBe(true);
   });
 
   it('keeps the runs when the player does not confirm', async () => {
     const { host } = await setUp([first]);
     confirming = false;
 
-    button(host, 'Delete all runs').click();
+    button(host, 'Delete All Runs').click();
     await vi.waitFor(() => {
       expect(questions).toEqual([
         'Delete the run kept on this device? Only a backup file can bring it back.',
@@ -192,7 +192,7 @@ describe('YourRuns', () => {
     it('deletes the unchecked runs once the player confirms, in developer mode', async () => {
       const { host, until } = await setUp([grouped, unchecked], false, false, undefined, true);
 
-      button(host, 'Delete unchecked runs').click();
+      button(host, 'Delete Unchecked Runs').click();
       await until(() => message(host) !== '');
 
       expect(questions).toEqual([
@@ -200,7 +200,7 @@ describe('YourRuns', () => {
       ]);
       expect(message(host)).toBe('Deleted 1 unchecked run.');
       expect(await TestBed.inject(RunStore).runs()).toEqual([grouped]);
-      expect(button(host, 'Delete unchecked runs').disabled).toBe(true);
+      expect(button(host, 'Delete Unchecked Runs').disabled).toBe(true);
     });
   });
 
@@ -251,7 +251,7 @@ describe('YourRuns', () => {
 
       article(host, 1).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
       await until(() => menu(host)?.hasAttribute('data-popover-open') === true);
-      button(host, 'Play from here').click();
+      button(host, 'Play from Here').click();
       await until(() => here(host) !== undefined);
 
       expect(menu(host)?.hasAttribute('data-popover-open')).toBe(false);
@@ -291,7 +291,7 @@ describe('YourRuns', () => {
 
       article(host, 3).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
       await until(() => menu(host)?.hasAttribute('data-popover-open') === true);
-      button(host, 'Play from here').click();
+      button(host, 'Play from Here').click();
       await until(() => here(host) === 3);
 
       expect(articles(host).map((run) => run.querySelector('h3')?.textContent)).toEqual(shown);

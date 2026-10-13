@@ -53,12 +53,12 @@ describe('Pause', () => {
     expect(Array.from(dialog.querySelectorAll('button'), (b) => b.textContent.trim())).toEqual([
       'Resume',
       'Restart',
-      'End game',
+      'End Game',
     ]);
     expect(dialog.querySelector('button')?.hasAttribute('autofocus')).toBe(true);
   });
 
-  for (const label of ['Resume', 'Restart', 'End game']) {
+  for (const label of ['Resume', 'Restart', 'End Game']) {
     it(`closes and resumes on ${label}`, async () => {
       const { pause, dialog, click } = await setUp();
       await click('Pause');
@@ -103,7 +103,7 @@ describe('Pause', () => {
     dialog.getAnimations = (): Animation[] => [closing];
     await click('Pause');
 
-    await click('End game');
+    await click('End Game');
     expect(navigate).not.toHaveBeenCalled();
 
     finish();

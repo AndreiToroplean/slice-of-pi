@@ -232,7 +232,7 @@ export function oneIn(share: number): string {
     <div class="heading">
       <h2 id="grouping-settings-title">Grouping settings</h2>
       <button type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
-        Back to the game's settings
+        Back to the Game's Settings
       </button>
     </div>
     <p>How your groups are found. The charts below follow as you move them.</p>

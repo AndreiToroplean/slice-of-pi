@@ -54,9 +54,9 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
           <p>It also keeps what you tuned in developer mode.</p>
         }
         <div class="buttons">
-          <button type="button" class="candy" (click)="save()">Save a backup</button>
+          <button type="button" class="candy" (click)="save()">Save a Backup</button>
           <label class="candy">
-            Restore a backup
+            Restore a Backup
             <input
               type="file"
               accept=".json,application/json"

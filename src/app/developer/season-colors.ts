@@ -34,7 +34,7 @@ const ENDS = [
   template: `
     <app-page title="Season colors">
       <button pageAction type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
-        Back to the game's colors
+        Back to the Game's Colors
       </button>
       <app-season-header [view]="view()" />
       <div class="seasons">
@@ -71,7 +71,7 @@ const ENDS = [
         <select class="frosted pill" (change)="blendIn($event)">
           @for (space of colorSpaces; track space) {
             <option [value]="space" [selected]="space === colorSpace()">
-              {{ spaceNames[space] }}{{ space === gameSpace ? ' (the game’s)' : '' }}
+              {{ spaceNames[space] }}{{ space === gameSpace ? ' (The Game’s)' : '' }}
             </option>
           }
         </select>

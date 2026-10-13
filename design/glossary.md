@@ -56,5 +56,5 @@
 
 ## Developer
 
-- **Developer mode:** a hidden mode for tuning the game, turned on and off with a secret gesture on the main menu's ⋮ button (`developer-mode.ts`). It adds a Developer section to the ⋮ menu, with a page per thing to tune and a "Check digits" toggle.
+- **Developer mode:** a hidden mode for tuning the game, turned on and off with a secret gesture on the main menu's ⋮ button (`developer-mode.ts`). It adds a Developer section to the ⋮ menu, with a page per thing to tune and a "Check Digits" toggle.
 - **Tweaks:** values tuned in developer mode, such as the key colors or the grouping settings, and developer settings such as checking the digits. They're kept with the player data and apply to the game only while developer mode is on. Each page's "Copy hyperparameter values" button copies them as text, to be written into the code.
