@@ -1,11 +1,21 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter, ViewTransitionInfo, withViewTransitions } from '@angular/router';
+import {
+  provideRouter,
+  ViewTransitionInfo,
+  withNavigationErrorHandler,
+  withViewTransitions,
+} from '@angular/router';
 import { routes } from './app.routes';
+import { loadFailedPage } from './failed-navigation';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes, withViewTransitions({ onViewTransitionCreated: zoom })),
+    provideRouter(
+      routes,
+      withViewTransitions({ onViewTransitionCreated: zoom }),
+      withNavigationErrorHandler(loadFailedPage),
+    ),
   ],
 };
 
