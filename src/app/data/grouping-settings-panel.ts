@@ -1,6 +1,7 @@
-import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
-import { CopyValues } from '../developer/copy-values';
+import { Component, computed, ElementRef, inject, output, signal, viewChild } from '@angular/core';
+import { WRITE_CLIPBOARD } from '../developer/copy-values';
 import { groupingText, Tweaks } from '../developer/tweaks';
+import { OverflowMenu } from '../overflow-menu/overflow-menu';
 import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
 
 /** A slider for one hyperparameter of the break model, with what it means behind a help button. */
@@ -225,63 +226,115 @@ export function oneIn(share: number): string {
   return String(Number((1 / share).toFixed(1)));
 }
 
+/** The tabs the sliders are split into, a few to a tab, so that none of them need scrolling. */
+export const SETTING_TABS: readonly {
+  readonly name: string;
+  readonly keys: readonly (keyof BreakSettings)[];
+}[] = [
+  { name: 'Breaks', keys: ['window', 'priorStrength', 'breakThreshold'] },
+  { name: 'Groups', keys: ['recencyDecay', 'level', 'usualThreshold', 'startingSlots'] },
+  { name: 'Prior', keys: ['syntheticRuns', 'syntheticDecay', 'priorBaseline'] },
+  {
+    name: 'Mixture',
+    keys: ['priorBreakShare', 'priorBreakSize', 'priorNormalSpread', 'priorBreakSpread'],
+  },
+];
+
+/** The tab of what is given to the panel. */
+const RUNS_TAB = 'Runs';
+
 /**
- * Developer mode's sliders for every hyperparameter of the break model, each with a button bringing back the game's value and a
- * help button opening a dialog that says what it does, a button to bring back the game's settings, and one to copy their values so they go into the code.
- * Content given to it goes above the sliders.
+ * Developer mode's tabs on Your Runs: one with what is given to it, the runs, and the others with the sliders for every
+ * hyperparameter of the break model, a few to a tab, each with a button bringing back the game's value and a help button
+ * opening a dialog that says what it does. Beside the tabs, an overflow menu has buttons to copy the settings' values so
+ * they go into the code and to bring back the game's settings, then what is given to it marked `menuItem`.
  */
 @Component({
   selector: 'app-grouping-settings-panel',
-  imports: [CopyValues],
+  imports: [OverflowMenu],
   template: `
-    <div class="heading">
-      <h2 id="grouping-settings-title">Grouping settings</h2>
-      <button type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
-        Back to the Game's Settings
-      </button>
+    <div class="bar">
+      <div class="tabs" role="tablist" aria-label="Your runs and the grouping settings">
+        @for (name of tabNames; track name) {
+          <button
+            type="button"
+            role="tab"
+            [id]="'tab-' + name"
+            [attr.aria-controls]="'pane-' + name"
+            [attr.aria-selected]="tab() === name"
+            (click)="tab.set(name)"
+          >
+            {{ name }}
+          </button>
+        }
+      </div>
+      <app-overflow-menu>
+        <button type="button" (click)="void copy()">Copy Hyperparameter Values</button>
+        <button type="button" [disabled]="!tuned()" (click)="reset()">
+          Back to the Game's Settings
+        </button>
+        <hr />
+        <ng-content select="[menuItem]" />
+      </app-overflow-menu>
     </div>
-    <p>How your groups are found. The charts below follow as you move them.</p>
-    <ng-content />
-    @for (control of controls; track control.key) {
-      <div class="setting">
-        <div class="top">
-          <label [for]="'setting-' + control.key">{{ control.label }}</label>
-          <output [for]="'setting-' + control.key">{{ formatted(control) }}</output>
-          <button
-            type="button"
-            class="round"
-            [attr.aria-label]="revertLabel(control)"
-            [disabled]="isDefault(control)"
-            (click)="revert(control)"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M9 14 4 9l5-5" />
-              <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="round"
-            aria-haspopup="dialog"
-            [attr.aria-label]="'About ' + control.label"
-            (click)="showHelp(control)"
-          >
-            ?
-          </button>
-        </div>
-        <input
-          type="range"
-          [id]="'setting-' + control.key"
-          [min]="control.min"
-          [max]="control.max"
-          [step]="control.step"
-          [value]="position(control)"
-          [attr.aria-valuetext]="formatted(control)"
-          (input)="set(control, $event)"
-        />
+    <div
+      class="pane runs-pane"
+      role="tabpanel"
+      id="pane-Runs"
+      aria-labelledby="tab-Runs"
+      [hidden]="tab() !== runsTab"
+    >
+      <ng-content />
+    </div>
+    @for (settingTab of tabs; track settingTab.name) {
+      <div
+        class="pane settings"
+        role="tabpanel"
+        [id]="'pane-' + settingTab.name"
+        [attr.aria-labelledby]="'tab-' + settingTab.name"
+        [hidden]="tab() !== settingTab.name"
+      >
+        @for (control of settingTab.controls; track control.key) {
+          <div class="setting">
+            <div class="top">
+              <label [for]="'setting-' + control.key">{{ control.label }}</label>
+              <button
+                type="button"
+                class="round"
+                [attr.aria-label]="revertLabel(control)"
+                [disabled]="isDefault(control)"
+                (click)="revert(control)"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 14 4 9l5-5" />
+                  <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="round"
+                aria-haspopup="dialog"
+                [attr.aria-label]="'About ' + control.label"
+                (click)="showHelp(control)"
+              >
+                ?
+              </button>
+            </div>
+            <output [for]="'setting-' + control.key">{{ formatted(control) }}</output>
+            <input
+              type="range"
+              [id]="'setting-' + control.key"
+              [min]="control.min"
+              [max]="control.max"
+              [step]="control.step"
+              [value]="position(control)"
+              [attr.aria-valuetext]="formatted(control)"
+              (input)="set(control, $event)"
+            />
+          </div>
+        }
       </div>
     }
-    <app-copy-values [text]="copyText()" />
     <dialog #helpDialog class="card" aria-labelledby="help-title" (close)="helped.set(undefined)">
       @if (helped(); as control) {
         <h2 id="help-title">{{ control.label }}</h2>
@@ -294,13 +347,83 @@ export function oneIn(share: number): string {
       }
     </dialog>
   `,
-  host: { class: 'panel', role: 'region', 'aria-labelledby': 'grouping-settings-title' },
   styles: `
-    .heading {
+    /* As tall as the page leaves it, the panes sharing it in turn. */
+    :host {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .bar {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
+      gap: var(--space-2);
+    }
+
+    /* The tabs, on a frosted strip: the one shown is white. */
+    .tabs {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      gap: 0.25rem;
+      padding: 0.1875rem;
+      border-radius: 1rem;
+      background: var(--frost);
+      box-shadow: inset 0 1px 0 var(--frost-highlight);
+    }
+
+    [role='tab'] {
+      flex: 1;
+      min-width: 0;
+      padding: 0.5rem 0.125rem;
+      border: none;
+      border-radius: 0.8125rem;
+      background: none;
+      color: inherit;
+      font: inherit;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      text-shadow: var(--text-shadow);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    [role='tab'][aria-selected='true'] {
+      background: var(--candy);
+      color: var(--on-candy);
+      text-shadow: none;
+    }
+
+    [role='tab']:focus-visible {
+      outline: 0.1875rem solid var(--focus-ring);
+      outline-offset: 0.125rem;
+    }
+
+    .pane {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pane[hidden] {
+      display: none;
+    }
+
+    /* The sliders, from the top, each as tall as the others whatever its label and value. */
+    .settings {
+      display: grid;
+      align-content: start;
+      gap: var(--space-3);
+      padding: var(--space-1) var(--space-1) 0;
+    }
+
+    .setting {
+      display: grid;
+      gap: 0.125rem;
     }
 
     .top {
@@ -323,22 +446,25 @@ export function oneIn(share: number): string {
       text-shadow: var(--text-shadow);
     }
 
-    .setting {
-      display: grid;
-      gap: 0.125rem;
+    /* The label and the value on lines of their own, so that neither wraps the other. */
+    label,
+    output {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      text-shadow: var(--text-shadow);
     }
 
     label {
       flex: 1;
       font-weight: 500;
-      text-shadow: var(--text-shadow);
     }
 
     output {
+      font-size: 0.875rem;
       font-variant-numeric: tabular-nums;
-      text-shadow: var(--text-shadow);
+      opacity: 0.9;
     }
-
     .round {
       display: grid;
       place-items: center;
@@ -395,12 +521,23 @@ export function oneIn(share: number): string {
   `,
 })
 export class GroupingSettingsPanel {
-  protected readonly controls = CONTROLS;
+  /** Tells what happened, such as the values being copied. */
+  readonly told = output<string>();
+
+  protected readonly runsTab = RUNS_TAB;
+  protected readonly tabs = SETTING_TABS.map(({ name, keys }) => ({
+    name,
+    controls: CONTROLS.filter(({ key }) => keys.includes(key)),
+  }));
+  protected readonly tabNames = [RUNS_TAB, ...SETTING_TABS.map(({ name }) => name)];
+  /** The tab shown. */
+  protected readonly tab = signal(RUNS_TAB);
   /** The setting whose help is open, if any. */
   protected readonly helped = signal<Control | undefined>(undefined);
   private readonly helpDialog = viewChild.required<ElementRef<HTMLDialogElement>>('helpDialog');
 
   private readonly tweaks = inject(Tweaks);
+  private readonly writeClipboard = inject(WRITE_CLIPBOARD);
   private readonly settings = this.tweaks.grouping;
   /** The settings as text, to hand back so they go into the code. */
   protected readonly copyText = computed(() => groupingText(this.settings()));
@@ -448,5 +585,15 @@ export class GroupingSettingsPanel {
 
   protected reset(): void {
     void this.tweaks.setGrouping(undefined);
+  }
+
+  /** Copies the settings' values as text, to hand back so they go into the code. */
+  protected async copy(): Promise<void> {
+    try {
+      await this.writeClipboard(this.copyText());
+      this.told.emit('Copied the hyperparameter values.');
+    } catch {
+      this.told.emit("Couldn't copy the hyperparameter values.");
+    }
   }
 }
