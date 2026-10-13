@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791848705806,
+  "lastUpdate": 1791850229194,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -718,6 +718,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 361,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "535c38dc77eec24581f7e0442e45d2f5f5040786",
+          "message": "feat: bring the last word back when backspace empties the slots\n\nBackspace takes the clock back to the last digit left, so the word it ends may not be over yet: when backspace empties the slots, deleting the first digit of a group or a mistake alone in them, the last word comes back into the slots, for the player to carry on until they break there again. A word that would finish again at once, where the player clearly breaks, stays where it is without flying.\n\nClaude-Session: https://claude.ai/code/session_01KuEyMkjH43ZcHWL4E2dKf5",
+          "timestamp": "2026-10-13T02:10:05+02:00",
+          "tree_id": "b2bf9b34c0adb8c5c04725b9093e1bfac2d266f9",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/535c38dc77eec24581f7e0442e45d2f5f5040786"
+        },
+        "date": 1791850228429,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 6043,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 10311,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 339,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
