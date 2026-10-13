@@ -76,6 +76,13 @@ describe('routes', () => {
     expect(component).toBe(Data);
   });
 
+  it("lazily loads what stands in for a preview that isn't published", async () => {
+    const preview = routes.find((route) => route.matcher !== undefined);
+    const component = await preview?.loadComponent?.();
+    const { MissingPreview } = await import('./preview/missing-preview');
+    expect(component).toBe(MissingPreview);
+  });
+
   it('sends unknown addresses to the main menu', () => {
     expect(routes.find((route) => route.path === '**')?.redirectTo).toBe('');
   });
