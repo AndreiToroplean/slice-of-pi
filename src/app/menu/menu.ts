@@ -9,8 +9,8 @@ import { OverflowMenu } from '../overflow-menu/overflow-menu';
 import { seasonAt } from '../seasons/seasons';
 
 /**
- * The main menu, where the app opens: the game's icon and name and a button to play, with more in an overflow menu in a
- * corner.
+ * The main menu, where the app opens: the game's icon and name, a button to play and one above it to the player's runs,
+ * with more in an overflow menu in a corner.
  */
 @Component({
   selector: 'app-menu',
@@ -18,7 +18,6 @@ import { seasonAt } from '../seasons/seasons';
   host: { class: 'screen' },
   template: `
     <app-overflow-menu>
-      <a routerLink="/runs">Your Runs</a>
       <a routerLink="/data">Your Data</a>
       @if (developerMode.enabled()) {
         <div class="section" role="group" aria-labelledby="developer-title">
@@ -65,6 +64,7 @@ import { seasonAt } from '../seasons/seasons';
       {{ taps.message() }}
     </p>
     <div class="actions">
+      <a class="candy" routerLink="/runs">Your Runs</a>
       <a class="candy primary" routerLink="/play">Play</a>
     </div>
   `,
