@@ -96,6 +96,7 @@ export class Play {
         (run) => run.times,
       ),
       this.settings().window,
+      this.settings().priorReachCost,
     ),
   );
   /**

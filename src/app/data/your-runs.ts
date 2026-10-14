@@ -297,6 +297,7 @@ export class YourRuns {
       finishedRuns(
         this.counted().map((run) => run.times),
         this.settings().window,
+        this.settings().priorReachCost,
       ),
       undefined,
       this.settings(),

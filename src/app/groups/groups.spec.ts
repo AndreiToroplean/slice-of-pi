@@ -39,7 +39,7 @@ function model(
   tuned: BreakSettings = settings,
 ): BreakModel {
   const runs = Array.from({ length: count }, () => timesOf(length, by3(length)));
-  return breakModel(finishedRuns(runs, tuned.window), current, tuned);
+  return breakModel(finishedRuns(runs, tuned.window, tuned.priorReachCost), current, tuned);
 }
 
 describe('groupDigits', () => {
@@ -157,7 +157,8 @@ describe('groupEnds', () => {
   });
 
   it("finishes a new player's group where they break", () => {
-    const found = model(0, timesOf(4, [3]));
+    // With the synthetic runs: without them, three intervals can't tell a break from a reach.
+    const found = model(0, timesOf(4, [3]), 30, DEFAULT_BREAK_SETTINGS);
 
     expect(groupEnds(found, 3, false, settings)).toBe(true);
     expect(groupEnds(found, 2, false, settings)).toBe(false);
@@ -189,10 +190,14 @@ describe('the thresholds', () => {
     // Two runs out of three break at index 3, so about 63% of the weight.
     const runs = [timesOf(30, by3(30)), timesOf(30, by3(30)), timesOf(30, by3(30).slice(1))];
     const at = (usualThreshold: number): BreakModel =>
-      breakModel(finishedRuns(runs.reverse(), settings.window), undefined, {
-        ...settings,
-        usualThreshold,
-      });
+      breakModel(
+        finishedRuns(runs.reverse(), settings.window, settings.priorReachCost),
+        undefined,
+        {
+          ...settings,
+          usualThreshold,
+        },
+      );
 
     expect(at(0.5).groups[0]?.size).toBe(3);
     expect(at(0.8).groups[0]?.size).toBe(6);

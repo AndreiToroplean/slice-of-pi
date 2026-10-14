@@ -223,6 +223,7 @@ describe('Tweaks', () => {
         '  syntheticRuns: 5',
         '  syntheticDecay: 0.5',
         '  priorBaseline: 300',
+        '  priorReachCost: 0.3',
         '  priorBreakShare: 0.15',
         '  priorBreakSize: 2.5',
         '  priorNormalSpread: 0.25',

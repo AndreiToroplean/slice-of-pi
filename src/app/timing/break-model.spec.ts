@@ -13,16 +13,24 @@ import {
   priorMixture,
   trailingMedian,
 } from './break-model';
+import { reaches } from './reach';
 
 describe('break model', () => {
   const settings = DEFAULT_BREAK_SETTINGS;
   /** Only the runs given, without synthetic ones. */
   const alone = { ...settings, syntheticRuns: 0 };
 
-  /** A run's times from its intervals (the first digit takes none). */
-  function timesOf(intervals: readonly number[]): number[] {
+  /**
+   * A run's times from its intervals (the first digit takes none), each taking longer for its reach as the prior's reach
+   * cost says, as a player's would.
+   */
+  function timesOf(intervals: readonly number[], reachCost = settings.priorReachCost): number[] {
+    const reach = reaches(intervals.length);
     let time = 0;
-    return [0, ...intervals.map((interval) => (time += interval))];
+    return [
+      0,
+      ...intervals.map((interval, p) => (time += interval * Math.exp(reachCost * (reach[p] ?? 0)))),
+    ];
   }
 
   /**
@@ -47,7 +55,12 @@ describe('break model', () => {
     current?: readonly number[],
     tuned: BreakSettings = alone,
   ): BreakModel {
-    return breakModel(finishedRuns(finished, tuned.window), current, tuned);
+    return breakModel(finishedRuns(finished, tuned.window, tuned.priorReachCost), current, tuned);
+  }
+
+  /** An interval at an index, made longer for its reach by the reach cost fitted. */
+  function reached(interval: number, index: number, found: BreakModel): number {
+    return interval * Math.exp(found.mixture.reachCost * (reaches(index)[index - 1] ?? 0));
   }
 
   function spots(usual: readonly (number | undefined)[]): number[] {
@@ -107,6 +120,38 @@ describe('break model', () => {
       expect(Array.from(posterior, (p) => Math.round(p))).toEqual([0, 0, 0, 0, 0, 1, 1, 0, 0, 0]);
     });
 
+    it('fits the reach cost along with the components, given each residual’s reach difficulty', () => {
+      const reach = Float64Array.from(
+        { length: 40 },
+        (_, i) => [0, 1, 1.27, 1.58, 2.06][i % 5] ?? 0,
+      );
+      const residuals = reach.map(
+        (x, i) => 0.4 * x + (i % 8 === 7 ? 1 : ([-0.1, 0, 0.1][i % 3] ?? 0)),
+      );
+      const { mixture, posterior } = fitMixture(
+        residuals,
+        new Float64Array(40).fill(1),
+        undefined,
+        undefined,
+        reach,
+      );
+
+      expect(mixture.reachCost).toBeCloseTo(0.4, 1);
+      expect(mixture.mean[1] - mixture.mean[0]).toBeCloseTo(1, 1);
+      expect(
+        Array.from(posterior, (p, i) => Math.round(p) === (i % 8 === 7 ? 1 : 0)),
+      ).not.toContain(false);
+    });
+
+    it('keeps the reach cost it starts from without reach difficulties', () => {
+      const residuals = Float64Array.from([-0.1, 0, 0.1, -0.05, 0.05, 1.2, 1.3, 0, 0.02, -0.02]);
+
+      expect(
+        fitMixture(residuals, new Float64Array(10).fill(1), priorMixture(settings)).mixture
+          .reachCost,
+      ).toBe(settings.priorReachCost);
+    });
+
     it('counts each residual with its weight', () => {
       const residuals = Float64Array.from([-0.1, 0, 0.1, -0.05, 0.05, 1.2, 1.3, 0, 0.02, -0.02]);
       const weights = Float64Array.from([1, 1, 1, 1, 1, 0.5, 0.5, 1, 1, 1]);
@@ -133,12 +178,16 @@ describe('break model', () => {
       expect(spots(found.usual)).toEqual(by3(40));
     });
 
-    it('gives each interval its residual, the log of its interval over its baseline', () => {
-      const found = model([run(40, by3(40))]);
+    it('gives each interval its residual, the log of its interval over its baseline, reach included', () => {
+      const times = run(40, by3(40));
+      const found = model([times]);
       const residual = found.runs[0]?.residual ?? [];
 
       expect(residual[0]).toBeUndefined();
-      expect(residual[3]).toBeCloseTo(Math.log(700 / (found.runs[0]?.baseline[3] ?? 1)), 6);
+      expect(residual[3]).toBeCloseTo(
+        Math.log(((times[3] ?? 0) - (times[2] ?? 0)) / (found.runs[0]?.baseline[3] ?? 1)),
+        6,
+      );
       expect(Math.abs(residual[2] ?? 1)).toBeLessThan(0.2);
     });
 
@@ -162,12 +211,52 @@ describe('break model', () => {
     });
 
     it('judges a break against the local speed, not a fixed time', () => {
-      // Twice as slow in the second half, pausing as much relative to it.
+      // Twice as slow in the second half, pausing as much relative to it, with a window short enough to follow.
       const intervals = Array.from({ length: 59 }, (_, p) => {
         const slow = p >= 30 ? 2 : 1;
         return (p + 1) % 3 === 0 ? 700 * slow : ([180, 200, 230][p % 3] ?? 0) * slow;
       });
-      const found = model([timesOf(intervals)]);
+      const found = model([timesOf(intervals)], undefined, { ...alone, window: 7 });
+
+      expect(spots(found.usual)).toEqual(by3(60));
+    });
+
+    it("fits the player's own reach cost, from the synthetic runs' toward the runs'", () => {
+      const reachy = (k: number): number[] =>
+        timesOf(
+          Array.from({ length: 59 }, (_, p) =>
+            (p + 1) % 3 === 0 ? 700 + 10 * k : ([180, 200, 230][(p + k) % 3] ?? 0),
+          ),
+          0.6,
+        );
+      const cost = (runs: number): number =>
+        model(
+          Array.from({ length: runs }, (_, k) => reachy(k)),
+          undefined,
+          settings,
+        ).mixture.reachCost;
+
+      expect(model([reachy(0)]).mixture.reachCost).toBeCloseTo(0.6, 1);
+      expect(cost(1)).toBeGreaterThan(settings.priorReachCost);
+      expect(cost(8)).toBeGreaterThan(cost(1));
+      expect(cost(8)).toBeLessThan(0.6);
+      expect(cost(8)).toBeGreaterThan(
+        settings.priorReachCost + 0.75 * (0.6 - settings.priorReachCost),
+      );
+    });
+
+    it('takes neither a long reach for a break nor a double tap for haste', () => {
+      // Reaching costs this player twice as much a step as the synthetic runs expect.
+      const found = model(
+        Array.from({ length: 3 }, (_, k) =>
+          timesOf(
+            Array.from({ length: 59 }, (_, p) =>
+              (p + 1) % 3 === 0 ? 700 + 10 * k : ([180, 200, 230][(p + k) % 3] ?? 0),
+            ),
+            0.6,
+          ),
+        ),
+      );
 
       expect(spots(found.usual)).toEqual(by3(60));
     });
@@ -329,22 +418,21 @@ describe('break model', () => {
     it("bases the run in progress on the earlier runs' speed and its own offset from it", () => {
       // Earlier runs at about 200 ms, this one twice as slow, so its baseline doubles too.
       const earlier = Array.from({ length: 4 }, () => run(30, by3(30)));
-      const slow = timesOf(
-        run(20, [])
-          .slice(1)
-          .map((time, p, times) => 2 * (time - (times[p - 1] ?? 0))),
-      );
+      const slow = timesOf(Array.from({ length: 19 }, (_, p) => 2 * ([180, 200, 230][p % 3] ?? 0)));
       const found = model(earlier, slow);
 
-      expect(found.speedCurve[10]).toBeCloseTo(200, -1);
+      expect(found.speedCurve[10]).toBeCloseTo(reached(200, 10, found), -1);
       // At 20 intervals in, the prior (the earlier runs' offset, none) still weighs 5 of 25.
-      expect(found.runs.at(-1)?.baseline[19]).toBeCloseTo(200 * 2 ** (20 / 25), -1);
+      expect(found.runs.at(-1)?.baseline[19]).toBeCloseTo(
+        reached(200 * 2 ** (20 / 25), 19, found),
+        -1,
+      );
     });
 
     it("bases the run in progress on its own speed past the earlier runs' end", () => {
       const found = model([run(10, [3])], run(40, by3(40)));
 
-      expect(found.runs.at(-1)?.baseline[30]).toBeCloseTo(200, -1);
+      expect(found.runs.at(-1)?.baseline[30]).toBeCloseTo(reached(200, 30, found), -1);
       expect(spots(found.runs.at(-1)?.breakProbability ?? [])).toEqual(by3(40));
     });
 
@@ -352,6 +440,7 @@ describe('break model', () => {
       const finished = finishedRuns(
         Array.from({ length: 4 }, () => run(60, by3(60))),
         settings.window,
+        settings.priorReachCost,
       );
       const current = run(30, by3(30));
       const cold = breakModel(finished, current, settings);
@@ -363,7 +452,7 @@ describe('break model', () => {
 
     it('works out the finished runs again for another window', () => {
       const runs = Array.from({ length: 4 }, () => run(30, by3(30)));
-      const finished = finishedRuns(runs, 21);
+      const finished = finishedRuns(runs, 21, settings.priorReachCost);
 
       expect(breakModel(finished, undefined, { ...settings, window: 5 })).toEqual(
         model(runs, undefined, { ...settings, window: 5 }),

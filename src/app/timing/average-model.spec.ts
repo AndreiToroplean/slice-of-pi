@@ -37,7 +37,7 @@ describe('average model', () => {
     current?: readonly number[],
     tuned: BreakSettings = settings,
   ): BreakModel {
-    return averageModel(finishedRuns(finished, tuned.window), current, tuned);
+    return averageModel(finishedRuns(finished, tuned.window, tuned.priorReachCost), current, tuned);
   }
 
   function spots(usual: readonly (number | undefined)[]): number[] {

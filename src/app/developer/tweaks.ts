@@ -348,6 +348,7 @@ const BREAK_SETTING_CHECKS: { readonly [K in keyof BreakSettings]: (value: numbe
   syntheticRuns: (value) => Number.isInteger(value) && value >= 0,
   syntheticDecay: (value) => value > 0 && value <= 1,
   priorBaseline: (value) => value > 0,
+  priorReachCost: (value) => value >= 0,
   priorBreakShare: (value) => value > 0 && value < 1,
   priorBreakSize: (value) => value > 0,
   priorNormalSpread: (value) => value > 0,

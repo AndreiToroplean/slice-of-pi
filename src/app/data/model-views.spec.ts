@@ -31,7 +31,11 @@ describe('the views of the break model', () => {
   }
 
   const runs = [run(30, 0), run(30, 1), run(24, 2)];
-  const model = breakModel(finishedRuns(runs, settings.window), undefined, settings);
+  const model = breakModel(
+    finishedRuns(runs, settings.window, settings.priorReachCost),
+    undefined,
+    settings,
+  );
 
   function input(
     picked: number[] = [],

@@ -122,6 +122,20 @@ export const CONTROLS: readonly Control[] = [
     },
   },
   {
+    key: 'priorReachCost',
+    label: 'Prior reach cost',
+    min: 0,
+    max: 1,
+    step: 0.01,
+    format: (value) => `${value.toFixed(2)} (× ${Math.exp(value).toFixed(2)} a step)`,
+    help: {
+      what: 'How much longer an interval takes the further your finger goes from the key before, for the synthetic runs: × this for each step of reach. Typing the same key again is no step, the next key one, and across the keypad, 7 to 0, two. The game fits your own reach cost from your runs, starting from this one.',
+      why: 'However you group the digits, a long reach takes longer than a double tap, by about the same factor for each doubling of the distance (Fitts’s law). The baseline takes it in, so that a long reach isn’t taken for a break, and a quick double tap doesn’t make its neighbours look like pauses.',
+      moving:
+        'Mostly matters for your first runs, before yours say how much reaching costs you. Higher expects reaches to slow you down more, so a pause after a long reach must be longer to count as a break; lower, less. 0 expects no cost at all.',
+    },
+  },
+  {
     key: 'priorBreakShare',
     label: 'Prior break share',
     min: 0.02,
@@ -240,7 +254,7 @@ export const SETTING_TABS: readonly {
   readonly keys: readonly (keyof BreakSettings)[];
 }[] = [
   { name: 'Weights', keys: ['recencyDecay', 'syntheticRuns', 'syntheticDecay', 'priorBaseline'] },
-  { name: 'Baseline', keys: ['window', 'priorStrength'] },
+  { name: 'Baseline', keys: ['window', 'priorStrength', 'priorReachCost'] },
   {
     name: 'Mixture',
     keys: ['priorBreakShare', 'priorBreakSize', 'priorNormalSpread', 'priorBreakSpread'],
