@@ -26,7 +26,6 @@ import { seasonAt } from '../seasons/seasons';
 import { Tweaks } from '../developer/tweaks';
 import { Slots } from '../slots/slots';
 import { BreakModel, finishedRuns, Mixture } from '../timing/break-model';
-import { GROUPING_MODEL } from '../timing/grouping-models';
 import { TypedDigits } from '../typed-digits/typed-digits';
 import { TIMER } from './timer';
 
@@ -86,6 +85,8 @@ export class Play {
   private readonly recorder = inject(RunRecorder);
   /** The hyperparameters of the break model, tuned in developer mode or the game's own. */
   private readonly settings = this.tweaks.grouping;
+  /** The model the groups come from. */
+  private readonly groupingModel = this.tweaks.groupingModel;
   /** The player's earlier runs, oldest first. */
   private readonly earlierRuns = signal<readonly Run[]>([]);
   /** What the break model makes of the earlier runs that count in the groups, before this one. */
@@ -102,7 +103,7 @@ export class Play {
    * flicker between the player's own and growing ones as they type.
    */
   private readonly horizon = computed(
-    () => GROUPING_MODEL.run(this.finished(), undefined, this.settings()).horizon,
+    () => this.groupingModel().run(this.finished(), undefined, this.settings()).horizon,
   );
   /** The last mixture fitted, to start the next fit from, so that it takes only a few rounds. */
   private mixture: Mixture | undefined;
@@ -272,7 +273,7 @@ export class Play {
     const last = times.at(-1);
     return (
       last !== undefined &&
-      GROUPING_MODEL.groupEnds(
+      this.groupingModel().groupEnds(
         this.fit([...times, last + this.recorder.waited()]),
         times.length,
         trusted,
@@ -283,7 +284,7 @@ export class Play {
 
   /** Runs the model over the earlier runs and this one, with the times given. */
   private fit(times: readonly number[]): BreakModel {
-    const model = GROUPING_MODEL.run(this.finished(), times, this.settings(), this.mixture);
+    const model = this.groupingModel().run(this.finished(), times, this.settings(), this.mixture);
     this.mixture = model.mixture;
     return model;
   }

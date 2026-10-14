@@ -15,6 +15,8 @@ import {
   SEASONS,
 } from '../seasons/seasons';
 import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
+import { GroupingModel } from '../timing/grouping-model';
+import { GROUPING_MODEL, groupingModelNamed } from '../timing/grouping-models';
 import { DeveloperMode } from './developer-mode';
 
 /** The name of the tweaks setting in the store. */
@@ -33,6 +35,8 @@ export interface TweakValues {
   readonly seasons?: SeasonStarts;
   /** The hyperparameters of the break model, for {@link DEFAULT_BREAK_SETTINGS}. */
   readonly grouping?: BreakSettings;
+  /** The name of the model the groups come from, for {@link GROUPING_MODEL}. */
+  readonly groupingModel?: string;
   /** The color space the background blends its colors in, for {@link SEASON_COLOR_SPACE}. */
   readonly colorSpace?: ColorSpace;
   /** How many places a season takes to turn into the next, for {@link SEASON_TURN}. */
@@ -84,6 +88,13 @@ export class Tweaks {
     this.developerMode.enabled()
       ? (this.tweaks().grouping ?? DEFAULT_BREAK_SETTINGS)
       : DEFAULT_BREAK_SETTINGS,
+  );
+  /** The model the game takes the groups from. */
+  readonly groupingModel = computed(
+    (): GroupingModel =>
+      (this.developerMode.enabled()
+        ? groupingModelNamed(this.tweaks().groupingModel)
+        : undefined) ?? GROUPING_MODEL,
   );
   /** The color space the background blends its colors in. */
   readonly colorSpace = computed(
@@ -137,6 +148,16 @@ export class Tweaks {
   /** Tunes the hyperparameters of the break model; `undefined` brings back the game's. */
   setGrouping(grouping: BreakSettings | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), grouping }));
+  }
+
+  /** Sets the model the groups come from; `undefined` brings back the game's. */
+  setGroupingModel(model: GroupingModel | undefined): Promise<void> {
+    return this.save(
+      tweakValues({
+        ...this.tweaks(),
+        groupingModel: model === undefined || model === GROUPING_MODEL ? undefined : model.name,
+      }),
+    );
   }
 
   /** Sets the color space the background blends its colors in; `undefined` brings back the game's. */
@@ -205,9 +226,13 @@ export function seasonsText(
   ].join('\n');
 }
 
-/** The hyperparameters of the break model as text to hand back so they go into the code, marking those that differ. */
-export function groupingText(settings: BreakSettings): string {
+/**
+ * The model the groups come from and its hyperparameters, as text to hand back so they go into the code, marking those
+ * that differ.
+ */
+export function groupingText(model: GroupingModel, settings: BreakSettings): string {
   return [
+    `Grouping model (GROUPING_MODEL in grouping-models.ts): ${model.name}${model === GROUPING_MODEL ? '' : ' (changed)'}`,
     'Grouping settings (DEFAULT_BREAK_SETTINGS in break-model.ts):',
     ...SETTING_KEYS.map((key) => {
       const value = settings[key];
@@ -232,6 +257,7 @@ export function parseTweaks(stored: unknown): TweakValues {
   const palette = 'palette' in stored ? stored.palette : undefined;
   const seasons = 'seasons' in stored ? stored.seasons : undefined;
   const grouping = 'grouping' in stored ? stored.grouping : undefined;
+  const groupingModel = 'groupingModel' in stored ? stored.groupingModel : undefined;
   const colorSpace = 'colorSpace' in stored ? stored.colorSpace : undefined;
   const seasonTurn = 'seasonTurn' in stored ? stored.seasonTurn : undefined;
   const checking = 'checking' in stored ? stored.checking : undefined;
@@ -241,6 +267,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
     grouping: breakSettingsOf(grouping),
+    groupingModel: otherModelName(groupingModel),
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
@@ -254,6 +281,7 @@ function tweakValues({
   palette,
   seasons,
   grouping,
+  groupingModel,
   colorSpace,
   seasonTurn,
   checking,
@@ -266,6 +294,7 @@ function tweakValues({
     ...(palette === undefined ? {} : { palette }),
     ...(seasons === undefined ? {} : { seasons }),
     ...(grouping === undefined ? {} : { grouping }),
+    ...(groupingModel === undefined ? {} : { groupingModel }),
     ...(colorSpace === undefined ? {} : { colorSpace }),
     ...(seasonTurn === undefined ? {} : { seasonTurn }),
     ...(checking === undefined ? {} : { checking }),
@@ -294,6 +323,12 @@ function runOrderOf(value: unknown): RunOrder | undefined {
   return Number.isInteger(line) && Number(line) >= 0 && Number(line) <= ids.length
     ? { ids, line: Number(line) }
     : undefined;
+}
+
+/** The name of a grouping model other than the game's, read from untrusted data, or `undefined`. */
+function otherModelName(value: unknown): string | undefined {
+  const model = groupingModelNamed(value);
+  return model === GROUPING_MODEL ? undefined : model?.name;
 }
 
 function isColorSpace(value: unknown): value is ColorSpace {

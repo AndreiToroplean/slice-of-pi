@@ -64,7 +64,7 @@ export function slotCount(plan: GroupPlan, typed: number): number {
 /**
  * Whether the group being typed is finished before the next digit, at index `next` (`groupings.md` §4.1). The model
  * includes the run being typed, like any other run, its next digit timed as if typed now. Within the trust horizon, the
- * group ends where the player usually breaks; past it, where this run breaks.
+ * group ends where the player usually breaks; past it, where this run breaks. That's the break model's.
  */
 export function groupEnds(
   model: BreakModel,

@@ -1,3 +1,5 @@
+import { AVERAGE_MODEL } from '../timing/average-model';
+import { GROUPING_MODEL, GROUPING_MODELS } from '../timing/grouping-models';
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { installDialogs, uninstallDialogs } from '../../testing/fake-dialogs';
@@ -234,6 +236,97 @@ describe('GroupingSettingsPanel', () => {
     expect(slider(host, 'window').value).toBe('21');
   });
 
+  describe('with the average model', () => {
+    /** The choice of a grouping model, by its label. */
+    function modelChoice(host: HTMLElement, label: string): HTMLInputElement {
+      const found = Array.from(host.querySelectorAll('label')).find(
+        (each) => each.textContent.trim() === label,
+      );
+      const input = found?.querySelector<HTMLInputElement>('input[type="radio"]');
+      if (input === null || input === undefined) {
+        throw new Error(`No choice of the ${label} model`);
+      }
+      return input;
+    }
+
+    function averaging(host: HTMLElement): HTMLInputElement {
+      return modelChoice(host, AVERAGE_MODEL.label);
+    }
+
+    it('takes the groups from the model picked', async () => {
+      const { host, detect } = await setUp();
+      const tweaks = TestBed.inject(Tweaks);
+      expect(modelChoice(host, GROUPING_MODEL.label).checked).toBe(true);
+
+      averaging(host).click();
+      detect();
+      expect(tweaks.groupingModel()).toBe(AVERAGE_MODEL);
+      expect(averaging(host).checked).toBe(true);
+
+      modelChoice(host, GROUPING_MODEL.label).click();
+      expect(tweaks.groupingModel()).toBe(GROUPING_MODEL);
+      expect(tweaks.values()).toEqual({});
+    });
+
+    it('offers every model, each with a slider for every setting it uses and no other', async () => {
+      const { host, detect } = await setUp();
+
+      for (const model of GROUPING_MODELS) {
+        modelChoice(host, model.label).click();
+        detect();
+        const sliders = Array.from(
+          host.querySelectorAll<HTMLInputElement>('input[type="range"]'),
+          (input) => input.id.replace('setting-', ''),
+        );
+        expect(sliders.sort()).toEqual([...model.settings].sort());
+      }
+    });
+
+    it('has no break threshold, which it never uses', async () => {
+      const { host, detect } = await setUp();
+
+      averaging(host).click();
+      detect();
+
+      expect(host.querySelector('#setting-breakThreshold')).toBeNull();
+      expect(slider(host, 'usualThreshold')).toBeTruthy();
+    });
+
+    it('explains the settings the way it uses them', async () => {
+      const { host, detect } = await setUp();
+      const help = (): string => {
+        host.querySelector<HTMLButtonElement>('button[aria-label="About Window"]')?.click();
+        detect();
+        const text = host.querySelector('dialog')?.textContent ?? '';
+        buttonLabelled(host, 'Close').click();
+        detect();
+        return text;
+      };
+      const breaks = help();
+
+      averaging(host).click();
+      detect();
+
+      expect(help()).not.toBe(breaks);
+    });
+
+    it('goes back to the break model with the game’s settings, and copies which model it is', async () => {
+      const { host, detect } = await setUp();
+      const tweaks = TestBed.inject(Tweaks);
+
+      averaging(host).click();
+      detect();
+      buttonLabelled(host, 'Copy Hyperparameter Values').click();
+      await vi.waitFor(() => {
+        expect(copied).toEqual([groupingText(AVERAGE_MODEL, DEFAULT_BREAK_SETTINGS)]);
+      });
+      buttonLabelled(host, "Back to the Game's Settings").click();
+      await vi.waitFor(() => {
+        expect(tweaks.groupingModel()).toBe(GROUPING_MODEL);
+      });
+    });
+  });
+
   it('keeps the tuned settings, and none once they are all back to their defaults', async () => {
     const { host } = await setUp();
     const tweaks = TestBed.inject(Tweaks);
@@ -251,7 +344,9 @@ describe('GroupingSettingsPanel', () => {
     detect();
     buttonLabelled(host, 'Copy Hyperparameter Values').click();
     await vi.waitFor(() => {
-      expect(copied).toEqual([groupingText({ ...DEFAULT_BREAK_SETTINGS, level: 0.95 })]);
+      expect(copied).toEqual([
+        groupingText(GROUPING_MODEL, { ...DEFAULT_BREAK_SETTINGS, level: 0.95 }),
+      ]);
     });
   });
 });

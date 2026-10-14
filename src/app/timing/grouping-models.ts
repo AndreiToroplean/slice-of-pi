@@ -1,4 +1,5 @@
 import { groupEnds } from '../groups/groups';
+import { AVERAGE_MODEL } from './average-model';
 import { breakModel, DEFAULT_BREAK_SETTINGS } from './break-model';
 import { GroupingModel } from './grouping-model';
 
@@ -11,8 +12,11 @@ const BREAK_MODEL: GroupingModel = {
   groupEnds,
 };
 
-/** The models the groups can come from: the first is the game's. */
-export const GROUPING_MODELS: readonly [GroupingModel, ...GroupingModel[]] = [BREAK_MODEL];
+/** The models the groups can come from, picked on Your Runs in developer mode: the first is the game's. */
+export const GROUPING_MODELS: readonly [GroupingModel, ...GroupingModel[]] = [
+  BREAK_MODEL,
+  AVERAGE_MODEL,
+];
 
 /** The model the game takes the groups from. */
 export const GROUPING_MODEL = GROUPING_MODELS[0];

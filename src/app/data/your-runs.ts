@@ -21,7 +21,6 @@ import { groupRuns, moveRun, orderRuns, Run, RunOrder } from '../runs/run';
 import { RunRecorder } from '../runs/run-recorder';
 import { RunStore } from '../runs/run-store';
 import { BreakSettings, finishedRuns, Values } from '../timing/break-model';
-import { GROUPING_MODEL } from '../timing/grouping-models';
 import { CONFIRM } from './confirm';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { LongPress } from './long-press';
@@ -294,7 +293,7 @@ export class YourRuns {
   protected readonly order = computed(() => orderRuns(this.runs(), this.runOrder()));
   /** What the grouping model makes of them: the groups the game plays with. */
   private readonly model = computed(() =>
-    GROUPING_MODEL.run(
+    this.tweaks.groupingModel().run(
       finishedRuns(
         this.counted().map((run) => run.times),
         this.settings().window,

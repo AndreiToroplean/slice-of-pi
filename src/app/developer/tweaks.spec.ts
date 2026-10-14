@@ -1,3 +1,5 @@
+import { AVERAGE_MODEL } from '../timing/average-model';
+import { GROUPING_MODEL } from '../timing/grouping-models';
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { PALETTE } from '../place-colors/place-colors';
@@ -111,6 +113,20 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({ grouping });
   });
 
+  it('takes the groups from the model chosen only while developer mode is on, and keeps it', async () => {
+    const tweaks = await load();
+    expect(tweaks.groupingModel()).toBe(GROUPING_MODEL);
+
+    await tweaks.setGroupingModel(AVERAGE_MODEL);
+    expect(tweaks.groupingModel()).toBe(GROUPING_MODEL);
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.groupingModel()).toBe(AVERAGE_MODEL);
+    expect((await load()).values()).toEqual({ groupingModel: 'average' });
+
+    await TestBed.inject(Tweaks).setGroupingModel(GROUPING_MODEL);
+    expect((await load()).values()).toEqual({});
+  });
+
   it('checks the digits unless told not to, only while developer mode is on, and keeps that', async () => {
     const tweaks = await load();
     expect(tweaks.checking()).toBe(true);
@@ -195,9 +211,10 @@ describe('Tweaks', () => {
     });
   });
 
-  it('lists the grouping settings, marking those that changed', () => {
-    expect(groupingText(grouping)).toBe(
+  it('lists the grouping model and settings, marking those that changed', () => {
+    expect(groupingText(GROUPING_MODEL, grouping)).toBe(
       [
+        'Grouping model (GROUPING_MODEL in grouping-models.ts): breaks',
         'Grouping settings (DEFAULT_BREAK_SETTINGS in break-model.ts):',
         '  window: 21',
         '  recencyDecay: 0.95 (changed)',
@@ -215,6 +232,17 @@ describe('Tweaks', () => {
         '  startingSlots: 5',
       ].join('\n'),
     );
+    expect(groupingText(AVERAGE_MODEL, grouping).split('\n')[0]).toBe(
+      'Grouping model (GROUPING_MODEL in grouping-models.ts): average (changed)',
+    );
+  });
+
+  it('keeps the grouping model stored, unless it is unknown or the game’s own', () => {
+    expect(parseTweaks({ format: TWEAKS_FORMAT, groupingModel: 'average' })).toEqual({
+      groupingModel: 'average',
+    });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, groupingModel: 'breaks' })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, groupingModel: 'other' })).toEqual({});
   });
 
   it('puts back the default of each stored grouping setting that is missing or out of range', () => {

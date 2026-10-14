@@ -5,8 +5,10 @@ import { OverflowMenu } from '../overflow-menu/overflow-menu';
 import { ChartGuides } from './chart-guides';
 import { GUIDE_COLORS } from './model-views';
 import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
+import { GroupingModel, Help } from '../timing/grouping-model';
+import { GROUPING_MODELS } from '../timing/grouping-models';
 
-/** A slider for one hyperparameter of the break model, with what it means behind a help button. */
+/** A slider for one hyperparameter of the grouping models, with what it means behind a help button. */
 interface Control {
   readonly key: keyof BreakSettings;
   readonly label: string;
@@ -14,7 +16,7 @@ interface Control {
   readonly max: number;
   readonly step: number;
   readonly format: (value: number) => string;
-  readonly help: { readonly what: string; readonly why: string; readonly moving: string };
+  readonly help: Help;
 }
 
 export const CONTROLS: readonly Control[] = [
@@ -251,10 +253,11 @@ const RUNS_TAB = 'Runs';
 
 /**
  * Developer mode's tabs on Your Runs: one with what is given to it, the runs, and the others with the sliders for every
- * hyperparameter of the break model, a few to a tab, each with a button bringing back the game's value and a help button
- * opening a dialog that says what it does, and, where it acts on a chart, a checkbox to show it there as dashed lines.
- * Beside the tabs, an overflow menu has buttons to copy the settings' values so they go into the code and to bring back
- * the game's settings, then what is given to it marked `menuItem`.
+ * hyperparameter of the model the groups come from, a few to a tab, each with a button bringing back the game's value
+ * and a help button opening a dialog that says what it does, and, where it acts on a chart, a checkbox to show it there
+ * as dashed lines. Beside the tabs, an overflow menu picks the model the groups come from, and has buttons to copy
+ * the model and its settings' values so they go into the code and to bring back the game's, then what is given to it
+ * marked `menuItem`.
  */
 @Component({
   selector: 'app-grouping-settings-panel',
@@ -276,6 +279,21 @@ const RUNS_TAB = 'Runs';
         }
       </div>
       <app-overflow-menu>
+        <fieldset class="models">
+          <legend>Grouping Model</legend>
+          @for (each of models; track each.name) {
+            <label class="toggle">
+              <input
+                type="radio"
+                name="grouping-model"
+                [checked]="each === model()"
+                (change)="pick(each)"
+              />
+              {{ each.label }}
+            </label>
+          }
+        </fieldset>
+        <hr />
         <button type="button" (click)="void copy()">Copy Hyperparameter Values</button>
         <button type="button" [disabled]="!tuned()" (click)="reset()">
           Back to the Game's Settings
@@ -293,7 +311,7 @@ const RUNS_TAB = 'Runs';
     >
       <ng-content />
     </div>
-    @for (settingTab of tabs; track settingTab.name) {
+    @for (settingTab of tabs(); track settingTab.name) {
       <div
         class="pane settings"
         role="tabpanel"
@@ -355,10 +373,11 @@ const RUNS_TAB = 'Runs';
     <dialog #helpDialog class="card" aria-labelledby="help-title" (close)="helped.set(undefined)">
       @if (helped(); as control) {
         <h2 id="help-title">{{ control.label }}</h2>
+        @let help = helpOf(control);
         <div class="explanation">
-          <p><b>What it is.</b> {{ control.help.what }}</p>
-          <p><b>Why this way.</b> {{ control.help.why }}</p>
-          <p><b>Moving it.</b> {{ control.help.moving }}</p>
+          <p><b>What it is.</b> {{ help.what }}</p>
+          <p><b>Why this way.</b> {{ help.why }}</p>
+          <p><b>Moving it.</b> {{ help.moving }}</p>
         </div>
         <button type="button" class="candy" autofocus (click)="closeHelp()">Close</button>
       }
@@ -483,6 +502,18 @@ const RUNS_TAB = 'Runs';
       opacity: 0.9;
     }
     /* Shows the setting on the charts, where it acts, as dashed lines. */
+    .models {
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+
+    legend {
+      padding: 0 0.75rem;
+      font-size: 0.8125rem;
+      opacity: 0.8;
+    }
+
     .guide {
       width: 1.125rem;
       height: 1.125rem;
@@ -553,10 +584,15 @@ export class GroupingSettingsPanel {
   protected readonly guideColors = GUIDE_COLORS;
   protected readonly chartGuides = inject(ChartGuides);
   protected readonly guides = this.chartGuides.shown;
-  protected readonly tabs = SETTING_TABS.map(({ name, keys }) => ({
-    name,
-    controls: keys.flatMap((key) => CONTROLS.filter((control) => control.key === key)),
-  }));
+  /** The sliders of the settings the model uses, a few to a tab. */
+  protected readonly tabs = computed(() =>
+    SETTING_TABS.map(({ name, keys }) => ({
+      name,
+      controls: keys
+        .filter((key) => this.model().settings.includes(key))
+        .flatMap((key) => CONTROLS.filter((control) => control.key === key)),
+    })),
+  );
   protected readonly tabNames = [RUNS_TAB, ...SETTING_TABS.map(({ name }) => name)];
   /** The tab shown. */
   protected readonly tab = signal(RUNS_TAB);
@@ -567,9 +603,24 @@ export class GroupingSettingsPanel {
   private readonly tweaks = inject(Tweaks);
   private readonly writeClipboard = inject(WRITE_CLIPBOARD);
   private readonly settings = this.tweaks.grouping;
-  /** The settings as text, to hand back so they go into the code. */
-  protected readonly copyText = computed(() => groupingText(this.settings()));
-  protected readonly tuned = computed(() => this.tweaks.values().grouping !== undefined);
+  /** The models the groups can come from, and the one they come from. */
+  protected readonly models = GROUPING_MODELS;
+  protected readonly model = this.tweaks.groupingModel;
+  /** The model and its settings as text, to hand back so they go into the code. */
+  protected readonly copyText = computed(() => groupingText(this.model(), this.settings()));
+  protected readonly tuned = computed(
+    () =>
+      this.tweaks.values().grouping !== undefined ||
+      this.tweaks.values().groupingModel !== undefined,
+  );
+
+  protected helpOf(control: Control): Help {
+    return this.model().help?.[control.key] ?? control.help;
+  }
+
+  protected pick(model: GroupingModel): void {
+    void this.tweaks.setGroupingModel(model);
+  }
 
   protected formatted(control: Control): string {
     return control.format(this.settings()[control.key]);
@@ -612,7 +663,7 @@ export class GroupingSettingsPanel {
   }
 
   protected reset(): void {
-    void this.tweaks.setGrouping(undefined);
+    void this.tweaks.setGrouping(undefined).then(() => this.tweaks.setGroupingModel(undefined));
   }
 
   /** Copies the settings' values as text, to hand back so they go into the code. */
