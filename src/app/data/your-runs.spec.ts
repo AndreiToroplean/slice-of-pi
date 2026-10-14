@@ -86,17 +86,21 @@ describe('YourRuns', () => {
     developer = false,
   ): Promise<OpenPage> {
     // The page reads the runs as it opens.
-    return openPage(YourRuns, (host) => host.querySelector('.runs > p:not(.message)') !== null, {
-      runs,
-      persisted,
-      preview,
-      mainFormat,
-      developer,
-      confirm: (question) => {
-        questions.push(question);
-        return confirming;
+    return openPage(
+      YourRuns,
+      (host) => host.querySelector('.runs > p:not(.message), .runs .legend') !== null,
+      {
+        runs,
+        persisted,
+        preview,
+        mainFormat,
+        developer,
+        confirm: (question) => {
+          questions.push(question);
+          return confirming;
+        },
       },
-    });
+    );
   }
 
   it('deletes every run once the player confirms', async () => {
