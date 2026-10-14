@@ -163,11 +163,6 @@ import { ChartBreak, chartTop, digitTimes } from './run-charts';
             <p>None yet: each game you play shows up here.</p>
           }
         } @else {
-          <p>
-            How long you took to type each digit, so pauses are peaks, along every place you've
-            reached. Breaks are drawn where they're more likely than not, the darker the more
-            likely.
-          </p>
           <ul class="legend">
             <li><i class="time"></i>Time per digit</li>
             <li><i class="baseline"></i>Baseline</li>
