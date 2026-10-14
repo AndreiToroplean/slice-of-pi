@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { Background } from '../background/background';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from '../flight/flight';
-import { groupAt, groupDigits, groupEnds, slotCount } from '../groups/groups';
+import { groupAt, groupDigits, slotCount } from '../groups/groups';
 import { Keypad } from '../keypad/keypad';
 import { keyColors, placeColors } from '../place-colors/place-colors';
 import { Pause } from '../pause/pause';
@@ -25,7 +25,8 @@ import { SeasonHeader } from '../season-header/season-header';
 import { seasonAt } from '../seasons/seasons';
 import { Tweaks } from '../developer/tweaks';
 import { Slots } from '../slots/slots';
-import { BreakModel, breakModel, finishedRuns, Mixture } from '../timing/break-model';
+import { BreakModel, finishedRuns, Mixture } from '../timing/break-model';
+import { GROUPING_MODEL } from '../timing/grouping-models';
 import { TypedDigits } from '../typed-digits/typed-digits';
 import { TIMER } from './timer';
 
@@ -101,7 +102,7 @@ export class Play {
    * flicker between the player's own and growing ones as they type.
    */
   private readonly horizon = computed(
-    () => breakModel(this.finished(), undefined, this.settings()).horizon,
+    () => GROUPING_MODEL.run(this.finished(), undefined, this.settings()).horizon,
   );
   /** The last mixture fitted, to start the next fit from, so that it takes only a few rounds. */
   private mixture: Mixture | undefined;
@@ -271,7 +272,7 @@ export class Play {
     const last = times.at(-1);
     return (
       last !== undefined &&
-      groupEnds(
+      GROUPING_MODEL.groupEnds(
         this.fit([...times, last + this.recorder.waited()]),
         times.length,
         trusted,
@@ -280,9 +281,9 @@ export class Play {
     );
   }
 
-  /** Runs the break model over the earlier runs and this one, with the times given. */
+  /** Runs the model over the earlier runs and this one, with the times given. */
   private fit(times: readonly number[]): BreakModel {
-    const model = breakModel(this.finished(), times, this.settings(), this.mixture);
+    const model = GROUPING_MODEL.run(this.finished(), times, this.settings(), this.mixture);
     this.mixture = model.mixture;
     return model;
   }

@@ -20,7 +20,8 @@ import { PI_DECIMALS } from '../pi/pi-decimals';
 import { groupRuns, moveRun, orderRuns, Run, RunOrder } from '../runs/run';
 import { RunRecorder } from '../runs/run-recorder';
 import { RunStore } from '../runs/run-store';
-import { BreakSettings, breakModel, finishedRuns, Values } from '../timing/break-model';
+import { BreakSettings, finishedRuns, Values } from '../timing/break-model';
+import { GROUPING_MODEL } from '../timing/grouping-models';
 import { CONFIRM } from './confirm';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { LongPress } from './long-press';
@@ -291,9 +292,9 @@ export class YourRuns {
   );
   /** The runs in the order the game takes them, and how many are above the line played from, if any. */
   protected readonly order = computed(() => orderRuns(this.runs(), this.runOrder()));
-  /** What the break model makes of them: the groups the game plays with. */
+  /** What the grouping model makes of them: the groups the game plays with. */
   private readonly model = computed(() =>
-    breakModel(
+    GROUPING_MODEL.run(
       finishedRuns(
         this.counted().map((run) => run.times),
         this.settings().window,
