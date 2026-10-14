@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791929089863,
+  "lastUpdate": 1791937007766,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -960,6 +960,46 @@ window.BENCHMARK_DATA = {
             "value": 388,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "1a02f8eb3bfd974964169de0393efc262fff01f6",
+          "message": "feat: drop the explanation above the runs on Your Runs\n\nThe legend says what the charts show.\n\nClaude-Session: https://claude.ai/code/session_015oLHHDsncG24iChrwqcjnG",
+          "timestamp": "2026-10-14T02:16:17+02:00",
+          "tree_id": "725423ebe784ba1a1cddc99a5503b558f8a9ad17",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/1a02f8eb3bfd974964169de0393efc262fff01f6"
+        },
+        "date": 1791937006950,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5084,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 9310,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 261,
+            "unit": "ms",
+            "extra": "YourRuns playing from a run plays from before a run long pressed, from its context menu, in developer mode"
           }
         ]
       }
