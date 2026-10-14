@@ -33,7 +33,8 @@
 - **Mistake:** a wrong digit, checked against the decimals of π the game knows (`src/app/pi/`). It shows in its slot as a red digit outlined in red on almost white, as does every digit typed on after it, until the player deletes back to it (`groupings.md` §2). Runs played with checking turned off, in developer mode, are **unchecked**.
 - **Learn mode / challenge mode:** the two families of modes: guided practice, and typing from memory.
 - **Interval:** the time between typing one digit and the next.
-- **Baseline:** the interval expected at a place of a run without a break, from a rolling median of the run's intervals (`groupings.md` §4.1).
+- **Baseline:** the interval expected at a place of a run without a break, from a rolling median of the run's intervals and the reach cost there (`groupings.md` §4.1).
+- **Reach cost:** how much longer an interval takes for each step of reach from the key before to the next, by Fitts's law; the break model fits it for each player (`groupings.md` §4.1).
 - **Break:** an interval clearly longer than its baseline; breaks separate groups. The break model gives each interval a probability of being one, P(break). Prefer "break" over "pause" in technical text: "pause" is the player pausing the game.
 - **Usual break spot:** a place where the player usually breaks, over all their runs (`groupings.md` §4.2).
 - **Trust horizon:** the place up to which the game trusts the player's usual break spots, and so follows their groups (`groupings.md` §4.3).

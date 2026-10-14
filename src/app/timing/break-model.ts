@@ -1,15 +1,20 @@
+import { reaches, TYPICAL_REACH } from './reach';
+
 /**
  * The break model (`groupings.md` §4): classifies the intervals of the player's runs as breaks or not, with a
  * probability, finds where in π this player usually breaks, and up to which place those conclusions can be trusted.
  *
- * 1. It works in log(interval), since breaks are multiplicative: "x% slower than usual".
+ * 1. It works in log(interval), since breaks are multiplicative: "x% slower than usual". Each interval also takes longer
+ *    the further the finger travels from the key before (`reach.ts`), whatever the groups: the reach cost, how much
+ *    longer per step of reach difficulty, is fitted with the mixture (step 4), and every interval is taken without it,
+ *    so that a long reach isn't taken for a break, nor a double tap for haste that makes its neighbours look slow.
  * 2. Each run has a baseline, its expected log-interval at each place without the breaks. A finished run's is a
  *    centered rolling median along the places. The run in progress uses only what has been typed so far: the historical
  *    speed curve (the recency-weighted mean of the finished runs' baselines) plus this run's own offset from it, a
  *    trailing rolling median shrunk toward the finished runs' typical offset while it has few intervals to go on. The
  *    baseline is smooth along the places on purpose: a median at each place across runs would absorb breaks the player
  *    makes at the same place every time.
- * 3. The residual of an interval is its log minus the baseline.
+ * 3. The residual of an interval is its log minus the baseline and its reach cost.
  * 4. A mixture of two normal distributions (normal and break) is fitted to all the residuals pooled, each weighted by
  *    its run's recency weight, by weighted EM (expectation–maximization).
  * 5. P(break) is the posterior probability of the break component, 0 below the normal mean: a break is never faster.
@@ -52,6 +57,11 @@ export interface BreakSettings {
   readonly syntheticDecay: number;
   /** The typical interval of the synthetic runs, in milliseconds. */
   readonly priorBaseline: number;
+  /**
+   * The synthetic runs' reach cost: how much longer an interval takes per step of reach difficulty (`reach.ts`), in
+   * log-interval (0.3 is about 35% longer).
+   */
+  readonly priorReachCost: number;
   /** The prior mixture's share of breaks among the intervals, from 0 to 1. */
   readonly priorBreakShare: number;
   /** How many times its baseline the prior mixture's typical break is. */
@@ -76,6 +86,7 @@ export const DEFAULT_BREAK_SETTINGS: BreakSettings = {
   syntheticRuns: 5,
   syntheticDecay: 0.5,
   priorBaseline: 300,
+  priorReachCost: 0.3,
   priorBreakShare: 0.15,
   priorBreakSize: 2.5,
   priorNormalSpread: 0.25,
@@ -91,14 +102,20 @@ export function priorMixture(settings: BreakSettings): Mixture {
     weight: [1 - settings.priorBreakShare, settings.priorBreakShare],
     mean: [0, Math.log(settings.priorBreakSize)],
     sd: [settings.priorNormalSpread, settings.priorBreakSpread],
+    reachCost: settings.priorReachCost,
   };
 }
 
-/** The fitted mixture: component 0 is normal intervals, component 1 breaks. */
+/**
+ * The fitted mixture: component 0 is normal intervals, component 1 breaks. Both their means are shifted by the reach
+ * cost times each interval's reach difficulty.
+ */
 export interface Mixture {
   readonly weight: readonly [number, number];
   readonly mean: readonly [number, number];
   readonly sd: readonly [number, number];
+  /** How much longer an interval takes per step of reach difficulty (`reach.ts`), in log-interval. */
+  readonly reachCost: number;
 }
 
 /** Values by index; `undefined` where there's none. */
@@ -106,11 +123,11 @@ export type Values = readonly (number | undefined)[];
 
 /** What the model makes of one run. */
 export interface RunBreaks {
-  /** The baseline at each index: the interval expected there without a break, in milliseconds. */
+  /** The baseline at each index: the interval expected there without a break, its reach included, in milliseconds. */
   readonly baseline: Values;
   /** P(break) at each index, from 0 to 1. */
   readonly breakProbability: Values;
-  /** The residual at each index: the log of its interval over its baseline. */
+  /** The residual at each index: the log of its interval over its baseline, less its reach cost. */
   readonly residual: Values;
 }
 
@@ -142,8 +159,8 @@ export interface BreakModel {
    */
   readonly horizon: number;
   /**
-   * The historical speed curve: the recency-weighted typical interval of the finished runs, synthetic ones included, in
-   * milliseconds.
+   * The historical speed curve: the recency-weighted typical interval of the finished runs, synthetic ones included, its
+   * reach included, in milliseconds.
    */
   readonly speedCurve: Values;
   /** The recency-weighted average interval of the player's runs at each index, in milliseconds, for display only. */
@@ -161,29 +178,53 @@ export interface BreakModel {
 /** The finished runs, as far as the model can work them out before the run in progress. */
 export interface FinishedRuns {
   readonly window: number;
+  /** The reach cost the baselines are taken without. */
+  readonly reachCost: number;
   /** The times of each run, oldest first. */
   readonly times: readonly (readonly number[])[];
   readonly logs: readonly Float64Array[];
+  /** The baselines of the logs, without the reach cost. */
   readonly baselines: readonly Float64Array[];
 }
 
 /** No interval is taken as shorter than this, in milliseconds, so it has a log. */
 const SHORTEST_INTERVAL = 1;
+/**
+ * Past this difference between the reach cost fitted and the one the baselines were taken without, the model takes them
+ * again without the one fitted, and fits again.
+ */
+const REACH_TOLERANCE = 0.01;
 /** Weighted EM stops after this many rounds by default, or once the log-likelihood gains less than {@link TOLERANCE}. */
 const MAXIMUM_ROUNDS = 200;
 const TOLERANCE = 1e-8;
 /** The smallest spread a component can have, in log-interval: 0.1%. */
 const SMALLEST_SD = 1e-3;
 
-/** Works out the finished runs, from their times (in milliseconds since their first digit), oldest first. */
-export function finishedRuns(runs: readonly (readonly number[])[], window: number): FinishedRuns {
+/**
+ * Works out the finished runs, from their times (in milliseconds since their first digit), oldest first, their baselines
+ * taken without the reach cost given.
+ */
+export function finishedRuns(
+  runs: readonly (readonly number[])[],
+  window: number,
+  reachCost: number,
+): FinishedRuns {
   const logs = runs.map(logIntervals);
   return {
     window,
+    reachCost,
     times: runs,
     logs,
-    baselines: logs.map((log) => centeredMedian(log, Math.min(window, log.length))),
+    baselines: logs.map((log) =>
+      centeredMedian(withoutReach(log, reachCost), Math.min(window, log.length)),
+    ),
   };
+}
+
+/** The logs of a run's intervals without the reach cost. */
+function withoutReach(log: Float64Array, reachCost: number): Float64Array {
+  const reach = reaches(log.length);
+  return log.map((value, p) => value - reachCost * (reach[p] ?? 0));
 }
 
 /**
@@ -201,71 +242,25 @@ export function breakModel(
   settings: BreakSettings,
   init?: Mixture,
 ): BreakModel {
-  const done =
-    finished.window === settings.window ? finished : finishedRuns(finished.times, settings.window);
-  const all = current === undefined ? done.times : [...done.times, current];
-  const logs = [...done.logs, ...(current === undefined ? [] : [logIntervals(current)])];
-  const count = logs.length;
-  const weights = logs.map((_, k) => settings.recencyDecay ** (count - 1 - k));
-  const longest = Math.max(0, ...logs.map((log) => log.length));
-  // The synthetic runs' weight, all together: they're the oldest runs, after the player's.
-  let synthetic = 0;
-  for (let j = 0; j < settings.syntheticRuns; j++) {
-    synthetic += settings.recencyDecay ** count * settings.syntheticDecay ** j;
-  }
-  const earlier = [
-    ...done.baselines,
-    new Float64Array(longest).fill(Math.log(settings.priorBaseline)),
-  ];
-  const earlierWeights = [...weights.slice(0, done.times.length), synthetic];
+  // The baselines are taken without the synthetic runs' reach cost, then again without the one fitted, if it's far
+  // from it.
+  const first = fitRuns(finished, current, settings, settings.priorReachCost, init);
+  const reachCost = first.fit.mixture.reachCost;
+  const { logs, weights, synthetic, longest, history, baselines, residuals, fit } =
+    Math.abs(reachCost - settings.priorReachCost) > REACH_TOLERANCE
+      ? fitRuns(first.finished, current, settings, reachCost, first.fit.mixture)
+      : first;
+  const all = current === undefined ? finished.times : [...finished.times, current];
+  const reach = reaches(longest);
+  const cost = fit.mixture.reachCost;
 
-  // The historical speed curve: the weighted mean of the finished runs' baselines where they exist.
-  const sums = new Float64Array(longest);
-  const totals = new Float64Array(longest);
-  earlier.forEach((baseline, k) => {
-    const weight = earlierWeights[k] ?? 0;
-    if (weight === 0) {
-      return;
-    }
-    baseline.forEach((value, p) => {
-      sums[p] = (sums[p] ?? 0) + weight * value;
-      totals[p] = (totals[p] ?? 0) + weight;
-    });
-  });
-  const historyLength = totals.findIndex((total) => total === 0);
-  const history = sums
-    .slice(0, historyLength === -1 ? longest : historyLength)
-    .map((sum, p) => sum / (totals[p] ?? 1));
-
-  const baselines = [...done.baselines];
-  if (current !== undefined) {
-    baselines.push(
-      currentBaseline(
-        logs[count - 1] ?? new Float64Array(),
-        history,
-        priorOffset(earlier, history, earlierWeights),
-        settings,
-      ),
-    );
-  }
-
-  // Pools the residuals, with their runs' weights, and fits the mixture.
-  const total = logs.reduce((sum, log) => sum + log.length, 0);
-  const residuals = new Float64Array(total);
-  const pooledWeights = new Float64Array(total);
+  // The residuals without the reach cost fitted.
   let at = 0;
-  logs.forEach((log, k) => {
-    const baseline = baselines[k] ?? log;
-    log.forEach((value, p) => {
-      residuals[at] = value - (baseline[p] ?? value);
-      pooledWeights[at] = weights[k] ?? 0;
+  logs.forEach((log) => {
+    log.forEach((_, p) => {
+      residuals[at] = (residuals[at] ?? 0) - cost * (reach[p] ?? 0);
       at++;
     });
-  });
-  const prior = priorMixture(settings);
-  const fit = fitMixture(residuals, pooledWeights, init ?? (total === 0 ? prior : undefined), {
-    mixture: prior,
-    strength: synthetic * longest,
   });
   const posterior = fit.posterior.map((p, i) =>
     (residuals[i] ?? 0) < fit.mixture.mean[0] ? 0 : p,
@@ -278,7 +273,9 @@ export function breakModel(
     const start = at;
     at += log.length;
     return {
-      baseline: byIndex(Array.from(baseline, Math.exp)),
+      baseline: byIndex(
+        Array.from(baseline, (value, p) => Math.exp(value + cost * (reach[p] ?? 0))),
+      ),
       breakProbability: byIndex(Array.from(posterior.subarray(start, at))),
       residual: byIndex(Array.from(residuals.subarray(start, at))),
     };
@@ -326,11 +323,120 @@ export function breakModel(
     confidence: [undefined, ...raw],
     confidenceTrend: [undefined, ...trend],
     horizon,
-    speedCurve: byIndex(Array.from(history, Math.exp)),
+    speedCurve: byIndex(
+      Array.from(history, (value, p) => Math.exp(value + cost * (reach[p] ?? 0))),
+    ),
     averageTime,
     mixture: fit.mixture,
     groups: groupsOf(usual, threshold, Math.max(0, ...all.map((times) => times.length)), horizon),
   };
+}
+
+/** What the model fits over the runs, their baselines taken without a reach cost. */
+interface Fit {
+  /** The finished runs, their baselines taken without that reach cost. */
+  readonly finished: FinishedRuns;
+  /** The logs of the intervals of each run, the run in progress last. */
+  readonly logs: readonly Float64Array[];
+  readonly weights: readonly number[];
+  /** The synthetic runs' weight, all together. */
+  readonly synthetic: number;
+  readonly longest: number;
+  /** The historical speed curve, without the reach cost, in log. */
+  readonly history: Float64Array;
+  /** Each run's baseline, without the reach cost, in log. */
+  readonly baselines: readonly Float64Array[];
+  /** The log of each interval over its baseline, the runs one after the other, the reach cost still in. */
+  readonly residuals: Float64Array;
+  readonly fit: { readonly mixture: Mixture; readonly posterior: Float64Array };
+}
+
+/** Takes the runs' baselines without the reach cost given, and fits the mixture and the reach cost to the residuals. */
+function fitRuns(
+  finished: FinishedRuns,
+  current: readonly number[] | undefined,
+  settings: BreakSettings,
+  reachCost: number,
+  init: Mixture | undefined,
+): Fit {
+  const done =
+    finished.window === settings.window && finished.reachCost === reachCost
+      ? finished
+      : finishedRuns(finished.times, settings.window, reachCost);
+  const logs = [...done.logs, ...(current === undefined ? [] : [logIntervals(current)])];
+  const count = logs.length;
+  const weights = logs.map((_, k) => settings.recencyDecay ** (count - 1 - k));
+  const longest = Math.max(0, ...logs.map((log) => log.length));
+  const reach = reaches(longest);
+  // The synthetic runs' weight, all together: they're the oldest runs, after the player's.
+  let synthetic = 0;
+  for (let j = 0; j < settings.syntheticRuns; j++) {
+    synthetic += settings.recencyDecay ** count * settings.syntheticDecay ** j;
+  }
+  // The synthetic runs type at the prior baseline on average, so without their reach cost a little faster.
+  const earlier = [
+    ...done.baselines,
+    new Float64Array(longest).fill(
+      Math.log(settings.priorBaseline) - settings.priorReachCost * TYPICAL_REACH.mean,
+    ),
+  ];
+  const earlierWeights = [...weights.slice(0, done.times.length), synthetic];
+
+  // The historical speed curve: the weighted mean of the finished runs' baselines where they exist.
+  const sums = new Float64Array(longest);
+  const totals = new Float64Array(longest);
+  earlier.forEach((baseline, k) => {
+    const weight = earlierWeights[k] ?? 0;
+    if (weight === 0) {
+      return;
+    }
+    baseline.forEach((value, p) => {
+      sums[p] = (sums[p] ?? 0) + weight * value;
+      totals[p] = (totals[p] ?? 0) + weight;
+    });
+  });
+  const historyLength = totals.findIndex((total) => total === 0);
+  const history = sums
+    .slice(0, historyLength === -1 ? longest : historyLength)
+    .map((sum, p) => sum / (totals[p] ?? 1));
+
+  const baselines = [...done.baselines];
+  const last = logs[count - 1];
+  if (current !== undefined && last !== undefined) {
+    baselines.push(
+      currentBaseline(
+        withoutReach(last, reachCost),
+        history,
+        priorOffset(earlier, history, earlierWeights),
+        settings,
+      ),
+    );
+  }
+
+  // Pools the residuals, with their runs' weights and their reach difficulties, and fits the mixture.
+  const total = logs.reduce((sum, log) => sum + log.length, 0);
+  const residuals = new Float64Array(total);
+  const pooledWeights = new Float64Array(total);
+  const pooledReaches = new Float64Array(total);
+  let at = 0;
+  logs.forEach((log, k) => {
+    const baseline = baselines[k] ?? log;
+    log.forEach((value, p) => {
+      residuals[at] = value - (baseline[p] ?? value);
+      pooledWeights[at] = weights[k] ?? 0;
+      pooledReaches[at] = reach[p] ?? 0;
+      at++;
+    });
+  });
+  const prior = priorMixture(settings);
+  const fit = fitMixture(
+    residuals,
+    pooledWeights,
+    init ?? (total === 0 ? prior : undefined),
+    { mixture: prior, strength: synthetic * longest },
+    pooledReaches,
+  );
+  return { finished: done, logs, weights, synthetic, longest, history, baselines, residuals, fit };
 }
 
 /** The log of each interval of a run, from its times: index p is the interval before digit p + 1. */
@@ -471,12 +577,18 @@ function normalDensity(x: number, mean: number, sd: number): number {
  * With a prior of some strength, the fit is a MAP estimate (maximum a posteriori): the prior mixture counts as that many
  * intervals of data, each component's share of them drawn from it. With few intervals, the fit stays close to the prior;
  * as they come, it moves smoothly to the intervals' own mixture.
+ *
+ * Given each residual's reach difficulty, it fits the reach cost too: both components' means then shift by the reach
+ * cost times the difficulty, and each round finds the two means and the cost that fit best together (weighted least
+ * squares). The prior's intervals take the difficulties of π's decimals in general, at its own reach cost. The posterior is
+ * then of the residuals without their reach cost. Without difficulties, the reach cost stays the one it starts from.
  */
 export function fitMixture(
   residuals: Float64Array,
   weights: Float64Array,
   init?: Mixture,
   prior?: { readonly mixture: Mixture; readonly strength: number },
+  reaches?: Float64Array,
 ): { mixture: Mixture; posterior: Float64Array } {
   const start = init ?? (prior !== undefined && prior.strength > 0 ? prior.mixture : undefined);
   // The prior's pseudo-intervals for each component.
@@ -484,26 +596,33 @@ export function fitMixture(
   const [normalPseudo = 0, pausePseudo = 0] = pseudo;
   const priorMean = prior?.mixture.mean ?? [0, 0];
   const priorSd = prior?.mixture.sd ?? [0, 0];
+  const priorCost = prior?.mixture.reachCost ?? 0;
   let share: [number, number];
   let mean: [number, number];
   let sd: [number, number];
+  let cost: number;
   if (start !== undefined) {
     share = [...start.weight];
     mean = [...start.mean];
     sd = [...start.sd];
+    cost = start.reachCost;
   } else {
     const middle = median(residuals.slice());
     const spread = 1.4826 * median(residuals.map((r) => Math.abs(r - middle))) + 1e-6;
     share = [0.9, 0.1];
     mean = [middle, middle + 3 * spread];
     sd = [spread, 2 * spread];
+    cost = 0;
   }
   const count = residuals.length;
+  // The prior's intervals reach as far as π's decimals typically do.
+  const meanReach = reaches === undefined ? 0 : TYPICAL_REACH.mean;
+  const meanSquareReach = reaches === undefined ? 0 : TYPICAL_REACH.square;
   const posterior = new Float64Array(count);
   const expect = (): number => {
     let likelihood = 0;
     for (let i = 0; i < count; i++) {
-      const r = residuals[i] ?? 0;
+      const r = (residuals[i] ?? 0) - cost * (reaches?.[i] ?? 0);
       const normal = share[0] * normalDensity(r, mean[0], sd[0]);
       const pause = share[1] * normalDensity(r, mean[1], sd[1]);
       // As tiny as can be, so that no point is impossible under either component.
@@ -516,33 +635,69 @@ export function fitMixture(
   let previous = -Infinity;
   for (let round = 0; round < MAXIMUM_ROUNDS; round++) {
     const likelihood = expect();
-    const before = [...share, ...mean, ...sd];
+    const before = [...share, ...mean, ...sd, cost];
     let pauses = pausePseudo;
     let all = normalPseudo + pausePseudo;
-    let pauseSum = pausePseudo * priorMean[1];
-    let normalSum = normalPseudo * priorMean[0];
+    // The weighted least squares for the means and the reach cost: each interval weighs by its component's precision,
+    // the prior's taking the mean difficulties and its own reach cost.
+    const normalPrecision = normalPseudo / sd[0] ** 2;
+    const pausePrecision = pausePseudo / sd[1] ** 2;
+    let normalWeight = normalPrecision;
+    let pauseWeight = pausePrecision;
+    let normalReach = normalPrecision * meanReach;
+    let pauseReach = pausePrecision * meanReach;
+    let reachSquare = (normalPrecision + pausePrecision) * meanSquareReach;
+    let normalSum = normalPrecision * (priorMean[0] + priorCost * meanReach);
+    let pauseSum = pausePrecision * (priorMean[1] + priorCost * meanReach);
+    let reachProduct =
+      normalPrecision * (priorMean[0] * meanReach + priorCost * meanSquareReach) +
+      pausePrecision * (priorMean[1] * meanReach + priorCost * meanSquareReach);
     for (let i = 0; i < count; i++) {
       const w = weights[i] ?? 0;
       const p = posterior[i] ?? 0;
       const r = residuals[i] ?? 0;
+      const x = reaches?.[i] ?? 0;
       all += w;
       pauses += w * p;
-      pauseSum += w * p * r;
-      normalSum += w * (1 - p) * r;
+      const normal = (w * (1 - p)) / sd[0] ** 2;
+      const pause = (w * p) / sd[1] ** 2;
+      normalWeight += normal;
+      pauseWeight += pause;
+      normalReach += normal * x;
+      pauseReach += pause * x;
+      reachSquare += (normal + pause) * x * x;
+      normalSum += normal * r;
+      pauseSum += pause * r;
+      reachProduct += (normal + pause) * x * r;
     }
     const normals = all - pauses;
     if (!(normals > 0 && pauses > 0)) {
       // A component lost every point: there's only one kind of interval.
       break;
     }
-    mean = [normalSum / normals, pauseSum / pauses];
+    if (reaches !== undefined) {
+      // The means, given the cost, are each component's weighted mean of the residuals less their reach cost: solving
+      // for the cost with them in.
+      const spread = reachSquare - normalReach ** 2 / normalWeight - pauseReach ** 2 / pauseWeight;
+      if (spread > 0) {
+        cost =
+          (reachProduct -
+            (normalReach * normalSum) / normalWeight -
+            (pauseReach * pauseSum) / pauseWeight) /
+          spread;
+      }
+    }
+    mean = [
+      (normalSum - normalReach * cost) / normalWeight,
+      (pauseSum - pauseReach * cost) / pauseWeight,
+    ];
     // The pseudo-intervals spread around the prior's means as its spreads say.
     let normalSquares = normalPseudo * (priorSd[0] ** 2 + (mean[0] - priorMean[0]) ** 2);
     let pauseSquares = pausePseudo * (priorSd[1] ** 2 + (mean[1] - priorMean[1]) ** 2);
     for (let i = 0; i < count; i++) {
       const w = weights[i] ?? 0;
       const p = posterior[i] ?? 0;
-      const r = residuals[i] ?? 0;
+      const r = (residuals[i] ?? 0) - cost * (reaches?.[i] ?? 0);
       normalSquares += w * (1 - p) * (r - mean[0]) ** 2;
       pauseSquares += w * p * (r - mean[1]) ** 2;
     }
@@ -553,7 +708,7 @@ export function fitMixture(
     ];
     // With a prior, the fit maximizes more than the likelihood, so it stops once the mixture no longer moves.
     const moved = Math.max(
-      ...[...share, ...mean, ...sd].map((value, k) => Math.abs(value - (before[k] ?? 0))),
+      ...[...share, ...mean, ...sd, cost].map((value, k) => Math.abs(value - (before[k] ?? 0))),
     );
     if (normalPseudo + pausePseudo > 0 ? moved < TOLERANCE : likelihood - previous < TOLERANCE) {
       break;
@@ -567,7 +722,7 @@ export function fitMixture(
     sd = [sd[1], sd[0]];
   }
   expect();
-  return { mixture: { weight: share, mean, sd }, posterior };
+  return { mixture: { weight: share, mean, sd, reachCost: cost }, posterior };
 }
 
 /** The least-squares non-increasing fit of the values, by pooling adjacent violators. */
