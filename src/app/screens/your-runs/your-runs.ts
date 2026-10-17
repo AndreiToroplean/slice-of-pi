@@ -22,6 +22,7 @@ import { groupRuns, moveRun, orderRuns, Run, RunOrder } from '../../player-data/
 import { RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { CONFIRM } from '../../ui/confirm';
+import { FitToGroupingsDialog } from './fit-to-groupings-dialog';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { LongPress } from '../../ui/long-press';
 import { ChartGuides } from './chart-guides';
@@ -34,7 +35,8 @@ import { chartTop, digitTimes } from './run-charts';
 /**
  * The player's runs, opened from the main menu's overflow menu, on one screen: a chart of them all on top, and under it
  * a chart of each run, scrolling. In developer mode, tabs beside the runs hold sliders for the hyperparameters of the
- * break model, so they can be tuned in view of the chart of them all, and never moved by scrolling. A long press on a run opens its context menu, to delete it or, in developer
+ * break model, so they can be tuned in view of the chart of them all, and never moved by scrolling, and a dialog fits them
+ * to the player's own groups. A long press on a run opens its context menu, to delete it or, in developer
  * mode, play from it, as if it and the runs after it had never been played, until undone.
  */
 @Component({
@@ -46,6 +48,7 @@ import { chartTop, digitTimes } from './run-charts';
     CdkDropList,
     CdkScrollable,
     DropdownMenu,
+    FitToGroupingsDialog,
     GroupingSettingsPanel,
     LongPress,
     NgTemplateOutlet,
@@ -122,6 +125,9 @@ import { chartTop, digitTimes } from './run-charts';
           >
             Reorder Runs Chronologically
           </button>
+          <button menuItem type="button" aria-haspopup="dialog" (click)="void fitDialog.open()">
+            Fit to My Groupings
+          </button>
           <hr menuItem />
           <button
             menuItem
@@ -132,6 +138,7 @@ import { chartTop, digitTimes } from './run-charts';
             Delete Unchecked Runs
           </button>
         </app-grouping-settings-panel>
+        <app-fit-to-groupings-dialog #fitDialog [runs]="countedTimes()" />
       } @else {
         <ng-container [ngTemplateOutlet]="runList" />
       }
@@ -296,7 +303,7 @@ export class YourRuns {
   );
   /** The runs in the order the game takes them, and how many are above the line played from, if any. */
   protected readonly order = computed(() => orderRuns(this.runs(), this.runOrder()));
-  private readonly countedTimes = computed(() => this.counted().map((run) => run.times));
+  protected readonly countedTimes = computed(() => this.counted().map((run) => run.times));
   /** What the break model makes of them: the groups the game plays with. */
   private readonly stats = computed(() => this.tweaks.breakModel().stats(this.countedTimes()));
   /** In developer mode, what it makes of them step by step, if it can show that. */
