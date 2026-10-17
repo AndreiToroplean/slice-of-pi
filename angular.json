@@ -23,6 +23,16 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "{LICENSE,files/fredoka-latin-wght-normal.woff2}",
+                "input": "node_modules/@fontsource-variable/fredoka",
+                "output": "fonts/fredoka"
+              },
+              {
+                "glob": "{LICENSE,files/lexend-latin-wght-normal.woff2}",
+                "input": "node_modules/@fontsource-variable/lexend",
+                "output": "fonts/lexend"
               }
             ],
             "styles": ["src/styles.css"]

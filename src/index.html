@@ -9,13 +9,45 @@
     <link rel="apple-touch-icon" href="icons/icon-180x180.png" />
     <!-- The main menu shows this icon: fetch it with the page, not once the app has started, so that it is there as soon as the menu is. -->
     <link rel="preload" as="image" href="icons/icon.webp" type="image/webp" fetchpriority="high" />
-    <meta name="theme-color" content="#ffb3d1" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Its fonts, for the same reason: served with the game (copied from their packages by `angular.json`, the latin
+      letters only) rather than from a font service, so that they come from where the page does.
+    -->
     <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&family=Lexend:wght@300;400;500&display=swap"
+      rel="preload"
+      as="font"
+      href="fonts/fredoka/files/fredoka-latin-wght-normal.woff2"
+      type="font/woff2"
+      crossorigin
     />
+    <link
+      rel="preload"
+      as="font"
+      href="fonts/lexend/files/lexend-latin-wght-normal.woff2"
+      type="font/woff2"
+      crossorigin
+    />
+    <style>
+      @font-face {
+        font-family: 'Fredoka';
+        font-display: swap;
+        font-weight: 300 700;
+        src: url('fonts/fredoka/files/fredoka-latin-wght-normal.woff2') format('woff2');
+        unicode-range:
+          U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+          U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: 'Lexend';
+        font-display: swap;
+        font-weight: 100 900;
+        src: url('fonts/lexend/files/lexend-latin-wght-normal.woff2') format('woff2');
+        unicode-range:
+          U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+          U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+    </style>
+    <meta name="theme-color" content="#ffb3d1" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="manifest.webmanifest" />
