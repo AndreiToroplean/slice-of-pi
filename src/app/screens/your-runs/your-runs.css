@@ -41,7 +41,8 @@ h3 {
   padding: 0.25rem var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
 }
 
-.runs .panel,
+.runs article,
+.runs .aggregate,
 .summary {
   gap: 0.375rem;
   padding: 0.875rem var(--space-3) var(--space-3);
@@ -94,17 +95,21 @@ h3 {
 }
 
 /* The runs after it, left out of the groups. */
-.runs .panel.later {
+.run:has(> .later) {
   opacity: 0.7;
 }
 
-.runs .panel:focus-visible {
+.run:has(> article:focus-visible) {
   outline: 0.1875rem solid var(--focus-ring);
   outline-offset: 0.25rem;
 }
 
+.runs article:focus-visible {
+  outline: none;
+}
+
 /* Unchecked runs, only shown in developer mode, may hold mistakes: dashed, with a badge. */
-.runs .panel.unchecked {
+.run:has(> .unchecked) {
   outline: 2px dashed var(--ink);
   outline-offset: -2px;
 }
@@ -232,15 +237,24 @@ h3 {
   }
 }
 
-/* A run, and in developer mode a handle on its left to drag it to another place. */
+/*
+ * A run's card: what is on it, and in developer mode a handle on its left to drag it to another place. The card is
+ * the run's, so that tapping anywhere on it but the handle selects it.
+ */
 .run {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 0;
+  padding: 0;
 
   & > article {
+    display: grid;
     flex: 1;
     min-width: 0;
+  }
+
+  & > .handle + article {
+    padding-left: 0;
   }
 }
 
@@ -250,7 +264,7 @@ h3 {
   place-items: center;
   width: 2rem;
   height: 3.5rem;
-  margin-left: calc(-1 * var(--space-1));
+  margin-left: 0.25rem;
   padding: 0;
   border: none;
   border-radius: 0.75rem;
@@ -299,18 +313,16 @@ h3 {
 }
 
 .run.cdk-drag-preview {
+  background: var(--frost-pressed);
+  box-shadow: 0 8px 28px rgb(30 20 60 / 30%);
+
   & > .handle {
     cursor: grabbing;
-  }
-
-  & > article {
-    background: var(--frost-pressed);
-    box-shadow: 0 8px 28px rgb(30 20 60 / 30%);
   }
 }
 
 /* In developer mode, the runs on the chart on top, outlined, and a row for all of them, on it by default. */
-.runs .panel.selected {
+.run:has(> .selected) {
   outline: 2px solid var(--on-background);
   outline-offset: -2px;
 }
