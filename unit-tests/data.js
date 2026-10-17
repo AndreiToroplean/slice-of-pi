@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791937007766,
+  "lastUpdate": 1792250050062,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1000,6 +1000,46 @@ window.BENCHMARK_DATA = {
             "value": 261,
             "unit": "ms",
             "extra": "YourRuns playing from a run plays from before a run long pressed, from its context menu, in developer mode"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "f68e0b39584b9c9f487e7e41fd9a7b476ee70ca0",
+          "message": "fix: read saves without a format as format 1\n\nA run, backup file or setting without a format used to be turned down as unreadable, and a backup without one was even said to come from a newer version of the game. Each is now taken for format 1 and migrated from there, step by step, like any older record.",
+          "timestamp": "2026-10-17T17:13:48+02:00",
+          "tree_id": "e664089caa9dc1c9ac1c6f050ab139da5179ac4a",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/f68e0b39584b9c9f487e7e41fd9a7b476ee70ca0"
+        },
+        "date": 1792250049717,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 6035,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 10942,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 337,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
           }
         ]
       }
