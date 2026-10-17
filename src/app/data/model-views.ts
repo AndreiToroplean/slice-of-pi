@@ -4,6 +4,7 @@ import {
   BreakSettings,
   mixtureDensity,
   priorMixture,
+  RunBreaks,
   Values,
 } from '../timing/break-model';
 
@@ -147,17 +148,20 @@ export function modelViews(input: ViewInput): Plot[] {
 }
 
 /**
- * The runs whose intervals the views of residuals show: the runs picked, or all of them while none is but all of them
- * are shown.
+ * What the views of residuals show: the runs picked, or, while none is but all of them are shown, what the mixture was
+ * fitted to: all the runs, or the one series a model fitted it to.
  */
-function residualRuns({ model, picked, aggregate }: ViewInput): readonly number[] {
-  return picked.length > 0 || !aggregate ? picked : model.runs.map((_, k) => k);
+function residualRuns({ model, picked, aggregate }: ViewInput): readonly RunBreaks[] {
+  if (picked.length > 0 || !aggregate) {
+    return picked.flatMap((k) => model.runs[k] ?? []);
+  }
+  return model.series === undefined ? model.runs : [model.series];
 }
 
-/** The residuals of the runs shown. */
+/** The residuals shown. */
 function residualsOf(input: ViewInput): number[] {
-  return residualRuns(input).flatMap((k) =>
-    (input.model.runs[k]?.residual ?? []).filter((residual) => residual !== undefined),
+  return residualRuns(input).flatMap((run) =>
+    run.residual.filter((residual) => residual !== undefined),
   );
 }
 
@@ -211,12 +215,13 @@ export function residualView(input: ViewInput): Plot {
   const range = residualRange(input);
   const normal: Point[] = [];
   const breaks: Point[] = [];
-  for (const k of runs) {
-    const run = model.runs[k];
-    run?.residual.forEach((residual, i) => {
+  for (const run of runs) {
+    // The series' breaks are the usual ones.
+    const threshold = run === model.series ? settings.usualThreshold : settings.breakThreshold;
+    run.residual.forEach((residual, i) => {
       if (residual !== undefined) {
         const point = [i, clamp(residual, range)] as const;
-        ((run.breakProbability[i] ?? 0) > settings.breakThreshold ? breaks : normal).push(point);
+        ((run.breakProbability[i] ?? 0) > threshold ? breaks : normal).push(point);
       }
     });
   }

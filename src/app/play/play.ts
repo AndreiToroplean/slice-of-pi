@@ -25,7 +25,7 @@ import { SeasonHeader } from '../season-header/season-header';
 import { seasonAt } from '../seasons/seasons';
 import { Tweaks } from '../developer/tweaks';
 import { Slots } from '../slots/slots';
-import { BreakModel, breakModel, finishedRuns, Mixture } from '../timing/break-model';
+import { BreakModel, finishedRuns, Mixture } from '../timing/break-model';
 import { TypedDigits } from '../typed-digits/typed-digits';
 import { TIMER } from './timer';
 
@@ -85,6 +85,8 @@ export class Play {
   private readonly recorder = inject(RunRecorder);
   /** The hyperparameters of the break model, tuned in developer mode or the game's own. */
   private readonly settings = this.tweaks.grouping;
+  /** The break model the groups come from. */
+  private readonly breakModel = this.tweaks.breakModel;
   /** The player's earlier runs, oldest first. */
   private readonly earlierRuns = signal<readonly Run[]>([]);
   /** What the break model makes of the earlier runs that count in the groups, before this one. */
@@ -101,7 +103,7 @@ export class Play {
    * flicker between the player's own and growing ones as they type.
    */
   private readonly horizon = computed(
-    () => breakModel(this.finished(), undefined, this.settings()).horizon,
+    () => this.breakModel().run(this.finished(), undefined, this.settings()).horizon,
   );
   /** The last mixture fitted, to start the next fit from, so that it takes only a few rounds. */
   private mixture: Mixture | undefined;
@@ -282,7 +284,7 @@ export class Play {
 
   /** Runs the break model over the earlier runs and this one, with the times given. */
   private fit(times: readonly number[]): BreakModel {
-    const model = breakModel(this.finished(), times, this.settings(), this.mixture);
+    const model = this.breakModel().run(this.finished(), times, this.settings(), this.mixture);
     this.mixture = model.mixture;
     return model;
   }

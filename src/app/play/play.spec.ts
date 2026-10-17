@@ -1,3 +1,4 @@
+import { VENUS } from '../timing/venus';
 import { Location } from '@angular/common';
 import { provideLocationMocks, SpyLocation } from '@angular/common/testing';
 import { ApplicationRef } from '@angular/core';
@@ -367,6 +368,34 @@ describe('Play', () => {
         await typeAll(type, '141 ');
 
         expect(words(host)).toEqual(['141']);
+      });
+    });
+
+    describe('with Venus', () => {
+      function setUpAveraging(): ReturnType<typeof setUp> {
+        return setUpWithRuns(4, true, async () => {
+          await TestBed.inject(Tweaks).setBreakModel(VENUS);
+          await TestBed.inject(DeveloperMode).set(true);
+        });
+      }
+
+      it('finishes a group at once where the runs agree it ends', async () => {
+        const { host, type } = await setUpAveraging();
+
+        await typeAll(type, '141');
+
+        expect(words(host)).toEqual(['141']);
+      });
+
+      it("finishes the player's own group where they pause long enough mid-group", async () => {
+        const { host, type } = await setUpAveraging();
+
+        await typeAll(type, '14');
+        expect(slots(host)).toEqual(['1', '4', '']);
+        time.advance(5000);
+        await TestBed.inject(ApplicationRef).whenStable();
+
+        expect(words(host)).toEqual(['14']);
       });
     });
 

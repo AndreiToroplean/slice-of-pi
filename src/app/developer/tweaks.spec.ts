@@ -1,3 +1,5 @@
+import { VENUS } from '../timing/venus';
+import { BREAK_MODEL } from '../timing/break-models';
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { PALETTE } from '../place-colors/place-colors';
@@ -111,6 +113,20 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({ grouping });
   });
 
+  it('takes the breaks from the model chosen only while developer mode is on, and keeps it', async () => {
+    const tweaks = await load();
+    expect(tweaks.breakModel()).toBe(BREAK_MODEL);
+
+    await tweaks.setBreakModel(VENUS);
+    expect(tweaks.breakModel()).toBe(BREAK_MODEL);
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.breakModel()).toBe(VENUS);
+    expect((await load()).values()).toEqual({ breakModel: 'venus' });
+
+    await TestBed.inject(Tweaks).setBreakModel(BREAK_MODEL);
+    expect((await load()).values()).toEqual({});
+  });
+
   it('checks the digits unless told not to, only while developer mode is on, and keeps that', async () => {
     const tweaks = await load();
     expect(tweaks.checking()).toBe(true);
@@ -195,9 +211,10 @@ describe('Tweaks', () => {
     });
   });
 
-  it('lists the grouping settings, marking those that changed', () => {
-    expect(groupingText(grouping)).toBe(
+  it('lists the break model and the grouping settings, marking those that changed', () => {
+    expect(groupingText(BREAK_MODEL, grouping)).toBe(
       [
+        'Break model (BREAK_MODEL in break-models.ts): mercury',
         'Grouping settings (DEFAULT_BREAK_SETTINGS in break-model.ts):',
         '  window: 21',
         '  recencyDecay: 0.95 (changed)',
@@ -215,6 +232,17 @@ describe('Tweaks', () => {
         '  startingSlots: 5',
       ].join('\n'),
     );
+    expect(groupingText(VENUS, grouping).split('\n')[0]).toBe(
+      'Break model (BREAK_MODEL in break-models.ts): venus (changed)',
+    );
+  });
+
+  it('keeps the break model stored, unless it is unknown or the game’s own', () => {
+    expect(parseTweaks({ format: TWEAKS_FORMAT, breakModel: 'venus' })).toEqual({
+      breakModel: 'venus',
+    });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, breakModel: 'mercury' })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, breakModel: 'other' })).toEqual({});
   });
 
   it('puts back the default of each stored grouping setting that is missing or out of range', () => {

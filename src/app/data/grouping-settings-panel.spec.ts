@@ -1,3 +1,5 @@
+import { VENUS } from '../timing/venus';
+import { BREAK_MODEL, BREAK_MODELS } from '../timing/break-models';
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { installDialogs, uninstallDialogs } from '../../testing/fake-dialogs';
@@ -234,6 +236,74 @@ describe('GroupingSettingsPanel', () => {
     expect(slider(host, 'window').value).toBe('21');
   });
 
+  describe('picking the break model', () => {
+    /** The choice of a break model, by its label. */
+    function modelChoice(host: HTMLElement, label: string): HTMLInputElement {
+      const found = Array.from(host.querySelectorAll('label')).find((each) =>
+        each.textContent.trim().startsWith(label),
+      );
+      const input = found?.querySelector<HTMLInputElement>('input[type="radio"]');
+      if (input === null || input === undefined) {
+        throw new Error(`No choice of ${label}`);
+      }
+      return input;
+    }
+
+    it('takes the breaks from the model picked, each said with what it does', async () => {
+      const { host, detect } = await setUp();
+      const tweaks = TestBed.inject(Tweaks);
+      expect(modelChoice(host, BREAK_MODEL.label).checked).toBe(true);
+      for (const model of BREAK_MODELS) {
+        expect(modelChoice(host, model.label).closest('label')?.textContent).toContain(
+          model.description,
+        );
+      }
+
+      modelChoice(host, VENUS.label).click();
+      detect();
+      expect(tweaks.breakModel()).toBe(VENUS);
+      expect(modelChoice(host, VENUS.label).checked).toBe(true);
+
+      modelChoice(host, BREAK_MODEL.label).click();
+      expect(tweaks.breakModel()).toBe(BREAK_MODEL);
+      expect(tweaks.values()).toEqual({});
+    });
+
+    it('explains the settings the way the model picked uses them', async () => {
+      const { host, detect } = await setUp();
+      const help = (): string => {
+        host.querySelector<HTMLButtonElement>('button[aria-label="About Window"]')?.click();
+        detect();
+        const text = host.querySelector('dialog')?.textContent ?? '';
+        buttonLabelled(host, 'Close').click();
+        detect();
+        return text;
+      };
+      const mercury = help();
+
+      modelChoice(host, VENUS.label).click();
+      detect();
+
+      expect(help()).not.toBe(mercury);
+    });
+
+    it('copies which model it is, and goes back to the game’s with the game’s settings', async () => {
+      const { host, detect } = await setUp();
+      const tweaks = TestBed.inject(Tweaks);
+
+      modelChoice(host, VENUS.label).click();
+      detect();
+      buttonLabelled(host, 'Copy Hyperparameter Values').click();
+      await vi.waitFor(() => {
+        expect(copied).toEqual([groupingText(VENUS, DEFAULT_BREAK_SETTINGS)]);
+      });
+      buttonLabelled(host, "Back to the Game's Settings").click();
+      await vi.waitFor(() => {
+        expect(tweaks.breakModel()).toBe(BREAK_MODEL);
+      });
+    });
+  });
+
   it('keeps the tuned settings, and none once they are all back to their defaults', async () => {
     const { host } = await setUp();
     const tweaks = TestBed.inject(Tweaks);
@@ -251,7 +321,9 @@ describe('GroupingSettingsPanel', () => {
     detect();
     buttonLabelled(host, 'Copy Hyperparameter Values').click();
     await vi.waitFor(() => {
-      expect(copied).toEqual([groupingText({ ...DEFAULT_BREAK_SETTINGS, level: 0.95 })]);
+      expect(copied).toEqual([
+        groupingText(BREAK_MODEL, { ...DEFAULT_BREAK_SETTINGS, level: 0.95 }),
+      ]);
     });
   });
 });

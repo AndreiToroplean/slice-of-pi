@@ -5,8 +5,9 @@ import { OverflowMenu } from '../overflow-menu/overflow-menu';
 import { ChartGuides } from './chart-guides';
 import { GUIDE_COLORS } from './model-views';
 import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../timing/break-model';
+import { BREAK_MODELS, BreakModelChoice, Help } from '../timing/break-models';
 
-/** A slider for one hyperparameter of the break model, with what it means behind a help button. */
+/** A slider for one hyperparameter of the break models, with what it means behind a help button. */
 interface Control {
   readonly key: keyof BreakSettings;
   readonly label: string;
@@ -14,7 +15,7 @@ interface Control {
   readonly max: number;
   readonly step: number;
   readonly format: (value: number) => string;
-  readonly help: { readonly what: string; readonly why: string; readonly moving: string };
+  readonly help: Help;
 }
 
 export const CONTROLS: readonly Control[] = [
@@ -251,10 +252,11 @@ const RUNS_TAB = 'Runs';
 
 /**
  * Developer mode's tabs on Your Runs: one with what is given to it, the runs, and the others with the sliders for every
- * hyperparameter of the break model, a few to a tab, each with a button bringing back the game's value and a help button
- * opening a dialog that says what it does, and, where it acts on a chart, a checkbox to show it there as dashed lines.
- * Beside the tabs, an overflow menu has buttons to copy the settings' values so they go into the code and to bring back
- * the game's settings, then what is given to it marked `menuItem`.
+ * hyperparameter of the break models, a few to a tab, each with a button bringing back the game's value and a help
+ * button opening a dialog that says what it does in the break model picked, and, where it acts on a chart, a checkbox to
+ * show it there as dashed lines. Beside the tabs, an overflow menu picks the break model, and has buttons to copy the
+ * model and the settings' values so they go into the code and to bring back the game's, then what is given to it marked
+ * `menuItem`.
  */
 @Component({
   selector: 'app-grouping-settings-panel',
@@ -276,6 +278,24 @@ const RUNS_TAB = 'Runs';
         }
       </div>
       <app-overflow-menu>
+        <fieldset class="models">
+          <legend>Break Model</legend>
+          @for (each of models; track each.name) {
+            <label class="toggle">
+              <input
+                type="radio"
+                name="break-model"
+                [checked]="each === model()"
+                (change)="pick(each)"
+              />
+              <span class="model">
+                {{ each.label }}
+                <small>{{ each.description }}</small>
+              </span>
+            </label>
+          }
+        </fieldset>
+        <hr />
         <button type="button" (click)="void copy()">Copy Hyperparameter Values</button>
         <button type="button" [disabled]="!tuned()" (click)="reset()">
           Back to the Game's Settings
@@ -355,10 +375,11 @@ const RUNS_TAB = 'Runs';
     <dialog #helpDialog class="card" aria-labelledby="help-title" (close)="helped.set(undefined)">
       @if (helped(); as control) {
         <h2 id="help-title">{{ control.label }}</h2>
+        @let help = helpOf(control);
         <div class="explanation">
-          <p><b>What it is.</b> {{ control.help.what }}</p>
-          <p><b>Why this way.</b> {{ control.help.why }}</p>
-          <p><b>Moving it.</b> {{ control.help.moving }}</p>
+          <p><b>What it is.</b> {{ help.what }}</p>
+          <p><b>Why this way.</b> {{ help.why }}</p>
+          <p><b>Moving it.</b> {{ help.moving }}</p>
         </div>
         <button type="button" class="candy" autofocus (click)="closeHelp()">Close</button>
       }
@@ -482,6 +503,30 @@ const RUNS_TAB = 'Runs';
       font-variant-numeric: tabular-nums;
       opacity: 0.9;
     }
+    /* The break models to pick from, each with what it does under its name. */
+    .models {
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+
+    legend {
+      padding: 0 1rem;
+      font-size: 0.8125rem;
+      opacity: 0.8;
+    }
+
+    .model {
+      display: grid;
+      max-width: 15rem;
+    }
+
+    .model small {
+      font-size: 0.75rem;
+      font-weight: 400;
+      opacity: 0.85;
+    }
+
     /* Shows the setting on the charts, where it acts, as dashed lines. */
     .guide {
       width: 1.125rem;
@@ -567,9 +612,23 @@ export class GroupingSettingsPanel {
   private readonly tweaks = inject(Tweaks);
   private readonly writeClipboard = inject(WRITE_CLIPBOARD);
   private readonly settings = this.tweaks.grouping;
-  /** The settings as text, to hand back so they go into the code. */
-  protected readonly copyText = computed(() => groupingText(this.settings()));
-  protected readonly tuned = computed(() => this.tweaks.values().grouping !== undefined);
+  /** The break models to pick from, and the one picked. */
+  protected readonly models = BREAK_MODELS;
+  protected readonly model = this.tweaks.breakModel;
+  /** The break model and the settings as text, to hand back so they go into the code. */
+  protected readonly copyText = computed(() => groupingText(this.model(), this.settings()));
+  protected readonly tuned = computed(
+    () =>
+      this.tweaks.values().grouping !== undefined || this.tweaks.values().breakModel !== undefined,
+  );
+
+  protected helpOf(control: Control): Help {
+    return this.model().help?.[control.key] ?? control.help;
+  }
+
+  protected pick(model: BreakModelChoice): void {
+    void this.tweaks.setBreakModel(model);
+  }
 
   protected formatted(control: Control): string {
     return control.format(this.settings()[control.key]);
@@ -612,7 +671,7 @@ export class GroupingSettingsPanel {
   }
 
   protected reset(): void {
-    void this.tweaks.setGrouping(undefined);
+    void this.tweaks.setGrouping(undefined).then(() => this.tweaks.setBreakModel(undefined));
   }
 
   /** Copies the settings' values as text, to hand back so they go into the code. */

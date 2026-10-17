@@ -1,6 +1,7 @@
 /**
- * The break model (`groupings.md` §4): classifies the intervals of the player's runs as breaks or not, with a
- * probability, finds where in π this player usually breaks, and up to which place those conclusions can be trusted.
+ * Mercury, the original break model (`groupings.md` §4): classifies the intervals of the player's runs as breaks or
+ * not, with a probability, finds where in π this player usually breaks, and up to which place those conclusions can be
+ * trusted.
  *
  * 1. It works in log(interval), since breaks are multiplicative: "x% slower than usual".
  * 2. Each run has a baseline, its expected log-interval at each place without the breaks. A finished run's is a
@@ -125,6 +126,7 @@ export interface Group {
   readonly trusted: boolean;
 }
 
+/** What a break model makes of the runs: the same for every one of them (`break-models.ts`). */
 export interface BreakModel {
   /** Each run, in the order given: the finished runs, oldest first, then the run in progress, if any. */
   readonly runs: readonly RunBreaks[];
@@ -151,6 +153,11 @@ export interface BreakModel {
   /** The mixture fitted, to warm-start the next fit, or the prior mixture without any interval. */
   readonly mixture: Mixture;
   readonly groups: readonly Group[];
+  /**
+   * What the model makes of the one series it fitted the mixture to, for a model that fits one rather than the runs:
+   * its P(break) is the usual-break probability.
+   */
+  readonly series?: RunBreaks;
 }
 
 /** The finished runs, as far as the model can work them out before the run in progress. */
@@ -329,14 +336,14 @@ export function breakModel(
 }
 
 /** The log of each interval of a run, from its times: index p is the interval before digit p + 1. */
-function logIntervals(times: readonly number[]): Float64Array {
+export function logIntervals(times: readonly number[]): Float64Array {
   return Float64Array.from(times.slice(1), (time, p) =>
     Math.log(Math.max(SHORTEST_INTERVAL, time - (times[p] ?? time))),
   );
 }
 
 /** Values by interval, as values by index: interval p is the one before digit p + 1. */
-function byIndex(values: readonly number[]): Values {
+export function byIndex(values: readonly number[]): Values {
   return [undefined, ...values];
 }
 
@@ -649,7 +656,12 @@ function logGamma(x: number): number {
  * The groups cut by the usual break spots, over `digits` digits; a group is trusted when the break ending it is within
  * the horizon.
  */
-function groupsOf(usual: Values, threshold: number, digits: number, horizon: number): Group[] {
+export function groupsOf(
+  usual: Values,
+  threshold: number,
+  digits: number,
+  horizon: number,
+): Group[] {
   const found: Group[] = [];
   let start = 0;
   for (let i = 1; i <= digits; i++) {
