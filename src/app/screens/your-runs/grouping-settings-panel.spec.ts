@@ -243,7 +243,7 @@ describe('GroupingSettingsPanel', () => {
     const tweaks = TestBed.inject(Tweaks);
 
     move(slider(host, 'window'), 11);
-    expect(tweaks.values().grouping).toEqual({ ...MERCURY_DEFAULTS, window: 11 });
+    expect(tweaks.values().grouping).toEqual({ mercury: { ...MERCURY_DEFAULTS, window: 11 } });
     move(slider(host, 'window'), 21);
     expect(tweaks.values().grouping).toBeUndefined();
   });
@@ -255,7 +255,9 @@ describe('GroupingSettingsPanel', () => {
     detect();
     buttonLabelled(host, 'Copy Hyperparameter Values').click();
     await vi.waitFor(() => {
-      expect(copied).toEqual([groupingText(MERCURY, { ...MERCURY_DEFAULTS, level: 0.95 })]);
+      expect(copied).toEqual([
+        groupingText(MERCURY, { mercury: { ...MERCURY_DEFAULTS, level: 0.95 } }),
+      ]);
     });
   });
 });

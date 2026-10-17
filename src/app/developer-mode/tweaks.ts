@@ -16,15 +16,23 @@ import {
   SEASONS,
 } from '../game/layers/seasons';
 import { BreakModelKind, Settings } from '../game/grouping/break-models/break-model';
-import { BREAK_MODEL, breakModelKindById } from '../game/grouping/break-models/break-models';
+import {
+  BREAK_MODEL,
+  BREAK_MODELS,
+  breakModelKindById,
+} from '../game/grouping/break-models/break-models';
 import { DeveloperMode } from './developer-mode';
 
 /** The name of the tweaks setting in the store. */
 export const TWEAKS = 'tweaks';
 /** The format of the stored tweaks, which changes, with a migration, whenever they do. */
-export const TWEAKS_FORMAT = 1;
+export const TWEAKS_FORMAT = 2;
 /** The steps that bring the stored tweaks in older formats to the current one, one per format (see {@link migrate}). */
-const TWEAKS_MIGRATIONS: readonly Migration[] = [];
+const TWEAKS_MIGRATIONS: readonly Migration[] = [
+  // Format 2 keeps each break model's hyperparameters apart: those stored before go to Mercury.
+  ({ grouping, ...tweaks }) =>
+    grouping === undefined ? tweaks : { ...tweaks, grouping: { mercury: grouping } },
+];
 
 /** Each season's starting background colors, top then bottom. */
 export type SeasonStarts = Readonly<Record<Season, BackgroundColors>>;
@@ -37,8 +45,8 @@ export interface TweakValues {
   readonly seasons?: SeasonStarts;
   /** The name of the break model the groups come from, for {@link BREAK_MODEL}. */
   readonly breakModel?: string;
-  /** The hyperparameters of that break model, for its defaults. */
-  readonly grouping?: Settings;
+  /** The hyperparameters tuned for each break model, by its id, for its defaults: each keeps its own. */
+  readonly grouping?: Readonly<Record<string, Settings>>;
   /** The color space the background blends its colors in, for {@link SEASON_COLOR_SPACE}. */
   readonly colorSpace?: ColorSpace;
   /** How many places a season takes to turn into the next, for {@link SEASON_TURN}. */
@@ -94,8 +102,9 @@ export class Tweaks {
   /** The hyperparameters of that break model. */
   readonly grouping = computed(
     (): Settings =>
-      (this.developerMode.enabled() ? this.tweaks().grouping : undefined) ??
-      this.breakModelKind().defaults,
+      (this.developerMode.enabled()
+        ? this.tweaks().grouping?.[this.breakModelKind().id]
+        : undefined) ?? this.breakModelKind().defaults,
   );
   /** That break model, with its hyperparameters set: all the game sees of it. */
   readonly breakModel = computed(() => this.breakModelKind().create(this.grouping()));
@@ -148,16 +157,23 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), seasons }));
   }
 
-  /** Picks the break model the groups come from, keeping the hyperparameters tuned that it has too. */
+  /** Picks the break model the groups come from, with the hyperparameters tuned for it, if any. */
   setBreakModel(kind: BreakModelKind): Promise<void> {
     const breakModel = kind === BREAK_MODEL ? undefined : kind.id;
-    const grouping = settingsOf(kind, this.tweaks().grouping);
-    return this.save(tweakValues({ ...this.tweaks(), breakModel, grouping }));
+    return this.save(tweakValues({ ...this.tweaks(), breakModel }));
   }
 
-  /** Tunes the hyperparameters of the break model; `undefined` brings back its defaults. */
-  setGrouping(grouping: Settings | undefined): Promise<void> {
-    return this.save(tweakValues({ ...this.tweaks(), grouping }));
+  /** Tunes the hyperparameters of the break model picked; `undefined` brings back its defaults. The others keep theirs. */
+  setGrouping(settings: Settings | undefined): Promise<void> {
+    const { id } = this.breakModelKind();
+    const others = Object.entries(this.tweaks().grouping ?? {}).filter(([key]) => key !== id);
+    const grouping = [...others, ...(settings === undefined ? [] : [[id, settings] as const])];
+    return this.save(
+      tweakValues({
+        ...this.tweaks(),
+        grouping: grouping.length === 0 ? undefined : Object.fromEntries(grouping),
+      }),
+    );
   }
 
   /** Sets the color space the background blends its colors in; `undefined` brings back the game's. */
@@ -226,16 +242,24 @@ export function seasonsText(
   ].join('\n');
 }
 
-/** The break model and its hyperparameters as text to hand back so they go into the code, marking what differs. */
-export function groupingText(kind: BreakModelKind, settings: Settings): string {
+/**
+ * The break model picked and the hyperparameters of every break model, tuned or not, as text to hand back so they go
+ * into the code, marking what differs.
+ */
+export function groupingText(
+  kind: BreakModelKind,
+  grouping: Readonly<Record<string, Settings>>,
+): string {
   const changed = (yes: boolean): string => (yes ? ' (changed)' : '');
   return [
     `Break model: ${kind.label} (BREAK_MODEL in break-models.ts)${changed(kind !== BREAK_MODEL)}`,
-    `Hyperparameters of ${kind.label}:`,
-    ...Object.entries(kind.defaults).map(([key, value]) => {
-      const setting = settings[key] ?? value;
-      return `  ${key}: ${String(Number(setting.toPrecision(4)))}${changed(setting !== value)}`;
-    }),
+    ...BREAK_MODELS.flatMap((model) => [
+      `Hyperparameters of ${model.label}:`,
+      ...Object.entries(model.defaults).map(([key, value]) => {
+        const setting = grouping[model.id]?.[key] ?? value;
+        return `  ${key}: ${String(Number(setting.toPrecision(4)))}${changed(setting !== value)}`;
+      }),
+    ]),
   ].join('\n');
 }
 
@@ -263,7 +287,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
     breakModel: breakModelKindById(breakModel)?.id,
-    grouping: settingsOf(breakModelKindById(breakModel) ?? BREAK_MODEL, grouping),
+    grouping: groupingOf(grouping),
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
@@ -327,6 +351,19 @@ function isColorSpace(value: unknown): value is ColorSpace {
 
 function isSeasonTurn(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) >= 1 && Number(value) <= PLACES_PER_SEASON;
+}
+
+/** Each break model's hyperparameters stored, by its id, leaving out those of no model and of none kept. */
+function groupingOf(value: unknown): Readonly<Record<string, Settings>> | undefined {
+  if (typeof value !== 'object' || value === null) {
+    return undefined;
+  }
+  const stored = value as Record<string, unknown>;
+  const kept = BREAK_MODELS.flatMap((kind) => {
+    const settings = settingsOf(kind, stored[kind.id]);
+    return settings === undefined ? [] : [[kind.id, settings] as const];
+  });
+  return kept.length === 0 ? undefined : Object.fromEntries(kept);
 }
 
 /**
