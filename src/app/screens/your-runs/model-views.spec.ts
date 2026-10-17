@@ -33,8 +33,8 @@ describe('the views of the break model', () => {
     picked: number[] = [],
     aggregate = true,
     guides: (keyof BreakSettings)[] = [],
-  ): ViewInput {
-    return { model, picked, aggregate, places: 30, settings, guides: new Set(guides) };
+  ): ViewInput & { readonly model: typeof model } {
+    return { model, picked, aggregate, places: 30, guides: new Set(guides) };
   }
 
   function guideLines(layers: readonly Layer[]): number[] {
@@ -62,6 +62,18 @@ describe('the views of the break model', () => {
       'Break probability',
       'Confidence',
     ]);
+  });
+
+  it('shows no mixture for a model that fits none', () => {
+    const plain = { ...input(), model: { ...model, mixture: undefined } };
+
+    expect(modelViews(plain).map((plot) => plot.title)).toEqual([
+      'Residuals',
+      'Break probability',
+      'Confidence',
+    ]);
+    expect(residualView(plain).layers.every((layer) => layer.kind === 'dots')).toBe(true);
+    expect(timeGuides([undefined, 200], plain.model, new Set(['priorBaseline']))).toEqual([]);
   });
 
   it('shows the residuals of all the runs while none is picked, else of those picked', () => {

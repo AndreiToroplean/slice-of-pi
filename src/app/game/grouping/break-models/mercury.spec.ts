@@ -1,6 +1,6 @@
 import { BreakSettings } from './hyperparameters';
 import { finishedRuns, mercury, MERCURY_DEFAULTS } from './mercury';
-import { priorMixture, Steps } from './steps';
+import { priorMixture } from './steps';
 
 describe('Mercury', () => {
   const settings = MERCURY_DEFAULTS;
@@ -34,7 +34,7 @@ describe('Mercury', () => {
     finished: readonly (readonly number[])[],
     current?: readonly number[],
     tuned: BreakSettings = alone,
-  ): Steps {
+  ): ReturnType<typeof mercury> {
     return mercury(finishedRuns(finished, tuned.window), current, tuned);
   }
 

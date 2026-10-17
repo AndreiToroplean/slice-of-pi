@@ -1,6 +1,10 @@
 import type { Values } from '../../game/grouping/break-models/break-model';
 import type { BreakSettings } from '../../game/grouping/break-models/hyperparameters';
-import { breakBoundary, mixtureDensity } from '../../game/grouping/break-models/statistics';
+import {
+  breakBoundary,
+  Mixture,
+  mixtureDensity,
+} from '../../game/grouping/break-models/statistics';
 import { priorMixture, Steps } from '../../game/grouping/break-models/steps';
 
 /** A point of a plot, in its own units. */
@@ -56,7 +60,6 @@ export interface ViewInput {
   readonly aggregate: boolean;
   /** How many places the plots along the places span, as the charts of the times do. */
   readonly places: number;
-  readonly settings: BreakSettings;
   /** The settings to show on the charts, where they have a place. */
   readonly guides: ReadonlySet<string>;
 }
@@ -86,14 +89,14 @@ function colorOf(key: keyof BreakSettings): string {
 /**
  * The settings shown on a chart of times, as lines over a baseline, in milliseconds: the prior baseline itself, the
  * prior's typical break, its normal intervals' spread above the baseline, and the time over which an interval is taken
- * for a break.
+ * for a break. Only a model that tells breaks by a mixture has them.
  */
 export function timeGuides(
   baseline: Values,
   model: Steps | undefined,
   guides: ReadonlySet<string>,
 ): TimeGuide[] {
-  if (model === undefined) {
+  if (model?.mixture === undefined) {
     return [];
   }
   const { settings } = model;
@@ -114,8 +117,15 @@ export function timeGuides(
   );
 }
 
-/** The settings shown among the residuals, as lines at the residuals they set, across `kind` lines. */
-function residualGuides({ model, settings, guides }: ViewInput, kind: 'hline' | 'vline'): Layer[] {
+/**
+ * The settings shown among the residuals, as lines at the residuals they set, across `kind` lines. Only a model that
+ * tells breaks by a mixture has them.
+ */
+function residualGuides({ model, guides }: ViewInput, kind: 'hline' | 'vline'): Layer[] {
+  if (model.mixture === undefined) {
+    return [];
+  }
+  const { settings } = model;
   const size = Math.log(settings.priorBreakSize);
   const boundary = breakBoundary(model.mixture, settings.breakThreshold);
   const lines: [keyof BreakSettings, readonly number[]][] = [
@@ -140,9 +150,15 @@ const RESIDUALS = { min: -1, max: 3 } as const;
 const HISTOGRAM_BINS = 32;
 const CURVE_POINTS = 80;
 
-/** The steps of the break model after the times, in order, as plots. */
+/** The steps of the break model after the times, in order, as plots: the mixture, if it fits one. */
 export function modelViews(input: ViewInput): Plot[] {
-  return [residualView(input), mixtureView(input), probabilityView(input), confidenceView(input)];
+  const { model } = input;
+  return [
+    residualView(input),
+    ...(model.mixture === undefined ? [] : [mixtureView({ ...input, model })]),
+    probabilityView(input),
+    confidenceView(input),
+  ];
 }
 
 /**
@@ -162,13 +178,15 @@ function residualsOf(input: ViewInput): number[] {
 
 /**
  * The range of residuals shown: just wide enough for the residuals and, with all the runs shown, the mixture's two
- * kinds of intervals, so that they spread over the chart; within {@link RESIDUALS}.
+ * kinds of intervals, if any, so that they spread over the chart; within {@link RESIDUALS}.
  */
 function residualRange(input: ViewInput): { readonly min: number; readonly max: number } {
-  const { mean, sd } = input.model.mixture;
+  const { mixture } = input.model;
   const values = [
     ...residualsOf(input),
-    ...(input.aggregate ? [mean[0] - 2 * sd[0], mean[1] + 2 * sd[1]] : []),
+    ...(input.aggregate && mixture !== undefined
+      ? [mixture.mean[0] - 2 * mixture.sd[0], mixture.mean[1] + 2 * mixture.sd[1]]
+      : []),
   ];
   const low = Math.min(0, ...values);
   const high = Math.max(0.5, ...values);
@@ -204,7 +222,7 @@ function pointsOf(values: Values): (Point | undefined)[] {
  * around the normal mean, breaks above, red where they're taken for breaks.
  */
 export function residualView(input: ViewInput): Plot {
-  const { model, aggregate, settings } = input;
+  const { model, aggregate } = input;
   const runs = residualRuns(input);
   const all = runs.length > 1 && input.picked.length === 0;
   const range = residualRange(input);
@@ -215,19 +233,18 @@ export function residualView(input: ViewInput): Plot {
     run?.residual.forEach((residual, i) => {
       if (residual !== undefined) {
         const point = [i, clamp(residual, range)] as const;
-        ((run.breakProbability[i] ?? 0) > settings.breakThreshold ? breaks : normal).push(point);
+        const { breakThreshold } = model.settings;
+        ((run.breakProbability[i] ?? 0) > breakThreshold ? breaks : normal).push(point);
       }
     });
   }
-  const { mean, sd } = model.mixture;
-  const layers: Layer[] = aggregate
-    ? [
-        { kind: 'band', from: mean[0] - sd[0], to: mean[0] + sd[0], role: 'faint' },
-        { kind: 'band', from: mean[1] - sd[1], to: mean[1] + sd[1], role: 'faint' },
-        { kind: 'hline', y: mean[0], role: 'aggregate' },
-        { kind: 'hline', y: mean[1], role: 'break' },
-      ]
-    : [];
+  const fitted = aggregate && model.mixture !== undefined ? [model.mixture] : [];
+  const layers = fitted.flatMap(({ mean, sd }): Layer[] => [
+    { kind: 'band', from: mean[0] - sd[0], to: mean[0] + sd[0], role: 'faint' },
+    { kind: 'band', from: mean[1] - sd[1], to: mean[1] + sd[1], role: 'faint' },
+    { kind: 'hline', y: mean[0], role: 'aggregate' },
+    { kind: 'hline', y: mean[1], role: 'break' },
+  ]);
   return {
     title: 'Residuals',
     caption: 'Each interval over its baseline, on a log scale: normal ones near 0, breaks above.',
@@ -246,8 +263,11 @@ export function residualView(input: ViewInput): Plot {
  * Step 4: how the residuals spread, as a histogram, and the mixture fitted to them: the normal intervals, the breaks,
  * both together, and the residual over which an interval is taken for a break.
  */
-export function mixtureView(input: ViewInput): Plot {
-  const { model, aggregate, settings } = input;
+export function mixtureView(
+  input: ViewInput & { readonly model: Extract<Steps, { readonly mixture: Mixture }> },
+): Plot {
+  const { model, aggregate } = input;
+  const { settings } = model;
   const residuals = residualsOf(input);
   const range = residualRange(input);
   const width = (range.max - range.min) / HISTOGRAM_BINS;
@@ -371,16 +391,17 @@ export function confidenceView(input: ViewInput): Plot {
     caption: 'How sure the verdict before each place is, and its trend, cut at the trust horizon.',
     x: alongPlaces(input.places),
     y: { min: 0, max: 1 },
-    layers: [...layers, ...thresholdGuides(input, ['level'])],
+    // The level is a mixture model's.
+    layers: [...layers, ...(model.mixture === undefined ? [] : thresholdGuides(input, ['level']))],
   };
 }
 
 /** The settings shown that are probabilities, as lines across a chart of probabilities. */
 function thresholdGuides(
-  { settings, guides }: ViewInput,
+  { model, guides }: ViewInput,
   keys: readonly ('breakThreshold' | 'usualThreshold' | 'level')[],
 ): Layer[] {
   return keys
     .filter((key) => guides.has(key))
-    .map((key) => ({ kind: 'hline', y: settings[key], role: 'guide', color: colorOf(key) }));
+    .map((key) => ({ kind: 'hline', y: model.settings[key], role: 'guide', color: colorOf(key) }));
 }

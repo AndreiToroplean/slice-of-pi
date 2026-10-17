@@ -36,7 +36,7 @@ export function venus(
   current: readonly number[] | undefined,
   settings: BreakSettings,
   init?: Mixture,
-): Steps {
+): Extract<Steps, { readonly mixture: Mixture }> {
   const all = current === undefined ? finished : [...finished, current];
   const logs = all.map(logIntervals);
   const { weights, synthetic } = runWeights(logs.length, settings);
@@ -143,7 +143,6 @@ export const VENUS: BreakModelKind = {
   create: (tuned) => {
     const settings = withDefaults(tuned);
     return modelFromSteps(
-      settings,
       (finished) => (current, init) => venus(finished, current, settings, init),
     );
   },

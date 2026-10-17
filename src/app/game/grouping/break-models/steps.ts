@@ -1,4 +1,4 @@
-import type { Break, Group, Values } from './break-model';
+import type { Break, Group, Settings, Values } from './break-model';
 import type { BreakSettings } from './hyperparameters';
 import { betaCdf, fitMixture, isotonicDecreasing, Mixture } from './statistics';
 
@@ -39,10 +39,12 @@ export interface RunSteps {
   readonly residual: Values;
 }
 
-/** What a model makes of the runs, step by step, as developer mode shows it. */
-export interface Steps {
-  /** The hyperparameters it took. */
-  readonly settings: BreakSettings;
+/**
+ * What a model makes of the runs, step by step, as developer mode shows it, with the hyperparameters it took. A model
+ * that tells breaks by a mixture ({@link fitBreaks}) took these, and gives the mixture fitted; any other took its own,
+ * with the thresholds it decides by.
+ */
+export type Steps = {
   /** Each run, in the order given: the finished runs, oldest first, then the run in progress, if any. */
   readonly runs: readonly RunSteps[];
   /** The weighted P(break) at each index, over the runs that reached it, synthetic ones included. */
@@ -62,10 +64,19 @@ export interface Steps {
   readonly speedCurve: Values;
   /** The recency-weighted average interval of the player's runs at each index, in milliseconds, for display only. */
   readonly averageTime: Values;
-  /** The mixture fitted, to warm-start the next fit, or the prior mixture without any interval. */
-  readonly mixture: Mixture;
   readonly groups: readonly Group[];
-}
+} & (
+  | {
+      readonly settings: BreakSettings;
+      /** The mixture fitted, to warm-start the next fit, or the prior mixture without any interval. */
+      readonly mixture: Mixture;
+    }
+  | {
+      readonly settings: Settings &
+        Pick<BreakSettings, 'breakThreshold' | 'usualThreshold' | 'startingSlots'>;
+      readonly mixture?: undefined;
+    }
+);
 
 /** No interval is taken as shorter than this, in milliseconds, so it has a log. */
 const SHORTEST_INTERVAL = 1;
