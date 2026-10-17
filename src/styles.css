@@ -107,6 +107,13 @@ body {
   -webkit-touch-callout: none;
 }
 
+/* Text fields on it can still be selected in, and pasted into from their long-press menu. */
+.season-background :is(textarea, input:not([type]), input[type='text']) {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}
+
 /* Shade the top and bottom of the background a little, behind a screen's header and its controls. */
 .season-background::before {
   content: '';
