@@ -1,10 +1,13 @@
 import { inject, Service, signal } from '@angular/core';
+import { migrate, Migration } from '../runs/migration';
 import { RunStore } from '../runs/run-store';
 
 /** The name of the developer mode setting in the store. */
 export const DEVELOPER_MODE = 'developer-mode';
 /** The format of the stored setting, which changes, with a migration, whenever the setting does (`architecture.md` §5). */
 export const DEVELOPER_MODE_FORMAT = 1;
+/** The steps that bring the setting in older formats to the current one, one per format (see {@link migrate}). */
+const DEVELOPER_MODE_MIGRATIONS: readonly Migration[] = [];
 
 interface DeveloperModeSetting {
   readonly format: typeof DEVELOPER_MODE_FORMAT;
@@ -51,12 +54,9 @@ export class DeveloperMode {
 
 /** Whether a stored setting turns developer mode on. A setting in a format this version doesn't know leaves it off. */
 function parseSetting(stored: unknown): boolean {
-  return (
-    typeof stored === 'object' &&
-    stored !== null &&
-    'format' in stored &&
-    stored.format === DEVELOPER_MODE_FORMAT &&
-    'enabled' in stored &&
-    stored.enabled === true
-  );
+  if (typeof stored !== 'object' || stored === null) {
+    return false;
+  }
+  const { format, enabled } = migrate(stored, DEVELOPER_MODE_MIGRATIONS);
+  return format === DEVELOPER_MODE_FORMAT && enabled === true;
 }

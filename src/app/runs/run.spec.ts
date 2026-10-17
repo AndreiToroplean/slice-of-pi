@@ -6,7 +6,6 @@ import {
   moveRun,
   orderRuns,
   deleteMistake,
-  isOlderFormat,
   newRun,
   parseRun,
   removeDigit,
@@ -187,14 +186,6 @@ describe('run', () => {
       const older = { format: 1, id, startedAt, digits, times, backspaces };
 
       expect(parseRun(older)).toEqual({ ...run, checked: false });
-    });
-
-    it('tells the records in older formats, to be migrated', () => {
-      expect(isOlderFormat({ ...run, format: 1 })).toBe(true);
-      expect(isOlderFormat(run)).toBe(false);
-      expect(isOlderFormat({ ...run, format: RUN_FORMAT + 1 })).toBe(false);
-      expect(isOlderFormat({ ...run, format: '1' })).toBe(false);
-      expect(isOlderFormat(null)).toBe(false);
     });
 
     it.each([

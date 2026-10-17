@@ -1,12 +1,16 @@
+import { migrate, Migration } from './migration';
 import { parseRun, Run } from './run';
 
 /** What a backup file says it is, so that any other file is turned down. */
 export const BACKUP_KIND = 'slice-of-pi-backup';
 /**
  * The format of backup files: bump it whenever their shape changes in a way older versions of the game would misread,
- * and keep reading the older formats. Adding the settings didn't: older versions ignore them.
+ * with a step in {@link BACKUP_MIGRATIONS}. Adding the settings didn't: older versions ignore them.
  */
 export const BACKUP_FORMAT = 1;
+
+/** The steps that bring backups in older formats to the current one, one per format (see {@link migrate}). */
+export const BACKUP_MIGRATIONS: readonly Migration[] = [];
 
 /** A backup of the player's data: everything in the database, runs and settings, as stored. */
 export interface Backup {
@@ -56,7 +60,7 @@ export function readBackup(text: string): BackupContents {
   if (typeof value !== 'object' || value === null) {
     return { error: 'This file is not a Slice of π backup.' };
   }
-  const { kind, format, runs, settings } = value as Partial<Record<keyof Backup, unknown>>;
+  const { kind, format, runs, settings } = migrate(value, BACKUP_MIGRATIONS);
   if (kind !== BACKUP_KIND || !Array.isArray(runs)) {
     return { error: 'This file is not a Slice of π backup.' };
   }
