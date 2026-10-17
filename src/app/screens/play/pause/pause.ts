@@ -41,11 +41,15 @@ export class Pause {
     this.dialog().nativeElement.close();
   }
 
-  /** Back to the main menu. The dialog finishes closing first, so that it doesn't linger over the screens' transition. */
+  /**
+   * Back to the main menu. The dialog finishes closing first, so that it doesn't linger over the screens' transition.
+   * Its transitions may end cancelled rather than finished, as when the browser hides it at their end: closed all the
+   * same.
+   */
   protected async endGame(): Promise<void> {
     const dialog = this.dialog().nativeElement;
     dialog.close();
-    await Promise.all(dialog.getAnimations().map(async (animation) => animation.finished));
+    await Promise.allSettled(dialog.getAnimations().map(async (animation) => animation.finished));
     this.backToMenu();
   }
 }

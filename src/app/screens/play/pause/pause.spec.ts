@@ -110,4 +110,17 @@ describe('Pause', () => {
     await new Promise((resolve) => setTimeout(resolve));
     expect(navigate).toHaveBeenCalledWith('/', { replaceUrl: true });
   });
+
+  it('ends the game even when the browser cancels the dialog’s closing transitions as it hides it', async () => {
+    const { dialog, click } = await setUp();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
+    const cancelled = Promise.reject(new DOMException('Cancelled', 'AbortError'));
+    cancelled.catch(() => undefined);
+    dialog.getAnimations = (): Animation[] => [{ finished: cancelled } as unknown as Animation];
+    await click('Pause');
+
+    await click('End Game');
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(navigate).toHaveBeenCalledWith('/', { replaceUrl: true });
+  });
 });
