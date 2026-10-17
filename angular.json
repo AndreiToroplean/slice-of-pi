@@ -67,7 +67,8 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "include": ["**/*.spec.ts", "../scripts/**/*.spec.ts"],
-            "runnerConfig": "vitest-base.config.ts"
+            "runnerConfig": "vitest-base.config.ts",
+            "setupFiles": ["src/testing/fake-fonts.ts"]
           }
         },
         "lint": {
