@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792263678396,
+  "lastUpdate": 1792266273494,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1118,6 +1118,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 404,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "67aa0bbdd663147aba71f29fa1911cdd3135bf4f",
+          "message": "feat: add Venus, a break model on the runs averaged place by place\n\nVenus averages the runs' intervals at each place, in milliseconds and by recency, synthetic runs included, and judges that one series with Mercury's steps: its baseline, the mixture fitted to its residuals, whose P(break) is the usual-break probability, and the confidence and horizon from it. Each run's own breaks are judged against the series' baseline by the same mixture. The run being typed counts in the average like any other, so one pause long enough always ends a group, however many earlier runs carried on there: with Mercury, a run adds at most its own weight to the share of runs breaking at a place, so such a pause never did.\n\nDeveloper mode picks it in the overflow menu on Your Runs. It has Mercury's hyperparameters and defaults, with its own help for the three that mean something else in it. The shared fit takes a weight per interval as well as per run, so that each place of the series weighs as much as the runs averaged there.",
+          "timestamp": "2026-10-17T21:44:11+02:00",
+          "tree_id": "fe57bce448ee3882de9921a4ceb367ef1f6a9bb8",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/67aa0bbdd663147aba71f29fa1911cdd3135bf4f"
+        },
+        "date": 1792266273158,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5730,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 10212,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 308,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
