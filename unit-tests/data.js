@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792250050062,
+  "lastUpdate": 1792252567478,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1038,6 +1038,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 337,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "c9d1c778a204ec04ccdf865d6a27d0525e9e8bd1",
+          "message": "chore: check out text files with LF line endings on every platform\n\nWindows checkouts with core.autocrlf got CRLF, which failed Prettier's format check on every file.",
+          "timestamp": "2026-10-17T17:55:45+02:00",
+          "tree_id": "d770da52eda600966f7bbbf35e16e07a419a7d6c",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/c9d1c778a204ec04ccdf865d6a27d0525e9e8bd1"
+        },
+        "date": 1792252566698,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 7243,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 13259,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 373,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
