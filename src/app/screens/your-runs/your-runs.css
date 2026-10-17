@@ -343,19 +343,9 @@ button.aggregate:not(.selected) {
 }
 
 /* In developer mode, the steps of the break model, side by side, swiped through one at a time. */
-.views {
-  display: flex;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
+app-carousel {
   /* Out to the edges of the card, so that each step slides in from them. */
   margin: 0 calc(-1 * var(--space-3));
-
-  &:focus-visible {
-    outline: 0.1875rem solid var(--ink);
-    outline-offset: -0.1875rem;
-  }
 }
 
 .view {
