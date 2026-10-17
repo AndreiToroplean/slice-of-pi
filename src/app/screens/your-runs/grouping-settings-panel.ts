@@ -1,25 +1,37 @@
 import { Component, computed, ElementRef, inject, output, signal, viewChild } from '@angular/core';
 import { WRITE_CLIPBOARD } from '../tuning/copy-values';
 import { groupingText, Tweaks } from '../../developer-mode/tweaks';
+import { ContextMenu, MenuEntry } from '../../ui/context-menu';
 import { OverflowMenu } from '../../ui/overflow-menu';
 import { ChartGuides } from './chart-guides';
 import { GUIDE_COLORS } from './model-views';
-import type { BreakModelKind, Hyperparameter } from '../../game/grouping/break-models/break-model';
+import type {
+  BreakModelKind,
+  Hyperparameter,
+  Settings,
+} from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 
 /** The tab of what is given to the panel. */
 const RUNS_TAB = 'Runs';
 
+/** The keys of a break model's hyperparameters. */
+function keysOf(kind: BreakModelKind): string[] {
+  return kind.tabs.flatMap(({ hyperparameters }) => hyperparameters.map(({ key }) => key));
+}
+
 /**
  * Developer mode's tabs on Your Runs: one with what is given to it, the runs, and the others with the sliders for every
  * hyperparameter of the break model picked, a few to a tab, each with a button bringing back the game's value and a help button
- * opening a dialog that says what it does, and, where it acts on a chart, a checkbox to show it there as dashed lines.
- * Beside the tabs, an overflow menu picks the break model, and has buttons to copy the settings' values so they go into
- * the code and to bring back the game's settings, then what is given to it marked `menuItem`.
+ * opening a dialog that says what it does, where another model has it too, a button copying its value from one of them,
+ * and, where it acts on a chart, a checkbox to show it there as dashed lines. Beside the tabs, an overflow menu picks
+ * the break model, copies the values of the hyperparameters it shares with another model, and has buttons to copy the
+ * settings' values so they go into the code and to bring back the game's settings, then what is given to it marked
+ * `menuItem`.
  */
 @Component({
   selector: 'app-grouping-settings-panel',
-  imports: [OverflowMenu],
+  imports: [ContextMenu, OverflowMenu],
   template: `
     <div class="bar">
       <div class="tabs" role="tablist" aria-label="Your runs and the grouping settings">
@@ -54,6 +66,14 @@ const RUNS_TAB = 'Runs';
             </label>
           }
         </fieldset>
+        @if (sources().length > 0) {
+          <hr />
+          @for (source of sources(); track source.id) {
+            <button type="button" (click)="copyFrom(source)">
+              Copy Shared Hyperparameters From {{ source.label }}
+            </button>
+          }
+        }
         <hr />
         <button type="button" (click)="void copy()">Copy Hyperparameter Values</button>
         <button type="button" [disabled]="!tuned()" (click)="reset()">
@@ -106,6 +126,22 @@ const RUNS_TAB = 'Runs';
                   <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
                 </svg>
               </button>
+              @if (copyEntries().get(control.key); as entries) {
+                <button
+                  type="button"
+                  class="round"
+                  [attr.aria-label]="
+                    'Copy the ' + control.label.toLowerCase() + ' from another model'
+                  "
+                  (click)="copyMenu.open(under($event))"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="9" y="9" width="11" height="11" rx="2" />
+                    <path d="M15 5V4a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1" />
+                  </svg>
+                </button>
+                <app-context-menu #copyMenu [entries]="entries" />
+              }
               <button
                 type="button"
                 class="round"
@@ -380,6 +416,34 @@ export class GroupingSettingsPanel {
   protected readonly tuned = computed(
     () => this.tweaks.values().grouping?.[this.kind().id] !== undefined,
   );
+  /** The other break models, each with the keys of the hyperparameters it shares with the one picked, if any. */
+  private readonly shared = computed(() => {
+    const own = keysOf(this.kind());
+    return BREAK_MODELS.flatMap((source) => {
+      const keys = keysOf(source).filter((key) => own.includes(key));
+      return source === this.kind() || keys.length === 0 ? [] : [{ source, keys }];
+    });
+  });
+  /** The other break models that share hyperparameters with the one picked, to copy their values from. */
+  protected readonly sources = computed(() => this.shared().map(({ source }) => source));
+  /** For each hyperparameter another model has too, the models to copy its value from. */
+  protected readonly copyEntries = computed(() => {
+    const entries = new Map<string, MenuEntry[]>();
+    for (const { source, keys } of this.shared()) {
+      for (const key of keys) {
+        entries.set(key, [
+          ...(entries.get(key) ?? []),
+          {
+            label: `From ${source.label}`,
+            action: () => {
+              this.copyFrom(source, [key]);
+            },
+          },
+        ]);
+      }
+    }
+    return entries;
+  });
 
   protected formatted(control: Hyperparameter): string {
     return control.format(this.position(control));
@@ -415,7 +479,37 @@ export class GroupingSettingsPanel {
   }
 
   private apply(control: Hyperparameter, value: number): void {
-    const settings = { ...this.settings(), [control.key]: value };
+    this.applyAll({ [control.key]: value });
+  }
+
+  /**
+   * Copies the values of the hyperparameters with these keys from another model, tuned or not, or of all those it shares
+   * with the one picked, leaving out those outside the range of their slider here.
+   */
+  protected copyFrom(source: BreakModelKind, keys?: readonly string[]): void {
+    const values = { ...source.defaults, ...this.tweaks.values().grouping?.[source.id] };
+    const copied = this.kind()
+      .tabs.flatMap(({ hyperparameters }) => hyperparameters)
+      .flatMap(({ key, min, max }) => {
+        const value = values[key];
+        return (keys === undefined || keys.includes(key)) &&
+          value !== undefined &&
+          value >= min &&
+          value <= max
+          ? [[key, value] as const]
+          : [];
+      });
+    this.applyAll(Object.fromEntries(copied));
+  }
+
+  /** Where a menu opens under the button pressed, in window coordinates. */
+  protected under(event: Event): { readonly x: number; readonly y: number } {
+    const button = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    return { x: button.left + button.width / 2, y: button.bottom };
+  }
+
+  private applyAll(values: Settings): void {
+    const settings = { ...this.settings(), ...values };
     const { defaults } = this.kind();
     const tuned = Object.keys(defaults).some((key) => settings[key] !== defaults[key]);
     void this.tweaks.setGrouping(tuned ? settings : undefined);

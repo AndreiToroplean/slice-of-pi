@@ -8,7 +8,8 @@ import { groupingText, Tweaks } from '../../developer-mode/tweaks';
 import { INDEXED_DB, IS_PREVIEW } from '../../player-data/run-store';
 import type { Settings } from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
-import { BreakSettings, oneIn } from '../../game/grouping/break-models/hyperparameters';
+import { oneIn } from '../../game/grouping/break-models/hyperparameters';
+import { LUNA, LUNA_DEFAULTS } from '../../game/grouping/break-models/luna';
 import { MERCURY, MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
 import { ChartGuides } from './chart-guides';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
@@ -52,7 +53,7 @@ describe('GroupingSettingsPanel', () => {
     };
   }
 
-  function slider(host: HTMLElement, key: keyof BreakSettings): HTMLInputElement {
+  function slider(host: HTMLElement, key: string): HTMLInputElement {
     const input = host.querySelector<HTMLInputElement>(`#setting-${key}`);
     if (input === null) {
       throw new Error(`No slider for ${key}`);
@@ -83,7 +84,7 @@ describe('GroupingSettingsPanel', () => {
     const { host } = await setUp();
 
     for (const control of MERCURY.tabs.flatMap((tab) => tab.hyperparameters)) {
-      const input = slider(host, control.key as keyof BreakSettings);
+      const input = slider(host, control.key);
       expect(host.querySelector(`label[for="setting-${control.key}"]`)?.textContent).toBe(
         control.label,
       );
@@ -258,6 +259,49 @@ describe('GroupingSettingsPanel', () => {
       expect(copied).toEqual([
         groupingText(MERCURY, { mercury: { ...MERCURY_DEFAULTS, level: 0.95 } }),
       ]);
+    });
+  });
+
+  describe('copying from another model', () => {
+    /** Tunes Mercury's window and recency decay, then picks Luna, which has them too. */
+    async function onLuna(): Promise<{ host: HTMLElement; detect: () => void }> {
+      const panel = await setUp();
+      move(slider(panel.host, 'window'), 11);
+      move(slider(panel.host, 'recencyDecay'), 0.8);
+      await TestBed.inject(Tweaks).setBreakModel(LUNA);
+      panel.detect();
+      return panel;
+    }
+
+    it('copies all the hyperparameters another model shares with the one picked', async () => {
+      const { host } = await onLuna();
+      move(slider(host, 'pauseMargin'), 1.5);
+
+      buttonLabelled(host, 'Copy Shared Hyperparameters From Mercury').click();
+
+      expect(settings()).toEqual({
+        ...LUNA_DEFAULTS,
+        window: 11,
+        recencyDecay: 0.8,
+        pauseMargin: 1.5,
+      });
+      expect(buttonLabelled(host, 'Copy Shared Hyperparameters From Venus')).toBeDefined();
+    });
+
+    it('copies one hyperparameter from the model picked in its menu', async () => {
+      const { host, detect } = await onLuna();
+      const copy = host.querySelector<HTMLButtonElement>(
+        '[aria-label="Copy the window from another model"]',
+      );
+      copy?.click();
+      detect();
+
+      buttonLabelled(host, 'From Mercury').click();
+
+      expect(settings()).toEqual({ ...LUNA_DEFAULTS, window: 11 });
+      expect(host.querySelector('[aria-label="Copy the pause margin from another model"]')).toBe(
+        null,
+      );
     });
   });
 });

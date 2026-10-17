@@ -50,7 +50,8 @@ describe('YourRuns', () => {
   }
 
   function menu(host: HTMLElement): HTMLElement | null {
-    return host.querySelector('app-context-menu .sheet');
+    // The run's own, not those of the grouping settings.
+    return host.querySelector('app-page > app-context-menu .sheet');
   }
 
   /** Where the "You are here" line is among the runs: how many come before it. */
