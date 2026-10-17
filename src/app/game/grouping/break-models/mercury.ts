@@ -82,7 +82,7 @@ export const MERCURY: BreakModelKind = {
   ],
   create: (tuned) => {
     const settings = withDefaults(tuned);
-    return modelFromSteps(settings, (finished) => {
+    return modelFromSteps((finished) => {
       const done = finishedRuns(finished, settings.window);
       return (current, init) => mercury(done, current, settings, init);
     });
@@ -127,7 +127,7 @@ export function mercury(
   current: readonly number[] | undefined,
   settings: BreakSettings,
   init?: Mixture,
-): Steps {
+): Extract<Steps, { readonly mixture: Mixture }> {
   const done =
     finished.window === settings.window ? finished : finishedRuns(finished.times, settings.window);
   const all = current === undefined ? done.times : [...done.times, current];

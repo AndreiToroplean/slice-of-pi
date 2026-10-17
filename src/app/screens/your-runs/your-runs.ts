@@ -370,7 +370,6 @@ export class YourRuns {
       ? []
       : modelViews({
           model: steps,
-          settings: steps.settings,
           picked: this.counted().flatMap((run, k) => (this.selected().has(run.id) ? [k] : [])),
           aggregate: this.aggregateShown(),
           places: this.places(),
