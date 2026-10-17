@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { Background } from '../../ui/background';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from './flight/flight';
-import { groupAt, groupDigits, groupEnds, slotCount } from '../../game/grouping/groups';
+import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { Keypad } from './keypad/keypad';
 import { keyColors, placeColors } from '../../game/layers/place-colors';
 import { Pause } from './pause/pause';
@@ -25,7 +25,6 @@ import { SeasonHeader } from './season-header/season-header';
 import { seasonAt } from '../../game/layers/seasons';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { Slots } from './slots/slots';
-import { BreakModel, breakModel, finishedRuns, Mixture } from '../../game/grouping/break-model';
 import { TypedDigits } from './typed-digits/typed-digits';
 import { TIMER } from './timer';
 
@@ -83,41 +82,27 @@ export class Play {
   protected readonly paused = signal(false);
 
   private readonly recorder = inject(RunRecorder);
-  /** The hyperparameters of the break model, tuned in developer mode or the game's own. */
-  private readonly settings = this.tweaks.grouping;
   /** The player's earlier runs, oldest first. */
   private readonly earlierRuns = signal<readonly Run[]>([]);
-  /** What the break model makes of the earlier runs that count in the groups, before this one. */
-  private readonly finished = computed(() =>
-    finishedRuns(
-      groupRuns(this.earlierRuns(), this.tweaks.includeUnchecked(), this.tweaks.runOrder()).map(
-        (run) => run.times,
+  /** How the break model plays the groups over the earlier runs that count in them, before this one. */
+  private readonly gameplay = computed(() =>
+    this.tweaks
+      .breakModel()
+      .play(
+        groupRuns(this.earlierRuns(), this.tweaks.includeUnchecked(), this.tweaks.runOrder()).map(
+          (run) => run.times,
+        ),
       ),
-      this.settings().window,
-    ),
   );
-  /**
-   * The trust horizon, as the earlier runs have it, before this run: frozen for the run, so that the groups shown don't
-   * flicker between the player's own and growing ones as they type.
-   */
-  private readonly horizon = computed(
-    () => breakModel(this.finished(), undefined, this.settings()).horizon,
-  );
-  /** The last mixture fitted, to start the next fit from, so that it takes only a few rounds. */
-  private mixture: Mixture | undefined;
-  /** The groups of all the player's runs, this one so far included. */
-  private readonly found = computed(() => this.fit(this.recorder.run()?.times ?? []));
 
   /** The size of each finished group, in order. */
   private readonly sizes = signal<readonly number[]>([]);
   protected readonly grouping = computed(() => groupDigits(this.digits(), this.sizes()));
   /** How the group being typed is played. */
   private readonly plan = computed(() =>
-    groupAt(
-      this.found(),
+    this.gameplay().groupAt(
+      this.recorder.run()?.times ?? [],
       this.digits().length - this.grouping().current.length,
-      this.settings(),
-      this.horizon(),
     ),
   );
   /** The slots of the group being typed. */
@@ -271,20 +256,8 @@ export class Play {
     const last = times.at(-1);
     return (
       last !== undefined &&
-      groupEnds(
-        this.fit([...times, last + this.recorder.waited()]),
-        times.length,
-        trusted,
-        this.settings(),
-      )
+      this.gameplay().groupEnds([...times, last + this.recorder.waited()], trusted)
     );
-  }
-
-  /** Runs the break model over the earlier runs and this one, with the times given. */
-  private fit(times: readonly number[]): BreakModel {
-    const model = breakModel(this.finished(), times, this.settings(), this.mixture);
-    this.mixture = model.mixture;
-    return model;
   }
 
   /** Turns the group being typed into a word, its slots flying into it if `fly`. */

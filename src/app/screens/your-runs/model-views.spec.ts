@@ -1,10 +1,6 @@
-import {
-  breakModel,
-  DEFAULT_BREAK_SETTINGS,
-  finishedRuns,
-  breakBoundary,
-  BreakSettings,
-} from '../../game/grouping/break-model';
+import type { BreakSettings } from '../../game/grouping/break-models/hyperparameters';
+import { finishedRuns, mercury, MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
+import { breakBoundary } from '../../game/grouping/break-models/statistics';
 import {
   confidenceView,
   Layer,
@@ -17,7 +13,7 @@ import {
 } from './model-views';
 
 describe('the views of the break model', () => {
-  const settings = DEFAULT_BREAK_SETTINGS;
+  const settings = MERCURY_DEFAULTS;
 
   /** The times of a run typed about 200 ms apart, pausing 700 ms before every third digit, a little differently each run. */
   function run(digits: number, seed: number): number[] {
@@ -31,7 +27,7 @@ describe('the views of the break model', () => {
   }
 
   const runs = [run(30, 0), run(30, 1), run(24, 2)];
-  const model = breakModel(finishedRuns(runs, settings.window), undefined, settings);
+  const model = mercury(finishedRuns(runs, settings.window), undefined, settings);
 
   function input(
     picked: number[] = [],
@@ -135,7 +131,7 @@ describe('the views of the break model', () => {
   describe('the settings shown on the charts', () => {
     it('shows none unless told to', () => {
       expect(modelViews(input()).flatMap((plot) => guideLines(plot.layers))).toEqual([]);
-      expect(timeGuides([undefined, 200], model, settings, new Set())).toEqual([]);
+      expect(timeGuides([undefined, 200], model, new Set())).toEqual([]);
     });
 
     it('draws the prior baseline, typical break, normal spread and break boundary over a baseline of times', () => {
@@ -143,7 +139,6 @@ describe('the views of the break model', () => {
       const guides = timeGuides(
         [undefined, 200],
         model,
-        settings,
         new Set(['priorBaseline', 'priorBreakSize', 'priorNormalSpread', 'breakThreshold']),
       );
 

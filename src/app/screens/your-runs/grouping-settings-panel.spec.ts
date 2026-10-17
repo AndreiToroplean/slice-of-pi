@@ -6,9 +6,12 @@ import { WRITE_CLIPBOARD } from '../tuning/copy-values';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { groupingText, Tweaks } from '../../developer-mode/tweaks';
 import { INDEXED_DB, IS_PREVIEW } from '../../player-data/run-store';
-import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../../game/grouping/break-model';
+import type { Settings } from '../../game/grouping/break-models/break-model';
+import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
+import { BreakSettings, oneIn } from '../../game/grouping/break-models/hyperparameters';
+import { MERCURY, MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
 import { ChartGuides } from './chart-guides';
-import { CONTROLS, GroupingSettingsPanel, oneIn, SETTING_TABS } from './grouping-settings-panel';
+import { GroupingSettingsPanel } from './grouping-settings-panel';
 
 describe('GroupingSettingsPanel', () => {
   beforeEach(() => {
@@ -72,18 +75,15 @@ describe('GroupingSettingsPanel', () => {
     input.dispatchEvent(new Event('input'));
   }
 
-  function settings(): BreakSettings {
+  function settings(): Settings {
     return TestBed.inject(Tweaks).grouping();
   }
 
   it('has a labelled slider for every setting, at its default', async () => {
     const { host } = await setUp();
 
-    expect(CONTROLS.map((control) => control.key).sort()).toEqual(
-      Object.keys(DEFAULT_BREAK_SETTINGS).sort(),
-    );
-    for (const control of CONTROLS) {
-      const input = slider(host, control.key);
+    for (const control of MERCURY.tabs.flatMap((tab) => tab.hyperparameters)) {
+      const input = slider(host, control.key as keyof BreakSettings);
       expect(host.querySelector(`label[for="setting-${control.key}"]`)?.textContent).toBe(
         control.label,
       );
@@ -94,13 +94,17 @@ describe('GroupingSettingsPanel', () => {
     expect(slider(host, 'window').getAttribute('aria-valuetext')).toBe('21 intervals');
   });
 
-  it('puts every setting in one tab, four at most to a tab', () => {
-    const keys = SETTING_TABS.flatMap((tab) => tab.keys);
+  it.each(BREAK_MODELS)(
+    'puts every setting of $label in one tab, four at most to a tab',
+    (kind) => {
+      const keys = kind.tabs.flatMap((tab) => tab.hyperparameters.map(({ key }) => key));
 
-    expect(keys).toHaveLength(CONTROLS.length);
-    expect(new Set(keys)).toEqual(new Set(CONTROLS.map((control) => control.key)));
-    expect(Math.max(...SETTING_TABS.map((tab) => tab.keys.length))).toBeLessThanOrEqual(4);
-  });
+      expect(keys.sort()).toEqual(Object.keys(kind.defaults).sort());
+      expect(Math.max(...kind.tabs.map((tab) => tab.hyperparameters.length))).toBeLessThanOrEqual(
+        4,
+      );
+    },
+  );
 
   it('shows one tab at a time, the runs first', async () => {
     const { host, detect } = await setUp();
@@ -143,7 +147,7 @@ describe('GroupingSettingsPanel', () => {
     move(slider(host, 'level'), 0.95);
     detect();
 
-    expect(settings().level).toBe(0.95);
+    expect(settings()['level']).toBe(0.95);
     expect(host.querySelector('output[for="setting-level"]')?.textContent).toBe('0.95');
   });
 
@@ -197,7 +201,7 @@ describe('GroupingSettingsPanel', () => {
     revert()?.click();
     detect();
 
-    expect(settings()).toEqual({ ...DEFAULT_BREAK_SETTINGS, level: 0.95 });
+    expect(settings()).toEqual({ ...MERCURY_DEFAULTS, level: 0.95 });
     expect(slider(host, 'window').value).toBe('21');
     expect(revert()?.disabled).toBe(true);
   });
@@ -239,7 +243,7 @@ describe('GroupingSettingsPanel', () => {
     const tweaks = TestBed.inject(Tweaks);
 
     move(slider(host, 'window'), 11);
-    expect(tweaks.values().grouping).toEqual({ ...DEFAULT_BREAK_SETTINGS, window: 11 });
+    expect(tweaks.values().grouping).toEqual({ ...MERCURY_DEFAULTS, window: 11 });
     move(slider(host, 'window'), 21);
     expect(tweaks.values().grouping).toBeUndefined();
   });
@@ -251,7 +255,7 @@ describe('GroupingSettingsPanel', () => {
     detect();
     buttonLabelled(host, 'Copy Hyperparameter Values').click();
     await vi.waitFor(() => {
-      expect(copied).toEqual([groupingText({ ...DEFAULT_BREAK_SETTINGS, level: 0.95 })]);
+      expect(copied).toEqual([groupingText(MERCURY, { ...MERCURY_DEFAULTS, level: 0.95 })]);
     });
   });
 });
