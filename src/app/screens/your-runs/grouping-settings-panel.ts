@@ -374,8 +374,12 @@ export class GroupingSettingsPanel {
   protected readonly kind = this.tweaks.breakModelKind;
   private readonly settings = this.tweaks.grouping;
   /** The settings as text, to hand back so they go into the code. */
-  protected readonly copyText = computed(() => groupingText(this.kind(), this.settings()));
-  protected readonly tuned = computed(() => this.tweaks.values().grouping !== undefined);
+  protected readonly copyText = computed(() =>
+    groupingText(this.kind(), this.tweaks.values().grouping ?? {}),
+  );
+  protected readonly tuned = computed(
+    () => this.tweaks.values().grouping?.[this.kind().id] !== undefined,
+  );
 
   protected formatted(control: Hyperparameter): string {
     return control.format(this.position(control));

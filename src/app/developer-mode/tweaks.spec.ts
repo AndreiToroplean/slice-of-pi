@@ -110,7 +110,22 @@ describe('Tweaks', () => {
     expect(tweaks.grouping()).toBe(MERCURY_DEFAULTS);
     await TestBed.inject(DeveloperMode).set(true);
     expect(tweaks.grouping()).toEqual(grouping);
-    expect((await load()).values()).toEqual({ grouping });
+    expect((await load()).values()).toEqual({ grouping: { mercury: grouping } });
+  });
+
+  it('keeps each break model’s hyperparameters apart, whichever is picked', async () => {
+    const tweaks = await load();
+    await TestBed.inject(DeveloperMode).set(true);
+    await tweaks.setGrouping(grouping);
+    await tweaks.setBreakModel(VENUS);
+
+    expect(tweaks.grouping()).toBe(VENUS.defaults);
+    const venus = { ...MERCURY_DEFAULTS, window: 11 };
+    await tweaks.setGrouping(venus);
+    await tweaks.setBreakModel(MERCURY);
+    expect(tweaks.grouping()).toEqual(grouping);
+    await tweaks.setGrouping(undefined);
+    expect(tweaks.values()).toEqual({ grouping: { venus } });
   });
 
   it('picks the break model only while developer mode is on, and keeps it', async () => {
@@ -171,11 +186,14 @@ describe('Tweaks', () => {
 
   it('reads the stored tweaks again once something else changed them', async () => {
     const tweaks = await load();
-    await TestBed.inject(RunStore).saveSetting(TWEAKS, { format: TWEAKS_FORMAT, grouping });
+    await TestBed.inject(RunStore).saveSetting(TWEAKS, {
+      format: TWEAKS_FORMAT,
+      grouping: { mercury: grouping },
+    });
 
     await tweaks.reload();
 
-    expect(tweaks.values()).toEqual({ grouping });
+    expect(tweaks.values()).toEqual({ grouping: { mercury: grouping } });
   });
 
   describe('as text', () => {
@@ -210,8 +228,19 @@ describe('Tweaks', () => {
     });
   });
 
-  it('lists the grouping settings, marking those that changed', () => {
-    expect(groupingText(MERCURY, grouping)).toBe(
+  it('lists the grouping settings of every model, marking those that changed', () => {
+    const text = groupingText(MERCURY, { mercury: grouping, luna: { window: 11 } }).split('\n');
+
+    expect(text.filter((line) => line.startsWith('Hyperparameters of'))).toEqual([
+      'Hyperparameters of Mercury:',
+      'Hyperparameters of Venus:',
+      'Hyperparameters of Luna:',
+    ]);
+    expect(text.filter((line) => line.endsWith('(changed)'))).toEqual([
+      '  recencyDecay: 0.95 (changed)',
+      '  window: 11 (changed)',
+    ]);
+    expect(text.slice(0, 16).join('\n')).toBe(
       [
         'Break model: Mercury (BREAK_MODEL in break-models.ts)',
         'Hyperparameters of Mercury:',
@@ -234,7 +263,9 @@ describe('Tweaks', () => {
   });
 
   it('puts back the default of each stored grouping setting that is missing or out of range', () => {
-    expect(parseTweaks({ format: TWEAKS_FORMAT, grouping })).toEqual({ grouping });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, grouping: { mercury: grouping } })).toEqual({
+      grouping: { mercury: grouping },
+    });
     for (const wrong of [
       { window: 0 },
       { window: 2.5 },
@@ -254,10 +285,11 @@ describe('Tweaks', () => {
       { startingSlots: 0 },
     ]) {
       const [key] = Object.keys(wrong) as (keyof BreakSettings)[];
-      expect(parseTweaks({ format: TWEAKS_FORMAT, grouping: { ...grouping, ...wrong } })).toEqual({
+      expect(
+        parseTweaks({ format: TWEAKS_FORMAT, grouping: { mercury: { ...grouping, ...wrong } } }),
+      ).toEqual({
         grouping: {
-          ...grouping,
-          ...(key === undefined ? {} : { [key]: MERCURY_DEFAULTS[key] }),
+          mercury: { ...grouping, ...(key === undefined ? {} : { [key]: MERCURY_DEFAULTS[key] }) },
         },
       });
     }
@@ -267,15 +299,22 @@ describe('Tweaks', () => {
     expect(
       parseTweaks({
         format: TWEAKS_FORMAT,
-        grouping: { window: 31, recencyDecay: 0.95, droppedSince: 2 },
+        grouping: { mercury: { window: 31, recencyDecay: 0.95, droppedSince: 2 }, pluto: {} },
       }),
-    ).toEqual({ grouping: { ...MERCURY_DEFAULTS, window: 31, recencyDecay: 0.95 } });
+    ).toEqual({ grouping: { mercury: { ...MERCURY_DEFAULTS, window: 31, recencyDecay: 0.95 } } });
+  });
+
+  it('keeps the grouping settings stored before each model had its own, as Mercury’s', () => {
+    expect(parseTweaks({ format: 1, breakModel: 'venus', grouping })).toEqual({
+      breakModel: 'venus',
+      grouping: { mercury: grouping },
+    });
   });
 
   it('leaves out the settings saved for the timing model the break model replaced', () => {
     expect(
       parseTweaks({
-        format: TWEAKS_FORMAT,
+        format: 1,
         grouping: {
           neighborhood: 4,
           pauseMargin: 0.8,

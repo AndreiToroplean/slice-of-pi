@@ -124,7 +124,7 @@ describe('Data', () => {
         [first],
         {
           [DEVELOPER_MODE]: { format: DEVELOPER_MODE_FORMAT, enabled: true },
-          [TWEAKS]: { format: TWEAKS_FORMAT, grouping },
+          [TWEAKS]: { format: TWEAKS_FORMAT, grouping: { mercury: grouping } },
         },
         0,
       ),
