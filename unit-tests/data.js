@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792274298596,
+  "lastUpdate": 1792279309928,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1278,6 +1278,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 285,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "noreply@anthropic.com",
+            "name": "Claude",
+            "username": "claude"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "fb2abac1fc781a2a466f2246683cb27fa58ad67a",
+          "message": "fix: draw the season background again under a menu, so that its white text reads over light things\n\nOver the white chart of all runs, the frosted menu's white text was hard to read. A menu now draws the season background at 80% opacity under its frost, as if the background showed through most of what's behind it. The gradient spans the window, as the background does, so its colors match the background's where the menu is.\n\nClaude-Session: https://claude.ai/code/session_01AWD7AWL25mg1E1KcmBBLBn",
+          "timestamp": "2026-10-18T01:21:28+02:00",
+          "tree_id": "5d84b2cc00f4d80c0e1ec2edba8118c91710c90d",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/fb2abac1fc781a2a466f2246683cb27fa58ad67a"
+        },
+        "date": 1792279309593,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5698,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 10531,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 344,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
