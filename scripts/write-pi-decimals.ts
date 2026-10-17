@@ -5,5 +5,5 @@ import { writeFileSync } from 'node:fs';
 import { chudnovsky, decimalsModule } from './pi.ts';
 
 const count = Number(process.argv[2] ?? 100_000);
-writeFileSync('src/app/pi/pi-decimals.ts', decimalsModule(chudnovsky(count)));
-console.log(`Wrote ${count.toLocaleString('en')} decimals of π to src/app/pi/pi-decimals.ts.`);
+writeFileSync('src/app/game/pi/pi-decimals.ts', decimalsModule(chudnovsky(count)));
+console.log(`Wrote ${count.toLocaleString('en')} decimals of π to src/app/game/pi/pi-decimals.ts.`);

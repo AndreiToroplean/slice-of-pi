@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, provideRouter } from '@angular/router';
 import { App } from './app';
-import { Background } from './background/background';
-import { SEASON_COLOR_SPACE, seasonAt } from './seasons/seasons';
+import { Background } from './ui/background';
+import { SEASON_COLOR_SPACE, seasonAt } from './game/layers/seasons';
 import { zoom } from './app.config';
 import { routes } from './app.routes';
 
@@ -51,35 +51,35 @@ describe('routes', () => {
   it('opens on the main menu', async () => {
     const root = routes.find((route) => route.path === '');
     const component = await root?.loadComponent?.();
-    const { Menu } = await import('./menu/menu');
+    const { Menu } = await import('./screens/menu/menu');
     expect(component).toBe(Menu);
   });
 
   it('lazily loads the play screen', async () => {
     const play = routes.find((route) => route.path === 'play');
     const component = await play?.loadComponent?.();
-    const { Play } = await import('./play/play');
+    const { Play } = await import('./screens/play/play');
     expect(component).toBe(Play);
   });
 
   it("lazily loads the player's runs", async () => {
     const runs = routes.find((route) => route.path === 'runs');
     const component = await runs?.loadComponent?.();
-    const { YourRuns } = await import('./data/your-runs');
+    const { YourRuns } = await import('./screens/your-runs/your-runs');
     expect(component).toBe(YourRuns);
   });
 
   it("lazily loads the player's data", async () => {
     const data = routes.find((route) => route.path === 'data');
     const component = await data?.loadComponent?.();
-    const { Data } = await import('./data/data');
+    const { Data } = await import('./screens/your-data/data');
     expect(component).toBe(Data);
   });
 
   it("lazily loads what stands in for a preview that isn't published", async () => {
     const preview = routes.find((route) => route.matcher !== undefined);
     const component = await preview?.loadComponent?.();
-    const { MissingPreview } = await import('./preview/missing-preview');
+    const { MissingPreview } = await import('./screens/missing-preview/missing-preview');
     expect(component).toBe(MissingPreview);
   });
 

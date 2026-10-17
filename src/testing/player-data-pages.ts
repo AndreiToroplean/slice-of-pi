@@ -2,11 +2,11 @@ import { Type } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { IDBFactory } from 'fake-indexeddb';
-import { CONFIRM } from '../app/data/confirm';
-import { SAVE_FILE } from '../app/data/data';
-import { DeveloperMode } from '../app/developer/developer-mode';
-import { Run } from '../app/runs/run';
-import { RUN_CLOCK } from '../app/runs/run-recorder';
+import { CONFIRM } from '../app/ui/confirm';
+import { SAVE_FILE } from '../app/screens/your-data/data';
+import { DeveloperMode } from '../app/developer-mode/developer-mode';
+import { Run } from '../app/player-data/run';
+import { RUN_CLOCK } from '../app/player-data/run-recorder';
 import {
   DATABASE_NAME,
   DATABASE_VERSION,
@@ -17,7 +17,7 @@ import {
   RunStore,
   RUNS,
   STORAGE_MANAGER,
-} from '../app/runs/run-store';
+} from '../app/player-data/run-store';
 
 /** The player's data a page opens on, and what stands in for the player and the browser. */
 export interface PageSetUp {
