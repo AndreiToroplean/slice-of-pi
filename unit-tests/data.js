@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792271956410,
+  "lastUpdate": 1792272778997,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1198,6 +1198,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 368,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "ec393e85bd620b0df45feff3aa023c936b144aa3",
+          "message": "refactor: give each hyperparameter one slider and one help, in every model that has it\n\nA hyperparameter's range and help belong to it, not to the models that use it: Venus and Luna list the shared sliders as they are, with no help of their own. The help of the window, the prior strength and the usual threshold now says what they mean in every model, each model's doc comment saying how it does it. Copying a value from another model no longer checks its range, which is the same.",
+          "timestamp": "2026-10-17T23:32:36+02:00",
+          "tree_id": "e21523384a3f41a27c2514b87c59fbe5b3994e98",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/ec393e85bd620b0df45feff3aa023c936b144aa3"
+        },
+        "date": 1792272778415,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 6215,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 11340,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 371,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
