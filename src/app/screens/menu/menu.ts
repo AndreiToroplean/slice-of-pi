@@ -1,5 +1,5 @@
 import { NgOptimizedImage } from '@angular/common';
-import { Component, effect, inject } from '@angular/core';
+import { afterNextRender, Component, DOCUMENT, effect, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Background } from '../../ui/background';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
@@ -7,15 +7,17 @@ import { DeveloperTaps } from '../../developer-mode/developer-taps';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import { seasonAt } from '../../game/layers/seasons';
+import { MenuAssets } from './menu-assets';
 
 /**
  * The main menu, where the app opens: the game's icon and name, a button to play and one above it to the player's runs,
- * with more in an overflow menu in a corner.
+ * with more in an overflow menu in a corner. It shows once its icon and fonts have arrived, over the background alone
+ * until then.
  */
 @Component({
   selector: 'app-menu',
   imports: [NgOptimizedImage, RouterLink, DeveloperTaps, DropdownMenu],
-  host: { class: 'screen' },
+  host: { class: 'screen', '[class.loading]': '!assets.ready()' },
   template: `
     <app-dropdown-menu>
       <a routerLink="/data">Your Data</a>
@@ -40,7 +42,16 @@ import { seasonAt } from '../../game/layers/seasons';
         class="icon-button"
         aria-label="Slice of Pi"
       >
-        <img class="icon" ngSrc="icons/icon.webp" width="136" height="136" alt="" priority />
+        <img
+          class="icon"
+          ngSrc="icons/icon.webp"
+          width="136"
+          height="136"
+          alt=""
+          priority
+          (load)="assets.iconDone()"
+          (error)="assets.iconDone()"
+        />
       </button>
       <h1>
         <span class="visually-hidden">{{ name }}</span>
@@ -78,8 +89,12 @@ export class Menu {
 
   /** The values tuned in developer mode, checking the digits among them. */
   protected readonly tweaks = inject(Tweaks);
+  protected readonly assets = inject(MenuAssets);
 
   constructor() {
+    const fonts = inject(DOCUMENT).fonts;
+    afterNextRender(() => void this.assets.waitForFonts(fonts));
+
     // The background of a new game, so that playing starts on the same colors.
     const background = inject(Background);
     effect(() => {

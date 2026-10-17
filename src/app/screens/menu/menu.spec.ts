@@ -41,6 +41,31 @@ describe('Menu', () => {
     expect(host.querySelector('img')?.getAttribute('alt')).toBe('');
   });
 
+  it('shows once its icon has loaded, and at once when the player comes back to it', async () => {
+    const fixture = TestBed.createComponent(Menu);
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.classList).toContain('loading');
+
+    host.querySelector('img')?.dispatchEvent(new Event('load'));
+    await fixture.whenStable();
+    expect(host.classList).not.toContain('loading');
+
+    const again = TestBed.createComponent(Menu);
+    await again.whenStable();
+    expect((again.nativeElement as HTMLElement).classList).not.toContain('loading');
+  });
+
+  it('shows even when its icon fails to load', async () => {
+    const fixture = TestBed.createComponent(Menu);
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+
+    host.querySelector('img')?.dispatchEvent(new Event('error'));
+    await fixture.whenStable();
+    expect(host.classList).not.toContain('loading');
+  });
+
   it('brings back the background a new game starts on', async () => {
     TestBed.inject(Background).colors.set(seasonAt(60).background);
 
