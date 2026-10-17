@@ -50,9 +50,8 @@ describe('App', () => {
 describe('routes', () => {
   it('opens on the main menu', async () => {
     const root = routes.find((route) => route.path === '');
-    const component = await root?.loadComponent?.();
     const { Menu } = await import('./screens/menu/menu');
-    expect(component).toBe(Menu);
+    expect(root?.component).toBe(Menu);
   });
 
   it('lazily loads the play screen', async () => {
