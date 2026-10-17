@@ -39,6 +39,19 @@ describe('App', () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
+  it('lets text fields open their long-press menu, to paste', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const field = document.createElement('textarea');
+    document.body.append(field);
+    const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+
+    field.dispatchEvent(event);
+    field.remove();
+
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it('renders a main landmark with a router outlet', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
