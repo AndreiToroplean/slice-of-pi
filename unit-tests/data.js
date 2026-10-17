@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792266273494,
+  "lastUpdate": 1792271956410,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1158,6 +1158,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 308,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "073494104f47dcb01353442733be985eb2262d6e",
+          "message": "chore: run the checks before a commit all at once\n\nnpm run check starts the format check, the lint, the build and the tests together instead of one after another, then shows what each one said, in turn, and fails if any failed. It takes about 40 seconds instead of 55, the lint being the longest.",
+          "timestamp": "2026-10-17T23:18:55+02:00",
+          "tree_id": "26ae96df0ec7855853be9fdcdcf72ceb16645636",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/073494104f47dcb01353442733be985eb2262d6e"
+        },
+        "date": 1792271955852,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 7259,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 13186,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 368,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
