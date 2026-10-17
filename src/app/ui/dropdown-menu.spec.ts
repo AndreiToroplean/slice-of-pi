@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { installPopovers, uninstallPopovers } from '../../testing/fake-popovers';
 import { DropdownMenu } from './dropdown-menu';
@@ -50,5 +50,63 @@ describe('DropdownMenu', () => {
     dropdown.querySelector('input')?.click();
 
     expect(dropdown.hasAttribute('data-popover-open')).toBe(true);
+  });
+});
+
+@Component({
+  imports: [DropdownMenu],
+  template: `
+    <app-dropdown-menu label="Run" [button]="false">
+      <button type="button" (click)="chosen.push('Delete')">Delete</button>
+      <button type="button" (click)="chosen.push('Play')">Play</button>
+    </app-dropdown-menu>
+  `,
+})
+class PressHost {
+  readonly chosen: string[] = [];
+  readonly menu = viewChild.required(DropdownMenu);
+}
+
+describe('DropdownMenu opened where something was pressed', () => {
+  let host: PressHost;
+  let dropdown: HTMLElement;
+
+  beforeEach(async () => {
+    installPopovers();
+    const fixture = TestBed.createComponent(PressHost);
+    await fixture.whenStable();
+    host = fixture.componentInstance;
+    const found = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.dropdown');
+    if (found === null) {
+      throw new Error('No dropdown');
+    }
+    dropdown = found;
+  });
+
+  afterEach(uninstallPopovers);
+
+  it('has no button of its own', () => {
+    expect(dropdown.parentElement?.querySelector('button.more')).toBeNull();
+  });
+
+  it('opens where it was asked to, ready for the keyboard', () => {
+    const focus = vi.spyOn(HTMLButtonElement.prototype, 'focus');
+
+    host.menu().openAt({ x: 40, y: 50 });
+
+    expect(dropdown.hasAttribute('data-popover-open')).toBe(true);
+    expect(dropdown.parentElement?.querySelector<HTMLElement>('.point')?.style.top).toBe('50px');
+    expect(focus.mock.contexts.map((button) => (button as HTMLButtonElement).textContent)).toEqual([
+      'Delete',
+    ]);
+  });
+
+  it('closes and does what a button says once chosen', () => {
+    host.menu().openAt({ x: 40, y: 50 });
+
+    dropdown.querySelectorAll('button')[1]?.click();
+
+    expect(dropdown.hasAttribute('data-popover-open')).toBe(false);
+    expect(host.chosen).toEqual(['Play']);
   });
 });

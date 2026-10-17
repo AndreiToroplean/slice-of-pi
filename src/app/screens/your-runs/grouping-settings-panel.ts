@@ -1,7 +1,6 @@
 import { Component, computed, ElementRef, inject, output, signal, viewChild } from '@angular/core';
 import { WRITE_CLIPBOARD } from '../tuning/copy-values';
 import { groupingText, Tweaks } from '../../developer-mode/tweaks';
-import { ContextMenu, MenuEntry } from '../../ui/context-menu';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import { ChartGuides } from './chart-guides';
 import { GUIDE_COLORS } from './model-views';
@@ -31,7 +30,7 @@ function keysOf(kind: BreakModelKind): string[] {
  */
 @Component({
   selector: 'app-grouping-settings-panel',
-  imports: [ContextMenu, DropdownMenu],
+  imports: [DropdownMenu],
   template: `
     <div class="bar">
       <div class="tabs" role="tablist" aria-label="Your runs and the grouping settings">
@@ -126,21 +125,31 @@ function keysOf(kind: BreakModelKind): string[] {
                   <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
                 </svg>
               </button>
-              @if (copyEntries().get(control.key); as entries) {
+              @if (copySources().get(control.key); as others) {
                 <button
                   type="button"
                   class="round"
                   [attr.aria-label]="
                     'Copy the ' + control.label.toLowerCase() + ' from another model'
                   "
-                  (click)="copyMenu.open(under($event))"
+                  (click)="copyMenu.openAt(under($event))"
                 >
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <rect x="9" y="9" width="11" height="11" rx="2" />
                     <path d="M15 5V4a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1" />
                   </svg>
                 </button>
-                <app-context-menu #copyMenu [entries]="entries" />
+                <app-dropdown-menu
+                  #copyMenu
+                  [label]="'Copy the ' + control.label.toLowerCase()"
+                  [button]="false"
+                >
+                  @for (source of others; track source.id) {
+                    <button type="button" (click)="copyFrom(source, [control.key])">
+                      From {{ source.label }}
+                    </button>
+                  }
+                </app-dropdown-menu>
               }
               <button
                 type="button"
@@ -427,22 +436,14 @@ export class GroupingSettingsPanel {
   /** The other break models that share hyperparameters with the one picked, to copy their values from. */
   protected readonly sources = computed(() => this.shared().map(({ source }) => source));
   /** For each hyperparameter another model has too, the models to copy its value from. */
-  protected readonly copyEntries = computed(() => {
-    const entries = new Map<string, MenuEntry[]>();
+  protected readonly copySources = computed(() => {
+    const sources = new Map<string, BreakModelKind[]>();
     for (const { source, keys } of this.shared()) {
       for (const key of keys) {
-        entries.set(key, [
-          ...(entries.get(key) ?? []),
-          {
-            label: `From ${source.label}`,
-            action: () => {
-              this.copyFrom(source, [key]);
-            },
-          },
-        ]);
+        sources.set(key, [...(sources.get(key) ?? []), source]);
       }
     }
-    return entries;
+    return sources;
   });
 
   protected formatted(control: Hyperparameter): string {

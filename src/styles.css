@@ -423,9 +423,24 @@ html:active-view-transition-type(zoom-out) {
     display var(--duration-dialog) allow-discrete;
 }
 
+/*
+ * Opened where something was pressed, it opens from that point under it and to its right, or, where there's more
+ * room, over it or to its left.
+ */
+.dropdown.at-point {
+  position-area: block-end span-inline-end;
+  position-try-fallbacks:
+    flip-block,
+    flip-inline,
+    flip-block flip-inline;
+  margin-inline: 0 calc(var(--space-3) + var(--margin));
+  transform-origin: top left;
+}
+
 /* Where the browser can't place it by what it opens from, in the middle of the window. */
 @supports not (position-area: block-end) {
-  .dropdown {
+  .dropdown,
+  .dropdown.at-point {
     inset: 0;
     margin: auto;
     max-height: calc(100% - 2 * var(--space-3));
