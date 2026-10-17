@@ -85,8 +85,8 @@ h1 {
   font-size: 1.5rem;
 }
 
-/* The overflow menu, in the top right corner. */
-app-overflow-menu {
+/* The menu, in the top right corner. */
+app-dropdown-menu {
   position: absolute;
   top: 0.625rem;
   right: 0.75rem;
