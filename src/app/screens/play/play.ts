@@ -164,6 +164,11 @@ export class Play {
     if (this.paused()) {
       return;
     }
+    // Keys are typed into the game, not into what has the focus, such as the typed digits once clicked or the pause
+    // button once the game resumes: it gives the focus up rather than showing its ring as if typed into.
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     if (this.mistakes() !== '') {
       if (key === 'backspace') {
         this.recorder.deleteMistake(this.digits().length + this.mistakes().length);
