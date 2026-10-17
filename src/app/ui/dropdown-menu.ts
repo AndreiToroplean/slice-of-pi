@@ -38,6 +38,7 @@ let menus = 0;
       [id]="id"
       [attr.aria-label]="label()"
       [style.position-anchor]="anchor"
+      (toggle)="opened()"
     >
       <ng-content />
     </div>
@@ -88,6 +89,16 @@ export class DropdownMenu {
     dropdown.showPopover();
     // So that the keyboard goes on from the menu.
     dropdown.querySelector('button')?.focus();
+  }
+
+  /**
+   * Tells the dropdown where it opened in the window, for it to draw the season background under it where it is (see
+   * `.dropdown` in `styles.css`).
+   */
+  protected opened(): void {
+    const dropdown = this.dropdown().nativeElement;
+    dropdown.style.setProperty('--window-x', `${String(dropdown.offsetLeft)}px`);
+    dropdown.style.setProperty('--window-y', `${String(dropdown.offsetTop)}px`);
   }
 
   /** Closes the menu once one of its buttons is chosen. */
