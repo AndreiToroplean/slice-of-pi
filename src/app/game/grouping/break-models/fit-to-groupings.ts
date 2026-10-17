@@ -1,0 +1,228 @@
+import type { BreakModelKind, Group, Hyperparameter, Settings } from './break-model';
+
+/**
+ * Fits a break model's hyperparameters to the groups a player says they make: a hyperparameter search, with the
+ * player's groups as the labels and their runs as the data. Each set of values tried runs the model over the runs, as
+ * the game would, and is scored by how well the breaks between its groups match the player's.
+ */
+
+/** The breaks between the groups a player gave, by the index of the digit each comes before, over `digits` digits. */
+export interface Labels {
+  readonly breaks: ReadonlySet<number>;
+  readonly digits: number;
+}
+
+/** The labels of groups of these sizes, in order from the first decimal. */
+export function labelsOf(sizes: readonly number[]): Labels {
+  const breaks = new Set<number>();
+  let digits = 0;
+  for (const size of sizes) {
+    if (digits > 0) {
+      breaks.add(digits);
+    }
+    digits += size;
+  }
+  return { breaks, digits };
+}
+
+/** How well a model's breaks match the labels. */
+export interface Score {
+  /** Breaks both have. */
+  readonly matched: number;
+  /** The model's breaks the labels don't have. */
+  readonly extra: number;
+  /** The labels' breaks the model doesn't have. */
+  readonly missed: number;
+  /** The F1 score of the model's breaks, from 0 to 1: 1 when they're the labels' exactly. */
+  readonly f1: number;
+}
+
+/**
+ * How well the breaks between groups match the labels, at the places both cover: before each digit after the first,
+ * up to the last one labelled and the last one the groups reach.
+ */
+export function scoreGroups(groups: readonly Group[], labels: Labels): Score {
+  const reached = Math.max(0, ...groups.map((group) => group.start + group.size));
+  const end = Math.min(labels.digits, reached);
+  const found = new Set(groups.map((group) => group.start));
+  let matched = 0;
+  let extra = 0;
+  let missed = 0;
+  for (let i = 1; i < end; i++) {
+    const labelled = labels.breaks.has(i);
+    if (found.has(i)) {
+      if (labelled) {
+        matched++;
+      } else {
+        extra++;
+      }
+    } else if (labelled) {
+      missed++;
+    }
+  }
+  const total = 2 * matched + extra + missed;
+  return { matched, extra, missed, f1: total === 0 ? 1 : (2 * matched) / total };
+}
+
+/** The values of a slider, from its minimum to its maximum, a step apart. */
+export function sliderValues({ min, max, step }: Hyperparameter): number[] {
+  const decimals = (String(step).split('.')[1] ?? '').length;
+  const count = Math.round((max - min) / step) + 1;
+  return Array.from({ length: count }, (_, k) => Number((min + k * step).toFixed(decimals)));
+}
+
+/** The best hyperparameters found, and their score. */
+export interface GroupingsFit {
+  readonly settings: Settings;
+  readonly score: Score;
+}
+
+/** How far the search has gone. */
+export type Progress = (
+  | {
+      /** Refining the values started from, in passes over the sliders, from 1. */
+      readonly stage: 'yours';
+      readonly pass: number;
+    }
+  | {
+      /** Trying this many sets of values drawn at random across every slider. */
+      readonly stage: 'drawing';
+      readonly draws: number;
+    }
+  | {
+      /** Refining the best draws, which one (from 1) of how many, in passes over the sliders, from 1. */
+      readonly stage: 'pick';
+      readonly pick: number;
+      readonly picks: number;
+      readonly pass: number;
+    }
+) & {
+  /** How much of the draws, or of the pass, is done, from 0 to 1. */
+  readonly done: number;
+  /** The best found so far. */
+  readonly best: GroupingsFit;
+};
+
+export interface FitOptions {
+  /** Called after each set of values tried, with how far the search has gone, to show it and let the page draw. */
+  readonly pause?: (progress: Progress) => Promise<void>;
+  /** Stops the search, which then gives the best values found so far. */
+  readonly signal?: AbortSignal;
+}
+
+/** How many sets of values are drawn at random across every slider. */
+const DRAWS = 300;
+/** How many of the best of them are refined, besides the values the search starts from. */
+const REFINED = 3;
+/** Most sweeps over the sliders when refining: each finds less than the one before, so it's over well before. */
+const MAX_SWEEPS = 8;
+/** The seed of the random draws: the same every time, so a fit gives the same values for the same runs and groups. */
+const SEED = 0x5eed;
+
+/**
+ * Searches the hyperparameters of a break model that make its groups over the runs (oldest first) match the labels
+ * best, starting from `start`. It refines `start` by coordinate descent over every value of every slider: each slider in
+ * turn is moved to its best value, the others staying where they are, over and over until no move scores better. Then,
+ * so as to look over the whole space, it tries values drawn at random across every slider, and refines the best of
+ * them the same way. Values are only taken when they score strictly better, so of values that score alike, those found
+ * first stay, those near `start` first of all.
+ */
+export async function fitToGroupings(
+  kind: BreakModelKind,
+  start: Settings,
+  runs: readonly (readonly number[])[],
+  labels: Labels,
+  { pause, signal }: FitOptions = {},
+): Promise<GroupingsFit> {
+  const sliders = kind.tabs.flatMap((tab) => tab.hyperparameters);
+  const grids = sliders.map(sliderValues);
+  const perSweep = grids.reduce((sum, grid) => sum + grid.length, 0);
+  const fitOf = (settings: Settings): GroupingsFit => ({
+    settings,
+    score: scoreGroups(kind.create(settings).stats(runs).groups, labels),
+  });
+  const aborted = (): boolean => signal?.aborted === true;
+
+  const first = fitOf({ ...kind.defaults, ...start });
+  let best = first;
+  const keep = (fit: GroupingsFit): void => {
+    if (fit.score.f1 > best.score.f1) {
+      best = fit;
+    }
+  };
+
+  /** Refines the values of a fit by coordinate descent, the best draw `pick` (from 1) or 0 for `start`; `false` if stopped. */
+  const refine = async (from: GroupingsFit, pick: number): Promise<boolean> => {
+    let at = from;
+    for (let sweep = 1; sweep <= MAX_SWEEPS; sweep++) {
+      let moved = false;
+      let done = 0;
+      for (const [s, slider] of sliders.entries()) {
+        for (const value of grids[s] ?? []) {
+          if (aborted()) {
+            return false;
+          }
+          if (value !== at.settings[slider.key]) {
+            const fit = fitOf({ ...at.settings, [slider.key]: value });
+            if (fit.score.f1 > at.score.f1) {
+              at = fit;
+              moved = true;
+              keep(fit);
+            }
+          }
+          done++;
+          const stage =
+            pick === 0
+              ? { stage: 'yours' as const, pass: sweep }
+              : { stage: 'pick' as const, pick, picks: REFINED, pass: sweep };
+          await pause?.({ ...stage, done: done / perSweep, best });
+        }
+      }
+      if (!moved) {
+        break;
+      }
+    }
+    return true;
+  };
+
+  if (!(await refine(first, 0))) {
+    return best;
+  }
+  const random = mulberry32(SEED);
+  const drawn: GroupingsFit[] = [];
+  for (let k = 0; k < DRAWS; k++) {
+    if (aborted()) {
+      return best;
+    }
+    const fit = fitOf(
+      Object.fromEntries(
+        sliders.map(({ key }, s) => {
+          const grid = grids[s] ?? [];
+          return [key, grid[Math.floor(random() * grid.length)] ?? 0];
+        }),
+      ),
+    );
+    drawn.push(fit);
+    keep(fit);
+    await pause?.({ stage: 'drawing', draws: DRAWS, done: (k + 1) / DRAWS, best });
+  }
+  const bestDrawn = drawn.sort((a, b) => b.score.f1 - a.score.f1).slice(0, REFINED);
+  for (const [k, from] of bestDrawn.entries()) {
+    if (!(await refine(from, k + 1))) {
+      return best;
+    }
+  }
+  return best;
+}
+
+/** A small seeded random number generator, giving numbers from 0 (included) to 1 (excluded). */
+function mulberry32(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
