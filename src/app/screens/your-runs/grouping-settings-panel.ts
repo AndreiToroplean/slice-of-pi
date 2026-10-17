@@ -23,10 +23,10 @@ function keysOf(kind: BreakModelKind): string[] {
  * Developer mode's tabs on Your Runs: one with what is given to it, the runs, and the others with the sliders for every
  * hyperparameter of the break model picked, a few to a tab, each with a button bringing back the game's value and a help button
  * opening a dialog that says what it does, where another model has it too, a button copying its value from one of them,
- * and, where it acts on a chart, a checkbox to show it there as dashed lines. Beside the tabs, an overflow menu picks
- * the break model, copies the values of the hyperparameters it shares with another model, and has buttons to copy the
- * settings' values so they go into the code and to bring back the game's settings, then what is given to it marked
- * `menuItem`.
+ * and, where it acts on a chart, a checkbox to show it there as dashed lines. Beside the tabs, an overflow menu shows
+ * the break model picked and switches it, copies the values of the hyperparameters it shares with another model, and
+ * has buttons to copy the settings' values so they go into the code and to bring back the game's settings, then what
+ * is given to it marked `menuItem`.
  */
 @Component({
   selector: 'app-grouping-settings-panel',
@@ -48,23 +48,16 @@ function keysOf(kind: BreakModelKind): string[] {
         }
       </div>
       <app-dropdown-menu>
-        <fieldset class="models">
-          <legend>Break Model</legend>
-          @for (each of models; track each.id) {
-            <label class="toggle">
-              <input
-                type="radio"
-                name="break-model"
-                [checked]="each === kind()"
-                (change)="pick(each)"
-              />
-              <span class="model">
-                {{ each.label }}
-                <small>{{ each.description }}</small>
-              </span>
-            </label>
-          }
-        </fieldset>
+        <button type="button" class="model" disabled>
+          Model: {{ kind().label }} Is Selected
+          <small>{{ kind().description }}</small>
+        </button>
+        @for (each of otherModels(); track each.id) {
+          <button type="button" class="model" (click)="pick(each)">
+            Model: Switch to {{ each.label }}
+            <small>{{ each.description }}</small>
+          </button>
+        }
         @if (sources().length > 0) {
           <hr />
           @for (source of sources(); track source.id) {
@@ -306,22 +299,14 @@ function keysOf(kind: BreakModelKind): string[] {
       font-variant-numeric: tabular-nums;
       opacity: 0.9;
     }
-    /* The break models to pick from, each with what it does under its name. */
-    .models {
-      margin: 0;
-      padding: 0;
-      border: none;
-    }
-
-    legend {
-      padding: 0 1rem;
-      font-size: 0.8125rem;
-      opacity: 0.8;
-    }
-
+    /* A break model, picked or to switch to, with what it does under its name. */
     .model {
       display: grid;
-      max-width: 15rem;
+    }
+
+    /* The one picked, readable but set apart. */
+    .model:disabled {
+      opacity: 0.75;
     }
 
     .model small {
@@ -401,8 +386,10 @@ export class GroupingSettingsPanel {
   protected readonly guideColors: Readonly<Record<string, string | undefined>> = GUIDE_COLORS;
   protected readonly chartGuides = inject(ChartGuides);
   protected readonly guides = this.chartGuides.shown;
-  /** The break models to pick from. */
-  protected readonly models = BREAK_MODELS;
+  /** The break models to switch to: all but the one picked. */
+  protected readonly otherModels = computed(() =>
+    BREAK_MODELS.filter((each) => each !== this.kind()),
+  );
   protected readonly tabNames = computed(() => [
     RUNS_TAB,
     ...this.kind().tabs.map(({ name }) => name),
