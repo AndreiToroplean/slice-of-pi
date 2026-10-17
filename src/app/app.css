@@ -1,18 +1,12 @@
+/*
+ * Each screen's content keeps to a column: the whole width on narrow screens, such as phones, and on wider ones, such as
+ * computers, a 3:4 column, centered, growing no wider. The background, and the buttons in a screen's corners, span the
+ * whole window. Each screen leaves `--margin` on its sides, around the column.
+ */
 .app {
   display: flex;
   flex-direction: column;
   height: 100dvh;
-}
-
-/* On wide screens, such as computers, the game keeps a phone's shape, centered. Phones always use the whole screen. */
-@media (min-aspect-ratio: 3 / 4) {
-  :host {
-    display: block;
-    background: var(--surround);
-  }
-
-  .app {
-    max-width: calc(100dvh * 9 / 19.5);
-    margin-inline: auto;
-  }
+  --column: min(100vw, 100dvh * 3 / 4);
+  --margin: calc((100vw - var(--column)) / 2);
 }

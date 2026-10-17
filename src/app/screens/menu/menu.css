@@ -5,7 +5,7 @@
   display: grid;
   grid-template-rows: 1fr auto;
   justify-items: center;
-  padding: 2rem var(--space-3) 3rem;
+  padding: 2rem calc(var(--space-3) + var(--margin)) 3rem;
 }
 
 .title {
@@ -39,7 +39,7 @@ h1 {
   margin: 0;
   font-family: var(--font-digits);
   /* As big as fits on narrow phones too. */
-  font-size: min(2.25rem, 9vw);
+  font-size: min(2.25rem, var(--column) * 0.09);
   font-weight: 600;
 }
 
