@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792279309928,
+  "lastUpdate": 1792280124145,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1318,6 +1318,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 344,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "a5b3fd076487d6d694606cadaea11a0a832bac14",
+          "message": "feat: add previous and next buttons to the steps of the break model on Your Runs\n\nSwiping still works; the buttons let a mouse step through the views too, going around past either end.\n\nClaude-Session: https://claude.ai/code/session_011Yac6u6y5hExQ9X8sNtMjy",
+          "timestamp": "2026-10-18T01:35:02+02:00",
+          "tree_id": "3a39e257f2d29f67c206b62bd55d671d829b39b6",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/a5b3fd076487d6d694606cadaea11a0a832bac14"
+        },
+        "date": 1792280123793,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5160,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 9874,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 266,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
