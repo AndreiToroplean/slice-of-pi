@@ -12,7 +12,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { ContextMenu, MenuEntry, SEPARATOR } from '../../ui/context-menu';
+import { DropdownMenu } from '../../ui/dropdown-menu';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { Page } from '../../ui/page';
@@ -43,7 +43,7 @@ import { chartTop, digitTimes } from './run-charts';
     CdkDragHandle,
     CdkDropList,
     CdkScrollable,
-    ContextMenu,
+    DropdownMenu,
     GroupingSettingsPanel,
     LongPress,
     NgTemplateOutlet,
@@ -134,7 +134,13 @@ import { chartTop, digitTimes } from './run-charts';
         <ng-container [ngTemplateOutlet]="runList" />
       }
       <!-- A run's context menu, opened by a long press on it. -->
-      <app-context-menu [entries]="runMenuEntries()" />
+      <app-dropdown-menu label="Run" [button]="false">
+        <button type="button" (click)="void deletePicked()">Delete Run</button>
+        @if (developerMode()) {
+          <hr />
+          <button type="button" (click)="playFromPicked()">Play from Here</button>
+        }
+      </app-dropdown-menu>
     </app-page>
     <!-- The chart of the times of all runs, and of the runs picked. -->
     <ng-template #timesChart>
@@ -408,27 +414,7 @@ export class YourRuns {
   });
   /** The run whose context menu was last opened. */
   private picked: string | undefined;
-  private readonly runMenu = viewChild.required(ContextMenu);
-  /** What a run's context menu offers. */
-  protected readonly runMenuEntries = computed((): MenuEntry[] => [
-    {
-      label: 'Delete Run',
-      action: () => {
-        void this.deletePicked();
-      },
-    },
-    SEPARATOR,
-    ...(this.developerMode()
-      ? [
-          {
-            label: 'Play from Here',
-            action: () => {
-              this.playFromPicked();
-            },
-          },
-        ]
-      : []),
-  ]);
+  private readonly runMenu = viewChild.required(DropdownMenu);
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
@@ -463,11 +449,11 @@ export class YourRuns {
   /** Opens the context menu of a run long pressed, where it was pressed. */
   protected pick(id: string, at: { readonly x: number; readonly y: number }): void {
     this.picked = id;
-    this.runMenu().open(at);
+    this.runMenu().openAt(at);
   }
 
   /** Plays from just before the run picked, as if only the runs above it had been played, keeping the order shown. */
-  private playFromPicked(): void {
+  protected playFromPicked(): void {
     const { ids } = this.shownOrder();
     const line = ids.indexOf(this.picked ?? '');
     if (line !== -1) {
@@ -536,7 +522,7 @@ export class YourRuns {
   }
 
   /** Deletes the run picked, once the player confirms. */
-  private async deletePicked(): Promise<void> {
+  protected async deletePicked(): Promise<void> {
     const id = this.picked;
     await this.recorder.saved();
     if (
