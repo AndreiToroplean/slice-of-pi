@@ -386,7 +386,7 @@ html:active-view-transition-type(zoom-out) {
   }
 }
 
-/* An overflow menu (`OverflowMenu`): a frosted dropdown under its button, that fades in and grows from its corner. */
+/* An overflow menu (`DropdownMenu`): a frosted dropdown under its button, that fades in and grows from its corner. */
 .dropdown {
   position: fixed;
   inset: auto;

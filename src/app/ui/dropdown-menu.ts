@@ -9,7 +9,7 @@ let menus = 0;
  * one of its buttons closes it too.
  */
 @Component({
-  selector: 'app-overflow-menu',
+  selector: 'app-dropdown-menu',
   host: { '(click)': 'chosen($event)' },
   template: `
     <button
@@ -56,11 +56,11 @@ let menus = 0;
     }
   `,
 })
-export class OverflowMenu {
+export class DropdownMenu {
   /** What the button and the menu are called for screen readers. */
   readonly label = input('More');
 
-  protected readonly id = `overflow-menu-${String(++menus)}`;
+  protected readonly id = `menu-${String(++menus)}`;
   /** Where the dropdown opens, from the top right corner of the window, just under its button. */
   protected readonly dropdownAt = signal({ top: 0, right: 0 });
   private readonly more = viewChild.required<ElementRef<HTMLButtonElement>>('more');

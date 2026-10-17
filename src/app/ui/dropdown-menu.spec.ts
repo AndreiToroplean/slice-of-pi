@@ -1,20 +1,20 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { installPopovers, uninstallPopovers } from '../../testing/fake-popovers';
-import { OverflowMenu } from './overflow-menu';
+import { DropdownMenu } from './dropdown-menu';
 
 @Component({
-  imports: [OverflowMenu],
+  imports: [DropdownMenu],
   template: `
-    <app-overflow-menu>
+    <app-dropdown-menu>
       <button type="button">Choose</button>
       <label class="toggle"><input type="checkbox" /> Toggle</label>
-    </app-overflow-menu>
+    </app-dropdown-menu>
   `,
 })
 class Host {}
 
-describe('OverflowMenu', () => {
+describe('DropdownMenu', () => {
   beforeEach(installPopovers);
   afterEach(uninstallPopovers);
 

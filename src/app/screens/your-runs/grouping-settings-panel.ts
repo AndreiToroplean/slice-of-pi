@@ -2,7 +2,7 @@ import { Component, computed, ElementRef, inject, output, signal, viewChild } fr
 import { WRITE_CLIPBOARD } from '../tuning/copy-values';
 import { groupingText, Tweaks } from '../../developer-mode/tweaks';
 import { ContextMenu, MenuEntry } from '../../ui/context-menu';
-import { OverflowMenu } from '../../ui/overflow-menu';
+import { DropdownMenu } from '../../ui/dropdown-menu';
 import { ChartGuides } from './chart-guides';
 import { GUIDE_COLORS } from './model-views';
 import type {
@@ -31,7 +31,7 @@ function keysOf(kind: BreakModelKind): string[] {
  */
 @Component({
   selector: 'app-grouping-settings-panel',
-  imports: [ContextMenu, OverflowMenu],
+  imports: [ContextMenu, DropdownMenu],
   template: `
     <div class="bar">
       <div class="tabs" role="tablist" aria-label="Your runs and the grouping settings">
@@ -48,7 +48,7 @@ function keysOf(kind: BreakModelKind): string[] {
           </button>
         }
       </div>
-      <app-overflow-menu>
+      <app-dropdown-menu>
         <fieldset class="models">
           <legend>Break Model</legend>
           @for (each of models; track each.id) {
@@ -81,7 +81,7 @@ function keysOf(kind: BreakModelKind): string[] {
         </button>
         <hr />
         <ng-content select="[menuItem]" />
-      </app-overflow-menu>
+      </app-dropdown-menu>
     </div>
     <div
       class="pane runs-pane"

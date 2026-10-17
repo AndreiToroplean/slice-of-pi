@@ -5,7 +5,7 @@ import { Background } from '../../ui/background';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { DeveloperTaps } from '../../developer-mode/developer-taps';
 import { Tweaks } from '../../developer-mode/tweaks';
-import { OverflowMenu } from '../../ui/overflow-menu';
+import { DropdownMenu } from '../../ui/dropdown-menu';
 import { seasonAt } from '../../game/layers/seasons';
 
 /**
@@ -14,10 +14,10 @@ import { seasonAt } from '../../game/layers/seasons';
  */
 @Component({
   selector: 'app-menu',
-  imports: [NgOptimizedImage, RouterLink, DeveloperTaps, OverflowMenu],
+  imports: [NgOptimizedImage, RouterLink, DeveloperTaps, DropdownMenu],
   host: { class: 'screen' },
   template: `
-    <app-overflow-menu>
+    <app-dropdown-menu>
       <a routerLink="/data">Your Data</a>
       @if (developerMode.enabled()) {
         <div class="section" role="group" aria-labelledby="developer-title">
@@ -30,7 +30,7 @@ import { seasonAt } from '../../game/layers/seasons';
           </label>
         </div>
       }
-    </app-overflow-menu>
+    </app-dropdown-menu>
     <div class="title">
       <!-- Tapping it ten times in a row turns developer mode on or off. -->
       <button
