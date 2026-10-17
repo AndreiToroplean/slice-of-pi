@@ -3,10 +3,11 @@ import { injectBackToMenu } from '../../../ui/back-to-menu';
 
 /**
  * The pause button, and the dialog it opens over the game: resume, restart the game, or end it, back to the main
- * menu. Escape resumes too.
+ * menu. Escape pauses too, and resumes.
  */
 @Component({
   selector: 'app-pause',
+  host: { '(document:keydown.escape)': 'escape($event)' },
   template: `
     <button type="button" class="frosted pause-button" aria-label="Pause" (click)="pause()">
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -35,6 +36,15 @@ export class Pause {
   protected pause(): void {
     this.dialog().nativeElement.showModal();
     this.paused.set(true);
+  }
+
+  /** Pauses, unless already paused: the dialog then closes on Escape by itself. */
+  protected escape(event: Event): void {
+    if (!this.paused()) {
+      // So that the browser doesn't take the same Escape to close the dialog just opened.
+      event.preventDefault();
+      this.pause();
+    }
   }
 
   protected resume(): void {
