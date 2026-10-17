@@ -12,6 +12,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { Carousel } from '../../ui/carousel';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
@@ -39,6 +40,7 @@ import { chartTop, digitTimes } from './run-charts';
 @Component({
   selector: 'app-your-runs',
   imports: [
+    Carousel,
     CdkDrag,
     CdkDragHandle,
     CdkDropList,
@@ -65,8 +67,8 @@ import { chartTop, digitTimes } from './run-charts';
       @if (charts().length > 0) {
         <article class="panel summary">
           @if (developerMode()) {
-            <!-- In developer mode, the steps of the break model, one after the other: swiped through. -->
-            <div class="views" role="group" tabindex="0" aria-label="The break model, step by step">
+            <!-- In developer mode, the steps of the break model, one after the other. -->
+            <app-carousel label="The break model, step by step">
               <section class="view">
                 <div class="heading">
                   <h3>{{ summaryTitle() }}</h3>
@@ -89,7 +91,7 @@ import { chartTop, digitTimes } from './run-charts';
                   <p class="caption">{{ plot.caption }}</p>
                 </section>
               }
-            </div>
+            </app-carousel>
           } @else {
             <h3>{{ summaryTitle() }}</h3>
             <ng-container [ngTemplateOutlet]="timesChart" />
