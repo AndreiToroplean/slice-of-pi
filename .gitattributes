@@ -1,0 +1,2 @@
+# Text files use LF everywhere, as Prettier expects, whatever the checkout's platform.
+* text=auto eol=lf
