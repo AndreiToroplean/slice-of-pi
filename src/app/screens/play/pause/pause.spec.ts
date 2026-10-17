@@ -47,6 +47,26 @@ describe('Pause', () => {
     expect(dialog.querySelector('#pause-title')?.textContent).toBe('Paused');
   });
 
+  it('pauses on Escape, leaving it to the dialog to close on the next', async () => {
+    const { pause, dialog } = await setUp();
+    const escape = (): KeyboardEvent => {
+      const event = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+        cancelable: true,
+      });
+      document.dispatchEvent(event);
+      return event;
+    };
+
+    expect(escape().defaultPrevented).toBe(true);
+    expect(dialog.open).toBe(true);
+    expect(pause.paused()).toBe(true);
+
+    expect(escape().defaultPrevented).toBe(false);
+    expect(dialog.open).toBe(true);
+  });
+
   it('offers to resume, restart or end the game, resume first', async () => {
     const { dialog } = await setUp();
 
