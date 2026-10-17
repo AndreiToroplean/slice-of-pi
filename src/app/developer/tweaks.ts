@@ -20,7 +20,7 @@ import { DeveloperMode } from './developer-mode';
 
 /** The name of the tweaks setting in the store. */
 export const TWEAKS = 'tweaks';
-/** The format of the stored tweaks, which changes, with a migration, whenever they do (`architecture.md` §5). */
+/** The format of the stored tweaks, which changes, with a migration, whenever they do. */
 export const TWEAKS_FORMAT = 1;
 /** The steps that bring the stored tweaks in older formats to the current one, one per format (see {@link migrate}). */
 const TWEAKS_MIGRATIONS: readonly Migration[] = [];

@@ -37,7 +37,7 @@
   background: var(--frost-pressed);
 }
 
-/* Key color (`colors.md` §3): a digit key shows its color as an accent across its bottom. */
+/* Key color: a digit key shows its color as an accent across its bottom. */
 .key:not(.backspace) {
   position: relative;
   overflow: hidden;

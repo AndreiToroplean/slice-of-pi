@@ -2,8 +2,8 @@ import { Component, computed, input } from '@angular/core';
 import { slotLayout } from './slot-layout';
 
 /**
- * The typing area: the slots of the group being typed, filled with its digits so far, the next one outlined
- * (`groupings.md` §3), each in its place color, or marked as a mistake (red on white, outlined in red). There is no text under the slots. Hidden from assistive technology: the typed digits say what
+ * The typing area: the slots of the group being typed, filled with its digits so far, the next one outlined,
+ * each in its place color, or marked as a mistake (red on white, outlined in red). There is no text under the slots. Hidden from assistive technology: the typed digits say what
  * was typed.
  */
 @Component({

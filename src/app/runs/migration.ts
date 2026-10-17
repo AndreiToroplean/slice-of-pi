@@ -5,7 +5,7 @@ export type SavedRecord = Readonly<Record<string, unknown>>;
 export type Migration = (record: SavedRecord) => SavedRecord;
 
 /**
- * How saved data is migrated (`architecture.md` §5). Each part of the save (a run, a backup file, each setting) carries
+ * How saved data is migrated. Each part of the save (a run, a backup file, each setting) carries
  * the format it was written in, a whole number, and has its own migration steps: `steps[0]` brings format 1 to 2,
  * `steps[1]` format 2 to 3, and so on, so the current format is one more than the number of steps. A record runs
  * through every step from its format up to the current one, in order: one in format 3 of 5 goes through 3 → 4, then

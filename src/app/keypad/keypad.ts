@@ -31,7 +31,7 @@ interface Press {
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
  * repeats it.
  * Keys being pressed, by touch or keyboard, are shown pressed. Each digit key shows its color as an accent; pressing it
- * fills it with that color at once, for at least `SPLASH_DURATION` (`colors.md` §3). The buttons themselves still work with the keyboard and
+ * fills it with that color at once, for at least `SPLASH_DURATION`. The buttons themselves still work with the keyboard and
  * assistive technology (Enter or Space on a focused key).
  */
 @Component({

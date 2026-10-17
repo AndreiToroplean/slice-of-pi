@@ -1,6 +1,8 @@
 /**
- * The break model (`groupings.md` §4): classifies the intervals of the player's runs as breaks or not, with a
+ * The break model: classifies the intervals of the player's runs as breaks or not, with a
  * probability, finds where in π this player usually breaks, and up to which place those conclusions can be trusted.
+ * A break is judged against this player at this place, never against a fixed threshold or their overall speed: players
+ * type the digits they know best faster than the last ones they know, so either would cut the slow end into single digits.
  *
  * 1. It works in log(interval), since breaks are multiplicative: "x% slower than usual".
  * 2. Each run has a baseline, its expected log-interval at each place without the breaks. A finished run's is a

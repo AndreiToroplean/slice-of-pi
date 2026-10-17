@@ -25,7 +25,7 @@ export function groupDigits(digits: string, sizes: readonly number[]): Grouping 
   return { words, current: digits.slice(start) };
 }
 
-/** How the group starting at a place is played (`groupings.md` §3). */
+/** How the group starting at a place is played. */
 export interface GroupPlan {
   /** How many slots it starts with. */
   readonly size: number;
@@ -39,7 +39,7 @@ export interface GroupPlan {
 /**
  * How the group starting at index `start` (index 0 is the first decimal) is played: within the trust horizon, as the
  * player's own group there, as many slots as it has digits left; past it, groups of the starting slots (5 by default)
- * that grow until the player breaks (`groupings.md` §4.3). The horizon is the model's, unless another is given.
+ * that grow until the player breaks. The horizon is the model's, unless another is given.
  */
 export function groupAt(
   model: BreakModel,
@@ -62,7 +62,7 @@ export function slotCount(plan: GroupPlan, typed: number): number {
 }
 
 /**
- * Whether the group being typed is finished before the next digit, at index `next` (`groupings.md` §4.1). The model
+ * Whether the group being typed is finished before the next digit, at index `next`. The model
  * includes the run being typed, like any other run, its next digit timed as if typed now. Within the trust horizon, the
  * group ends where the player usually breaks; past it, where this run breaks.
  */

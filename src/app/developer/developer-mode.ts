@@ -4,7 +4,7 @@ import { RunStore } from '../runs/run-store';
 
 /** The name of the developer mode setting in the store. */
 export const DEVELOPER_MODE = 'developer-mode';
-/** The format of the stored setting, which changes, with a migration, whenever the setting does (`architecture.md` §5). */
+/** The format of the stored setting, which changes, with a migration, whenever the setting does. */
 export const DEVELOPER_MODE_FORMAT = 1;
 /** The steps that bring the setting in older formats to the current one, one per format (see {@link migrate}). */
 const DEVELOPER_MODE_MIGRATIONS: readonly Migration[] = [];

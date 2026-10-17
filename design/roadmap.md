@@ -34,22 +34,18 @@ The constellations idea, already in the first mockup ([`vision.md` §5.2](vision
 
 The page where the player looks at their sky. It's really important: one of the core pages ([`vision.md` §5.2](vision.md#52-keypad-gesture-patterns-constellations)).
 
-## 5. Your Runs
-
-Improve the Your Runs page: its current layout isn't good.
-
-## 6. Main menu
+## 5. Main menu
 
 Redesign the main menu: the current one is a stand-in, and it should be much cooler.
 
-## 7. Season shapes
+## 6. Season shapes
 
 Seasons are only colors for now ([`vision.md` §5.4](vision.md#54-seasons)). They should include shapes as well: abstract shapes that remind the player of the season, something like playing with particles in the background. To be thought through.
 
-## 8. Sounds
+## 7. Sounds
 
 The keys get sounds, yet another memory layer ([`vision.md` §5.5](vision.md#55-sound)). Each keypad row could be an instrument and each column a note, so we get many combinations. Maybe 0 is something special, like a triangle (the instrument). To be play tested.
 
-## 9. Your Data
+## 8. Your Data
 
 Improve the Your Data page. It comes after the other pages: it's less of a priority.
