@@ -15,7 +15,8 @@ import {
   SeasonBackgrounds,
   SEASONS,
 } from '../game/layers/seasons';
-import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../game/grouping/break-model';
+import { BreakModelKind, Settings } from '../game/grouping/break-models/break-model';
+import { BREAK_MODEL, breakModelKindById } from '../game/grouping/break-models/break-models';
 import { DeveloperMode } from './developer-mode';
 
 /** The name of the tweaks setting in the store. */
@@ -34,8 +35,10 @@ export interface TweakValues {
   readonly palette?: Palette;
   /** The seasons' starting colors, for {@link SEASON_BACKGROUNDS}. */
   readonly seasons?: SeasonStarts;
-  /** The hyperparameters of the break model, for {@link DEFAULT_BREAK_SETTINGS}. */
-  readonly grouping?: BreakSettings;
+  /** The name of the break model the groups come from, for {@link BREAK_MODEL}. */
+  readonly breakModel?: string;
+  /** The hyperparameters of that break model, for its defaults. */
+  readonly grouping?: Settings;
   /** The color space the background blends its colors in, for {@link SEASON_COLOR_SPACE}. */
   readonly colorSpace?: ColorSpace;
   /** How many places a season takes to turn into the next, for {@link SEASON_TURN}. */
@@ -82,12 +85,20 @@ export class Tweaks {
       ? backgroundsFrom(seasons)
       : SEASON_BACKGROUNDS;
   });
-  /** The hyperparameters of the break model the game uses. */
-  readonly grouping = computed(() =>
-    this.developerMode.enabled()
-      ? (this.tweaks().grouping ?? DEFAULT_BREAK_SETTINGS)
-      : DEFAULT_BREAK_SETTINGS,
+  /** The break model the groups come from. */
+  readonly breakModelKind = computed(
+    (): BreakModelKind =>
+      (this.developerMode.enabled() ? breakModelKindById(this.tweaks().breakModel) : undefined) ??
+      BREAK_MODEL,
   );
+  /** The hyperparameters of that break model. */
+  readonly grouping = computed(
+    (): Settings =>
+      (this.developerMode.enabled() ? this.tweaks().grouping : undefined) ??
+      this.breakModelKind().defaults,
+  );
+  /** That break model, with its hyperparameters set: all the game sees of it. */
+  readonly breakModel = computed(() => this.breakModelKind().create(this.grouping()));
   /** The color space the background blends its colors in. */
   readonly colorSpace = computed(
     (): ColorSpace =>
@@ -137,8 +148,15 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), seasons }));
   }
 
-  /** Tunes the hyperparameters of the break model; `undefined` brings back the game's. */
-  setGrouping(grouping: BreakSettings | undefined): Promise<void> {
+  /** Picks the break model the groups come from, keeping the hyperparameters tuned that it has too. */
+  setBreakModel(kind: BreakModelKind): Promise<void> {
+    const breakModel = kind === BREAK_MODEL ? undefined : kind.id;
+    const grouping = settingsOf(kind, this.tweaks().grouping);
+    return this.save(tweakValues({ ...this.tweaks(), breakModel, grouping }));
+  }
+
+  /** Tunes the hyperparameters of the break model; `undefined` brings back its defaults. */
+  setGrouping(grouping: Settings | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), grouping }));
   }
 
@@ -208,19 +226,18 @@ export function seasonsText(
   ].join('\n');
 }
 
-/** The hyperparameters of the break model as text to hand back so they go into the code, marking those that differ. */
-export function groupingText(settings: BreakSettings): string {
+/** The break model and its hyperparameters as text to hand back so they go into the code, marking what differs. */
+export function groupingText(kind: BreakModelKind, settings: Settings): string {
+  const changed = (yes: boolean): string => (yes ? ' (changed)' : '');
   return [
-    'Grouping settings (DEFAULT_BREAK_SETTINGS in break-model.ts):',
-    ...SETTING_KEYS.map((key) => {
-      const value = settings[key];
-      const changed = value !== DEFAULT_BREAK_SETTINGS[key];
-      return `  ${key}: ${String(Number(value.toPrecision(4)))}${changed ? ' (changed)' : ''}`;
+    `Break model: ${kind.label} (BREAK_MODEL in break-models.ts)${changed(kind !== BREAK_MODEL)}`,
+    `Hyperparameters of ${kind.label}:`,
+    ...Object.entries(kind.defaults).map(([key, value]) => {
+      const setting = settings[key] ?? value;
+      return `  ${key}: ${String(Number(setting.toPrecision(4)))}${changed(setting !== value)}`;
     }),
   ].join('\n');
 }
-
-const SETTING_KEYS = Object.keys(DEFAULT_BREAK_SETTINGS) as (keyof BreakSettings)[];
 
 /** The tweaks in a stored setting, leaving out what isn't valid. A format this version doesn't know gives none. */
 export function parseTweaks(stored: unknown): TweakValues {
@@ -231,6 +248,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     format,
     palette,
     seasons,
+    breakModel,
     grouping,
     colorSpace,
     seasonTurn,
@@ -244,7 +262,8 @@ export function parseTweaks(stored: unknown): TweakValues {
   return tweakValues({
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
-    grouping: breakSettingsOf(grouping),
+    breakModel: breakModelKindById(breakModel)?.id,
+    grouping: settingsOf(breakModelKindById(breakModel) ?? BREAK_MODEL, grouping),
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
@@ -257,6 +276,7 @@ export function parseTweaks(stored: unknown): TweakValues {
 function tweakValues({
   palette,
   seasons,
+  breakModel,
   grouping,
   colorSpace,
   seasonTurn,
@@ -269,6 +289,7 @@ function tweakValues({
   return {
     ...(palette === undefined ? {} : { palette }),
     ...(seasons === undefined ? {} : { seasons }),
+    ...(breakModel === undefined ? {} : { breakModel }),
     ...(grouping === undefined ? {} : { grouping }),
     ...(colorSpace === undefined ? {} : { colorSpace }),
     ...(seasonTurn === undefined ? {} : { seasonTurn }),
@@ -308,41 +329,28 @@ function isSeasonTurn(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) >= 1 && Number(value) <= PLACES_PER_SEASON;
 }
 
-/** Whether a value is in range for each grouping setting. */
-const BREAK_SETTING_CHECKS: { readonly [K in keyof BreakSettings]: (value: number) => boolean } = {
-  window: (value) => Number.isInteger(value) && value > 0,
-  recencyDecay: (value) => value > 0 && value <= 1,
-  level: (value) => value >= 0 && value <= 1,
-  priorStrength: (value) => value >= 0,
-  syntheticRuns: (value) => Number.isInteger(value) && value >= 0,
-  syntheticDecay: (value) => value > 0 && value <= 1,
-  priorBaseline: (value) => value > 0,
-  priorBreakShare: (value) => value > 0 && value < 1,
-  priorBreakSize: (value) => value > 0,
-  priorNormalSpread: (value) => value > 0,
-  priorBreakSpread: (value) => value > 0,
-  breakThreshold: (value) => value > 0 && value < 1,
-  usualThreshold: (value) => value > 0 && value < 1,
-  startingSlots: (value) => Number.isInteger(value) && value > 0,
-};
-
 /**
- * The grouping settings stored, each one that's missing or out of range at its default, so that adding or dropping a
- * setting keeps the others. `undefined` if none is kept, as with the settings of the timing model the break model
- * replaced, which share none of its names.
+ * A break model's hyperparameters stored, each one that's missing or out of its slider's range at its default, so that
+ * adding or dropping one keeps the others. `undefined` if none is kept, as with the settings of the timing model the
+ * break models replaced, which share none of their names.
  */
-function breakSettingsOf(value: unknown): BreakSettings | undefined {
+function settingsOf(kind: BreakModelKind, value: unknown): Settings | undefined {
   if (typeof value !== 'object' || value === null) {
     return undefined;
   }
   const stored = value as Record<string, unknown>;
-  const kept = Object.entries(stored).filter(
-    ([key, setting]) =>
-      key in BREAK_SETTING_CHECKS &&
-      typeof setting === 'number' &&
-      BREAK_SETTING_CHECKS[key as keyof BreakSettings](setting),
-  );
-  return kept.length === 0 ? undefined : { ...DEFAULT_BREAK_SETTINGS, ...Object.fromEntries(kept) };
+  const kept = kind.tabs
+    .flatMap((tab) => tab.hyperparameters)
+    .flatMap(({ key, min, max, step }) => {
+      const setting = stored[key];
+      return typeof setting === 'number' &&
+        setting >= min &&
+        setting <= max &&
+        (Number.isInteger(setting) || !Number.isInteger(step))
+        ? [[key, setting] as const]
+        : [];
+    });
+  return kept.length === 0 ? undefined : { ...kind.defaults, ...Object.fromEntries(kept) };
 }
 
 function isColor(value: unknown): value is string {

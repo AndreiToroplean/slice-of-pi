@@ -20,7 +20,6 @@ import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { groupRuns, moveRun, orderRuns, Run, RunOrder } from '../../player-data/run';
 import { RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
-import { BreakSettings, breakModel, finishedRuns, Values } from '../../game/grouping/break-model';
 import { CONFIRM } from '../../ui/confirm';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { LongPress } from '../../ui/long-press';
@@ -29,7 +28,7 @@ import { modelViews, timeGuides } from './model-views';
 import { PlotChart } from './plot-chart';
 import { plural } from '../../ui/plural';
 import { RunChart } from './run-chart';
-import { ChartBreak, chartTop, digitTimes } from './run-charts';
+import { chartTop, digitTimes } from './run-charts';
 
 /**
  * The player's runs, opened from the main menu's overflow menu, on one screen: a chart of them all on top, and under it
@@ -278,7 +277,6 @@ export class YourRuns {
   /** In developer mode, the hyperparameters of the break model can be tuned here. */
   protected readonly developerMode = inject(DeveloperMode).enabled;
   private readonly tweaks = inject(Tweaks);
-  private readonly settings = this.tweaks.grouping;
   protected readonly includeUnchecked = this.tweaks.includeUnchecked;
   /** The order the game takes the runs in, and the line it plays from among them, in developer mode. */
   private readonly runOrder = this.tweaks.runOrder;
@@ -291,16 +289,14 @@ export class YourRuns {
   );
   /** The runs in the order the game takes them, and how many are above the line played from, if any. */
   protected readonly order = computed(() => orderRuns(this.runs(), this.runOrder()));
+  private readonly countedTimes = computed(() => this.counted().map((run) => run.times));
   /** What the break model makes of them: the groups the game plays with. */
-  private readonly model = computed(() =>
-    breakModel(
-      finishedRuns(
-        this.counted().map((run) => run.times),
-        this.settings().window,
-      ),
-      undefined,
-      this.settings(),
-    ),
+  private readonly stats = computed(() => this.tweaks.breakModel().stats(this.countedTimes()));
+  /** In developer mode, what it makes of them step by step, if it can show that. */
+  private readonly steps = computed(() =>
+    this.developerMode()
+      ? this.tweaks.breakModelKind().steps?.(this.tweaks.grouping(), this.countedTimes())
+      : undefined,
   );
   /** Unchecked runs, which may hold mistakes, only show in developer mode. */
   private readonly shown = computed(() =>
@@ -312,8 +308,8 @@ export class YourRuns {
         return [];
       }
       // Runs left out of the groups have only their times.
-      const found = this.model().runs[this.counted().indexOf(run)];
-      const breaks = breaksOf(found?.breakProbability ?? [], this.settings().breakThreshold);
+      const found = this.stats().runs[this.counted().indexOf(run)];
+      const breaks = found?.breaks ?? [];
       return {
         id: run.id,
         title: dateAndTime.format(run.startedAt),
@@ -325,7 +321,7 @@ export class YourRuns {
         times: digitTimes(run),
         baseline: found?.baseline ?? [],
         breaks,
-        guides: timeGuides(found?.baseline ?? [], this.model(), this.settings(), this.guides()),
+        guides: timeGuides(found?.baseline ?? [], this.steps(), this.guides()),
       };
     }),
   );
@@ -335,17 +331,17 @@ export class YourRuns {
   );
   protected readonly top = computed(() => chartTop(this.charts().map((chart) => chart.times)));
   protected readonly aggregateChart = computed(() => {
-    const model = this.model();
+    const stats = this.stats();
     return {
-      times: model.averageTime,
-      baseline: model.speedCurve,
-      breaks: breaksOf(model.usual, this.settings().usualThreshold),
-      confidence: model.confidenceTrend,
-      guides: timeGuides(model.speedCurve, model, this.settings(), this.guides()),
+      times: stats.averageTime,
+      baseline: stats.speedCurve,
+      breaks: stats.usual,
+      confidence: stats.confidence,
+      guides: timeGuides(stats.speedCurve, this.steps(), this.guides()),
     };
   });
   protected readonly groups = computed(() =>
-    this.model().groups.map((group) => ({
+    this.stats().groups.map((group) => ({
       start: group.start,
       digits: PI_DECIMALS.slice(group.start, group.start + group.size),
       trusted: group.trusted,
@@ -355,7 +351,7 @@ export class YourRuns {
   protected readonly plural = plural;
   /** The settings shown on the charts, in developer mode. */
   private readonly guides = computed(() =>
-    this.developerMode() ? this.chartGuides() : new Set<keyof BreakSettings>(),
+    this.developerMode() ? this.chartGuides() : new Set<string>(),
   );
   /** In developer mode, whether the chart on top shows all the runs, and which runs it shows besides. */
   protected readonly aggregateShown = signal(true);
@@ -368,18 +364,19 @@ export class YourRuns {
       : [],
   );
   /** In developer mode, the steps of the break model after the times, for all the runs and those picked. */
-  protected readonly views = computed(() =>
-    this.developerMode()
-      ? modelViews({
-          model: this.model(),
+  protected readonly views = computed(() => {
+    const steps = this.steps();
+    return steps === undefined
+      ? []
+      : modelViews({
+          model: steps,
+          settings: steps.settings,
           picked: this.counted().flatMap((run, k) => (this.selected().has(run.id) ? [k] : [])),
           aggregate: this.aggregateShown(),
           places: this.places(),
-          settings: this.settings(),
           guides: this.guides(),
-        })
-      : [],
-  );
+        });
+  });
   protected readonly summaryTitle = computed(() => {
     const aggregate = this.order().line === undefined ? 'All runs' : 'Runs before here';
     if (!this.developerMode()) {
@@ -575,15 +572,6 @@ export class YourRuns {
     this.runs.set(await this.store.runs());
     this.loaded.set(true);
   }
-}
-
-/** A break wherever the probability is over the threshold, the stronger the further over it. */
-function breaksOf(probabilities: Values, threshold: number): ChartBreak[] {
-  return probabilities.flatMap((p, i) =>
-    p !== undefined && p > threshold
-      ? [{ place: i, strength: (p - threshold) / (1 - threshold) }]
-      : [],
-  );
 }
 
 /** How far each arrow key moves a run. */

@@ -1,5 +1,6 @@
 import { Component, computed, input } from '@angular/core';
-import { areaPath, CHART_HEIGHT, ChartBreak, chartPath, Series } from './run-charts';
+import type { Break } from '../../game/grouping/break-models/break-model';
+import { areaPath, CHART_HEIGHT, chartPath, Series } from './run-charts';
 
 /**
  * A chart of the time per digit along the places of π: pauses are peaks. It can add what the break model makes of
@@ -117,7 +118,7 @@ export class RunChart {
   readonly label = input.required<string>();
   /** The time expected at each place without a break, in milliseconds. */
   readonly baseline = input<Series>([]);
-  readonly breaks = input<readonly ChartBreak[]>([]);
+  readonly breaks = input<readonly Break[]>([]);
   /** How confident the verdict at each place is, from 0 to 1. */
   readonly confidence = input<Series>([]);
   /** Other series to compare the values with, drawn thinner and fainter, such as the times of other runs. */

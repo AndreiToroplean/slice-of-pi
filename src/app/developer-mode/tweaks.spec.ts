@@ -8,7 +8,8 @@ import {
   SEASON_COLOR_SPACE,
   SEASON_TURN,
 } from '../game/layers/seasons';
-import { BreakSettings, DEFAULT_BREAK_SETTINGS } from '../game/grouping/break-model';
+import { BreakSettings } from '../game/grouping/break-models/hyperparameters';
+import { MERCURY, MERCURY_DEFAULTS } from '../game/grouping/break-models/mercury';
 import { DeveloperMode } from './developer-mode';
 import {
   groupingText,
@@ -25,7 +26,7 @@ describe('Tweaks', () => {
   let indexedDb: IDBFactory;
   const palette = PALETTE.map((color, i) => (i === 3 ? '#123456' : color));
   const seasons = { ...SEASON_STARTS, autumn: ['#000000', '#ffffff'] as const };
-  const grouping = { ...DEFAULT_BREAK_SETTINGS, recencyDecay: 0.95 };
+  const grouping = { ...MERCURY_DEFAULTS, recencyDecay: 0.95 };
 
   beforeEach(() => {
     indexedDb = new IDBFactory();
@@ -105,10 +106,19 @@ describe('Tweaks', () => {
     const tweaks = await load();
     await tweaks.setGrouping(grouping);
 
-    expect(tweaks.grouping()).toBe(DEFAULT_BREAK_SETTINGS);
+    expect(tweaks.grouping()).toBe(MERCURY_DEFAULTS);
     await TestBed.inject(DeveloperMode).set(true);
     expect(tweaks.grouping()).toEqual(grouping);
     expect((await load()).values()).toEqual({ grouping });
+  });
+
+  it('picks the break model only while developer mode is on, and keeps it', async () => {
+    const tweaks = await load();
+    await tweaks.setBreakModel(MERCURY);
+
+    expect(tweaks.values()).toEqual({});
+    expect(tweaks.breakModelKind()).toBe(MERCURY);
+    expect(parseTweaks({ format: TWEAKS_FORMAT, breakModel: 'pluto' })).toEqual({});
   });
 
   it('checks the digits unless told not to, only while developer mode is on, and keeps that', async () => {
@@ -196,9 +206,10 @@ describe('Tweaks', () => {
   });
 
   it('lists the grouping settings, marking those that changed', () => {
-    expect(groupingText(grouping)).toBe(
+    expect(groupingText(MERCURY, grouping)).toBe(
       [
-        'Grouping settings (DEFAULT_BREAK_SETTINGS in break-model.ts):',
+        'Break model: Mercury (BREAK_MODEL in break-models.ts)',
+        'Hyperparameters of Mercury:',
         '  window: 21',
         '  recencyDecay: 0.95 (changed)',
         '  level: 0.9',
@@ -241,7 +252,7 @@ describe('Tweaks', () => {
       expect(parseTweaks({ format: TWEAKS_FORMAT, grouping: { ...grouping, ...wrong } })).toEqual({
         grouping: {
           ...grouping,
-          ...(key === undefined ? {} : { [key]: DEFAULT_BREAK_SETTINGS[key] }),
+          ...(key === undefined ? {} : { [key]: MERCURY_DEFAULTS[key] }),
         },
       });
     }
@@ -253,7 +264,7 @@ describe('Tweaks', () => {
         format: TWEAKS_FORMAT,
         grouping: { window: 31, recencyDecay: 0.95, droppedSince: 2 },
       }),
-    ).toEqual({ grouping: { ...DEFAULT_BREAK_SETTINGS, window: 31, recencyDecay: 0.95 } });
+    ).toEqual({ grouping: { ...MERCURY_DEFAULTS, window: 31, recencyDecay: 0.95 } });
   });
 
   it('leaves out the settings saved for the timing model the break model replaced', () => {

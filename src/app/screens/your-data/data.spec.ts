@@ -5,7 +5,7 @@ import { addDigit, newRun, Run, RUN_FORMAT } from '../../player-data/run';
 import { RunStore } from '../../player-data/run-store';
 import { DEVELOPER_MODE, DEVELOPER_MODE_FORMAT } from '../../developer-mode/developer-mode';
 import { Tweaks, TWEAKS, TWEAKS_FORMAT } from '../../developer-mode/tweaks';
-import { DEFAULT_BREAK_SETTINGS } from '../../game/grouping/break-model';
+import { MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
 import { button, message, OpenPage, openPage, text } from '../../../testing/player-data-pages';
 import { Data } from './data';
 
@@ -115,7 +115,7 @@ describe('Data', () => {
 
   it('restores the settings of a backup, and applies them', async () => {
     const { host, until } = await setUp([first]);
-    const grouping = { ...DEFAULT_BREAK_SETTINGS, level: 0.8 };
+    const grouping = { ...MERCURY_DEFAULTS, level: 0.8 };
 
     await choose(
       host,

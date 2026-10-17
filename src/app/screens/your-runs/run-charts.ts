@@ -76,13 +76,6 @@ export function areaPath(values: Series): string {
   return path;
 }
 
-/** A break before a place, drawn the stronger the more it's trusted. */
-export interface ChartBreak {
-  readonly place: number;
-  /** From 0 to 1. */
-  readonly strength: number;
-}
-
 function round(value: number): string {
   return String(Math.round(value * 10) / 10);
 }
