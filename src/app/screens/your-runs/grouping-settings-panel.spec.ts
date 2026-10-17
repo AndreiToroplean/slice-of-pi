@@ -262,6 +262,34 @@ describe('GroupingSettingsPanel', () => {
     });
   });
 
+  it('shows the break model picked, and switches to another one', async () => {
+    const { host, detect } = await setUp();
+    const switches = (): HTMLButtonElement[] =>
+      Array.from(host.querySelectorAll('button')).filter((button) =>
+        button.textContent.trim().startsWith('Model:'),
+      );
+    const labels = (): string[] =>
+      switches().map((button) => button.firstChild?.textContent?.trim() ?? '');
+    expect(labels()).toEqual([
+      'Model: Mercury Is Selected',
+      'Model: Switch to Venus',
+      'Model: Switch to Luna',
+    ]);
+    expect(switches()[0]?.disabled).toBe(true);
+
+    switches()[2]?.click();
+    await vi.waitFor(() => {
+      expect(TestBed.inject(Tweaks).breakModelKind()).toBe(LUNA);
+    });
+    detect();
+
+    expect(labels()).toEqual([
+      'Model: Luna Is Selected',
+      'Model: Switch to Mercury',
+      'Model: Switch to Venus',
+    ]);
+  });
+
   describe('copying from another model', () => {
     /** Tunes Mercury's window and recency decay, then picks Luna, which has them too. */
     async function onLuna(): Promise<{ host: HTMLElement; detect: () => void }> {
