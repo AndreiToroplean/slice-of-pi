@@ -484,21 +484,14 @@ export class GroupingSettingsPanel {
 
   /**
    * Copies the values of the hyperparameters with these keys from another model, tuned or not, or of all those it shares
-   * with the one picked, leaving out those outside the range of their slider here.
+   * with the one picked.
    */
   protected copyFrom(source: BreakModelKind, keys?: readonly string[]): void {
     const values = { ...source.defaults, ...this.tweaks.values().grouping?.[source.id] };
-    const copied = this.kind()
-      .tabs.flatMap(({ hyperparameters }) => hyperparameters)
-      .flatMap(({ key, min, max }) => {
-        const value = values[key];
-        return (keys === undefined || keys.includes(key)) &&
-          value !== undefined &&
-          value >= min &&
-          value <= max
-          ? [[key, value] as const]
-          : [];
-      });
+    const copied = (keys ?? keysOf(this.kind())).flatMap((key) => {
+      const value = values[key];
+      return value === undefined ? [] : [[key, value] as const];
+    });
     this.applyAll(Object.fromEntries(copied));
   }
 

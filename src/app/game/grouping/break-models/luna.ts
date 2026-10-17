@@ -226,15 +226,7 @@ export const LUNA: BreakModelKind = {
     {
       name: 'Pauses',
       hyperparameters: [
-        {
-          ...HYPERPARAMETERS.window,
-          help: {
-            what: 'To tell a pause, each digit’s time is compared with the usual time around it, the local pace: an average of its neighbors’ times. The neighbors span this many intervals, centered on the digit.',
-            why: 'Only neighbors, because you slow down towards the end of what you know: against the whole run’s average, that slow end would look like pauses everywhere. The neighbors’ weights fade along a bell curve, a sixth of the window wide, so the pace glides instead of jumping as digits come in and out of reach; at 21 it amounts to about 8 neighbors. The digit being judged is left out, so a pause never raises its own bar.',
-            moving:
-              'Lower follows your pace closely, but only 2 or 3 neighbors decide, so one pause nearby swings it and the groups get erratic. Higher is steadier but slow to follow your slowdown: fewer breaks where you’re fast, more and smaller groups where you slow down.',
-          },
-        },
+        HYPERPARAMETERS.window,
         {
           key: 'pauseMargin',
           label: 'Pause margin',

@@ -54,10 +54,10 @@ export const HYPERPARAMETERS: { readonly [K in keyof BreakSettings]: Hyperparame
     step: 2,
     format: (value) => `${String(value)} intervals`,
     help: {
-      what: 'Each interval (the time you took to type a digit after the one before) is compared with its baseline: the interval expected at that place without a break. The baseline is the median of the intervals around it, over this many intervals. In the run being played, only those typed so far count. A break is an interval clearly longer than its baseline.',
-      why: 'A median, because breaks are a minority of the intervals: unlike an average, it isn’t pulled up by them. Along each run rather than across runs at the same place, so that a break you make at the same place every time still stands out, instead of becoming the usual time there. Rolling, because you slow down as you get into what you know less well: at 21, the baseline follows your speed over about four groups of 5.',
+      what: 'Each interval (the time you took to type a digit after the one before) is compared with its baseline: the interval expected at that place without a break. The baseline is taken from the intervals around the place, over this many intervals. A break is an interval clearly longer than its baseline.',
+      why: 'Along the places rather than at each place across runs, so that a break you make at the same place every time still stands out, instead of becoming the usual time there. Only around the place, because you slow down as you get into what you know less well: at 21, the baseline follows your speed over about four groups of 5.',
       moving:
-        'Smaller follows changes of speed sooner, but where breaks fill nearly half the window, the median rises with them and they stop standing out. Larger is steadier but lags behind your slowdown, so the slow end of a run can look like breaks.',
+        'Smaller follows changes of speed sooner, but leans on fewer intervals, so where breaks fill much of the window, they pull the baseline up and stop standing out. Larger is steadier but lags behind your slowdown, so the slow end of a run can look like breaks.',
     },
   },
   recencyDecay: {
@@ -99,10 +99,10 @@ export const HYPERPARAMETERS: { readonly [K in keyof BreakSettings]: Hyperparame
     step: 0.5,
     format: (value) => `${String(value)} intervals`,
     help: {
-      what: 'At the start of a run, its own few intervals say little about its speed, so its baseline starts from a prior, what earlier runs say, and the run’s own intervals take over as they come. The prior counts as this many intervals: at 5, it weighs half after 5 intervals and a fifth after 20.',
-      why: 'Without it, the first interval of a run would be its own baseline, so never a break, and a break among the next few would pull the baseline up towards itself and hide. The prior is how much faster or slower than the speed curve your earlier runs were, synthetic ones included, recent ones weighing more.',
+      what: 'Where the intervals a baseline is taken from say little, such as at the start of a run or at the places few of your runs reached, the baseline starts from a prior, and the intervals take over as they come. The prior counts as this many intervals: at 5, it weighs half against 5 intervals and a fifth against 20.',
+      why: 'Without it, a baseline taken from a few intervals would be pulled up by a break among them, which would then hide, and the first interval of a run would be its own baseline, so never a break.',
       moving:
-        'Higher trusts your usual speed longer, so breaks show from the first digit, but a run much faster or slower than usual is misjudged for longer. Lower follows each run’s own speed sooner. 0 is no prior at all.',
+        'Higher trusts the prior longer, so breaks show from the first intervals, but a speed much unlike the prior is misjudged for longer. Lower follows the intervals’ own speed sooner. 0 is no prior at all.',
     },
   },
   syntheticRuns: {
@@ -225,8 +225,8 @@ export const HYPERPARAMETERS: { readonly [K in keyof BreakSettings]: Hyperparame
     step: 0.05,
     format: (value) => `${String(Math.round(value * 100))}% of runs`,
     help: {
-      what: 'How much of your runs’ weight must break at a place for it to be one of your usual break spots, which cut your groups within the trust horizon.',
-      why: 'Your groups are where you usually break, and “usually” needs a line: ½ is a majority of your recent runs. The confidence, and so the trust horizon, measure how sure the game is that your break rate is on the same side of this line as its verdict.',
+      what: 'How likely a break must be at a place, over your runs, for it to be one of your usual break spots, which cut your groups within the trust horizon.',
+      why: 'Your groups are where you usually break, and “usually” needs a line: ½ is as likely a break as not. The confidence, and so the trust horizon, measure how sure the game is that the place is on the same side of this line as its verdict.',
       moving:
         'Higher keeps only the breaks you make nearly every time, so longer groups; lower counts breaks you make now and then too, so shorter ones. Near the line, runs are split, so the confidence there is low and the horizon comes sooner.',
     },

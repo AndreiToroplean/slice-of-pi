@@ -1,4 +1,4 @@
-import type { BreakModelKind, Hyperparameter, Settings } from './break-model';
+import type { BreakModelKind, Settings } from './break-model';
 import { BreakSettings } from './hyperparameters';
 import { MERCURY, MERCURY_DEFAULTS } from './mercury';
 import { modelFromSteps } from './model-from-steps';
@@ -102,28 +102,6 @@ export function venus(
   };
 }
 
-/** What three of Mercury's hyperparameters mean in Venus, where it's different. */
-const HELP: Readonly<Partial<Record<keyof BreakSettings, Hyperparameter['help']>>> = {
-  window: {
-    what: 'The average interval at each place is compared with its baseline: the average expected there without a break. The baseline is the median of the averages around it, over this many places. A break is an average clearly longer than its baseline.',
-    why: 'A median, because breaks are a minority of the places: unlike an average, it isn’t pulled up by them. Along the places, rather than at each place, so that a place where you break every time still stands out. Rolling, because you slow down as you get into what you know less well.',
-    moving:
-      'Smaller follows changes of speed sooner, but where breaks fill nearly half the window, the median rises with them and they stop standing out. Larger is steadier but lags behind your slowdown, so the slow end can look like breaks.',
-  },
-  priorStrength: {
-    what: 'Where few runs reach a place, the median of the averages around it could be a pause itself, so the baseline starts from the synthetic runs’ interval, and the averages take over as your runs come. It counts as this many places, times the share of the synthetic runs in the averages there.',
-    why: 'Without it, a place few runs reached would have their own pauses for a baseline, so a pause there would never stand out. As your runs come, the synthetic runs weigh less in the averages, and so does this.',
-    moving:
-      'Higher holds the baseline at the synthetic runs’ speed longer; lower follows the averages sooner. 0 is no prior at all.',
-  },
-  usualThreshold: {
-    what: 'How likely the average interval at a place must be a break for it to be one of your usual break spots, which cut your groups. While you play, the run being typed counts in the average, so a group ends when the average there gets over it.',
-    why: 'Venus has one verdict per place, from the averages, and “usually” needs a line: ½ is as likely a break as not. The confidence, and so the trust horizon, measure how sure the game is of that verdict, given how much weight of runs reached there.',
-    moving:
-      'Higher asks for clearer breaks in the average, so longer groups, and a longer pause to end a group while you play; lower finds more breaks, so shorter groups. Near the line, the confidence is low and the horizon comes sooner.',
-  },
-};
-
 /** Venus, as developer mode picks and tunes it. */
 export const VENUS: BreakModelKind = {
   id: 'venus',
@@ -132,14 +110,8 @@ export const VENUS: BreakModelKind = {
     'Mercury on the runs averaged place by place, so that one long pause can always end a group.',
   // Mercury's, until Venus is tuned.
   defaults: MERCURY_DEFAULTS,
-  // Mercury's hyperparameters, in its tabs, with their help in Venus where they mean something else.
-  tabs: MERCURY.tabs.map((tab) => ({
-    ...tab,
-    hyperparameters: tab.hyperparameters.map((hyperparameter) => ({
-      ...hyperparameter,
-      help: HELP[hyperparameter.key as keyof BreakSettings] ?? hyperparameter.help,
-    })),
-  })),
+  // Mercury's hyperparameters, in its tabs.
+  tabs: MERCURY.tabs,
   create: (tuned) => {
     const settings = withDefaults(tuned);
     return modelFromSteps(
