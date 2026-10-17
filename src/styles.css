@@ -2,7 +2,7 @@
 :root {
   color-scheme: light;
 
-  /* Around the phone-shaped game on wide screens. */
+  /* Behind the game, before it shows. */
   --surround: #efe6da;
   /* Text on the season background. */
   --on-background: #ffffff;
