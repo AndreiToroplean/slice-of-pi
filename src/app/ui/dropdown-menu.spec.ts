@@ -44,6 +44,16 @@ describe('DropdownMenu', () => {
     expect(dropdown.hasAttribute('data-popover-open')).toBe(false);
   });
 
+  it('tells the dropdown where it opened in the window', () => {
+    const { dropdown } = open();
+    Object.defineProperties(dropdown, { offsetLeft: { value: 18 }, offsetTop: { value: 369 } });
+
+    dropdown.dispatchEvent(new Event('toggle'));
+
+    expect(dropdown.style.getPropertyValue('--window-x')).toBe('18px');
+    expect(dropdown.style.getPropertyValue('--window-y')).toBe('369px');
+  });
+
   it('stays open as a toggle in it changes', () => {
     const { dropdown } = open();
 

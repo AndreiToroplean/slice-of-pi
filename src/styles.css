@@ -406,7 +406,19 @@ html:active-view-transition-type(zoom-out) {
   padding: var(--space-1);
   border: none;
   border-radius: 1.125rem;
-  background: var(--frost);
+  /*
+   * Over the season background at 80% opacity, drawn again under it as if it showed through, so that its white text
+   * reads over light things like the chart of all runs. The gradient spans the window, as the background does, and
+   * `DropdownMenu` sets where the menu is in it, in `--window-x` and `--window-y`.
+   */
+  background:
+    linear-gradient(var(--frost), var(--frost)),
+    linear-gradient(
+        172deg in var(--background-space, oklch),
+        color-mix(in oklab, var(--background-top) 80%, transparent),
+        color-mix(in oklab, var(--background-bottom) 80%, transparent)
+      )
+      calc(-1 * var(--window-x, 0px)) calc(-1 * var(--window-y, 0px)) / 100vw 100dvh;
   -webkit-backdrop-filter: blur(var(--frost-blur));
   backdrop-filter: blur(var(--frost-blur));
   box-shadow:
