@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { Background } from './background/background';
+import { Background } from './ui/background';
 
 @Component({
   imports: [RouterOutlet],

@@ -1,4 +1,4 @@
-// Computes the decimals of π that the game checks typed digits against (`src/app/pi/pi-decimals.ts`, written by
+// Computes the decimals of π that the game checks typed digits against (`src/app/game/pi/pi-decimals.ts`, written by
 // `write-pi-decimals.ts`).
 
 /**
@@ -14,7 +14,7 @@ export function chudnovsky(decimals: number): string {
   return pi.toString().slice(1, decimals + 1);
 }
 
-/** The source of `src/app/pi/pi-decimals.ts`, holding these decimals. */
+/** The source of `src/app/game/pi/pi-decimals.ts`, holding these decimals. */
 export function decimalsModule(decimals: string): string {
   return `/**
  * The first ${decimals.length.toLocaleString('en')} decimals of π, place 1 first: beyond what anyone has recited from memory. Written by

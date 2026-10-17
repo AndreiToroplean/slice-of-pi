@@ -1,4 +1,4 @@
-import { PI_DECIMALS } from '../src/app/pi/pi-decimals';
+import { PI_DECIMALS } from '../src/app/game/pi/pi-decimals';
 import { chudnovsky, decimalsModule } from './pi';
 
 /**

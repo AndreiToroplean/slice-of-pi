@@ -1,6 +1,6 @@
 import { Provider } from '@angular/core';
-import { TIMER } from '../app/play/timer';
-import { RUN_CLOCK } from '../app/runs/run-recorder';
+import { TIMER } from '../app/screens/play/timer';
+import { RUN_CLOCK } from '../app/player-data/run-recorder';
 
 /** A clock that only moves when told to, for the run recorder and the timers of the play screen. */
 export class FakeTime {
