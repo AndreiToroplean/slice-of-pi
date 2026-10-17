@@ -1,6 +1,7 @@
 import { computed, inject, Service, signal } from '@angular/core';
 import { COLOR_SPACE_NAMES, COLOR_SPACES, ColorSpace } from '../colors/color-spaces';
 import { Palette, PALETTE } from '../place-colors/place-colors';
+import { migrate, Migration } from '../runs/migration';
 import { RunOrder } from '../runs/run';
 import { RunStore } from '../runs/run-store';
 import {
@@ -21,6 +22,8 @@ import { DeveloperMode } from './developer-mode';
 export const TWEAKS = 'tweaks';
 /** The format of the stored tweaks, which changes, with a migration, whenever they do (`architecture.md` §5). */
 export const TWEAKS_FORMAT = 1;
+/** The steps that bring the stored tweaks in older formats to the current one, one per format (see {@link migrate}). */
+const TWEAKS_MIGRATIONS: readonly Migration[] = [];
 
 /** Each season's starting background colors, top then bottom. */
 export type SeasonStarts = Readonly<Record<Season, BackgroundColors>>;
@@ -221,22 +224,23 @@ const SETTING_KEYS = Object.keys(DEFAULT_BREAK_SETTINGS) as (keyof BreakSettings
 
 /** The tweaks in a stored setting, leaving out what isn't valid. A format this version doesn't know gives none. */
 export function parseTweaks(stored: unknown): TweakValues {
-  if (
-    typeof stored !== 'object' ||
-    stored === null ||
-    !('format' in stored) ||
-    stored.format !== TWEAKS_FORMAT
-  ) {
+  if (typeof stored !== 'object' || stored === null) {
     return {};
   }
-  const palette = 'palette' in stored ? stored.palette : undefined;
-  const seasons = 'seasons' in stored ? stored.seasons : undefined;
-  const grouping = 'grouping' in stored ? stored.grouping : undefined;
-  const colorSpace = 'colorSpace' in stored ? stored.colorSpace : undefined;
-  const seasonTurn = 'seasonTurn' in stored ? stored.seasonTurn : undefined;
-  const checking = 'checking' in stored ? stored.checking : undefined;
-  const includeUnchecked = 'includeUnchecked' in stored ? stored.includeUnchecked : undefined;
-  const runOrder = 'runOrder' in stored ? stored.runOrder : undefined;
+  const {
+    format,
+    palette,
+    seasons,
+    grouping,
+    colorSpace,
+    seasonTurn,
+    checking,
+    includeUnchecked,
+    runOrder,
+  } = migrate(stored, TWEAKS_MIGRATIONS);
+  if (format !== TWEAKS_FORMAT) {
+    return {};
+  }
   return tweakValues({
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,

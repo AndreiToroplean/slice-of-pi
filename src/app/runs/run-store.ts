@@ -1,6 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { inject, InjectionToken, Service } from '@angular/core';
-import { isOlderFormat, parseRun, Run, RUN_FORMAT } from './run';
+import { isOlderFormat } from './migration';
+import { parseRun, Run, RUN_FORMAT } from './run';
 
 /** The browser's IndexedDB, where runs are stored; missing in browsers without it. */
 export const INDEXED_DB = new InjectionToken<IDBFactory | undefined>('INDEXED_DB', {
@@ -305,7 +306,7 @@ async function migrateRuns(database: IDBDatabase): Promise<void> {
   transaction.objectStore(META).put({ format: RUN_FORMAT }, MAIN_FORMAT);
   const runs = transaction.objectStore(RUNS);
   const records = await result(runs.getAll() as IDBRequest<unknown[]>);
-  for (const record of records.filter(isOlderFormat)) {
+  for (const record of records.filter((record) => isOlderFormat(record, RUN_FORMAT))) {
     const run = parseRun(record);
     if (run !== undefined) {
       runs.put(run);

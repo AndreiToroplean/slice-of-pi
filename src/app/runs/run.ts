@@ -1,8 +1,9 @@
 import { Digit } from '../digit';
+import { migrate, Migration } from './migration';
 
 /**
- * The format of run records. Stored runs and backup files carry it. Bump it whenever the shape of a run changes, and
- * migrate the older formats in {@link parseRun}, one step per version (`architecture.md` §5). Code that finds a record
+ * The format of run records. Stored runs and backup files carry it. Bump it whenever the shape of a run changes, with a
+ * step in {@link RUN_MIGRATIONS} (see {@link migrate}). Code that finds a record
  * in a newer format than it knows (written by a pull request preview sharing the site's storage) leaves it alone
  * rather than misreading it.
  */
@@ -157,7 +158,10 @@ export function parseRun(value: unknown): Run | undefined {
   if (typeof value !== 'object' || value === null) {
     return undefined;
   }
-  const { format, id, checked, startedAt, digits, times, backspaces } = migrate(value);
+  const { format, id, checked, startedAt, digits, times, backspaces } = migrate(
+    value,
+    RUN_MIGRATIONS,
+  );
   if (
     format !== RUN_FORMAT ||
     typeof id !== 'string' ||
@@ -177,28 +181,11 @@ export function parseRun(value: unknown): Run | undefined {
   return { format, id, checked, startedAt, digits, times, backspaces: backspaces as number[] };
 }
 
-/** Whether a stored record is in an older format than the current one, to be migrated. */
-export function isOlderFormat(value: unknown): boolean {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'format' in value &&
-    typeof value.format === 'number' &&
-    value.format < RUN_FORMAT
-  );
-}
-
-type RunRecord = Partial<Record<keyof Run, unknown>>;
-
-/** A record in an older format brought to the current one, one step per format; any other record as it is. */
-function migrate(record: RunRecord): RunRecord {
-  let migrated = record;
-  if (migrated.format === 1) {
-    // Format 1 runs are from before the game checked digits.
-    migrated = { ...migrated, format: 2, checked: false };
-  }
-  return migrated;
-}
+/** The steps that bring runs in older formats to the current one, one per format (see {@link migrate}). */
+export const RUN_MIGRATIONS: readonly Migration[] = [
+  // Format 1 runs are from before the game checked digits.
+  (run) => ({ ...run, checked: false }),
+];
 
 function isTime(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
