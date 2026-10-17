@@ -110,14 +110,14 @@ export function runWeights(
 }
 
 /**
- * Each run's residuals over its baseline, pooled with their runs' weights, the mixture fitted to them, and P(break) at
- * each interval. The synthetic runs count as the prior mixture's pseudo-intervals, which makes the fit a MAP estimate.
+ * Each run's residuals over its baseline, pooled with their weights (each run's, or its weight at each interval), the
+ * mixture fitted to them, and P(break) at each interval. The synthetic runs count as the prior mixture's pseudo-intervals, which makes the fit a MAP estimate.
  * `init` is the last mixture fitted, to start the fit from.
  */
 export function fitBreaks(
   logs: readonly Float64Array[],
   baselines: readonly Float64Array[],
-  weights: readonly number[],
+  weights: readonly (number | Float64Array)[],
   synthetic: number,
   settings: BreakSettings,
   init?: Mixture,
@@ -128,9 +128,10 @@ export function fitBreaks(
   let at = 0;
   logs.forEach((log, k) => {
     const baseline = baselines[k] ?? log;
+    const weight = weights[k] ?? 0;
     log.forEach((value, p) => {
       residuals[at] = value - (baseline[p] ?? value);
-      pooledWeights[at] = weights[k] ?? 0;
+      pooledWeights[at] = typeof weight === 'number' ? weight : (weight[p] ?? 0);
       at++;
     });
   });

@@ -10,6 +10,7 @@ import {
 } from '../game/layers/seasons';
 import { BreakSettings } from '../game/grouping/break-models/hyperparameters';
 import { MERCURY, MERCURY_DEFAULTS } from '../game/grouping/break-models/mercury';
+import { VENUS } from '../game/grouping/break-models/venus';
 import { DeveloperMode } from './developer-mode';
 import {
   groupingText,
@@ -114,10 +115,14 @@ describe('Tweaks', () => {
 
   it('picks the break model only while developer mode is on, and keeps it', async () => {
     const tweaks = await load();
-    await tweaks.setBreakModel(MERCURY);
+    await tweaks.setBreakModel(VENUS);
 
-    expect(tweaks.values()).toEqual({});
     expect(tweaks.breakModelKind()).toBe(MERCURY);
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.breakModelKind()).toBe(VENUS);
+    expect((await load()).values()).toEqual({ breakModel: 'venus' });
+    await TestBed.inject(Tweaks).setBreakModel(MERCURY);
+    expect((await load()).values()).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, breakModel: 'pluto' })).toEqual({});
   });
 
