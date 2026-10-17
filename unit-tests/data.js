@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792252567478,
+  "lastUpdate": 1792263678396,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1078,6 +1078,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 373,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "260b6f69a9b4715db12315ea4bd9ef6b65a0cf71",
+          "message": "refactor: put the break models behind one interface, the first of them Mercury\n\nThe game now sees a break model only through what it gives: the play screen asks how the group starting at a place is played and whether the group being typed ends, given the run as typed so far, and Your Runs gets each run's breaks and baseline, the usual breaks, the groups, the speed curve, the average time and the confidence. The trust horizon, the thresholds, the mixture and its warm start stay inside the model.\n\nDeveloper mode sees a model's kind: its name, its hyperparameters with their sliders, defaults and tabs, and its steps, which the charts of Your Runs show one by one. The panel draws the sliders of whichever model is picked, the tweaks check stored values against their sliders' ranges, and an overflow menu picks the model, from one for now.\n\nThe original break model is now Mercury. Its long function is cut into the steps other models can share (steps.ts), its own baseline step (mercury.ts), and the statistics under them (statistics.ts). The charts draw the model's breaks directly, so their own break type is gone.",
+          "timestamp": "2026-10-17T21:00:54+02:00",
+          "tree_id": "145faf844123a16db21cd879fcf35f018fd98294",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/260b6f69a9b4715db12315ea4bd9ef6b65a0cf71"
+        },
+        "date": 1792263678017,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 6538,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 11809,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 404,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
