@@ -386,12 +386,23 @@ html:active-view-transition-type(zoom-out) {
   }
 }
 
-/* An overflow menu (`DropdownMenu`): a frosted dropdown under its button, that fades in and grows from its corner. */
+/*
+ * A menu (`DropdownMenu`): a frosted dropdown under what it opens from, that fades in and grows from its corner. It
+ * stays within the column of the screen and the window: where there's more room above it than under it, it opens
+ * above, and it scrolls when it is still too tall.
+ */
 .dropdown {
   position: fixed;
   inset: auto;
-  margin: 0;
+  position-area: block-end span-inline-start;
+  position-try-fallbacks: flip-block;
+  position-try-order: most-block-size;
+  margin: 0.375rem 0 var(--space-3) calc(var(--space-3) + var(--margin));
   min-width: 10rem;
+  max-height: calc(100% - 0.375rem - var(--space-3));
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-1);
   border: none;
   border-radius: 1.125rem;
@@ -410,6 +421,16 @@ html:active-view-transition-type(zoom-out) {
     scale var(--duration-dialog) var(--ease),
     overlay var(--duration-dialog) allow-discrete,
     display var(--duration-dialog) allow-discrete;
+}
+
+/* Where the browser can't place it by what it opens from, in the middle of the window. */
+@supports not (position-area: block-end) {
+  .dropdown {
+    inset: 0;
+    margin: auto;
+    max-height: calc(100% - 2 * var(--space-3));
+    transform-origin: center;
+  }
 }
 
 .dropdown:popover-open {
