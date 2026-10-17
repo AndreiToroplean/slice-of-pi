@@ -9,10 +9,14 @@ export type Migration = (record: SavedRecord) => SavedRecord;
  * the format it was written in, a whole number, and has its own migration steps: `steps[0]` brings format 1 to 2,
  * `steps[1]` format 2 to 3, and so on, so the current format is one more than the number of steps. A record runs
  * through every step from its format up to the current one, in order: one in format 3 of 5 goes through 3 → 4, then
- * 4 → 5. A record in the current format, or in one this version of the game doesn't know, comes out as it is.
+ * 4 → 5. A record without a format is in format 1. A record in the current format, or in one this version of the game
+ * doesn't know, comes out as it is.
  */
 export function migrate(record: object, steps: readonly Migration[]): SavedRecord {
   let migrated = record as SavedRecord;
+  if (migrated['format'] === undefined) {
+    migrated = { ...migrated, format: 1 };
+  }
   let format = migrated['format'];
   while (isFormat(format) && format <= steps.length) {
     const step = steps[format - 1];
@@ -25,12 +29,12 @@ export function migrate(record: object, steps: readonly Migration[]): SavedRecor
   return migrated;
 }
 
-/** Whether a record is in an older format than `current`, to be migrated. */
+/** Whether a record is in an older format than `current`, to be migrated; one without a format is in format 1. */
 export function isOlderFormat(value: unknown, current: number): boolean {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
-  const format = (value as SavedRecord)['format'];
+  const { format = 1 } = value as SavedRecord;
   return isFormat(format) && format < current;
 }
 

@@ -57,6 +57,13 @@ describe('backup', () => {
     expect(readBackup(text)).toEqual({ error: 'This file is not a Slice of π backup.' });
   });
 
+  it('reads a backup without a format as one of format 1', () => {
+    const backup = JSON.parse(writeBackup(runs, settings, 0)) as Record<string, unknown>;
+    delete backup['format'];
+
+    expect(readBackup(JSON.stringify(backup))).toEqual({ runs, skipped: 0, settings });
+  });
+
   it('turns down a backup in a newer format', () => {
     const text = JSON.stringify({ kind: BACKUP_KIND, format: BACKUP_FORMAT + 1, runs: [] });
 

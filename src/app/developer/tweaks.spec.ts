@@ -278,6 +278,7 @@ describe('Tweaks', () => {
       parseTweaks({ format: TWEAKS_FORMAT, palette, seasons, colorSpace: 'oklab', seasonTurn: 25 }),
     ).toEqual({ palette, seasons, colorSpace: 'oklab', seasonTurn: 25 });
     expect(parseTweaks({ format: TWEAKS_FORMAT + 1, palette })).toEqual({});
+    expect(parseTweaks({ palette })).toEqual({ palette });
     expect(
       parseTweaks({
         format: TWEAKS_FORMAT,
