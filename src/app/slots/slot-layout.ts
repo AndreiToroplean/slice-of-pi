@@ -13,8 +13,8 @@ export interface SlotLayout {
 }
 
 /**
- * Lays out the slots of the group being typed: one per digit of its size, plus one per mistake typed past it
- * (`groupings.md` §3). Rows grow to 10 slots, then a new row starts.
+ * Lays out the slots of the group being typed: one per digit of its size, plus one per mistake typed past it.
+ * Rows grow to 10 slots, then a new row starts.
  */
 export function slotLayout(typed: number, size: number): SlotLayout {
   const count = Math.max(size, typed);

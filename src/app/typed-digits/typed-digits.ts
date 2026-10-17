@@ -17,7 +17,7 @@ export const SCROLL_DOWN_DURATION = 400;
 
 /**
  * The typed digits, after a "π=3." word: each finished group is a word of joined tiles, and rows wrap between words like
- * text (`groupings.md` §3). The newest words are at the bottom and the oldest fade out at the top; the player scrolls
+ * text. The newest words are at the bottom and the oldest fade out at the top; the player scrolls
  * up to see them, and typing glides back down.
  */
 @Component({

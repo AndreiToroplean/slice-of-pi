@@ -41,7 +41,7 @@ switch (command) {
           '',
           ...creep.map((line) => `- ${line}`),
           '',
-          'Every run is recorded on the `test-durations` branch (see `design/architecture.md` §1).',
+          'Every run is recorded on the `test-durations` branch.',
         ].join('\n'),
       );
     }

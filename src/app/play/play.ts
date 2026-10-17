@@ -32,7 +32,7 @@ import { TIMER } from './timer';
 /**
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
  * flies up to the typed digits as a word, as the seasons go by. Each typed digit takes the color its key showed.
- * The groups follow the player's timings, over all their runs and this one (`groupings.md` §4): the slots show the
+ * The groups follow the player's timings, over all their runs and this one: the slots show the
  * player's own group where it's trusted, up to the trust horizon the earlier runs give, else 5 slots that grow until the
  * player pauses.
  * Every digit is checked against π, unless developer mode turns that off: a wrong one, and any typed on after it, show
@@ -123,7 +123,7 @@ export class Play {
   /** The slots of the group being typed. */
   protected readonly size = computed(() => slotCount(this.plan(), this.grouping().current.length));
 
-  /** The color of each typed place (`colors.md`). */
+  /** The color of each typed place. */
   protected readonly placeColors = computed(() =>
     placeColors(this.digits(), this.tweaks.palette()),
   );

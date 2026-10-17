@@ -15,7 +15,7 @@ export const STORAGE_MANAGER = new InjectionToken<StorageManager | undefined>('S
 
 /**
  * Whether this is a pull request preview rather than the main game: previews are served from `pr-<number>/` under the
- * main game (`architecture.md` §1).
+ * main game.
  */
 export const IS_PREVIEW = new InjectionToken<boolean>('IS_PREVIEW', {
   factory: () => isPreviewPath(new URL(inject(DOCUMENT).baseURI).pathname),
@@ -59,7 +59,7 @@ interface Database {
  * Keeps the player's runs, and their settings, in IndexedDB, and asks the browser to keep that storage safe from eviction. Where IndexedDB
  * is missing or fails to open, nothing is stored and there are no runs.
  *
- * Pull request previews share the main game's storage (`architecture.md` §5). The main game notes its run format in
+ * Pull request previews share the main game's storage. The main game notes its run format in
  * the database each time it opens it. A preview whose run format is the main game's (or which finds no runs from the
  * main game yet) uses the main game's database. Any other preview keeps its own database for its run format, so it
  * never leaves records the main game can't load: each time it opens, it adds the main game's runs it doesn't have yet,

@@ -1,6 +1,6 @@
 // Tracks how long the unit tests take, from Vitest's JSON report. CI records the last run of every merged pull request
 // on the test-durations branch with github-action-benchmark, opens an issue when the tests creep up, and fails a pull
-// request whose tests go over the hard limits. See `design/architecture.md` §1.
+// request whose tests go over the hard limits.
 
 /** Hard limits a pull request's unit tests must stay under, in milliseconds. A generous backstop: creep is caught first. */
 export const LIMITS = { suite: 60_000, test: 2_000 } as const;

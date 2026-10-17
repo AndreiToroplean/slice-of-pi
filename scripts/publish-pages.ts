@@ -1,5 +1,6 @@
-// Publishes a build to the gh-pages branch, which GitHub Pages serves (see `design/architecture.md` §1). Run from a clone
-// that can push to `origin`, as the deploy workflow does:
+// Publishes a build to the gh-pages branch, which GitHub Pages serves (the repository's Settings → Pages → Source:
+// "Deploy from a branch", `gh-pages`, `/ (root)`). Run from a clone that can push to `origin`, as the deploy workflow
+// does:
 //
 //   node scripts/publish-pages.ts main <build>        # main's build at the site root, keeping the previews
 //   node scripts/publish-pages.ts preview <pr> <build> # a pull request's preview under pr-<number>/

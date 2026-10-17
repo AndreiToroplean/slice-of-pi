@@ -11,7 +11,7 @@ export const RUN_FORMAT = 2;
 
 /**
  * The raw record of one run: each digit typed and when. Nothing derived (groups, pauses, pace) is stored; it's always
- * computed from these (`groupings.md` §4).
+ * computed from these.
  *
  * Backspace leaves no trace in the timings: it deletes the last digit's record and takes the clock back to when the digit before it
  * was typed, so the next digit's interval runs from the backspace. A run reads as if the player had typed it without

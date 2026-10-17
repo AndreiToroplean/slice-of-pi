@@ -1,6 +1,6 @@
 # Slice of Pi — Design Vision
 
-> Status: draft · Living document — ideas here are directions, not commitments.
+> Ideas here are directions, not commitments.
 
 ## 1. Goal
 
@@ -18,10 +18,10 @@ The feel we're after is that of the best gamified learning apps: colorful, joyfu
 
 1. **Everything serves memorization.** Every visual, sound or effect should give the player something to associate with a digit or group of digits. If a feature is only decoration, it doesn't belong.
 2. **Game-like, but tasteful.** Rewarding feedback, satisfying sounds, milestones — positive reinforcement. But never flashy or noisy to the point of being nauseating. Calm by default, celebratory at the right moments.
-3. **Personal and stable.** Parts of the experience are unique to each player (see the seed, §7). Once a player has learned with something, it must never change underneath them: anything derived (place colors, the sky, …) is frozen once stable, locked with golden tests, and only ever changed through a new versioned algorithm that existing players don't get.
+3. **Personal and stable.** Parts of the experience are unique to each player (see the seed, §7). Once a player has learned with something, it must never change underneath them: anything derived (place colors, the sky, …) is frozen once stable, and only ever changed through a new versioned algorithm that existing players don't get.
 4. **Mobile-first.** The primary target is a phone, in the browser.
 5. **Built up incrementally.** The ideas below get implemented little by little; each layer should work on its own.
-6. **Actions trigger things.** What changes on screen should feel caused by the player: seasons turn because they progress through π, key colors change because they type (see [`colors.md`](colors.md)).
+6. **Actions trigger things.** What changes on screen should feel caused by the player: seasons turn because they progress through π, key colors change because they type.
 
 ## 4. Game modes
 
@@ -30,7 +30,7 @@ Two families of modes:
 - **Learn modes** — guided, forgiving. The app shows or hints upcoming digits and lets the player build familiarity with them and their associated patterns.
 - **Challenge modes** — test yourself. Type from memory and see how far you get.
 
-Exact modes are to be defined.
+The exact modes are open.
 
 ## 5. Memory layers
 
@@ -38,7 +38,7 @@ Each layer adds an independent "channel" of information on top of the digits.
 
 ### 5.1 Groups (chunking)
 
-Digits are typed and shown in **groups**, so π is perceived as a sequence of chunks rather than a flat stream. Each player discovers their own groups, detected from their typing rhythm. Most other layers build on them. See [`groupings.md`](groupings.md).
+Digits are typed and shown in **groups**, so π is perceived as a sequence of chunks rather than a flat stream. Each player discovers their own groups, detected from their typing rhythm. Most other layers build on them.
 
 ### 5.2 Keypad gesture patterns ("constellations")
 
@@ -57,12 +57,17 @@ As the player types a group, the movement of their finger across the keypad trac
 - Constellations have different sizes: some are drawn bigger than others, again with some randomness.
 - The sky is **3D**: the camera rotates to bring the new constellation into view, zooming in on small ones and out on big ones.
 - The randomness (placement, size, and anything else about the sky) comes from the **player seed** (§7), so it's stable and unique to each player: it's _their_ sky.
-- The player can **open their sky** at any time just to look at their constellations and admire them, in 3D (possibly faked with CSS 3D transforms).
-- Later: players can **share their sky** with other people.
+- The player can **open their sky** at any time just to look at their constellations and admire them, in 3D.
+- Players could also **share their sky** with other people.
 
 ### 5.3 Digit colors
 
-Each place in π gets a color, shown on its key before the player types it. The colors come from π itself, not from the seed, so they're the same for every player. See [`colors.md`](colors.md).
+Each place in π gets a color, shown on its key before the player types it. The colors come from π itself, not from the seed, so they're the same for every player.
+
+Parked ideas:
+
+- **Seeded colors**, from the player seed (§7): every player would have their own colors, but they could lose them, and players couldn't share them.
+- **Colors from the player's groupings.** They would have to change smoothly with the groupings, which a seed doesn't, and they'd move as the groupings evolve, which conflicts with stable colors.
 
 ### 5.4 Seasons
 
@@ -74,18 +79,16 @@ The whole theme of the app changes cyclically as the player advances:
 
 ### 5.5 Sound
 
-Digits (and/or groups, milestones, seasons) have associated sounds, adding an auditory channel to the other cues. Details to be designed.
+Digits (and/or groups, milestones, seasons) have associated sounds, adding an auditory channel to the other cues. How exactly is open.
 
-### 5.6 World and character (later)
+### 5.6 World and character
 
-A character evolves through an environment as the player advances, adding **geography** as another memorization layer: where you were in the world tells you where you are in π. For example, the character could walk through a procedurally generated city and encounter things along the way, and typing the next 10 digits correctly could beat a boss.
-
-This would bring simple 2D graphics into the game, in the same candy-like style. The direction isn't decided yet, but the architecture should leave room for it.
+A character evolves through an environment as the player advances, adding **geography** as another memorization layer: where you were in the world tells you where you are in π. For example, the character could walk through a procedurally generated city and encounter things along the way, and typing the next 10 digits correctly could beat a boss. It would bring simple 2D graphics into the game, in the same candy-like style. The direction isn't decided.
 
 ## 6. Game feel and rewards
 
 - **Milestones** reward progress with a satisfying sound and a short, tasteful visual moment.
-- Milestones should get sparser as the player goes further — roughly logarithmic. A candidate scale is 10, 20, 50, 100, 200, 500, 1000, … (exact values to be decided).
+- Milestones should get sparser as the player goes further — roughly logarithmic, for example 10, 20, 50, 100, 200, 500, 1000, … (the exact scale is open).
 - **Streaks** encourage coming back regularly.
 - Positive reinforcement throughout: correct digits feel good, errors are clear but not punishing in learn modes.
 
@@ -93,14 +96,13 @@ This would bring simple 2D graphics into the game, in the same candy-like style.
 
 Some things are unique to each player, starting with the layout of their sky (§5.2), the way a seed makes a generated world unique. Their randomness is **deterministically generated from the player seed**.
 
-- **For now, the seed is a constant in the code**, the same for every player.
-- **Later**, each player gets a random seed when they start, kept in their player data. Players shouldn't have to think about it, but they must never lose it: losing it reshuffles everything derived from it. We need a way to persist, back up and restore it (see `architecture.md` §5).
+- Each player gets a random seed when they start, kept in their player data. Players shouldn't have to think about it, but they must never lose it: losing it reshuffles everything derived from it.
 - A menu may offer **"Reset my seed"**, but that button must look clearly dangerous.
-- Seed-derived output is stable (§3). We use our own explicitly specified, versioned PRNG, never platform randomness (e.g. `Math.random`) or a library whose output might change.
+- Seed-derived output is stable (§3). It comes from our own versioned random number generator, never one whose output might change.
 
 ## 8. Wild ideas
 
-Ideas to pick from someday. None of them is planned yet.
+Ideas to pick from someday.
 
 - **Digitless mode.** The digits don't show anywhere: no labels on the keys, no typed digits, only colors, constellations, seasons and sounds. The player learns π without ever seeing it, like a game of repeating sequences of lights and sounds (`meaning.md` §3).
 - **Start anywhere.** The player picks where in π to start, for example 100 digits from the millionth place on, and learns that slice (`meaning.md` §2).
