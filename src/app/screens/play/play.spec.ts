@@ -760,6 +760,16 @@ describe('Play', () => {
     expect(TestBed.inject(Background).colors()).toEqual(seasonAt(24).background);
   });
 
+  it('takes the focus off what had it, such as the typed digits, as a key is typed into the game', async () => {
+    const { host, type } = await setUp();
+    const typedDigits = host.querySelector<HTMLElement>('app-typed-digits');
+    typedDigits?.focus();
+    expect(document.activeElement).toBe(typedDigits);
+
+    await type('1');
+    expect(document.activeElement).toBe(document.body);
+  });
+
   describe('paused', () => {
     beforeEach(() => {
       installDialogs();
