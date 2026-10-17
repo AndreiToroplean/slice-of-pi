@@ -1,11 +1,7 @@
-import {
-  breakBoundary,
-  BreakModel,
-  BreakSettings,
-  mixtureDensity,
-  priorMixture,
-  Values,
-} from '../../game/grouping/break-model';
+import type { Values } from '../../game/grouping/break-models/break-model';
+import type { BreakSettings } from '../../game/grouping/break-models/hyperparameters';
+import { breakBoundary, mixtureDensity } from '../../game/grouping/break-models/statistics';
+import { priorMixture, Steps } from '../../game/grouping/break-models/steps';
 
 /** A point of a plot, in its own units. */
 export type Point = readonly [x: number, y: number];
@@ -51,9 +47,9 @@ export interface Plot {
   readonly layers: readonly Layer[];
 }
 
-/** What the views are made of: the model of the runs counted, and what of it to show. */
+/** What the views are made of: the steps of the model over the runs counted, and what of them to show. */
 export interface ViewInput {
-  readonly model: BreakModel;
+  readonly model: Steps;
   /** The runs picked, by their index in the model's runs. */
   readonly picked: readonly number[];
   /** Whether to show what the model makes of all the runs. */
@@ -62,7 +58,7 @@ export interface ViewInput {
   readonly places: number;
   readonly settings: BreakSettings;
   /** The settings to show on the charts, where they have a place. */
-  readonly guides: ReadonlySet<keyof BreakSettings>;
+  readonly guides: ReadonlySet<string>;
 }
 
 /** The settings that can be shown on the charts, as lines where they act, each in its own color. */
@@ -94,10 +90,13 @@ function colorOf(key: keyof BreakSettings): string {
  */
 export function timeGuides(
   baseline: Values,
-  model: BreakModel,
-  settings: BreakSettings,
-  guides: ReadonlySet<keyof BreakSettings>,
+  model: Steps | undefined,
+  guides: ReadonlySet<string>,
 ): TimeGuide[] {
+  if (model === undefined) {
+    return [];
+  }
+  const { settings } = model;
   const over = (residual: number): Values =>
     baseline.map((value) => (value === undefined ? undefined : value * Math.exp(residual)));
   const boundary = breakBoundary(model.mixture, settings.breakThreshold);

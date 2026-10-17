@@ -1,5 +1,3 @@
-import { BreakModel, BreakSettings } from './break-model';
-
 /** A group the player has finished typing, shown among the typed digits as a word. */
 export interface Word {
   /** The place of its first digit: place 1 is the first decimal. */
@@ -30,27 +28,10 @@ export interface GroupPlan {
   /** How many slots it starts with. */
   readonly size: number;
   /**
-   * Whether it's the player's own group, within the trust horizon, which finishes where the player usually breaks.
-   * Past the horizon, a group finishes where this run breaks.
+   * Whether it's the player's own group, as far as the break model trusts it, which finishes where the player usually
+   * breaks. Otherwise, a group finishes where this run breaks.
    */
   readonly trusted: boolean;
-}
-
-/**
- * How the group starting at index `start` (index 0 is the first decimal) is played: within the trust horizon, as the
- * player's own group there, as many slots as it has digits left; past it, groups of the starting slots (5 by default)
- * that grow until the player breaks. The horizon is the model's, unless another is given.
- */
-export function groupAt(
-  model: BreakModel,
-  start: number,
-  settings: BreakSettings,
-  horizon = model.horizon,
-): GroupPlan {
-  const group = model.groups.find((g) => start >= g.start && start < g.start + g.size);
-  return group !== undefined && !group.open && group.start + group.size <= horizon
-    ? { size: group.start + group.size - start, trusted: true }
-    : { size: settings.startingSlots, trusted: false };
 }
 
 /**
@@ -59,20 +40,4 @@ export function groupAt(
  */
 export function slotCount(plan: GroupPlan, typed: number): number {
   return Math.max(plan.size, typed);
-}
-
-/**
- * Whether the group being typed is finished before the next digit, at index `next`. The model
- * includes the run being typed, like any other run, its next digit timed as if typed now. Within the trust horizon, the
- * group ends where the player usually breaks; past it, where this run breaks.
- */
-export function groupEnds(
-  model: BreakModel,
-  next: number,
-  trusted: boolean,
-  settings: BreakSettings,
-): boolean {
-  return trusted
-    ? (model.usual[next] ?? 0) > settings.usualThreshold
-    : (model.runs.at(-1)?.breakProbability[next] ?? 0) > settings.breakThreshold;
 }
