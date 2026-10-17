@@ -47,6 +47,13 @@ describe('DeveloperMode', () => {
     expect((await load()).enabled()).toBe(false);
   });
 
+  it('reads a setting without a format as one of format 1', async () => {
+    await load();
+    await TestBed.inject(RunStore).saveSetting(DEVELOPER_MODE, { enabled: true });
+
+    expect((await load()).enabled()).toBe(true);
+  });
+
   it('reads the setting again once something else changed it', async () => {
     const developerMode = await load();
     await TestBed.inject(RunStore).saveSetting(DEVELOPER_MODE, {

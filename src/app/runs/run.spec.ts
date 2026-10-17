@@ -188,11 +188,19 @@ describe('run', () => {
       expect(parseRun(older)).toEqual({ ...run, checked: false });
     });
 
+    it('migrates a run without a format as one of format 1', () => {
+      const { id, startedAt, digits, times, backspaces } = run;
+
+      expect(parseRun({ id, startedAt, digits, times, backspaces })).toEqual({
+        ...run,
+        checked: false,
+      });
+    });
+
     it.each([
       ['not an object', 'run'],
       ['null', null],
       ['an unknown format', { ...run, format: RUN_FORMAT + 1 }],
-      ['no format', { ...run, format: undefined }],
       ['an empty id', { ...run, id: '' }],
       ['no checked flag', { ...run, checked: undefined }],
       ['a checked flag that is not a boolean', { ...run, checked: 'yes' }],
