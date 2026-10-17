@@ -201,8 +201,8 @@ import { chartTop, digitTimes } from './run-charts';
           >
             @for (row of rows(); track row.id; let index = $index) {
               @if (row.chart; as chart) {
-                <div class="run" cdkDrag cdkDragPreviewContainer="parent">
-                  <!-- In developer mode, a handle to drag the run to another place. -->
+                <div class="run panel" cdkDrag cdkDragPreviewContainer="parent">
+                  <!-- In developer mode, a handle in the run's card to drag it to another place. -->
                   @if (developerMode()) {
                     <button
                       type="button"
@@ -223,7 +223,6 @@ import { chartTop, digitTimes } from './run-charts';
                     </button>
                   }
                   <article
-                    class="panel"
                     [class.unchecked]="!chart.checked"
                     [class.later]="chart.later"
                     [class.selected]="selected().has(chart.id)"
