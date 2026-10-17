@@ -1,10 +1,12 @@
 import { Routes } from '@angular/router';
 import { missingPreview } from './screens/missing-preview/missing-preview-path';
+import { Menu } from './screens/menu/menu';
 
 export const routes: Routes = [
   {
     path: '',
-    loadComponent: () => import('./screens/menu/menu').then((m) => m.Menu),
+    // Where the app opens: loaded with the app rather than after it, so that it can show at once.
+    component: Menu,
   },
   {
     path: 'play',
