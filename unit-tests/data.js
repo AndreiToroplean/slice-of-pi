@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792272778997,
+  "lastUpdate": 1792274298596,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1238,6 +1238,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 371,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "f39fa7e72fb87f6645f60cb2f89bb6943af0fe62",
+          "message": "feat: pause on Escape",
+          "timestamp": "2026-10-17T23:57:56+02:00",
+          "tree_id": "b0129aa03fd64f91f2d4955cb69898aa07f010b3",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/f39fa7e72fb87f6645f60cb2f89bb6943af0fe62"
+        },
+        "date": 1792274298195,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 4963,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 9378,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 285,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
