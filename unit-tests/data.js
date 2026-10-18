@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792280124145,
+  "lastUpdate": 1792281630524,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1358,6 +1358,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 266,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "4a1cfa911f71e7b84c647087bcc114fe0437f56c",
+          "message": "style: put the drag handle of a run inside its card on Your Runs\n\nIn developer mode, the run's card now holds its drag handle too, so the cards line up with the rest of the page. Outside developer mode, the cards look as before.\n\nClaude-Session: https://claude.ai/code/session_01Fc9DgyFhA1xzfjFmMN2J65",
+          "timestamp": "2026-10-18T02:00:07+02:00",
+          "tree_id": "bb860f18948a4b5a7d53974166972f08b589194d",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/4a1cfa911f71e7b84c647087bcc114fe0437f56c"
+        },
+        "date": 1792281629955,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 5808,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 10733,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 273,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
