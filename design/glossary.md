@@ -57,3 +57,9 @@
 
 - **Developer mode:** a hidden mode for tuning the game.
 - **Tweaks:** the values tuned in developer mode, which apply to the game only while it's on.
+- **Break model:** how the game tells breaks from the intervals of the runs. Developer mode switches between several, each named after a planet or a moon.
+- **Hyperparameter:** a value of a break model set by hand or by a fit, as opposed to what the model works out from the runs (baselines, breaks). A full set of values for a model is a **configuration**.
+- **Fit** (hyperparameter search): looking for the configuration whose groups best match the groupings a player gives. The runs it looks at are its **training runs**.
+- **F1 score:** how well a model's breaks match the player's, from 0 to 1: 1 when they're the same, lower for each break missed or added.
+- **In-sample / out-of-sample:** a configuration's score on its training runs, and on other runs. **Overfitting** is scoring well in-sample only: the configuration fits those runs rather than the player. **Generalization** is how well it keeps its score out of sample.
+- **Run-count curve:** a configuration's F1 score against the number of runs it's scored on, each count averaged over random sets of the player's runs. It rises with the count, since a few runs say less. A configuration **carries over** when its curve stays close to the best any configuration reaches at each count; a model is **run-count invariant** when its fitted configurations carry over.
