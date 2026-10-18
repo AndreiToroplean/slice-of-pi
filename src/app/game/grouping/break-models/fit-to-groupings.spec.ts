@@ -32,11 +32,11 @@ describe('Fitting to groupings', () => {
   }
 
   /**
-   * A model that groups the digits of the longest run by the size it takes from its settings (by default `size`, with
-   * `ignored` changing nothing), and counts the settings it was created with.
+   * A model that groups the digits of the longest run by the size it takes from its settings and the number of runs
+   * (by default `size`, with `ignored` changing nothing), and counts the settings it was created with.
    */
   function sizedModel(
-    sizeOf: (settings: Settings) => number = (settings) => settings['size'] ?? 5,
+    sizeOf: (settings: Settings, count: number) => number = (settings) => settings['size'] ?? 5,
   ): BreakModelKind & { created: number } {
     const kind = {
       id: 'sized',
@@ -49,13 +49,13 @@ describe('Fitting to groupings', () => {
       created: 0,
       create: (settings: Settings) => {
         kind.created++;
-        const size = sizeOf(settings);
         return {
           play: () => {
             throw new Error('Not played');
           },
           stats: (runs: readonly (readonly number[])[]) => {
             const digits = Math.max(0, ...runs.map((run) => run.length));
+            const size = sizeOf(settings, runs.length);
             const sizes = Array.from({ length: Math.ceil(digits / size) }, (_, k) =>
               Math.min(size, digits - k * size),
             );
@@ -107,7 +107,7 @@ describe('Fitting to groupings', () => {
     const fit = await fitToGroupings(sizedModel(), {}, [run], labelsOf(Array<number>(10).fill(3)));
 
     expect(fit.settings).toEqual({ size: 3, ignored: 2 });
-    expect(fit.score.f1).toBe(1);
+    expect(fit.score).toBe(1);
   });
 
   it('keeps the values it starts from where none score better', async () => {
@@ -158,7 +158,7 @@ describe('Fitting to groupings', () => {
     );
     const fit = await fitToGroupings(kind, {}, [run], labelsOf(Array<number>(10).fill(3)));
 
-    expect(fit.score.f1).toBe(1);
+    expect(fit.score).toBe(1);
     expect(fit.settings).toEqual({ size: 3, ignored: 3 });
   });
 
@@ -175,6 +175,28 @@ describe('Fitting to groupings', () => {
 
     expect(kind.created).toBe(2);
     expect(fit.settings).toEqual({ size: 1, ignored: 2 });
+  });
+
+  it('weighs how well the values hold up with fewer runs too, fitting to the curve', async () => {
+    // With all 8 runs, `size` makes the groups, but `ignored` 3 doubles it; with fewer, groups are of 5 but at `ignored` 3.
+    const kind = sizedModel((settings, count) => {
+      const size = settings['size'] ?? 5;
+      const steady = settings['ignored'] === 3;
+      return count === 8 ? (steady ? 2 * size : size) : steady ? size : 5;
+    });
+    const runs = Array.from({ length: 8 }, () => run);
+    const labels = labelsOf(Array<number>(10).fill(3));
+    const fit = await fitToGroupings(kind, {}, runs, labels, { curve: true });
+
+    expect((await fitToGroupings(kind, {}, runs, labels)).settings).toEqual({
+      size: 3,
+      ignored: 2,
+    });
+    // Groups of 3 with fewer runs, of 6 with all of them, rather than of 3 with all of them and of 5 with fewer.
+    expect(fit.settings).toEqual({ size: 3, ignored: 3 });
+    expect(fit.score).toBeCloseTo(
+      (scoreGroups(groupsOf([6, 6, 6, 6, 6]), labelsOf(Array<number>(10).fill(3))).f1 + 1) / 2,
+    );
   });
 
   describe('run-count curve', () => {

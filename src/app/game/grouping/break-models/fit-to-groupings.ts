@@ -3,7 +3,9 @@ import type { BreakModelKind, Group, Hyperparameter, Settings } from './break-mo
 /**
  * Fits a break model's hyperparameters to the groups a player says they make: a hyperparameter search, with the
  * player's groups as the labels and their runs as the data. Each set of values tried runs the model over the runs, as
- * the game would, and is scored by how well the breaks between its groups match the player's.
+ * the game would, and is scored by how well the breaks between its groups match the player's over all the runs; or,
+ * fitting to the run-count curve, over fewer of them too, so that the values found also hold up while the player has
+ * few runs.
  */
 
 /** The breaks between the groups a player gave, by the index of the digit each comes before, over `digits` digits. */
@@ -74,7 +76,11 @@ export function sliderValues({ min, max, step }: Hyperparameter): number[] {
 /** The best hyperparameters found, and their score. */
 export interface GroupingsFit {
   readonly settings: Settings;
-  readonly score: Score;
+  /**
+   * From 0 to 1: the F1 score over all the runs; or, fitting to the curve, half that and half the mean F1 over sets of
+   * fewer runs, 1 then 2 then 4 and so on, so as much for 1 run to 2 as for half the runs to all of them.
+   */
+  readonly score: number;
 }
 
 /** How far the search has gone. */
@@ -108,6 +114,8 @@ export interface FitOptions {
   readonly pause?: (progress: Progress) => Promise<void>;
   /** Stops the search, which then gives the best values found so far. */
   readonly signal?: AbortSignal;
+  /** Whether to score over fewer runs too, so as to fit the run-count curve, not only its end (see `GroupingsFit.score`). */
+  readonly curve?: boolean;
 }
 
 /** How many sets of values are drawn at random across every slider. */
@@ -118,10 +126,14 @@ const REFINED = 3;
 const MAX_SWEEPS = 8;
 /** The seed of the random draws: the same every time, so a fit gives the same values for the same runs and groups. */
 const SEED = 0x5eed;
+/** How much of the score fitting to the curve is the F1 over all the runs, the rest being over fewer runs. */
+const ALL_RUNS_SHARE = 0.5;
+/** How many sets of runs are drawn at each number of runs fewer than all, to score over. */
+const FIT_SETS_PER_COUNT = 2;
 
 /**
  * Searches the hyperparameters of a break model that make its groups over the runs (oldest first) match the labels
- * best, starting from `start`. It refines `start` by coordinate descent over every value of every slider: each slider in
+ * best, over all of them or, fitting to the curve, fewer too (see `GroupingsFit.score`), starting from `start`. It refines `start` by coordinate descent over every value of every slider: each slider in
  * turn is moved to its best value, the others staying where they are, over and over until no move scores better. Then,
  * so as to look over the whole space, it tries values drawn at random across every slider, and refines the best of
  * them the same way. Values are only taken when they score strictly better, so of values that score alike, those found
@@ -132,21 +144,28 @@ export async function fitToGroupings(
   start: Settings,
   runs: readonly (readonly number[])[],
   labels: Labels,
-  { pause, signal }: FitOptions = {},
+  { pause, signal, curve = false }: FitOptions = {},
 ): Promise<GroupingsFit> {
   const sliders = kind.tabs.flatMap((tab) => tab.hyperparameters);
   const grids = sliders.map(sliderValues);
   const perSweep = grids.reduce((sum, grid) => sum + grid.length, 0);
-  const fitOf = (settings: Settings): GroupingsFit => ({
-    settings,
-    score: scoreGroups(kind.create(settings).stats(runs).groups, labels),
-  });
+  const sets = curve ? scoredSets(runs) : [{ runs, weight: 1 }];
+  const fitOf = (settings: Settings): GroupingsFit => {
+    const model = kind.create(settings);
+    return {
+      settings,
+      score: sets.reduce(
+        (sum, set) => sum + set.weight * scoreGroups(model.stats(set.runs).groups, labels).f1,
+        0,
+      ),
+    };
+  };
   const aborted = (): boolean => signal?.aborted === true;
 
   const first = fitOf({ ...kind.defaults, ...start });
   let best = first;
   const keep = (fit: GroupingsFit): void => {
-    if (fit.score.f1 > best.score.f1) {
+    if (fit.score > best.score) {
       best = fit;
     }
   };
@@ -164,7 +183,7 @@ export async function fitToGroupings(
           }
           if (value !== at.settings[slider.key]) {
             const fit = fitOf({ ...at.settings, [slider.key]: value });
-            if (fit.score.f1 > at.score.f1) {
+            if (fit.score > at.score) {
               at = fit;
               moved = true;
               keep(fit);
@@ -206,13 +225,34 @@ export async function fitToGroupings(
     keep(fit);
     await pause?.({ stage: 'drawing', draws: DRAWS, done: (k + 1) / DRAWS, best });
   }
-  const bestDrawn = drawn.sort((a, b) => b.score.f1 - a.score.f1).slice(0, REFINED);
+  const bestDrawn = drawn.sort((a, b) => b.score - a.score).slice(0, REFINED);
   for (const [k, from] of bestDrawn.entries()) {
     if (!(await refine(from, k + 1))) {
       return best;
     }
   }
   return best;
+}
+
+/**
+ * The sets of runs a fit to the curve scores over, each with its weight in the score, the weights adding up to 1: all the runs, and
+ * sets of 1, 2, 4 and so on fewer, drawn at random once (each kept oldest first) and the same for every set of values.
+ */
+function scoredSets(
+  runs: readonly (readonly number[])[],
+): { readonly runs: readonly (readonly number[])[]; readonly weight: number }[] {
+  const counts: number[] = [];
+  for (let count = 1; count < runs.length; count *= 2) {
+    counts.push(count);
+  }
+  const random = mulberry32(SEED);
+  const fewer = counts.flatMap((count) =>
+    Array.from({ length: FIT_SETS_PER_COUNT }, () => ({
+      runs: drawSet(runs.length, count, random).map((index) => runs[index] ?? []),
+      weight: (1 - ALL_RUNS_SHARE) / (counts.length * FIT_SETS_PER_COUNT),
+    })),
+  );
+  return [{ runs, weight: fewer.length === 0 ? 1 : ALL_RUNS_SHARE }, ...fewer];
 }
 
 /** How many sets of runs the run-count curve draws at each count, but all of them: there's only one set of all. */

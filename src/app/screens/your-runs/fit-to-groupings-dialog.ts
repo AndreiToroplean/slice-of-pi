@@ -29,7 +29,8 @@ const FRAME = 30;
  * Developer mode's dialog that fits a break model's hyperparameters to the player's own groups, opened from the overflow
  * menu of Your Runs: pick the model, type or paste the groups, a space between each, and fit. Groups that aren't π show
  * as an error, saying where. The search runs while the dialog stays open, showing how well the model matches the groups
- * as an F1 score, which tells models apart on the same groups; then the sliders are set to the best values found. It
+ * as an F1 score, which tells models apart on the same groups, with all the runs or, fitting the run-count curve, with
+ * fewer too; then the sliders are set to the best values found. It
  * stays open, so as to fit again once the model or the groups change. It draws the run-count curve of the model as set,
  * to tell how well it holds up with fewer runs, as it opens and again after each fit. Closing the dialog stops the
  * search, and the curve.
@@ -120,11 +121,19 @@ const FRAME = 30;
         <button type="button" class="candy" (click)="close()">Close</button>
         <button
           type="button"
-          class="candy primary"
-          [disabled]="!ready() || locked() || fitted()"
-          (click)="void fit()"
+          class="candy end-fit"
+          [disabled]="!ready() || locked() || fitted() === 'end'"
+          (click)="void fit(false)"
         >
-          {{ fitted() ? 'Fitted' : 'Fit' }}
+          {{ fitted() === 'end' ? 'Fitted' : 'Fit' }}
+        </button>
+        <button
+          type="button"
+          class="candy primary curve-fit"
+          [disabled]="!ready() || locked() || fitted() === 'curve'"
+          (click)="void fit(true)"
+        >
+          {{ fitted() === 'curve' ? 'Curve Fitted' : 'Fit Curve' }}
         </button>
       </div>
     </dialog>
@@ -294,7 +303,7 @@ const FRAME = 30;
 
     .buttons {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       gap: var(--space-2);
     }
   `,
@@ -326,14 +335,23 @@ export class FitToGroupingsDialog {
   );
   /** How far the search has gone, while it runs. */
   protected readonly progress = signal<Progress | undefined>(undefined);
+  /** Whether the search running, or the last one, fits the run-count curve rather than its end, all the runs alone. */
+  private readonly curveFit = signal(false);
   /** The model and groupings the last fit was for. */
   private readonly fittedFor = signal<
     { readonly kind: BreakModelKind; readonly text: string } | undefined
   >(undefined);
-  /** Whether the model picked is fitted to the groupings as typed: until either changes, there's nothing to fit. */
+  /**
+   * How the model picked is fitted to the groupings as typed, to the run-count curve or its end: until either changes,
+   * there's nothing to fit that way.
+   */
   protected readonly fitted = computed(() => {
     const fitted = this.fittedFor();
-    return fitted?.kind === this.kind() && fitted.text === this.text();
+    return fitted?.kind === this.kind() && fitted.text === this.text()
+      ? this.curveFit()
+        ? 'curve'
+        : 'end'
+      : undefined;
   });
   /** Whether the groupings and the model are kept as they are, while fitting. */
   protected readonly locked = computed(() => this.progress() !== undefined);
@@ -375,7 +393,10 @@ export class FitToGroupingsDialog {
           : running.stage === 'drawing'
             ? `Trying ${String(running.draws)} random draws`
             : `Refining pick ${String(running.pick)} of ${String(running.picks)} until it settles, pass ${String(running.pass)}`;
-      return `${stage}: best F1 ${f1(running.best.score)} so far.`;
+      const best = running.best.score.toFixed(2);
+      return this.curveFit()
+        ? `${stage}: best score ${best} so far, of F1 with all runs and fewer.`
+        : `${stage}: best F1 ${best} so far.`;
     }
     const current = this.current();
     return current === undefined ? '' : `Now: F1 ${f1(current)}. ${details(current)}`;
@@ -421,17 +442,23 @@ export class FitToGroupingsDialog {
     void saveMyGroupings(this.store, text);
   }
 
-  /** Fits the model picked to the groups, sets its sliders to the best values found, and draws their run-count curve. */
-  protected async fit(): Promise<void> {
+  /**
+   * Fits the model picked to the groups, with all the runs or, to fit its run-count curve, with fewer too; sets its
+   * sliders to the best values found, and draws their run-count curve.
+   */
+  protected async fit(curve: boolean): Promise<void> {
     const kind = this.kind();
     const text = this.text();
     const ready = this.ready();
     this.curveAbort?.abort();
     const abort = new AbortController();
     this.abort = abort;
+    this.fittedFor.set(undefined);
+    this.curveFit.set(curve);
     const breathe = breather();
     const best = await fitToGroupings(kind, this.tweaks.grouping(), this.runs(), this.labels(), {
       signal: abort.signal,
+      curve,
       pause: async (progress) => {
         this.progress.set(progress);
         await breathe();
