@@ -23,6 +23,7 @@ import {
   TWEAKS,
   TWEAKS_FORMAT,
 } from './tweaks';
+import { PLAY_WITH_MERCURY } from '../../testing/game-break-model';
 
 describe('Tweaks', () => {
   let indexedDb: IDBFactory;
@@ -38,6 +39,7 @@ describe('Tweaks', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        PLAY_WITH_MERCURY,
         { provide: IS_PREVIEW, useValue: false },
         { provide: INDEXED_DB, useValue: indexedDb },
       ],
@@ -95,7 +97,9 @@ describe('Tweaks', () => {
   it('keeps a change made before the stored tweaks were read', async () => {
     await (await load()).setPalette(palette);
     TestBed.resetTestingModule();
-    TestBed.configureTestingModule({ providers: [{ provide: INDEXED_DB, useValue: indexedDb }] });
+    TestBed.configureTestingModule({
+      providers: [PLAY_WITH_MERCURY, { provide: INDEXED_DB, useValue: indexedDb }],
+    });
     const tweaks = TestBed.inject(Tweaks);
 
     await tweaks.setSeasons(seasons);

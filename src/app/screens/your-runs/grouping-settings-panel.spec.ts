@@ -13,6 +13,7 @@ import { LUNA, LUNA_DEFAULTS } from '../../game/grouping/break-models/luna';
 import { MERCURY, MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
 import { ChartGuides } from './chart-guides';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
+import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 
 describe('GroupingSettingsPanel', () => {
   beforeEach(() => {
@@ -30,6 +31,7 @@ describe('GroupingSettingsPanel', () => {
     copied = [];
     TestBed.configureTestingModule({
       providers: [
+        PLAY_WITH_MERCURY,
         { provide: IS_PREVIEW, useValue: false },
         { provide: INDEXED_DB, useValue: new IDBFactory() },
         {
