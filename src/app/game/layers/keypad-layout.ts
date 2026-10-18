@@ -10,40 +10,65 @@ export interface KeyPosition {
   readonly column: number;
 }
 
-/**
- * Calculator-style layout, with 0 in the middle of the bottom row and backspace (⌫) next to it:
- *
- *     7 8 9
- *     4 5 6
- *     1 2 3
- *       0 ⌫
- *
- * Key positions are what keypad gesture patterns will be drawn from, so this layout is part of the game, not just
- * styling.
- */
-export const KEYPAD_LAYOUT: readonly KeyPosition[] = [
-  { key: '7', row: 0, column: 0 },
-  { key: '8', row: 0, column: 1 },
-  { key: '9', row: 0, column: 2 },
-  { key: '4', row: 1, column: 0 },
-  { key: '5', row: 1, column: 1 },
-  { key: '6', row: 1, column: 2 },
-  { key: '1', row: 2, column: 0 },
-  { key: '2', row: 2, column: 1 },
-  { key: '3', row: 2, column: 2 },
+/** The layouts the keypad comes in, which the player picks from. */
+export const KEYPAD_LAYOUTS = ['calculator', 'telephone'] as const;
+export type KeypadLayout = (typeof KEYPAD_LAYOUTS)[number];
+/** The layout the keypad has unless the player picks another. */
+export const DEFAULT_KEYPAD_LAYOUT: KeypadLayout = 'calculator';
+
+/** 0 in the middle of the bottom row, and backspace (⌫) next to it, in every layout. */
+const BOTTOM_ROW: readonly KeyPosition[] = [
   { key: '0', row: 3, column: 1 },
   { key: 'backspace', row: 3, column: 2 },
 ];
 
-const ROWS = Math.max(...KEYPAD_LAYOUT.map((position) => position.row)) + 1;
-const COLUMNS = Math.max(...KEYPAD_LAYOUT.map((position) => position.column)) + 1;
+/** The digits 1 to 9 in rows of three, in the order of `rows`, the top row first. */
+function digitRows(rows: readonly (readonly Digit[])[]): KeyPosition[] {
+  return rows.flatMap((keys, row) => keys.map((key, column) => ({ key, row, column })));
+}
 
 /**
- * The key under a point `(x, y)` of a keypad occupying `rect`, or null if there is none (outside the keypad, or an empty
+ * Where each key sits in each layout: calculator-style, with 7 8 9 on top, or telephone-style, with 1 2 3 on top, and
+ * the same bottom row:
+ *
+ *     7 8 9      1 2 3
+ *     4 5 6      4 5 6
+ *     1 2 3      7 8 9
+ *       0 ⌫        0 ⌫
+ *
+ * Key positions are what keypad gesture patterns will be drawn from, so the layouts are part of the game, not just
+ * styling, and each run records the one it was played on.
+ */
+export const KEY_POSITIONS: Readonly<Record<KeypadLayout, readonly KeyPosition[]>> = {
+  calculator: [
+    ...digitRows([
+      ['7', '8', '9'],
+      ['4', '5', '6'],
+      ['1', '2', '3'],
+    ]),
+    ...BOTTOM_ROW,
+  ],
+  telephone: [
+    ...digitRows([
+      ['1', '2', '3'],
+      ['4', '5', '6'],
+      ['7', '8', '9'],
+    ]),
+    ...BOTTOM_ROW,
+  ],
+};
+
+/** The keypad's grid, the same in every layout. */
+const ROWS = 4;
+const COLUMNS = 3;
+
+/**
+ * The key under a point `(x, y)` of a keypad in a layout occupying `rect`, or null if there is none (outside the keypad, or an empty
  * cell). The keypad is split into equal rectangular cells, so the gaps between keys, their rounded corners and the
  * keypad's padding all count as part of the nearest key.
  */
 export function keyAt(
+  layout: KeypadLayout,
   rect: Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>,
   x: number,
   y: number,
@@ -51,7 +76,7 @@ export function keyAt(
   const column = Math.floor(((x - rect.left) / rect.width) * COLUMNS);
   const row = Math.floor(((y - rect.top) / rect.height) * ROWS);
   return (
-    KEYPAD_LAYOUT.find((position) => position.row === row && position.column === column)?.key ??
-    null
+    KEY_POSITIONS[layout].find((position) => position.row === row && position.column === column)
+      ?.key ?? null
   );
 }
