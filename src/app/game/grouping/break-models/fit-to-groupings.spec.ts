@@ -1,5 +1,12 @@
 import type { BreakModelKind, Group, Hyperparameter, Settings } from './break-model';
-import { fitToGroupings, labelsOf, Progress, scoreGroups, sliderValues } from './fit-to-groupings';
+import {
+  fitToGroupings,
+  labelsOf,
+  Progress,
+  runCountCurve,
+  scoreGroups,
+  sliderValues,
+} from './fit-to-groupings';
 
 describe('Fitting to groupings', () => {
   /** Groups of these sizes, from the first digit, the last one open. */
@@ -168,5 +175,79 @@ describe('Fitting to groupings', () => {
 
     expect(kind.created).toBe(2);
     expect(fit.settings).toEqual({ size: 1, ignored: 2 });
+  });
+
+  describe('run-count curve', () => {
+    /**
+     * A model that groups 12 digits in groups as long as the number of runs it's given, and keeps the runs it's given,
+     * each run being only the number it's known by.
+     */
+    function countingModel(): BreakModelKind & { given: number[][] } {
+      const kind = {
+        ...sizedModel(),
+        given: [] as number[][],
+        create: () => ({
+          play: () => {
+            throw new Error('Not played');
+          },
+          stats: (runs: readonly (readonly number[])[]) => {
+            kind.given.push(runs.map((each) => each[0] ?? -1));
+            const size = runs.length;
+            return {
+              runs: [],
+              usual: [],
+              groups: groupsOf(Array<number>(12 / size).fill(size)),
+              speedCurve: [],
+              averageTime: [],
+              confidence: [],
+            };
+          },
+        }),
+      };
+      return kind;
+    }
+
+    const runs = [[0], [1], [2], [3]];
+
+    it('scores sets of each number of runs, up to all of them', async () => {
+      const curve = await runCountCurve(countingModel(), {}, runs, labelsOf([3, 3, 3, 3]));
+
+      expect(curve.map((scores) => scores.length)).toEqual([5, 5, 5, 1]);
+      expect(curve[2]).toEqual([1, 1, 1, 1, 1]);
+      expect(curve[3]).toEqual([scoreGroups(groupsOf([4, 4, 4]), labelsOf([3, 3, 3, 3])).f1]);
+    });
+
+    it('draws different sets of runs, each oldest first, the same every time', async () => {
+      const kind = countingModel();
+      await runCountCurve(kind, {}, runs, labelsOf([3, 3, 3, 3]));
+      const first = kind.given;
+      kind.given = [];
+      await runCountCurve(kind, {}, runs, labelsOf([3, 3, 3, 3]));
+
+      expect(kind.given).toEqual(first);
+      expect(new Set(first.filter((set) => set.length === 2).map(String)).size).toBeGreaterThan(1);
+      for (const set of first) {
+        expect(set).toEqual([...set].sort((a, b) => a - b));
+        expect(new Set(set).size).toBe(set.length);
+      }
+    });
+
+    it('tells how far it has gone, and stops when asked', async () => {
+      const seen: number[] = [];
+      const abort = new AbortController();
+      const curve = await runCountCurve(countingModel(), {}, runs, labelsOf([3, 3, 3, 3]), {
+        signal: abort.signal,
+        pause: (done) => {
+          seen.push(done);
+          if (seen.length === 7) {
+            abort.abort();
+          }
+          return Promise.resolve();
+        },
+      });
+
+      expect(seen.at(-1)).toBe(7 / 16);
+      expect(curve).toHaveLength(1);
+    });
   });
 });

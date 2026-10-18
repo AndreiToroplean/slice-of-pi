@@ -215,6 +215,59 @@ export async function fitToGroupings(
   return best;
 }
 
+/** How many sets of runs the run-count curve draws at each count, but all of them: there's only one set of all. */
+const SETS_PER_COUNT = 5;
+
+export interface CurveOptions {
+  /** Called after each set of runs scored, with how much of the curve is done, from 0 to 1. */
+  readonly pause?: (done: number) => Promise<void>;
+  /** Stops drawing the curve, which then gives the counts done so far. */
+  readonly signal?: AbortSignal;
+}
+
+/**
+ * The run-count curve of a configuration of a break model: at each number of runs, from 1 to all of them, the F1
+ * scores against the labels of sets of that many runs drawn at random (each kept oldest first), so as to tell how well
+ * the configuration holds up with fewer runs. By count, from 1.
+ */
+export async function runCountCurve(
+  kind: BreakModelKind,
+  settings: Settings,
+  runs: readonly (readonly number[])[],
+  labels: Labels,
+  { pause, signal }: CurveOptions = {},
+): Promise<number[][]> {
+  const model = kind.create({ ...kind.defaults, ...settings });
+  const random = mulberry32(SEED);
+  const total = (runs.length - 1) * SETS_PER_COUNT + 1;
+  const curve: number[][] = [];
+  let scored = 0;
+  for (let count = 1; count <= runs.length; count++) {
+    const scores: number[] = [];
+    for (let set = 0; set < (count === runs.length ? 1 : SETS_PER_COUNT); set++) {
+      if (signal?.aborted === true) {
+        return curve;
+      }
+      const picked = drawSet(runs.length, count, random).map((index) => runs[index] ?? []);
+      scores.push(scoreGroups(model.stats(picked).groups, labels).f1);
+      scored++;
+      await pause?.(scored / total);
+    }
+    curve.push(scores);
+  }
+  return curve;
+}
+
+/** `count` indices out of `size`, drawn at random, in order. */
+function drawSet(size: number, count: number, random: () => number): number[] {
+  const indices = Array.from({ length: size }, (_, k) => k);
+  for (let k = 0; k < count; k++) {
+    const swap = k + Math.floor(random() * (size - k));
+    [indices[k], indices[swap]] = [indices[swap] ?? 0, indices[k] ?? 0];
+  }
+  return indices.slice(0, count).sort((a, b) => a - b);
+}
+
 /** A small seeded random number generator, giving numbers from 0 (included) to 1 (excluded). */
 function mulberry32(seed: number): () => number {
   let state = seed >>> 0;
