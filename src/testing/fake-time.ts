@@ -21,16 +21,21 @@ export class FakeTime {
     {
       provide: TIMER,
       useValue: {
-        every: (period: number, callback: () => void) => {
-          const timer = { at: this.now + period, period, callback };
-          this.pending.push(timer);
-          return () => {
-            this.pending = this.pending.filter((other) => other !== timer);
-          };
-        },
+        after: (delay: number, callback: () => void) => this.schedule(delay, Infinity, callback),
       },
     },
   ];
+
+  /**
+   * Calls `callback` `delay` milliseconds from now, then every `period`, if ever again; the function returned stops it.
+   */
+  private schedule(delay: number, period: number, callback: () => void): () => void {
+    const timer = { at: this.now + delay, period, callback };
+    this.pending.push(timer);
+    return () => {
+      this.pending = this.pending.filter((other) => other !== timer);
+    };
+  }
 
   /** Moves the time on, calling back the timers each time they're due by then, in order. */
   advance(milliseconds: number): void {
