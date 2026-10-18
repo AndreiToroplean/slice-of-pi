@@ -240,12 +240,13 @@ describe('Tweaks', () => {
       BREAK_MODELS.map((kind) => `Hyperparameters of ${kind.label}:`),
     );
     expect(text.filter((line) => line.endsWith('(changed)'))).toEqual([
+      'Break model: Mercury (BREAK_MODEL in break-models.ts) (changed)',
       '  recencyDecay: 0.95 (changed)',
       '  window: 11 (changed)',
     ]);
     expect(text.slice(0, 16).join('\n')).toBe(
       [
-        'Break model: Mercury (BREAK_MODEL in break-models.ts)',
+        'Break model: Mercury (BREAK_MODEL in break-models.ts) (changed)',
         'Hyperparameters of Mercury:',
         '  window: 21',
         '  recencyDecay: 0.95 (changed)',
