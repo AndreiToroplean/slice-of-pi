@@ -101,6 +101,29 @@ app-dropdown-menu {
   right: 0.75rem;
 }
 
+/* The settings' gear, in the top left corner, like the menu's button in the other. */
+.settings {
+  position: absolute;
+  top: 0.625rem;
+  left: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  color: inherit;
+}
+
+.settings svg {
+  width: 1.375rem;
+  height: 1.375rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* Developer mode's pages, under a line and a small title. */
 .section {
   margin-top: var(--space-1);

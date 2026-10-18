@@ -21,6 +21,10 @@ export const routes: Routes = [
     loadComponent: () => import('./screens/your-data/data').then((m) => m.Data),
   },
   {
+    path: 'settings',
+    loadComponent: () => import('./screens/settings/settings').then((m) => m.Settings),
+  },
+  {
     path: 'developer/key-colors',
     loadComponent: () => import('./screens/tuning/key-colors').then((m) => m.KeyColors),
   },
