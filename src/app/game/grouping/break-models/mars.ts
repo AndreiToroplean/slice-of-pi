@@ -8,6 +8,7 @@ import {
   TERRA_DEFAULTS,
   TERRA_HYPERPARAMETERS,
   TerraSettings,
+  trustOfPlace,
   usualPace,
 } from './terra';
 
@@ -66,7 +67,7 @@ export function mars(
   const weights = runs.map((run, k) =>
     Float64Array.from(
       run.places,
-      (at) => settings.recencyDecay ** (runs.length - 1 - k) * at.trust,
+      (at) => settings.recencyDecay ** (runs.length - 1 - k) * trustOfPlace(at, settings),
     ),
   );
   const runSteps = runs.map((run): RunSteps => ({

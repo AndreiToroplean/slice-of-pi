@@ -87,8 +87,10 @@ export interface Judged {
   readonly evidence: number;
   /** How much likelier the time is for a break than for a normal interval: 0 below the pace, a break never faster. */
   readonly likelihood: number;
-  /** How much this verdict counts in the vote, from 0 to 1. */
-  readonly trust: number;
+  /** How uneven the run is around the place: the spread of the neighbors' log intervals, 0 without two of them. */
+  readonly unevenness: number;
+  /** How many neighbors the place has in the run. */
+  readonly neighbors: number;
 }
 
 /**
@@ -107,14 +109,22 @@ export interface JudgedRun {
  */
 export function judge(
   times: readonly number[],
-  settings: Pick<TerraSettings, 'window' | 'spreadFloor' | 'breakShift' | 'fullTrustUnevenness'>,
+  settings: Pick<TerraSettings, 'window' | 'spreadFloor' | 'breakShift'>,
 ): JudgedRun {
   const logs = logIntervals(times);
   const places = Array.from(logs, (log, p): Judged => {
     const { mean: pace, spread: unevenness, count } = neighborsOf(logs, p, settings.window);
     const time = Math.exp(log);
     if (count === 0) {
-      return { time, pace: undefined, z: 0, evidence: 0, likelihood: 1, trust: 0 };
+      return {
+        time,
+        pace: undefined,
+        z: 0,
+        evidence: 0,
+        likelihood: 1,
+        unevenness: 0,
+        neighbors: 0,
+      };
     }
     const z = (log - pace) / Math.max(unevenness, settings.spreadFloor);
     // Normal intervals are N(0, 1) in z, breaks N(breakShift, 1): the log of the ratio of the two densities.
@@ -126,10 +136,22 @@ export function judge(
       z,
       evidence,
       likelihood: z < 0 ? 0 : Math.exp(evidence),
-      trust: Math.min(1, unevenness / settings.fullTrustUnevenness),
+      unevenness,
+      neighbors: count,
     };
   });
   return { digits: times.length, logs, places };
+}
+
+/**
+ * How much a run's verdict at a place counts in the vote, from 0 to 1: as much as the run is uneven around it, up to
+ * the unevenness for full trust.
+ */
+export function trustOfPlace(
+  at: Judged,
+  settings: Pick<TerraSettings, 'fullTrustUnevenness'>,
+): number {
+  return Math.min(1, at.unevenness / settings.fullTrustUnevenness);
 }
 
 /** The probability of a break, from its prior and how much likelier the interval is for one. */
@@ -158,7 +180,7 @@ export function terra(
   const weights = runs.map((run, k) =>
     Float64Array.from(
       run.places,
-      (at) => settings.recencyDecay ** (runs.length - 1 - k) * at.trust,
+      (at) => settings.recencyDecay ** (runs.length - 1 - k) * trustOfPlace(at, settings),
     ),
   );
   const { usual, coverage, breaks, averageTime } = usualBreaks(logs, own, weights);
