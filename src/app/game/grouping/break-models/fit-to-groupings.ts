@@ -133,8 +133,11 @@ const FIT_SETS_PER_COUNT = 2;
 
 /**
  * Searches the hyperparameters of a break model that make its groups over the runs (oldest first) match the labels
- * best, over all of them or, fitting to the curve, fewer too (see `GroupingsFit.score`), starting from `start`. It refines `start` by coordinate descent over every value of every slider: each slider in
- * turn is moved to its best value, the others staying where they are, over and over until no move scores better. Then,
+ * best, over all of them or, fitting to the curve, fewer too (see `GroupingsFit.score`), starting from `start`. It
+ * refines `start` by coordinate descent: each slider in turn is moved to its best value, the others staying where they
+ * are, over and over until no move scores better. A slider's best value is looked for coarse to fine: about every √n-th
+ * of its n values, then every value around the best of them, so about 3√n values rather than all n, which only misses
+ * a peak narrower than the coarse step. Not bisected: the score is flat over long stretches and has many bumps. Then,
  * so as to look over the whole space, it tries values drawn at random across every slider, and refines the best of
  * them the same way. Values are only taken when they score strictly better, so of values that score alike, those found
  * first stay, those near `start` first of all.
@@ -148,7 +151,13 @@ export async function fitToGroupings(
 ): Promise<GroupingsFit> {
   const sliders = kind.tabs.flatMap((tab) => tab.hyperparameters);
   const grids = sliders.map(sliderValues);
-  const perSweep = grids.reduce((sum, grid) => sum + grid.length, 0);
+  const strides = grids.map((grid) => Math.max(1, Math.round(Math.sqrt(grid.length))));
+  const coarse = grids.map((grid, s) => coarseIndices(grid.length, strides[s] ?? 1));
+  // Every coarse value, then the values within a stride of the best of them.
+  const perSweep = strides.reduce(
+    (sum, stride, s) => sum + (coarse[s]?.length ?? 0) + 2 * stride - 1,
+    0,
+  );
   const sets = curve ? scoredSets(runs) : [{ runs, weight: 1 }];
   const fitOf = (settings: Settings): GroupingsFit => {
     const model = kind.create(settings);
@@ -174,30 +183,49 @@ export async function fitToGroupings(
   const refine = async (from: GroupingsFit, pick: number): Promise<boolean> => {
     let at = from;
     for (let sweep = 1; sweep <= MAX_SWEEPS; sweep++) {
-      let moved = false;
+      const before = at;
       let done = 0;
+      const stage =
+        pick === 0
+          ? { stage: 'yours' as const, pass: sweep }
+          : { stage: 'pick' as const, pick, picks: REFINED, pass: sweep };
       for (const [s, slider] of sliders.entries()) {
-        for (const value of grids[s] ?? []) {
+        const grid = grids[s] ?? [];
+        const stride = strides[s] ?? 1;
+        const tried = new Set<number>();
+        /** Tries the slider's value at an index, if there's one not tried yet; `false` if stopped. */
+        const tryAt = async (index: number): Promise<boolean> => {
           if (aborted()) {
             return false;
           }
-          if (value !== at.settings[slider.key]) {
-            const fit = fitOf({ ...at.settings, [slider.key]: value });
-            if (fit.score > at.score) {
-              at = fit;
-              moved = true;
-              keep(fit);
+          const value = grid[index];
+          if (value !== undefined && !tried.has(index)) {
+            tried.add(index);
+            if (value !== at.settings[slider.key]) {
+              const fit = fitOf({ ...at.settings, [slider.key]: value });
+              if (fit.score > at.score) {
+                at = fit;
+                keep(fit);
+              }
             }
           }
           done++;
-          const stage =
-            pick === 0
-              ? { stage: 'yours' as const, pass: sweep }
-              : { stage: 'pick' as const, pick, picks: REFINED, pass: sweep };
           await pause?.({ ...stage, done: done / perSweep, best });
+          return true;
+        };
+        for (const index of coarse[s] ?? []) {
+          if (!(await tryAt(index))) {
+            return false;
+          }
+        }
+        const center = nearestIndex(grid, at.settings[slider.key] ?? 0);
+        for (let index = center - stride + 1; index < center + stride; index++) {
+          if (!(await tryAt(index))) {
+            return false;
+          }
         }
       }
-      if (!moved) {
+      if (at === before) {
         break;
       }
     }
@@ -232,6 +260,29 @@ export async function fitToGroupings(
     }
   }
   return best;
+}
+
+/** The indices of every `stride`-th of `size` values, from the first, and the last. */
+function coarseIndices(size: number, stride: number): number[] {
+  const indices: number[] = [];
+  for (let index = 0; index < size; index += stride) {
+    indices.push(index);
+  }
+  if (size > 0 && indices.at(-1) !== size - 1) {
+    indices.push(size - 1);
+  }
+  return indices;
+}
+
+/** The index of the value of a grid nearest to `value`. */
+function nearestIndex(grid: readonly number[], value: number): number {
+  let nearest = 0;
+  for (const [index, each] of grid.entries()) {
+    if (Math.abs(each - value) < Math.abs((grid[nearest] ?? 0) - value)) {
+      nearest = index;
+    }
+  }
+  return nearest;
 }
 
 /**
