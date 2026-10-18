@@ -3,6 +3,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { Page } from '../../ui/page';
 import { backupFileName, readBackup, writeBackup } from '../../player-data/backup';
+import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { Run } from '../../player-data/run';
 import { RUN_CLOCK, RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
@@ -81,6 +82,7 @@ export class Data {
 
   private readonly developer = inject(DeveloperMode);
   private readonly tweaks = inject(Tweaks);
+  private readonly keypadLayout = inject(KeypadLayoutSetting);
   private readonly runs = signal<readonly Run[]>([]);
   /** Unchecked runs, which may hold mistakes, only count in developer mode. */
   private readonly shown = computed(() =>
@@ -128,7 +130,12 @@ export class Data {
     }
     const added = await this.store.addRuns(contents.runs);
     await this.store.saveSettings(contents.settings);
-    await Promise.all([this.developer.reload(), this.tweaks.reload(), this.refresh()]);
+    await Promise.all([
+      this.developer.reload(),
+      this.tweaks.reload(),
+      this.keypadLayout.reload(),
+      this.refresh(),
+    ]);
     const unreadable =
       contents.skipped > 0 ? ` ${plural(contents.skipped, 'run')} in it could not be read.` : '';
     const settings =

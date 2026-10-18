@@ -20,6 +20,7 @@ import { keyColors, placeColors } from '../../game/layers/place-colors';
 import { Pause } from './pause/pause';
 import { isPiDecimal } from '../../game/pi/pi';
 import { groupRuns, Run } from '../../player-data/run';
+import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { KeypadKey } from '../../game/layers/keypad-layout';
@@ -64,7 +65,12 @@ import { TIMER } from './timer';
         {{ mistakes().charAt(0) }} is wrong: delete back to it to go on.
       }
     </p>
-    <app-keypad class="keypad" [colors]="keyColors()" (keyPressed)="press($event)">
+    <app-keypad
+      class="keypad"
+      [layout]="keypadLayout()"
+      [colors]="keyColors()"
+      (keyPressed)="press($event)"
+    >
       @let wait = breakWait();
       @if (tweaks.countdown() && wait !== undefined) {
         <app-break-countdown [wait]="wait" />
@@ -90,6 +96,8 @@ export class Play {
   protected readonly paused = signal(false);
 
   private readonly recorder = inject(RunRecorder);
+  /** The keypad layout the player picked. */
+  protected readonly keypadLayout = inject(KeypadLayoutSetting).layout;
   /**
    * How long after the last digit the group being typed ends, in milliseconds, while the player may still pause:
    * `Infinity` if no pause up to the longest wait looked at ends it.
