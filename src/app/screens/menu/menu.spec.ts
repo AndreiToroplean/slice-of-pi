@@ -125,6 +125,19 @@ describe('Menu', () => {
       ]);
     });
 
+    it('leads to the settings only in developer mode', async () => {
+      const fixture = TestBed.createComponent(Menu);
+      await fixture.whenStable();
+      const host = fixture.nativeElement as HTMLElement;
+      const gear = (): Element | null => host.querySelector('a[aria-label="Settings"]');
+      expect(gear()).toBeNull();
+
+      await TestBed.inject(DeveloperMode).set(true);
+      await fixture.whenStable();
+
+      expect(gear()?.getAttribute('href')).toBe('/settings');
+    });
+
     it('turns checking the digits off and on', async () => {
       await TestBed.inject(DeveloperMode).set(true);
       const host = await setUp();
