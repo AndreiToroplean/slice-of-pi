@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792363795662,
+  "lastUpdate": 1792365586629,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1838,6 +1838,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1147,
+            "unit": "ms",
+            "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "a8e8eeb771292aad0e95ef22166577d1e4d67f43",
+          "message": "feat: bring back each setting's default value, or all of them at once, on the settings page\n\nClaude-Session: https://claude.ai/code/session_01KBGeKFRjtoXNXruvvc3s8v",
+          "timestamp": "2026-10-19T01:19:25+02:00",
+          "tree_id": "e2a3dbb348205fc4c23785e00e1ff30c77c74c25",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/a8e8eeb771292aad0e95ef22166577d1e4d67f43"
+        },
+        "date": 1792365586065,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 9470,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 19199,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1323,
             "unit": "ms",
             "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
           }
