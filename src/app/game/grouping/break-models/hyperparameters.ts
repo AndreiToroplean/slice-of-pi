@@ -32,7 +32,7 @@ export type BreakSettings = Readonly<{
   priorBreakShare: number;
   /** How many times its baseline the prior mixture's typical break is. */
   priorBreakSize: number;
-  /** The spread of the prior mixture's normal intervals around their baseline, in log-interval (0.25 is about 25%). */
+  /** The spread of the prior mixture's normal intervals around their baseline, in log-interval (0.25 is within a factor of about 1.28). */
   priorNormalSpread: number;
   /** The spread of the prior mixture's breaks around their typical size, in log-interval. */
   priorBreakSpread: number;
@@ -180,10 +180,9 @@ export const HYPERPARAMETERS: { readonly [K in keyof BreakSettings]: Hyperparame
     min: 0.05,
     max: 0.8,
     step: 0.01,
-    format: (value) =>
-      `${value.toFixed(2)} (about ${String(Math.round((Math.exp(value) - 1) * 100))}%)`,
+    format: (value) => value.toFixed(2),
     help: {
-      what: 'How much the prior mixture expects normal intervals to vary around their baseline, as the standard deviation of their logs: 0.25 is about 28% either way.',
+      what: 'How much the prior mixture expects normal intervals to vary around their baseline, as the standard deviation of their logs: at 0.25, a typical normal interval is within a factor of about 1.28 of its baseline (e to the 0.25), from 1.28 times shorter to 1.28 times longer.',
       why: 'An interval a little longer than its baseline is normal variation; how far normal goes decides how long a break must be to stand out.',
       moving:
         'Higher takes more of the slow intervals for normal ones, so fewer breaks; lower makes slightly slow intervals count as breaks.',
@@ -197,7 +196,7 @@ export const HYPERPARAMETERS: { readonly [K in keyof BreakSettings]: Hyperparame
     step: 0.01,
     format: (value) => value.toFixed(2),
     help: {
-      what: 'How much the prior mixture expects breaks to vary around their typical size, as the standard deviation of their logs.',
+      what: 'How much the prior mixture expects breaks to vary around their typical size, as the standard deviation of their logs: at 0.4, a typical break is within a factor of about 1.5 of its typical size (e to the 0.4), from 1.5 times shorter to 1.5 times longer.',
       why: 'Some breaks are short hesitations, others long thinks; a wide spread lets both count as breaks.',
       moving:
         'Higher lets both short and very long pauses count as breaks. Lower expects breaks of about one size, so pauses much shorter or longer than it count less.',
@@ -206,9 +205,9 @@ export const HYPERPARAMETERS: { readonly [K in keyof BreakSettings]: Hyperparame
   breakThreshold: {
     key: 'breakThreshold',
     label: 'Break threshold',
-    min: 0.05,
-    max: 0.95,
-    step: 0.05,
+    min: 0.01,
+    max: 0.99,
+    step: 0.01,
     format: (value) => value.toFixed(2),
     help: {
       what: 'How likely an interval must be a break for the game to take it for one: past the trust horizon, where a group ends while you play, and the red bars on each run’s chart.',
@@ -220,10 +219,10 @@ export const HYPERPARAMETERS: { readonly [K in keyof BreakSettings]: Hyperparame
   usualThreshold: {
     key: 'usualThreshold',
     label: 'Usual threshold',
-    min: 0.05,
-    max: 0.95,
-    step: 0.05,
-    format: (value) => `${String(Math.round(value * 100))}% of runs`,
+    min: 0.01,
+    max: 0.99,
+    step: 0.01,
+    format: (value) => value.toFixed(2),
     help: {
       what: 'How likely a break must be at a place, over your runs, for it to be one of your usual break spots, which cut your groups within the trust horizon.',
       why: 'Your groups are where you usually break, and “usually” needs a line: ½ is as likely a break as not. The confidence, and so the trust horizon, measure how sure the game is that the place is on the same side of this line as its verdict.',

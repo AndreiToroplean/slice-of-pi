@@ -280,10 +280,9 @@ export const TERRA_HYPERPARAMETERS = {
     min: 0.02,
     max: 0.5,
     step: 0.01,
-    format: (value) =>
-      `${value.toFixed(2)} (about ${String(Math.round((Math.exp(value) - 1) * 100))}%)`,
+    format: (value) => value.toFixed(2),
     help: {
-      what: 'Each interval is compared with its neighbors in the same run: how much longer it is than their pace, counted in their spread, how much they vary. Where they vary less than this, they’re taken as varying this much, in log-interval: 0.2 is about 22% either way.',
+      what: 'Each interval is compared with its neighbors in the same run: how much longer it is than their pace, counted in their spread, how much they vary. Where they vary less than this, they’re taken as varying this much, in log-interval: at 0.2, they’re typically within a factor of about 1.22 of their pace (e to the 0.2), from 1.22 times shorter to 1.22 times longer.',
       why: 'Counted in the spread so that a break means the same wherever you are and however you type there: where you type steadily, a small delay stands out; where you swing, it takes more. The floor keeps a run of very even keystrokes from making any slightly slow one a break.',
       moving:
         'Higher asks for longer pauses where you type steadily, so fewer, bigger groups there. Lower lets small delays count as breaks where you’re even.',
@@ -325,7 +324,7 @@ export const TERRA_HYPERPARAMETERS = {
     step: 0.02,
     format: (value) => value.toFixed(2),
     help: {
-      what: 'Each run’s P(break) at a place counts in how often your runs break there with a trust from 0 to 1, besides its recency: how uneven the run is around the place, the spread of its neighbors in log-interval. At this unevenness, the run is fully trusted. 0.1 means times vary by about 10% (a metronome), 0.6 by about 80% (clear pauses).',
+      what: 'Each run’s P(break) at a place counts in how often your runs break there with a trust from 0 to 1, besides its recency: how uneven the run is around the place, the spread of its neighbors in log-interval. At this unevenness, the run is fully trusted. At 0.1, times are typically within a factor of about 1.1 of the pace (a metronome); at 0.6, within a factor of about 1.8 (clear pauses).',
       why: 'Where you type like a metronome, a break is just noise, and a steady run says little about your groups: once you’re fluent enough to type a stretch in one stream, its groups are kept rather than erased.',
       moving:
         'Lower trusts runs sooner, so steady stretches count as much as structured ones. Higher only trusts clearly structured stretches, so the trust horizon comes sooner. It never moves a run’s own breaks.',
