@@ -275,11 +275,11 @@ describe('YourRuns', () => {
       return articles(host).map((run) => run.classList.contains('later'));
     }
 
-    it('plays from before a run long pressed, from its context menu, in developer mode', async () => {
+    it('plays from after a run long pressed, from its context menu, in developer mode', async () => {
       const { host, until } = await setUp(runs, false, false, undefined, true);
       const before = groupsShown(host);
 
-      article(host, 1).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
+      article(host, 0).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
       await until(() => menu(host)?.hasAttribute('data-popover-open') === true);
       button(host, 'Play from Here').click();
       await until(() => here(host) !== undefined);
@@ -319,7 +319,7 @@ describe('YourRuns', () => {
       await until(() => here(host) === 4);
       const shown = articles(host).map((run) => run.querySelector('h3')?.textContent);
 
-      article(host, 3).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
+      article(host, 2).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
       await until(() => menu(host)?.hasAttribute('data-popover-open') === true);
       button(host, 'Play from Here').click();
       await until(() => here(host) === 3);
@@ -343,6 +343,21 @@ describe('YourRuns', () => {
       expect(articles(host).map((run) => run.querySelector('h3')?.textContent)).toEqual(shown);
       expect(later(host)).toEqual([false, false, false, false, false]);
       expect(host.querySelector('.summary h3')?.textContent.trim()).toBe('All runs');
+    });
+
+    it('plays from before all the runs, from the context menu of all runs, in developer mode', async () => {
+      const { host, until } = await setUp(runs, false, false, undefined, true);
+      const all = host.querySelector<HTMLButtonElement>('button.aggregate');
+
+      all?.dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
+      await until(() => menu(host)?.hasAttribute('data-popover-open') === true);
+      expect(menuItems(host)).toEqual(['Play from Here']);
+      button(host, 'Play from Here').click();
+      await until(() => here(host) !== undefined);
+
+      expect(here(host)).toBe(0);
+      expect(later(host)).toEqual([true, true, true, true, true]);
+      expect(all?.getAttribute('aria-pressed')).toBe('true');
     });
 
     it('draws the line after all the runs when they all come before it', async () => {

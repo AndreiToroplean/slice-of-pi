@@ -37,7 +37,8 @@ import { chartTop, digitTimes } from './run-charts';
  * a chart of each run, scrolling. In developer mode, tabs beside the runs hold sliders for the hyperparameters of the
  * break model, so they can be tuned in view of the chart of them all, and never moved by scrolling, and a dialog fits them
  * to the player's own groups. A long press on a run opens its context menu, to delete it or, in developer
- * mode, play from it, as if it and the runs after it had never been played, until undone.
+ * mode, play from after it, as if the runs after it had never been played, until undone; one on all runs, in developer
+ * mode, to play from before them all, as if none had been played.
  */
 @Component({
   selector: 'app-your-runs',
@@ -142,11 +143,15 @@ import { chartTop, digitTimes } from './run-charts';
       } @else {
         <ng-container [ngTemplateOutlet]="runList" />
       }
-      <!-- A run's context menu, opened by a long press on it. -->
+      <!-- A run's context menu, opened by a long press on it, or on all runs to play from before them. -->
       <app-dropdown-menu label="Run" [button]="false">
-        <button type="button" (click)="void deletePicked()">Delete Run</button>
+        @if (picked() !== ALL) {
+          <button type="button" (click)="void deletePicked()">Delete Run</button>
+        }
         @if (developerMode()) {
-          <hr />
+          @if (picked() !== ALL) {
+            <hr />
+          }
           <button type="button" (click)="playFromPicked()">Play from Here</button>
         }
       </app-dropdown-menu>
@@ -190,7 +195,9 @@ import { chartTop, digitTimes } from './run-charts';
               class="panel aggregate"
               [class.selected]="aggregateShown()"
               [attr.aria-pressed]="aggregateShown()"
-              (click)="aggregateShown.set(!aggregateShown())"
+              (appLongPress)="pick(ALL, $event)"
+              (appTap)="aggregateShown.set(!aggregateShown())"
+              (click)="clickAggregate($event)"
             >
               <span class="title">{{
                 order().line === undefined ? 'All runs' : 'Runs before here'
@@ -421,7 +428,9 @@ export class YourRuns {
     return line === undefined ? { ids } : { ids, line };
   });
   /** The run whose context menu was last opened. */
-  private picked: string | undefined;
+  /** The id of the run whose context menu is open, or {@link ALL} for all of them. */
+  protected readonly picked = signal<string | undefined>(undefined);
+  protected readonly ALL = ALL;
   private readonly runMenu = viewChild.required(DropdownMenu);
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
@@ -456,16 +465,27 @@ export class YourRuns {
 
   /** Opens the context menu of a run long pressed, where it was pressed. */
   protected pick(id: string, at: { readonly x: number; readonly y: number }): void {
-    this.picked = id;
+    this.picked.set(id);
     this.runMenu().openAt(at);
   }
 
-  /** Plays from just before the run picked, as if only the runs above it had been played, keeping the order shown. */
+  /**
+   * Plays from just after the run picked, as if only the runs up to it had been played, or from before all of them,
+   * keeping the order shown.
+   */
   protected playFromPicked(): void {
     const { ids } = this.shownOrder();
-    const line = ids.indexOf(this.picked ?? '');
-    if (line !== -1) {
+    const picked = this.picked();
+    const line = picked === ALL ? 0 : ids.indexOf(picked ?? '') + 1;
+    if (line !== 0 || picked === ALL) {
       void this.tweaks.setRunOrder({ ids, line });
+    }
+  }
+
+  /** Shows or leaves out the chart of all runs from the keyboard; taps do on their own, and long presses don't. */
+  protected clickAggregate(event: MouseEvent): void {
+    if (event.detail === 0) {
+      this.aggregateShown.set(!this.aggregateShown());
     }
   }
 
@@ -531,7 +551,7 @@ export class YourRuns {
 
   /** Deletes the run picked, once the player confirms. */
   protected async deletePicked(): Promise<void> {
-    const id = this.picked;
+    const id = this.picked();
     await this.recorder.saved();
     if (
       id === undefined ||
@@ -566,6 +586,9 @@ export class YourRuns {
     this.loaded.set(true);
   }
 }
+
+/** What's picked for the context menu when it's all runs rather than one: no run's id is empty. */
+const ALL = '';
 
 /** How far each arrow key moves a run. */
 const ARROW_STEPS: Partial<Record<string, number>> = { ArrowUp: -1, ArrowDown: 1 };
