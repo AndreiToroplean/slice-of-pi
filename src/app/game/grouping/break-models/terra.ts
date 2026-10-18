@@ -240,21 +240,52 @@ export function usualPace(
   runs: readonly JudgedRun[],
   settings: Pick<TerraSettings, 'recencyDecay'>,
 ): Values {
-  const longest = Math.max(0, ...runs.map((run) => run.places.length));
+  return paceOf(
+    paceSums(
+      runs,
+      runs.map((_, k) => settings.recencyDecay ** (runs.length - 1 - k)),
+    ),
+  );
+}
+
+/**
+ * What {@link usualPace} adds up at each interval, so that runs can be added to the sums of others: the weight of the
+ * runs with a pace there, and of their paces.
+ */
+export interface PaceSums {
+  readonly weights: readonly number[];
+  readonly paces: readonly number[];
+}
+
+/** The sums of {@link usualPace} over the runs, each weighing its weight, added in order to those of `from`, if given. */
+export function paceSums(
+  runs: readonly JudgedRun[],
+  weights: readonly number[],
+  from?: PaceSums,
+): PaceSums {
+  const sums = { weights: [] as number[], paces: [] as number[] };
+  const longest = Math.max(from?.weights.length ?? 0, ...runs.map((run) => run.places.length));
+  for (let p = 0; p < longest; p++) {
+    let weightSum = from?.weights[p] ?? 0;
+    let sum = from?.paces[p] ?? 0;
+    runs.forEach((run, k) => {
+      const pace = run.places[p]?.pace;
+      if (pace !== undefined) {
+        const weight = weights[k] ?? 0;
+        weightSum += weight;
+        sum += weight * pace;
+      }
+    });
+    sums.weights.push(weightSum);
+    sums.paces.push(sum);
+  }
+  return sums;
+}
+
+/** What {@link usualPace} gives, from its sums. */
+export function paceOf(sums: PaceSums): Values {
   return byIndex(
-    Array.from({ length: longest }, (_, p) => {
-      let weights = 0;
-      let sum = 0;
-      runs.forEach((run, k) => {
-        const pace = run.places[p]?.pace;
-        if (pace !== undefined) {
-          const weight = settings.recencyDecay ** (runs.length - 1 - k);
-          weights += weight;
-          sum += weight * pace;
-        }
-      });
-      return weights > 0 ? sum / weights : undefined;
-    }),
+    sums.weights.map((weight, p) => (weight > 0 ? (sums.paces[p] ?? 0) / weight : undefined)),
   );
 }
 

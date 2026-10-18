@@ -177,25 +177,58 @@ export function usualBreaks(
   logs: readonly Float64Array[],
   runs: readonly Pick<RunSteps, 'breakProbability'>[],
   weights: readonly (number | Float64Array)[],
-  synthetic: { readonly weight: number; readonly breakShare: number } = {
-    weight: 0,
-    breakShare: 0,
-  },
+  synthetic: Synthetic = NO_SYNTHETIC,
 ): {
   readonly usual: Values;
   readonly coverage: Values;
   readonly breaks: readonly number[];
   readonly averageTime: Values;
 } {
-  const usual: (number | undefined)[] = [undefined];
-  const coverage: (number | undefined)[] = [undefined];
-  const averageTime: (number | undefined)[] = [undefined];
-  const breakSums: number[] = [];
-  for (let p = 0; p < longestOf(logs); p++) {
-    let reached = synthetic.weight;
-    let breaks = synthetic.weight * synthetic.breakShare;
-    let timed = 0;
-    let time = 0;
+  return usualOf(breakSums(logs, runs, weights, synthetic));
+}
+
+/** The synthetic runs' weight, all together, and how often they break. */
+interface Synthetic {
+  readonly weight: number;
+  readonly breakShare: number;
+}
+
+const NO_SYNTHETIC: Synthetic = { weight: 0, breakShare: 0 };
+
+/**
+ * What {@link usualBreaks} adds up at each interval, so that runs can be added to the sums of others: the weight of the
+ * runs that reached it, synthetic ones included, and of their breaks; and the weight of the player's runs timed there,
+ * and of their intervals.
+ */
+export interface BreakSums {
+  readonly reached: readonly number[];
+  readonly breaks: readonly number[];
+  readonly timed: readonly number[];
+  readonly time: readonly number[];
+}
+
+/**
+ * The sums of {@link usualBreaks} over the runs, added in order to those of `from`, of earlier runs, if given; else
+ * to the synthetic runs' alone.
+ */
+export function breakSums(
+  logs: readonly Float64Array[],
+  runs: readonly Pick<RunSteps, 'breakProbability'>[],
+  weights: readonly (number | Float64Array)[],
+  synthetic: Synthetic = NO_SYNTHETIC,
+  from?: BreakSums,
+): BreakSums {
+  const sums = {
+    reached: [] as number[],
+    breaks: [] as number[],
+    timed: [] as number[],
+    time: [] as number[],
+  };
+  for (let p = 0; p < Math.max(from?.reached.length ?? 0, longestOf(logs)); p++) {
+    let reached = from?.reached[p] ?? synthetic.weight;
+    let breaks = from?.breaks[p] ?? synthetic.weight * synthetic.breakShare;
+    let timed = from?.timed[p] ?? 0;
+    let time = from?.time[p] ?? 0;
     logs.forEach((log, k) => {
       const value = log[p];
       if (value === undefined) {
@@ -208,12 +241,28 @@ export function usualBreaks(
       timed += weight;
       time += weight * Math.exp(value);
     });
-    coverage.push(reached);
-    averageTime.push(timed > 0 ? time / timed : undefined);
-    usual.push(reached > 0 ? breaks / reached : 0);
-    breakSums.push(breaks);
+    sums.reached.push(reached);
+    sums.breaks.push(breaks);
+    sums.timed.push(timed);
+    sums.time.push(time);
   }
-  return { usual, coverage, breaks: breakSums, averageTime };
+  return sums;
+}
+
+/** What {@link usualBreaks} gives, from its sums. */
+export function usualOf(sums: BreakSums): ReturnType<typeof usualBreaks> {
+  return {
+    usual: [
+      undefined,
+      ...sums.reached.map((reached, p) => (reached > 0 ? (sums.breaks[p] ?? 0) / reached : 0)),
+    ],
+    coverage: [undefined, ...sums.reached],
+    breaks: sums.breaks,
+    averageTime: [
+      undefined,
+      ...sums.timed.map((timed, p) => (timed > 0 ? (sums.time[p] ?? 0) / timed : undefined)),
+    ],
+  };
 }
 
 /**
