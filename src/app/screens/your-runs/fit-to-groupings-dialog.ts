@@ -4,6 +4,7 @@ import { RunStore } from '../../player-data/run-store';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import type { Plot } from './model-views';
 import { PlotChart } from './plot-chart';
+import { PinnedHyperparameters } from './pinned-hyperparameters';
 import type { BreakModelKind, Settings } from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import {
@@ -28,7 +29,7 @@ const FRAME = 30;
 /**
  * Developer mode's dialog that fits a break model's hyperparameters to the player's own groups, opened from the overflow
  * menu of Your Runs: pick the model, type or paste the groups, a space between each, and fit. Groups that aren't π show
- * as an error, saying where. The search runs while the dialog stays open, showing how well the model matches the groups
+ * as an error, saying where. The search, which leaves the hyperparameters pinned on Your Runs where they are, runs while the dialog stays open, showing how well the model matches the groups
  * as an F1 score, which tells models apart on the same groups, with all the runs or, fitting the run-count curve, with
  * fewer too; then the sliders are set to the best values found. It
  * stays open, so as to fit again once the model or the groups change. It draws the run-count curve of the model as set,
@@ -315,6 +316,7 @@ export class FitToGroupingsDialog {
   protected readonly models = BREAK_MODELS;
   private readonly tweaks = inject(Tweaks);
   private readonly store = inject(RunStore);
+  private readonly pins = inject(PinnedHyperparameters);
   protected readonly kind = this.tweaks.breakModelKind;
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
@@ -459,6 +461,7 @@ export class FitToGroupingsDialog {
     const best = await fitToGroupings(kind, this.tweaks.grouping(), this.runs(), this.labels(), {
       signal: abort.signal,
       curve,
+      pinned: this.pins.of(kind),
       pause: async (progress) => {
         this.progress.set(progress);
         await breathe();

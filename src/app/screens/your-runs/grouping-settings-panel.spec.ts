@@ -12,6 +12,7 @@ import { oneIn } from '../../game/grouping/break-models/hyperparameters';
 import { LUNA, LUNA_DEFAULTS } from '../../game/grouping/break-models/luna';
 import { MERCURY, MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
 import { ChartGuides } from './chart-guides';
+import { PinnedHyperparameters } from './pinned-hyperparameters';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 
 describe('GroupingSettingsPanel', () => {
@@ -140,6 +141,25 @@ describe('GroupingSettingsPanel', () => {
     checkbox?.click();
     expect(shown().size).toBe(0);
     expect(host.querySelector('input[aria-label="Show window on the charts"]')).toBeNull();
+  });
+
+  it('pins a setting for fitting while its pin is pressed, for the model picked', async () => {
+    const { host, detect } = await setUp();
+    const pin = host.querySelector<HTMLButtonElement>(
+      'button[aria-label="Pin the prior baseline when fitting"]',
+    );
+    const pins = TestBed.inject(PinnedHyperparameters);
+    const kind = TestBed.inject(Tweaks).breakModelKind();
+
+    pin?.click();
+    detect();
+    expect([...pins.of(kind)]).toEqual(['priorBaseline']);
+    expect(pin?.getAttribute('aria-pressed')).toBe('true');
+
+    pin?.click();
+    detect();
+    expect(pins.of(kind).size).toBe(0);
+    expect(pin?.getAttribute('aria-pressed')).toBe('false');
   });
 
   it('changes the setting as its slider moves, and shows its value', async () => {
