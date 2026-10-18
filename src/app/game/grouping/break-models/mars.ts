@@ -1,4 +1,5 @@
 import type { BreakModel, BreakModelKind, Settings } from './break-model';
+import type { Judged } from './terra';
 import { HYPERPARAMETERS } from './hyperparameters';
 import { groupEnds, modelFromSteps } from './model-from-steps';
 import { byIndex, groupsOf, longestOf, RunSteps, Steps, trustOf, usualBreaks } from './steps';
@@ -8,7 +9,6 @@ import {
   TERRA_DEFAULTS,
   TERRA_HYPERPARAMETERS,
   TerraSettings,
-  trustOfPlace,
   usualPace,
 } from './terra';
 
@@ -22,8 +22,10 @@ import {
  *    evidence is a straight line in z, so in the log of the interval: halving the interval counts as much against a
  *    break as doubling it counts for one. Unlike Terra, an interval faster than its pace isn't cut to "no break": it
  *    says so, the more surely the faster it is.
- * 2. The evidence of every run at a place is added up, each weighing its recency times its trust there, as in Terra,
- *    on top of the break share, the prior, counted once. That's the log-odds of a break at the place, and the
+ * 2. The evidence of every run at a place is added up, each weighing its recency times its trust there, on top of the
+ *    break share, the prior, counted once. The trust is Terra's, how uneven the run is around the place, but that
+ *    unevenness starts from a prior one, worth a few neighbors, so that a run's first intervals, with too few neighbors
+ *    to tell, aren't taken for perfectly steady ones; and how much the trust counts at all is a hyperparameter. That's the log-odds of a break at the place, and the
  *    usual-break probability. Adding up the evidence is averaging the runs' z, so the runs are pooled before being
  *    judged, as in Venus (`venus.ts`), but in each run's own terms rather than in milliseconds.
  * 3. One threshold, the break threshold, makes the usual break spots, so the groups, and ends every group as it's
@@ -37,8 +39,17 @@ import {
  * Nothing here is stored; it's always computed from the times of the runs.
  */
 
-/** Mars's hyperparameters: Terra's, with one threshold for every break. */
-export type MarsSettings = Omit<TerraSettings, 'usualThreshold'>;
+/** Mars's hyperparameters: Terra's, with one threshold for every break, and two of its own for the trust. */
+export type MarsSettings = Omit<TerraSettings, 'usualThreshold'> &
+  Readonly<{
+    /** The unevenness a run is taken to have around a place before its neighbors say, in log-interval. */
+    priorUnevenness: number;
+    /** How much the trust counts, from 0 (every run weighs its recency alone) to 1 (its recency times its trust). */
+    trustInfluence: number;
+  }>;
+
+/** How many neighbors' worth the prior unevenness weighs against a place's own neighbors. */
+const PRIOR_NEIGHBORS = 2;
 
 /** Terra's, to start from until Mars is fitted. */
 export const MARS_DEFAULTS: MarsSettings = {
@@ -51,6 +62,8 @@ export const MARS_DEFAULTS: MarsSettings = {
   breakThreshold: TERRA_DEFAULTS.breakThreshold,
   level: TERRA_DEFAULTS.level,
   startingSlots: TERRA_DEFAULTS.startingSlots,
+  priorUnevenness: 0.2,
+  trustInfluence: 1,
 };
 
 /**
@@ -110,6 +123,18 @@ export function mars(
       trust.horizon,
     ),
   };
+}
+
+/**
+ * How much a run's evidence at a place counts, from 0 to 1, besides its recency: as much as the run is uneven around
+ * it, its neighbors' unevenness pooled with the prior one, up to full trust; then as much as the trust counts at all.
+ */
+function trustOfPlace(at: Judged, settings: MarsSettings): number {
+  const variance =
+    (at.neighbors * at.unevenness ** 2 + PRIOR_NEIGHBORS * settings.priorUnevenness ** 2) /
+    (at.neighbors + PRIOR_NEIGHBORS);
+  const trust = Math.min(1, Math.sqrt(variance) / settings.fullTrustUnevenness);
+  return 1 - settings.trustInfluence * (1 - trust);
 }
 
 function logit(probability: number): number {
@@ -175,6 +200,34 @@ export const MARS: BreakModelKind = {
             why: 'Where you type like a metronome, a break is just noise, and a steady run says little about your groups: once you’re fluent enough to type a stretch in one stream, its groups are kept rather than erased.',
             moving:
               'Lower trusts runs sooner, so steady stretches count as much as structured ones. Higher only trusts clearly structured stretches, so the trust horizon comes sooner. It never moves a run’s own breaks.',
+          },
+        },
+        {
+          key: 'priorUnevenness',
+          label: 'Prior unevenness',
+          min: 0,
+          max: 1,
+          step: 0.02,
+          format: (value) => value.toFixed(2),
+          help: {
+            what: `How uneven a run is taken to be around a place before its neighbors there say, in log-interval: it counts as ${String(PRIOR_NEIGHBORS)} neighbors more, so it fades as real neighbors come.`,
+            why: 'At the start of a run, a place has one or two neighbors, which can’t tell how uneven you are: without a prior, they’d look perfectly steady, and the run, the one you’re typing included, wouldn’t count there at all, so no pause could end a group.',
+            moving:
+              'Higher trusts a run’s first intervals more, so a pause early in a run ends a group sooner. Lower leaves them to their few neighbors.',
+          },
+        },
+        {
+          key: 'trustInfluence',
+          label: 'Trust influence',
+          min: 0,
+          max: 1,
+          step: 0.05,
+          format: (value) => value.toFixed(2),
+          help: {
+            what: 'How much the trust counts in a run’s weight at a place: at 0, every run weighs its recency alone; at 1, its recency times its trust; in between, a run with no trust still weighs that much less than 1.',
+            why: 'The trust keeps steady stretches from erasing your groups, but it also keeps a fluent run through a break spot from undoing it. Fitted, it tells whether the trust earns its place.',
+            moving:
+              'Lower lets steady runs count as much as uneven ones, so a fluent run-through merges groups sooner. Higher leaves your groups to the runs where you pause clearly.',
           },
         },
       ],

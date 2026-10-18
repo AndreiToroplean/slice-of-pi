@@ -113,6 +113,20 @@ describe('Mars', () => {
     expect(play.groupEnds(timesOf(8, []), false)).toBe(false);
   });
 
+  it('lets a pause end a group from the start of a run, its few neighbors there pooled with the prior unevenness', () => {
+    expect(waitToEnd(grouped, 2)).toBeLessThan(10_000);
+  });
+
+  it('weighs the runs by their recency alone without the trust', () => {
+    // A metronome: no unevenness, so no trust, but steady all along, so evidence against a break everywhere.
+    const steady = [Array.from({ length: 12 }, (_, i) => 200 * i)];
+    const usual = (trustInfluence: number) =>
+      MARS.steps?.({ priorUnevenness: 0, trustInfluence }, steady).usual[6];
+
+    expect(usual(1)).toBeCloseTo(MARS_DEFAULTS.breakShare, 5);
+    expect(usual(0)).toBeLessThan(MARS_DEFAULTS.breakShare - 0.1);
+  });
+
   it('has no groups without digits', () => {
     expect(MARS.create({}).stats([]).groups).toEqual([]);
   });
