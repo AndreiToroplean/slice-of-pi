@@ -12,7 +12,6 @@ import {
 } from '@angular/core';
 import { Background } from '../../ui/background';
 import { BreakCountdown } from './break-countdown';
-import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { waitToEnd } from '../../game/grouping/wait-to-end';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from './flight/flight';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
@@ -41,7 +40,7 @@ import { TIMER } from './timer';
  * as mistakes in their slots, and never finish the group, until backspace deletes them.
  * Backspace deletes the last digit, reopening the last word when the slots are empty, and brings the last word back when
  * it empties them, for the player to carry on, until they break there again. Developer mode counts down, left of 0, to
- * when the group being typed ends. Pausing offers to restart the game
+ * when the group being typed ends, unless its settings hide that. Pausing offers to restart the game
  * or end it, back to the main menu. Every key is recorded, with its time, in the player's runs; restarting or ending the
  * game ends the run.
  */
@@ -67,7 +66,7 @@ import { TIMER } from './timer';
     </p>
     <app-keypad class="keypad" [colors]="keyColors()" (keyPressed)="press($event)">
       @let wait = breakWait();
-      @if (developerMode() && wait !== undefined) {
+      @if (tweaks.countdown() && wait !== undefined) {
         <app-break-countdown [wait]="wait" />
       }
     </app-keypad>
@@ -84,14 +83,13 @@ export class Play {
    */
   protected readonly mistakes = signal('');
 
-  /** The colors tuned in developer mode, or the game's own. */
-  private readonly tweaks = inject(Tweaks);
+  /** The colors tuned in developer mode, or the game's own, and whether to count down to the end of the group. */
+  protected readonly tweaks = inject(Tweaks);
 
   /** Whether the game is paused: keys typed on a keyboard meanwhile don't count. */
   protected readonly paused = signal(false);
 
   private readonly recorder = inject(RunRecorder);
-  protected readonly developerMode = inject(DeveloperMode).enabled;
   /**
    * How long after the last digit the group being typed ends, in milliseconds, while the player may still pause:
    * `Infinity` if no pause up to the longest wait looked at ends it.

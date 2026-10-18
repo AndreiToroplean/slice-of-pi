@@ -56,6 +56,8 @@ export interface TweakValues {
   readonly seasonTurn?: number;
   /** `false` to play without checking the digits, which the game otherwise always does. */
   readonly checking?: false;
+  /** `false` to play without the countdown to the end of the group being typed, which developer mode otherwise shows. */
+  readonly countdown?: false;
   /** `true` to count unchecked runs in the player's groups, which otherwise leave them out. */
   readonly includeUnchecked?: true;
   /** The order the game takes the runs in, and the line it plays from among them (see {@link RunOrder}). */
@@ -125,6 +127,11 @@ export class Tweaks {
   /** Whether the game checks the digits typed against π. */
   readonly checking = computed(
     () => !this.developerMode.enabled() || this.tweaks().checking !== false,
+  );
+
+  /** Whether the game counts down to the end of the group being typed, which only developer mode does. */
+  readonly countdown = computed(
+    () => this.developerMode.enabled() && this.tweaks().countdown !== false,
   );
 
   /** Whether the player's groups count unchecked runs, which may hold mistakes. */
@@ -214,6 +221,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), checking: checking ? undefined : false }));
   }
 
+  /** Shows the countdown to the end of the group being typed, or hides it. */
+  setCountdown(countdown: boolean): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), countdown: countdown ? undefined : false }));
+  }
+
   /** Counts unchecked runs in the player's groups, or leaves them out. */
   setIncludeUnchecked(includeUnchecked: boolean): Promise<void> {
     return this.save(
@@ -296,6 +308,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     colorSpace,
     seasonTurn,
     checking,
+    countdown,
     includeUnchecked,
     runOrder,
   } = migrate(stored, TWEAKS_MIGRATIONS);
@@ -311,6 +324,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
+    countdown: countdown === false ? countdown : undefined,
     includeUnchecked: includeUnchecked === true ? includeUnchecked : undefined,
     runOrder: runOrderOf(runOrder),
   });
@@ -326,6 +340,7 @@ function tweakValues({
   colorSpace,
   seasonTurn,
   checking,
+  countdown,
   includeUnchecked,
   runOrder,
 }: {
@@ -340,6 +355,7 @@ function tweakValues({
     ...(colorSpace === undefined ? {} : { colorSpace }),
     ...(seasonTurn === undefined ? {} : { seasonTurn }),
     ...(checking === undefined ? {} : { checking }),
+    ...(countdown === undefined ? {} : { countdown }),
     ...(includeUnchecked === undefined ? {} : { includeUnchecked }),
     ...(runOrder === undefined ? {} : { runOrder }),
   };

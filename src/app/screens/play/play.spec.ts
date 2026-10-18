@@ -462,6 +462,16 @@ describe('Play', () => {
       expect(countdown(host)).toBe('> 10⁶');
     });
 
+    it('shows nothing when developer mode hides it', async () => {
+      const { host, type } = await setUpWithRuns(4, true, async () => {
+        await TestBed.inject(DeveloperMode).set(true);
+        await TestBed.inject(Tweaks).setCountdown(false);
+      });
+      await typeAll(type, '14');
+
+      expect(countdown(host)).toBeUndefined();
+    });
+
     it('shows nothing outside developer mode', async () => {
       const { host, type } = await setUpWithRuns(4);
       await typeAll(type, '14');
