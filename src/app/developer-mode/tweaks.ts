@@ -20,6 +20,7 @@ import {
   BREAK_MODEL,
   BREAK_MODELS,
   breakModelKindById,
+  GAME_BREAK_MODEL,
 } from '../game/grouping/break-models/break-models';
 import { DeveloperMode } from './developer-mode';
 
@@ -76,6 +77,7 @@ export const SEASON_STARTS: SeasonStarts = Object.fromEntries(
 export class Tweaks {
   private readonly store = inject(RunStore);
   private readonly developerMode = inject(DeveloperMode);
+  private readonly gameBreakModel = inject(GAME_BREAK_MODEL);
   private readonly tweaks = signal<TweakValues>({});
   private changed = false;
 
@@ -99,7 +101,7 @@ export class Tweaks {
   readonly breakModelKind = computed(
     (): BreakModelKind =>
       (this.developerMode.enabled() ? breakModelKindById(this.tweaks().breakModel) : undefined) ??
-      BREAK_MODEL,
+      this.gameBreakModel,
   );
   /** The hyperparameters of that break model. */
   readonly grouping = computed(
@@ -161,7 +163,7 @@ export class Tweaks {
 
   /** Picks the break model the groups come from, with the hyperparameters tuned for it, if any. */
   setBreakModel(kind: BreakModelKind): Promise<void> {
-    const breakModel = kind === BREAK_MODEL ? undefined : kind.id;
+    const breakModel = kind === this.gameBreakModel ? undefined : kind.id;
     return this.save(tweakValues({ ...this.tweaks(), breakModel }));
   }
 

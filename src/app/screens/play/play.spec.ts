@@ -27,6 +27,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { Play } from './play';
+import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 
 /** A pause clearly longer than the time between digits, in milliseconds. */
 const PAUSE = 2000;
@@ -34,7 +35,7 @@ const PAUSE = 2000;
 describe('Play', () => {
   // Compiles the play screen once, before its tests, so that the first one doesn't pay for it.
   beforeAll(async () => {
-    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    TestBed.configureTestingModule({ providers: [PLAY_WITH_MERCURY, provideRouter(routes)] });
     const fixture = TestBed.createComponent(Play);
     await fixture.whenStable();
     TestBed.resetTestingModule();
@@ -48,7 +49,12 @@ describe('Play', () => {
     time = new FakeTime();
     typed = 0;
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes), provideLocationMocks(), ...time.providers],
+      providers: [
+        PLAY_WITH_MERCURY,
+        provideRouter(routes),
+        provideLocationMocks(),
+        ...time.providers,
+      ],
     });
   });
 

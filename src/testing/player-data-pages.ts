@@ -18,6 +18,7 @@ import {
   RUNS,
   STORAGE_MANAGER,
 } from '../app/player-data/run-store';
+import { PLAY_WITH_MERCURY } from './game-break-model';
 
 /** The player's data a page opens on, and what stands in for the player and the browser. */
 export interface PageSetUp {
@@ -64,6 +65,7 @@ export async function openPage(
   }
   TestBed.configureTestingModule({
     providers: [
+      PLAY_WITH_MERCURY,
       provideRouter([]),
       { provide: INDEXED_DB, useValue: indexedDb },
       { provide: IS_PREVIEW, useValue: preview },
