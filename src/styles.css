@@ -235,6 +235,53 @@ body {
   outline-offset: 0.25rem;
 }
 
+/* A small candy button, such as in the top bar of a page. */
+.candy.small {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.875rem;
+  box-shadow: 0 0.1875rem 0 var(--candy-edge);
+  font-size: 0.875rem;
+
+  &:active {
+    translate: 0 0.125rem;
+    box-shadow: 0 0.0625rem 0 var(--candy-edge);
+  }
+}
+
+/* A small round button next to a setting, such as to bring back its default value. */
+.round {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--frost-pressed);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+}
+
+.round:disabled {
+  opacity: 0.4;
+}
+
+.round:focus-visible {
+  outline: 0.1875rem solid var(--focus-ring);
+  outline-offset: 0.125rem;
+}
+
+.round svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* A dialog as a frosted card over the dimmed, blurred screen (`<dialog class="card">`), with its title in an `h2`. */
 dialog.card {
   width: min(100% - 3rem, 18rem);
