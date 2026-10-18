@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792310852635,
+  "lastUpdate": 1792313176961,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1520,6 +1520,46 @@ window.BENCHMARK_DATA = {
             "value": 456,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "00ec1d0382bdd2894c49788aea68a45253282d3b",
+          "message": "fix: draw the level on the confidence chart of every break model\n\nThe level was drawn only for the models that fit a mixture, so Terra's and Luna's confidence charts left it out. Every break model has a level now, so its guide shows on all of them.\n\nClaude-Session: https://claude.ai/code/session_01W6t6N8aTo3JFtn4tyjtNp8",
+          "timestamp": "2026-10-18T10:45:54+02:00",
+          "tree_id": "3e73645cf7a8c03d0f7b7830633fd9830397a249",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/00ec1d0382bdd2894c49788aea68a45253282d3b"
+        },
+        "date": 1792313176211,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 8088,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 15230,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 569,
+            "unit": "ms",
+            "extra": "FitToGroupingsDialog fits the model to the groupings, sets the sliders and closes"
           }
         ]
       }
