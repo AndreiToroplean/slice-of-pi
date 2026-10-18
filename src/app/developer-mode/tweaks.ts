@@ -47,6 +47,8 @@ export interface TweakValues {
   readonly breakModel?: string;
   /** The hyperparameters tuned for each break model, by its id, for its defaults: each keeps its own. */
   readonly grouping?: Readonly<Record<string, Settings>>;
+  /** The keys of the hyperparameters pinned for each break model, by its id: fitting it leaves them where they are. */
+  readonly pins?: Readonly<Record<string, readonly string[]>>;
   /** The color space the background blends its colors in, for {@link SEASON_COLOR_SPACE}. */
   readonly colorSpace?: ColorSpace;
   /** How many places a season takes to turn into the next, for {@link SEASON_TURN}. */
@@ -176,6 +178,25 @@ export class Tweaks {
     );
   }
 
+  /** The keys of the hyperparameters of a break model that are pinned, so that fitting it leaves them where they are. */
+  pinsOf(kind: BreakModelKind): ReadonlySet<string> {
+    return new Set(this.tweaks().pins?.[kind.id]);
+  }
+
+  /** Pins a hyperparameter of a break model, or unpins it. The other models keep their pins. */
+  togglePin(kind: BreakModelKind, key: string): Promise<void> {
+    const keys = this.pinsOf(kind);
+    const next = keys.has(key) ? [...keys].filter((each) => each !== key) : [...keys, key];
+    const others = Object.entries(this.tweaks().pins ?? {}).filter(([id]) => id !== kind.id);
+    const pins = [...others, ...(next.length === 0 ? [] : [[kind.id, next] as const])];
+    return this.save(
+      tweakValues({
+        ...this.tweaks(),
+        pins: pins.length === 0 ? undefined : Object.fromEntries(pins),
+      }),
+    );
+  }
+
   /** Sets the color space the background blends its colors in; `undefined` brings back the game's. */
   setColorSpace(colorSpace: ColorSpace | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), colorSpace }));
@@ -274,6 +295,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     seasons,
     breakModel,
     grouping,
+    pins,
     colorSpace,
     seasonTurn,
     checking,
@@ -288,6 +310,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
     breakModel: breakModelKindById(breakModel)?.id,
     grouping: groupingOf(grouping),
+    pins: pinsOf(pins),
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
@@ -302,6 +325,7 @@ function tweakValues({
   seasons,
   breakModel,
   grouping,
+  pins,
   colorSpace,
   seasonTurn,
   checking,
@@ -315,6 +339,7 @@ function tweakValues({
     ...(seasons === undefined ? {} : { seasons }),
     ...(breakModel === undefined ? {} : { breakModel }),
     ...(grouping === undefined ? {} : { grouping }),
+    ...(pins === undefined ? {} : { pins }),
     ...(colorSpace === undefined ? {} : { colorSpace }),
     ...(seasonTurn === undefined ? {} : { seasonTurn }),
     ...(checking === undefined ? {} : { checking }),
@@ -362,6 +387,23 @@ function groupingOf(value: unknown): Readonly<Record<string, Settings>> | undefi
   const kept = BREAK_MODELS.flatMap((kind) => {
     const settings = settingsOf(kind, stored[kind.id]);
     return settings === undefined ? [] : [[kind.id, settings] as const];
+  });
+  return kept.length === 0 ? undefined : Object.fromEntries(kept);
+}
+
+/** Each break model's pins stored, by its id, leaving out the keys of none of its hyperparameters, and models with none. */
+function pinsOf(value: unknown): Readonly<Record<string, readonly string[]>> | undefined {
+  if (typeof value !== 'object' || value === null) {
+    return undefined;
+  }
+  const stored = value as Record<string, unknown>;
+  const kept = BREAK_MODELS.flatMap((kind) => {
+    const keys: unknown = stored[kind.id];
+    const pinned = kind.tabs
+      .flatMap((tab) => tab.hyperparameters)
+      .map(({ key }) => key)
+      .filter((key) => Array.isArray(keys) && keys.includes(key));
+    return pinned.length === 0 ? [] : [[kind.id, pinned] as const];
   });
   return kept.length === 0 ? undefined : Object.fromEntries(kept);
 }

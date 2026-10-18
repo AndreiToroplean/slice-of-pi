@@ -4,7 +4,6 @@ import { RunStore } from '../../player-data/run-store';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import type { Plot } from './model-views';
 import { PlotChart } from './plot-chart';
-import { PinnedHyperparameters } from './pinned-hyperparameters';
 import type { BreakModelKind, Settings } from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import {
@@ -316,7 +315,6 @@ export class FitToGroupingsDialog {
   protected readonly models = BREAK_MODELS;
   private readonly tweaks = inject(Tweaks);
   private readonly store = inject(RunStore);
-  private readonly pins = inject(PinnedHyperparameters);
   protected readonly kind = this.tweaks.breakModelKind;
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
@@ -461,7 +459,7 @@ export class FitToGroupingsDialog {
     const best = await fitToGroupings(kind, this.tweaks.grouping(), this.runs(), this.labels(), {
       signal: abort.signal,
       curve,
-      pinned: this.pins.of(kind),
+      pinned: this.tweaks.pinsOf(kind),
       pause: async (progress) => {
         this.progress.set(progress);
         await breathe();

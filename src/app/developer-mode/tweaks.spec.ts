@@ -294,6 +294,26 @@ describe('Tweaks', () => {
     }
   });
 
+  it('keeps each break model’s pins, apart from the others', async () => {
+    const tweaks = await load();
+    await tweaks.togglePin(MERCURY, 'window');
+    await tweaks.togglePin(MERCURY, 'level');
+    await tweaks.togglePin(VENUS, 'level');
+    await tweaks.togglePin(MERCURY, 'window');
+
+    expect([...tweaks.pinsOf(MERCURY)]).toEqual(['level']);
+    expect((await load()).values()).toEqual({ pins: { mercury: ['level'], venus: ['level'] } });
+  });
+
+  it('leaves out the pins of no hyperparameter of their model', () => {
+    expect(
+      parseTweaks({
+        format: TWEAKS_FORMAT,
+        pins: { mercury: ['window', 'droppedSince', 3], venus: 'level', pluto: ['window'] },
+      }),
+    ).toEqual({ pins: { mercury: ['window'] } });
+  });
+
   it('keeps the grouping settings stored when others were added or dropped since', () => {
     expect(
       parseTweaks({
