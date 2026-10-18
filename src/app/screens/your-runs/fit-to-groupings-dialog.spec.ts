@@ -74,7 +74,7 @@ describe('FitToGroupingsDialog', () => {
   }
 
   function fitButton(host: HTMLElement): HTMLButtonElement {
-    return field(host, 'button.primary') as HTMLButtonElement;
+    return field(host, 'button.end-fit') as HTMLButtonElement;
   }
 
   function type(host: HTMLElement, text: string): void {
@@ -177,11 +177,35 @@ describe('FitToGroupingsDialog', () => {
     expect(field(host, '.curve h3').textContent).toBe(`Run-count curve of ${LUNA.label}`);
   }, 40_000);
 
+  it('fits the run-count curve, with fewer runs too, and can still fit with all of them', async () => {
+    const { host, detect } = await setUp(groupedBy(3));
+    await TestBed.inject(Tweaks).setBreakModel(LUNA);
+    detect();
+    const curveButton = field(host, 'button.curve-fit') as HTMLButtonElement;
+    curveButton.click();
+    detect();
+
+    expect(status(host)).toMatch(
+      /^Refining your values until they settle, pass 1: best score \d\.\d\d so far, of F1 with all runs and fewer\.$/,
+    );
+    await vi.waitFor(
+      () => {
+        detect();
+        expect(curveButton.textContent.trim()).toBe('Curve Fitted');
+        expect(host.querySelector('.spinner')).toBeNull();
+      },
+      { timeout: 30_000, interval: 20 },
+    );
+    expect(curveButton.disabled).toBe(true);
+    expect(fitButton(host).disabled).toBe(false);
+    expect(fitButton(host).textContent.trim()).toBe('Fit');
+  }, 40_000);
+
   it('stops fitting when closed, leaving the hyperparameters as they were', async () => {
     const { host, detect } = await setUp(groupedBy(6));
     fitButton(host).click();
     detect();
-    (field(host, '.buttons button:not(.primary)') as HTMLButtonElement).click();
+    (field(host, '.buttons button') as HTMLButtonElement).click();
     await vi.waitFor(() => {
       detect();
       expect(fitButton(host).disabled).toBe(false);
