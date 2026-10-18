@@ -1,6 +1,7 @@
 import { inject, InjectionToken, Service, signal } from '@angular/core';
 import { Tweaks } from '../developer-mode/tweaks';
 import { KeypadKey } from '../game/layers/keypad-layout';
+import { KeypadLayoutSetting } from './keypad-layout-setting';
 import { addDigit, deleteMistake, newRun, removeDigit, Run } from './run';
 import { RunStore } from './run-store';
 
@@ -30,13 +31,14 @@ export const RUN_CLOCK = new InjectionToken<RunClock>('RUN_CLOCK', {
  *
  * A run starts with the first digit typed and ends when the game restarts or ends. Deleting every digit deletes the run,
  * as if it had never started, and the next digit starts a new one. A run started without checking the digits, in
- * developer mode, is marked unchecked.
+ * developer mode, is marked unchecked, and each run records the keypad layout it's played on.
  */
 @Service()
 export class RunRecorder {
   private readonly store = inject(RunStore);
   private readonly clock = inject(RUN_CLOCK);
   private readonly tweaks = inject(Tweaks);
+  private readonly keypadLayout = inject(KeypadLayoutSetting);
 
   private readonly current = signal<Run | undefined>(undefined);
   /** The run being played, as recorded so far; `undefined` until its first digit. */
@@ -66,7 +68,12 @@ export class RunRecorder {
       return;
     }
     if (run === undefined) {
-      run = newRun(this.clock.newId(), this.clock.epoch(), this.tweaks.checking());
+      run = newRun(
+        this.clock.newId(),
+        this.clock.epoch(),
+        this.tweaks.checking(),
+        this.keypadLayout.layout(),
+      );
       this.start = now;
       this.rewound = 0;
       void this.store.persist();

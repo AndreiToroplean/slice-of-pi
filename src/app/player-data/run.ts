@@ -1,3 +1,4 @@
+import { DEFAULT_KEYPAD_LAYOUT, KEYPAD_LAYOUTS, KeypadLayout } from '../game/layers/keypad-layout';
 import { Digit } from '../game/pi/digit';
 import { migrate, Migration } from './migration';
 
@@ -7,7 +8,7 @@ import { migrate, Migration } from './migration';
  * in a newer format than it knows (written by a pull request preview sharing the site's storage) leaves it alone
  * rather than misreading it.
  */
-export const RUN_FORMAT = 2;
+export const RUN_FORMAT = 3;
 
 /**
  * The raw record of one run: each digit typed and when. Nothing derived (groups, pauses, pace) is stored; it's always
@@ -25,6 +26,8 @@ export interface Run {
    * checking, in developer mode, aren't, nor are those from before the game checked digits: they may hold mistakes.
    */
   readonly checked: boolean;
+  /** The keypad layout the run was played on: where each key was. Runs from before players could pick it were on a calculator's. */
+  readonly keypadLayout: KeypadLayout;
   /** When the run started, in milliseconds since the Unix epoch. */
   readonly startedAt: number;
   /** The digits typed, in order. */
@@ -41,9 +44,23 @@ export interface Run {
   readonly backspaces: readonly number[];
 }
 
-/** A run that has no digits yet, checked unless said otherwise. */
-export function newRun(id: string, startedAt: number, checked = true): Run {
-  return { format: RUN_FORMAT, id, checked, startedAt, digits: '', times: [], backspaces: [] };
+/** A run that has no digits yet, checked and on the default keypad layout unless said otherwise. */
+export function newRun(
+  id: string,
+  startedAt: number,
+  checked = true,
+  keypadLayout: KeypadLayout = DEFAULT_KEYPAD_LAYOUT,
+): Run {
+  return {
+    format: RUN_FORMAT,
+    id,
+    checked,
+    keypadLayout,
+    startedAt,
+    digits: '',
+    times: [],
+    backspaces: [],
+  };
 }
 
 /** The run with one more digit, typed `time` milliseconds after its first digit. */
@@ -158,7 +175,7 @@ export function parseRun(value: unknown): Run | undefined {
   if (typeof value !== 'object' || value === null) {
     return undefined;
   }
-  const { format, id, checked, startedAt, digits, times, backspaces } = migrate(
+  const { format, id, checked, keypadLayout, startedAt, digits, times, backspaces } = migrate(
     value,
     RUN_MIGRATIONS,
   );
@@ -167,6 +184,7 @@ export function parseRun(value: unknown): Run | undefined {
     typeof id !== 'string' ||
     id === '' ||
     typeof checked !== 'boolean' ||
+    !KEYPAD_LAYOUTS.some((layout) => layout === keypadLayout) ||
     !isTime(startedAt) ||
     typeof digits !== 'string' ||
     !/^[0-9]*$/.test(digits) ||
@@ -178,13 +196,24 @@ export function parseRun(value: unknown): Run | undefined {
   ) {
     return undefined;
   }
-  return { format, id, checked, startedAt, digits, times, backspaces: backspaces as number[] };
+  return {
+    format,
+    id,
+    checked,
+    keypadLayout: keypadLayout as KeypadLayout,
+    startedAt,
+    digits,
+    times,
+    backspaces: backspaces as number[],
+  };
 }
 
 /** The steps that bring runs in older formats to the current one, one per format (see {@link migrate}). */
 export const RUN_MIGRATIONS: readonly Migration[] = [
   // Format 1 runs are from before the game checked digits.
   (run) => ({ ...run, checked: false }),
+  // Format 2 runs are from before players could pick the keypad layout: they played on a calculator's.
+  (run) => ({ ...run, keypadLayout: 'calculator' }),
 ];
 
 function isTime(value: unknown): value is number {

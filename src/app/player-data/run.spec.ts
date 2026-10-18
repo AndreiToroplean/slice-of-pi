@@ -25,6 +25,7 @@ describe('run', () => {
       format: RUN_FORMAT,
       id: 'run-1',
       checked: true,
+      keypadLayout: 'calculator',
       startedAt: 1_760_000_000_000,
       digits: '',
       times: [],
@@ -34,6 +35,10 @@ describe('run', () => {
 
   it('starts unchecked when asked', () => {
     expect(newRun('run-1', 0, false).checked).toBe(false);
+  });
+
+  it('starts on the keypad layout it is played on', () => {
+    expect(newRun('run-1', 0, true, 'telephone').keypadLayout).toBe('telephone');
   });
 
   it('records every digit and when it was typed, in whole milliseconds', () => {
@@ -181,11 +186,25 @@ describe('run', () => {
       expect(parseRun({ ...run, checked: false })).toEqual({ ...run, checked: false });
     });
 
+    it('reads a run on the telephone layout', () => {
+      expect(parseRun({ ...run, keypadLayout: 'telephone' })).toEqual({
+        ...run,
+        keypadLayout: 'telephone',
+      });
+    });
+
     it('migrates a run of format 1, from before the game checked digits, to an unchecked run', () => {
       const { id, startedAt, digits, times, backspaces } = run;
       const older = { format: 1, id, startedAt, digits, times, backspaces };
 
       expect(parseRun(older)).toEqual({ ...run, checked: false });
+    });
+
+    it('migrates a run of format 2, from before players picked the keypad layout, to one on the calculator layout', () => {
+      const { id, checked, startedAt, digits, times, backspaces } = run;
+      const older = { format: 2, id, checked, startedAt, digits, times, backspaces };
+
+      expect(parseRun(older)).toEqual({ ...run, keypadLayout: 'calculator' });
     });
 
     it('migrates a run without a format as one of format 1', () => {
@@ -204,6 +223,8 @@ describe('run', () => {
       ['an empty id', { ...run, id: '' }],
       ['no checked flag', { ...run, checked: undefined }],
       ['a checked flag that is not a boolean', { ...run, checked: 'yes' }],
+      ['no keypad layout', { ...run, keypadLayout: undefined }],
+      ['an unknown keypad layout', { ...run, keypadLayout: 'typewriter' }],
       ['a numeric id', { ...run, id: 1 }],
       ['a negative start', { ...run, startedAt: -1 }],
       ['a start that is not a number', { ...run, startedAt: '2026-10-10' }],

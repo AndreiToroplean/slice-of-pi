@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Tweaks } from '../developer-mode/tweaks';
-import { KeypadKey } from '../game/layers/keypad-layout';
+import { KeypadKey, KeypadLayout } from '../game/layers/keypad-layout';
+import { KeypadLayoutSetting } from './keypad-layout-setting';
 import { Run, RUN_FORMAT } from './run';
 import { RUN_CLOCK, RunRecorder } from './run-recorder';
 import { RunStore } from './run-store';
@@ -16,9 +17,12 @@ describe('RunRecorder', () => {
   let failing: boolean;
   /** Whether the game checks the digits. */
   let checking: boolean;
+  /** The keypad layout the player picked. */
+  let layout: KeypadLayout;
 
   beforeEach(() => {
     checking = true;
+    layout = 'calculator';
     time = 5_000;
     ids = 0;
     saves = [];
@@ -29,6 +33,7 @@ describe('RunRecorder', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: Tweaks, useValue: { checking: () => checking } },
+        { provide: KeypadLayoutSetting, useValue: { layout: () => layout } },
         {
           provide: RUN_CLOCK,
           useValue: {
@@ -94,6 +99,7 @@ describe('RunRecorder', () => {
         format: RUN_FORMAT,
         id: 'run-1',
         checked: true,
+        keypadLayout: 'calculator',
         startedAt: 1_760_000_005_000,
         digits: '14',
         times: [0, 200],
@@ -205,6 +211,7 @@ describe('RunRecorder', () => {
         format: RUN_FORMAT,
         id: 'run-2',
         checked: true,
+        keypadLayout: 'calculator',
         startedAt: 1_760_000_006_000,
         digits: '14',
         times: [0, 200],
@@ -225,6 +232,16 @@ describe('RunRecorder', () => {
       { id: 'run-1', digits: '14', backspaces: [] },
       { id: 'run-2', digits: '1', times: [0] },
     ]);
+  });
+
+  it('records the keypad layout the run is played on', async () => {
+    const recorder = TestBed.inject(RunRecorder);
+    layout = 'telephone';
+
+    press(recorder, '1');
+    await recorder.saved();
+
+    expect(stored()[0]?.keypadLayout).toBe('telephone');
   });
 
   it('marks a run started without checking the digits as unchecked', async () => {
