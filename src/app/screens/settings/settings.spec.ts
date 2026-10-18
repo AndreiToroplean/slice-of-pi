@@ -50,6 +50,57 @@ describe('Settings', () => {
     expect(TestBed.inject(KeypadLayoutSetting).layout()).toBe('telephone');
   });
 
+  function button(host: HTMLElement, label: string): HTMLButtonElement | undefined {
+    return Array.from(host.querySelectorAll('button')).find(
+      (each) => each.getAttribute('aria-label') === label || each.textContent.trim() === label,
+    );
+  }
+
+  it('brings back the default keypad layout, once it was changed', async () => {
+    const setting = TestBed.inject(KeypadLayoutSetting);
+    const fixture = TestBed.createComponent(Settings);
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+    const revert = button(host, "Back to the game's keypad layout");
+    expect(revert?.disabled).toBe(true);
+
+    await setting.set('telephone');
+    await fixture.whenStable();
+    expect(revert?.disabled).toBe(false);
+    revert?.click();
+
+    expect(setting.layout()).toBe('calculator');
+  });
+
+  it('brings back the countdown, once it was turned off', async () => {
+    await TestBed.inject(DeveloperMode).set(true);
+    const tweaks = TestBed.inject(Tweaks);
+    await tweaks.setCountdown(false);
+    const host = await setUp();
+
+    button(host, "Back to the game's countdown")?.click();
+
+    expect(tweaks.countdown()).toBe(true);
+  });
+
+  it('brings back every default value at once', async () => {
+    await TestBed.inject(DeveloperMode).set(true);
+    const tweaks = TestBed.inject(Tweaks);
+    const setting = TestBed.inject(KeypadLayoutSetting);
+    const fixture = TestBed.createComponent(Settings);
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(button(host, 'Reset All')?.disabled).toBe(true);
+
+    await tweaks.setCountdown(false);
+    await setting.set('telephone');
+    await fixture.whenStable();
+    button(host, 'Reset All')?.click();
+
+    expect(tweaks.countdown()).toBe(true);
+    expect(setting.layout()).toBe('calculator');
+  });
+
   it('has no developer settings outside developer mode', async () => {
     const host = await setUp();
 

@@ -10,6 +10,14 @@ h2 {
   text-shadow: var(--text-shadow);
 }
 
+/* A setting, with its button to bring back its default value on the right. */
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 /* A setting's name, with what it does under it, and its checkbox on the right. */
 .setting {
   display: flex;
