@@ -1,4 +1,4 @@
-import type { BreakModel, BreakModelKind, Settings, Values } from './break-model';
+import type { BreakModel, BreakModelKind, Hyperparameter, Settings, Values } from './break-model';
 import { BreakSettings, HYPERPARAMETERS, oneIn } from './hyperparameters';
 import { groupEnds, modelFromSteps } from './model-from-steps';
 import { neighborsOf } from './statistics';
@@ -80,7 +80,12 @@ export interface Judged {
   readonly pace: number | undefined;
   /** The log of the time over the local pace, in local spreads: 0 without neighbors. */
   readonly z: number;
-  /** How much likelier the time is for a break than for a normal interval. */
+  /**
+   * The log of how much likelier the time is for a break than for a normal interval, as far below 0 as the time is
+   * faster than its pace as above it as the time is slower: 0 without neighbors.
+   */
+  readonly evidence: number;
+  /** How much likelier the time is for a break than for a normal interval: 0 below the pace, a break never faster. */
   readonly likelihood: number;
   /** How much this verdict counts in the vote, from 0 to 1. */
   readonly trust: number;
@@ -100,22 +105,27 @@ export interface JudgedRun {
  * Judges every place of one run, from its times (in milliseconds since its first digit), each against its neighbors in
  * the run.
  */
-export function judge(times: readonly number[], settings: TerraSettings): JudgedRun {
+export function judge(
+  times: readonly number[],
+  settings: Pick<TerraSettings, 'window' | 'spreadFloor' | 'breakShift' | 'fullTrustUnevenness'>,
+): JudgedRun {
   const logs = logIntervals(times);
   const places = Array.from(logs, (log, p): Judged => {
     const { mean: pace, spread: unevenness, count } = neighborsOf(logs, p, settings.window);
     const time = Math.exp(log);
     if (count === 0) {
-      return { time, pace: undefined, z: 0, likelihood: 1, trust: 0 };
+      return { time, pace: undefined, z: 0, evidence: 0, likelihood: 1, trust: 0 };
     }
     const z = (log - pace) / Math.max(unevenness, settings.spreadFloor);
-    // Normal intervals are N(0, 1) in z, breaks N(breakShift, 1): the ratio of the two densities.
+    // Normal intervals are N(0, 1) in z, breaks N(breakShift, 1): the log of the ratio of the two densities.
     const shift = settings.breakShift;
+    const evidence = shift * z - (shift * shift) / 2;
     return {
       time,
       pace: Math.exp(pace),
       z,
-      likelihood: z < 0 ? 0 : Math.exp(shift * z - (shift * shift) / 2),
+      evidence,
+      likelihood: z < 0 ? 0 : Math.exp(evidence),
       trust: Math.min(1, unevenness / settings.fullTrustUnevenness),
     };
   });
@@ -204,7 +214,10 @@ export function terra(
 }
 
 /** The recency-weighted mean of the runs' local paces at each index, in milliseconds. */
-function usualPace(runs: readonly JudgedRun[], settings: TerraSettings): Values {
+export function usualPace(
+  runs: readonly JudgedRun[],
+  settings: Pick<TerraSettings, 'recencyDecay'>,
+): Values {
   const longest = Math.max(0, ...runs.map((run) => run.places.length));
   return byIndex(
     Array.from({ length: longest }, (_, p) => {
@@ -237,6 +250,70 @@ function terraModel(settings: TerraSettings): BreakModel {
   );
 }
 
+/** The hyperparameters of Terra's own, by key, as their sliders show them. */
+export const TERRA_HYPERPARAMETERS = {
+  spreadFloor: {
+    key: 'spreadFloor',
+    label: 'Spread floor',
+    min: 0.02,
+    max: 0.5,
+    step: 0.01,
+    format: (value) =>
+      `${value.toFixed(2)} (about ${String(Math.round((Math.exp(value) - 1) * 100))}%)`,
+    help: {
+      what: 'Each interval is compared with its neighbors in the same run: how much longer it is than their pace, counted in their spread, how much they vary. Where they vary less than this, they’re taken as varying this much, in log-interval: 0.2 is about 22% either way.',
+      why: 'Counted in the spread so that a break means the same wherever you are and however you type there: where you type steadily, a small delay stands out; where you swing, it takes more. The floor keeps a run of very even keystrokes from making any slightly slow one a break.',
+      moving:
+        'Higher asks for longer pauses where you type steadily, so fewer, bigger groups there. Lower lets small delays count as breaks where you’re even.',
+    },
+  },
+  breakShift: {
+    key: 'breakShift',
+    label: 'Break shift',
+    min: 0.2,
+    max: 4,
+    step: 0.1,
+    format: (value) => `${value.toFixed(1)} spreads`,
+    help: {
+      what: 'How many spreads above the pace around it a typical break is. Normal intervals are about the pace, give or take a spread; breaks are about this far above it, give or take a spread.',
+      why: 'These two make how likely an interval is a break, from how far above the pace it is: the further, the likelier, so a pause long enough is always a break. No run’s verdict depends on the other runs, so a break means the same after one run as after a hundred.',
+      moving:
+        'Higher makes the likelihood rise faster past half the shift: long pauses are sure breaks and short ones sure normal intervals. Lower blurs the two, so a run’s verdicts are less sure and the vote of the runs counts more.',
+    },
+  },
+  breakShare: {
+    key: 'breakShare',
+    label: 'Break share',
+    min: 0.02,
+    max: 0.5,
+    step: 0.01,
+    format: (value) => `${value.toFixed(2)} (1 in ${oneIn(value)} digits)`,
+    help: {
+      what: 'The share of intervals that are breaks, before an interval says anything: the prior of each run’s P(break).',
+      why: 'How likely an interval is a break depends on how common breaks are, not only on how long it is. The run you’re typing takes how often your runs break at the place instead, so this matters most for your first run.',
+      moving:
+        'Higher makes shorter pauses count as breaks, so more and smaller groups. Lower asks for longer pauses.',
+    },
+  },
+  fullTrustUnevenness: {
+    key: 'fullTrustUnevenness',
+    label: 'Unevenness for full trust',
+    min: 0.02,
+    max: 1,
+    step: 0.02,
+    format: (value) => value.toFixed(2),
+    help: {
+      what: 'Each run’s P(break) at a place counts in how often your runs break there with a trust from 0 to 1, besides its recency: how uneven the run is around the place, the spread of its neighbors in log-interval. At this unevenness, the run is fully trusted. 0.1 means times vary by about 10% (a metronome), 0.6 by about 80% (clear pauses).',
+      why: 'Where you type like a metronome, a break is just noise, and a steady run says little about your groups: once you’re fluent enough to type a stretch in one stream, its groups are kept rather than erased.',
+      moving:
+        'Lower trusts runs sooner, so steady stretches count as much as structured ones. Higher only trusts clearly structured stretches, so the trust horizon comes sooner. It never moves a run’s own breaks.',
+    },
+  },
+} satisfies Record<
+  'spreadFloor' | 'breakShift' | 'breakShare' | 'fullTrustUnevenness',
+  Hyperparameter
+>;
+
 const H = HYPERPARAMETERS;
 
 /** Terra, as developer mode picks and tunes it. */
@@ -253,70 +330,14 @@ export const TERRA: BreakModelKind = {
       name: 'Breaks',
       hyperparameters: [
         H.window,
-        {
-          key: 'spreadFloor',
-          label: 'Spread floor',
-          min: 0.02,
-          max: 0.5,
-          step: 0.01,
-          format: (value) =>
-            `${value.toFixed(2)} (about ${String(Math.round((Math.exp(value) - 1) * 100))}%)`,
-          help: {
-            what: 'Each interval is compared with its neighbors in the same run: how much longer it is than their pace, counted in their spread, how much they vary. Where they vary less than this, they’re taken as varying this much, in log-interval: 0.2 is about 22% either way.',
-            why: 'Counted in the spread so that a break means the same wherever you are and however you type there: where you type steadily, a small delay stands out; where you swing, it takes more. The floor keeps a run of very even keystrokes from making any slightly slow one a break.',
-            moving:
-              'Higher asks for longer pauses where you type steadily, so fewer, bigger groups there. Lower lets small delays count as breaks where you’re even.',
-          },
-        },
-        {
-          key: 'breakShift',
-          label: 'Break shift',
-          min: 0.2,
-          max: 4,
-          step: 0.1,
-          format: (value) => `${value.toFixed(1)} spreads`,
-          help: {
-            what: 'How many spreads above the pace around it a typical break is. Normal intervals are about the pace, give or take a spread; breaks are about this far above it, give or take a spread.',
-            why: 'These two make how likely an interval is a break, from how far above the pace it is: the further, the likelier, so a pause long enough is always a break. No run’s verdict depends on the other runs, so a break means the same after one run as after a hundred.',
-            moving:
-              'Higher makes the likelihood rise faster past half the shift: long pauses are sure breaks and short ones sure normal intervals. Lower blurs the two, so a run’s verdicts are less sure and the vote of the runs counts more.',
-          },
-        },
-        {
-          key: 'breakShare',
-          label: 'Break share',
-          min: 0.02,
-          max: 0.5,
-          step: 0.01,
-          format: (value) => `${value.toFixed(2)} (1 in ${oneIn(value)} digits)`,
-          help: {
-            what: 'The share of intervals that are breaks, before an interval says anything: the prior of each run’s P(break).',
-            why: 'How likely an interval is a break depends on how common breaks are, not only on how long it is. The run you’re typing takes how often your runs break at the place instead, so this matters most for your first run.',
-            moving:
-              'Higher makes shorter pauses count as breaks, so more and smaller groups. Lower asks for longer pauses.',
-          },
-        },
+        TERRA_HYPERPARAMETERS.spreadFloor,
+        TERRA_HYPERPARAMETERS.breakShift,
+        TERRA_HYPERPARAMETERS.breakShare,
       ],
     },
     {
       name: 'Weights',
-      hyperparameters: [
-        H.recencyDecay,
-        {
-          key: 'fullTrustUnevenness',
-          label: 'Unevenness for full trust',
-          min: 0.02,
-          max: 1,
-          step: 0.02,
-          format: (value) => value.toFixed(2),
-          help: {
-            what: 'Each run’s P(break) at a place counts in how often your runs break there with a trust from 0 to 1, besides its recency: how uneven the run is around the place, the spread of its neighbors in log-interval. At this unevenness, the run is fully trusted. 0.1 means times vary by about 10% (a metronome), 0.6 by about 80% (clear pauses).',
-            why: 'Where you type like a metronome, a break is just noise, and a steady run says little about your groups: once you’re fluent enough to type a stretch in one stream, its groups are kept rather than erased.',
-            moving:
-              'Lower trusts runs sooner, so steady stretches count as much as structured ones. Higher only trusts clearly structured stretches, so the trust horizon comes sooner. It never moves a run’s own breaks.',
-          },
-        },
-      ],
+      hyperparameters: [H.recencyDecay, TERRA_HYPERPARAMETERS.fullTrustUnevenness],
     },
     {
       name: 'Groups',
