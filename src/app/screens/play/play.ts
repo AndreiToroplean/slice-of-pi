@@ -11,6 +11,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { Background } from '../../ui/background';
+import { waitToEnd } from '../../game/grouping/wait-to-end';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from './flight/flight';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { Keypad } from './keypad/keypad';
@@ -135,7 +136,7 @@ export class Play {
   private readonly typedDigits = viewChild.required(TypedDigits);
   /** Slots flying into their word. */
   private flights: Animation[] = [];
-  /** Stops looking whether the player has paused. */
+  /** Stops waiting for the player's pause to end the group. */
   private stopWatching = (): void => undefined;
 
   constructor() {
@@ -234,35 +235,35 @@ export class Play {
 
   /**
    * Finishes the group being typed as soon as the player breaks: where they usually do, within the trust horizon, or
-   * where this run does, past it, its next digit timed as if typed now. Even a group with all its slots filled waits
+   * where this run does, past it, its next digit timed as if typed then. Even a group with all its slots filled waits
    * for that: a next digit typed fast enough outweighs the break the earlier runs have there, and carries the group on.
-   * Never while a mistake shows.
+   * The break model is asked once, as the digit is typed, how long a pause that takes, and the group ends once the
+   * player has waited that long. Never while a mistake shows.
    */
   private watchForPause(flyNow = true): void {
     this.stopWatching();
     if (this.grouping().current === '' || this.mistakes() !== '') {
       return;
     }
-    const check = (fly: boolean): void => {
-      if (this.pausedLongEnough(this.plan().trusted)) {
-        this.stopWatching();
-        this.finishGroup(fly);
-      }
-    };
-    this.stopWatching = this.timer.every(PAUSE_CHECK, () => {
-      check(true);
-    });
-    check(flyNow);
+    const trusted = this.plan().trusted;
+    const left = waitToEnd((wait) => this.endsAfter(wait, trusted)) - this.recorder.waited();
+    if (left <= 0) {
+      this.finishGroup(flyNow);
+    } else if (left < Infinity) {
+      this.stopWatching = this.timer.after(left, () => {
+        this.finishGroup(true);
+      });
+    }
   }
 
-  /** Whether the group being typed, the player's own if `trusted`, ends before the next digit, were it typed now. */
-  private pausedLongEnough(trusted: boolean): boolean {
+  /**
+   * Whether the group being typed, the player's own if `trusted`, ends before the next digit, were it typed `wait`
+   * milliseconds after the last one.
+   */
+  private endsAfter(wait: number, trusted: boolean): boolean {
     const times = this.recorder.run()?.times ?? [];
     const last = times.at(-1);
-    return (
-      last !== undefined &&
-      this.gameplay().groupEnds([...times, last + this.recorder.waited()], trusted)
-    );
+    return last !== undefined && this.gameplay().groupEnds([...times, last + wait], trusted);
   }
 
   /** Turns the group being typed into a word, its slots flying into it if `fly`. */
@@ -312,9 +313,6 @@ export class Play {
     this.flights = [];
   }
 }
-
-/** How often to look whether the player has paused, in milliseconds. */
-const PAUSE_CHECK = 50;
 
 /** Whether slots can fly: not when the player prefers reduced motion, nor where the Web Animations API is missing. */
 function canFly(element: HTMLElement): boolean {
