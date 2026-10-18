@@ -211,15 +211,15 @@ export const MARS: BreakModelKind = {
         {
           key: 'currentDecay',
           label: 'Current decay',
-          min: 0.05,
+          min: 0.01,
           max: 1,
-          step: 0.05,
+          step: 0.01,
           format: (value) => value.toFixed(2),
           help: {
             what: 'The recency decay from the run you’re typing to your newest recorded run, where the recency decay above is between recorded runs: the run you’re typing counts 1, your newest recorded run this much, and each one before it the recency decay times the one after it. It only counts as you play: on Your Runs, no run is being typed.',
             why: 'The run you’re typing tells best how you group right now, so a pause in it can count for more than one in any run before, while how much is tuned apart from how your recorded runs fade.',
             moving:
-              'Lower lets the run you’re typing count for more, so a pause ends a group sooner where your earlier runs carried on, and a run-through undoes a usual break spot sooner. At 1, it counts just as a run newer than the newest would.',
+              'Lower lets the run you’re typing count for more, so a pause ends a group sooner where your earlier runs carried on, and a run-through undoes a usual break spot sooner. At the recency decay, it counts just as a run newer than the newest would; at 1, as much as the newest.',
           },
         },
       ],
@@ -230,7 +230,7 @@ export const MARS: BreakModelKind = {
         {
           ...T.fullTrustUnevenness,
           help: {
-            what: 'Each run’s evidence at a place counts with a trust from 0 to 1, besides its recency: how uneven the run is around the place, the spread of its neighbors in log-interval. At this unevenness, the run is fully trusted. 0.1 means times vary by about 10% (a metronome), 0.6 by about 80% (clear pauses).',
+            what: 'Each run’s evidence at a place counts with a trust from 0 to 1, besides its recency: how uneven the run is around the place, the spread of its neighbors in log-interval. At this unevenness, the run is fully trusted. At 0.1, times are typically within a factor of about 1.1 of the pace (a metronome); at 0.6, within a factor of about 1.8 (clear pauses).',
             why: 'Where you type like a metronome, a break is just noise, and a steady run says little about your groups: once you’re fluent enough to type a stretch in one stream, its groups are kept rather than erased.',
             moving:
               'Lower trusts runs sooner, so steady stretches count as much as structured ones. Higher only trusts clearly structured stretches, so the trust horizon comes sooner. It never moves a run’s own breaks.',
