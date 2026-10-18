@@ -33,6 +33,8 @@ interface Press {
  * Keys being pressed, by touch or keyboard, are shown pressed. Each digit key shows its color as an accent; pressing it
  * fills it with that color at once, for at least `SPLASH_DURATION`. The buttons themselves still work with the keyboard and
  * assistive technology (Enter or Space on a focused key).
+ *
+ * What it's given goes in its grid with the keys, placing itself, such as in the empty corner left of 0.
  */
 @Component({
   selector: 'app-keypad',
@@ -73,6 +75,7 @@ interface Press {
         }
       </button>
     }
+    <ng-content />
   `,
   styleUrl: './keypad.css',
 })
