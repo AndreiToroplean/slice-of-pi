@@ -1,3 +1,4 @@
+import type { Settings } from './break-model';
 import { mars, MARS, MARS_DEFAULTS } from './mars';
 import { judge } from './terra';
 
@@ -24,8 +25,12 @@ describe('Mars', () => {
   const grouped = Array.from({ length: 4 }, () => timesOf(30, by3(30)));
 
   /** How long the player must wait after typing `typed` digits of a grouped run for the group to end, to 10 ms. */
-  function waitToEnd(earlier: readonly (readonly number[])[], typed: number): number {
-    const play = MARS.create({}).play(earlier);
+  function waitToEnd(
+    earlier: readonly (readonly number[])[],
+    typed: number,
+    settings: Settings = {},
+  ): number {
+    const play = MARS.create(settings).play(earlier);
     const times = timesOf(typed, by3(30));
     const last = times.at(-1) ?? 0;
     let wait = 0;
@@ -52,8 +57,9 @@ describe('Mars', () => {
     expect(waitToEnd(grouped, 14)).toBeGreaterThan(waitToEnd(grouped.slice(0, 1), 14));
   });
 
-  it('ends a group at once where the runs usually break', () => {
-    expect(waitToEnd(grouped, 15)).toBeLessThan(100);
+  it('ends a group where the runs usually break before the next digit would come', () => {
+    // About 200 ms apart.
+    expect(waitToEnd(grouped, 15)).toBeLessThan(180);
   });
 
   it('lets runs typed through a usual break spot undo it', () => {
@@ -125,6 +131,20 @@ describe('Mars', () => {
 
     expect(usual(1)).toBeCloseTo(MARS_DEFAULTS.breakShare, 5);
     expect(usual(0)).toBeLessThan(MARS_DEFAULTS.breakShare - 0.1);
+  });
+
+  it('lets the run being typed count for more than the recorded runs, by the current decay', () => {
+    expect(waitToEnd(grouped, 14, { currentDecay: 0.1 })).toBeLessThan(
+      waitToEnd(grouped, 14, { currentDecay: 1 }),
+    );
+  });
+
+  it('weighs no run by the current decay without a run being typed', () => {
+    const uneven = [timesOf(30, by3(30)), timesOf(30, [5, 10, 20]), timesOf(30, [])];
+
+    expect(MARS.steps?.({ currentDecay: 0.1 }, uneven).usual).toEqual(
+      MARS.steps?.({ currentDecay: 1 }, uneven).usual,
+    );
   });
 
   it('has no groups without digits', () => {
