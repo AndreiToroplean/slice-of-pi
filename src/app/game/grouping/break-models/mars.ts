@@ -25,7 +25,9 @@ import {
  * 2. The evidence of every run at a place is added up, each weighing its recency times its trust there, on top of the
  *    break share, the prior, counted once. The trust is Terra's, how uneven the run is around the place, but that
  *    unevenness starts from a prior one, worth a few neighbors, so that a run's first intervals, with too few neighbors
- *    to tell, aren't taken for perfectly steady ones; and how much the trust counts at all is a hyperparameter. That's the log-odds of a break at the place, and the
+ *    to tell, aren't taken for perfectly steady ones; and how much the trust counts at all is a hyperparameter. The run
+ *    being typed, if any, counts 1, and the newest recorded run its own step down from it, the current decay; the
+ *    recorded runs before it fade by the recency decay as usual. That's the log-odds of a break at the place, and the
  *    usual-break probability. Adding up the evidence is averaging the runs' z, so the runs are pooled before being
  *    judged, as in Venus (`venus.ts`), but in each run's own terms rather than in milliseconds.
  * 3. One threshold, the break threshold, makes the usual break spots, so the groups, and ends every group as it's
@@ -39,13 +41,22 @@ import {
  * Nothing here is stored; it's always computed from the times of the runs.
  */
 
-/** Mars's hyperparameters: Terra's, with one threshold for every break, and two of its own for the trust. */
+/**
+ * Mars's hyperparameters: Terra's, with one threshold for every break, two of its own for the trust, and one for how
+ * much the run being typed counts.
+ */
 export type MarsSettings = Omit<TerraSettings, 'usualThreshold'> &
   Readonly<{
     /** The unevenness a run is taken to have around a place before its neighbors say, in log-interval. */
     priorUnevenness: number;
     /** How much the trust counts, from 0 (every run weighs its recency alone) to 1 (its recency times its trust). */
     trustInfluence: number;
+    /**
+     * The recency decay from the run being typed to the newest recorded run: the run being typed counts 1, the newest
+     * recorded run this, and each before it `recencyDecay` times the one after it. Without a run being typed, as on
+     * Your Runs, the newest recorded run counts 1, so this changes nothing there.
+     */
+    currentDecay: number;
   }>;
 
 /** How many neighbors' worth the prior unevenness weighs against a place's own neighbors. */
@@ -64,6 +75,7 @@ export const MARS_DEFAULTS: MarsSettings = {
   startingSlots: TERRA_DEFAULTS.startingSlots,
   priorUnevenness: 0.2,
   trustInfluence: 1,
+  currentDecay: 0.5,
 };
 
 /**
@@ -77,12 +89,15 @@ export function mars(
 ): Steps {
   const runs = current === undefined ? finished : [...finished, judge(current, settings)];
   const prior = logit(settings.breakShare);
-  const weights = runs.map((run, k) =>
-    Float64Array.from(
-      run.places,
-      (at) => settings.recencyDecay ** (runs.length - 1 - k) * trustOfPlace(at, settings),
-    ),
-  );
+  const weights = runs.map((run, k) => {
+    const recency =
+      current === undefined
+        ? settings.recencyDecay ** (runs.length - 1 - k)
+        : k === finished.length
+          ? 1
+          : settings.currentDecay * settings.recencyDecay ** (finished.length - 1 - k);
+    return Float64Array.from(run.places, (at) => recency * trustOfPlace(at, settings));
+  });
   const runSteps = runs.map((run): RunSteps => ({
     baseline: byIndex(run.places.map((at) => at.pace)),
     breakProbability: byIndex(run.places.map((at) => logistic(prior + at.evidence))),
@@ -170,7 +185,7 @@ export const MARS: BreakModelKind = {
   description:
     'Each run’s evidence for a break against the pace and spread around it in that run, added up over the runs at each place.',
   defaults: MARS_DEFAULTS,
-  // How each run is judged, how the runs are weighed, then how breaks make groups, as in Terra.
+  // How each run is judged, how the runs are weighed by recency and by trust, then how breaks make groups.
   tabs: [
     {
       name: 'Breaks',
@@ -190,9 +205,28 @@ export const MARS: BreakModelKind = {
       ],
     },
     {
-      name: 'Weights',
+      name: 'Recency',
       hyperparameters: [
         H.recencyDecay,
+        {
+          key: 'currentDecay',
+          label: 'Current decay',
+          min: 0.05,
+          max: 1,
+          step: 0.05,
+          format: (value) => value.toFixed(2),
+          help: {
+            what: 'The recency decay from the run you’re typing to your newest recorded run, where the recency decay above is between recorded runs: the run you’re typing counts 1, your newest recorded run this much, and each one before it the recency decay times the one after it. It only counts as you play: on Your Runs, no run is being typed.',
+            why: 'The run you’re typing tells best how you group right now, so a pause in it can count for more than one in any run before, while how much is tuned apart from how your recorded runs fade.',
+            moving:
+              'Lower lets the run you’re typing count for more, so a pause ends a group sooner where your earlier runs carried on, and a run-through undoes a usual break spot sooner. At 1, it counts just as a run newer than the newest would.',
+          },
+        },
+      ],
+    },
+    {
+      name: 'Trust',
+      hyperparameters: [
         {
           ...T.fullTrustUnevenness,
           help: {
