@@ -115,6 +115,18 @@ describe('Keypad', () => {
       expect(labels).toEqual(['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '']);
     });
 
+    it('renders the keys of the telephone layout, with 1 on top, and types the key touched there', () => {
+      fixture.componentRef.setInput('layout', 'telephone');
+      fixture.detectChanges();
+
+      const labels = Array.from(host.querySelectorAll('button'), (key) => key.textContent.trim());
+      expect(labels).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '']);
+      expect([button('1').style.gridRow, button('1').style.gridColumn]).toEqual(['1', '1']);
+      // Where 7 is in the calculator layout.
+      tap('7');
+      expect(typed).toEqual(['1']);
+    });
+
     it('places each key in its grid cell', () => {
       expect([button('7').style.gridRow, button('7').style.gridColumn]).toEqual(['1', '1']);
       expect([button('0').style.gridRow, button('0').style.gridColumn]).toEqual(['4', '2']);

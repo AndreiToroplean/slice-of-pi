@@ -1,6 +1,21 @@
-import { Component, DestroyRef, ElementRef, inject, input, output, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  DestroyRef,
+  ElementRef,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { Digit, isDigit } from '../../../game/pi/digit';
-import { KEYPAD_LAYOUT, KeypadKey, keyAt } from '../../../game/layers/keypad-layout';
+import {
+  DEFAULT_KEYPAD_LAYOUT,
+  KEY_POSITIONS,
+  KeypadKey,
+  KeypadLayout,
+  keyAt,
+} from '../../../game/layers/keypad-layout';
 
 /** How long a key must be held before it starts repeating, in ms. */
 export const REPEAT_DELAY = 400;
@@ -19,7 +34,7 @@ interface Press {
 }
 
 /**
- * On-screen keypad: digits and backspace.
+ * On-screen keypad: digits and backspace, in the layout given.
  *
  * Touches are handled on the whole keypad rather than on each button, for speed and reliability while typing fast:
  * - The keypad is split into equal cells, so a touch anywhere in a key's cell (gaps and corners included) is on it.
@@ -50,7 +65,7 @@ interface Press {
     '(window:blur)': 'heldKeys.set([])',
   },
   template: `
-    @for (position of keys; track position.key) {
+    @for (position of keys(); track position.key) {
       <button
         type="button"
         class="key"
@@ -82,9 +97,11 @@ interface Press {
 export class Keypad {
   /** Each digit key's color: the color its digit takes when typed next. */
   readonly colors = input.required<Readonly<Record<Digit, string>>>();
+  /** Where the keys sit. */
+  readonly layout = input<KeypadLayout>(DEFAULT_KEYPAD_LAYOUT);
   readonly keyPressed = output<KeypadKey>();
 
-  protected readonly keys = KEYPAD_LAYOUT;
+  protected readonly keys = computed(() => KEY_POSITIONS[this.layout()]);
 
   /** Keys held down on a physical keyboard. */
   protected readonly heldKeys = signal<readonly KeypadKey[]>([]);
@@ -260,7 +277,7 @@ export class Keypad {
   }
 
   private keyAt(event: PointerEvent): KeypadKey | null {
-    return keyAt(this.host.getBoundingClientRect(), event.clientX, event.clientY);
+    return keyAt(this.layout(), this.host.getBoundingClientRect(), event.clientX, event.clientY);
   }
 }
 
