@@ -80,15 +80,15 @@ export const HYPERPARAMETERS: { readonly [K in keyof BreakSettings]: Hyperparame
   level: {
     key: 'level',
     label: 'Level',
-    min: 0.5,
-    max: 0.99,
+    min: 0,
+    max: 1,
     step: 0.01,
     format: (value) => value.toFixed(2),
     help: {
       what: 'How confident the game must be of its verdict at a place, a usual break there or not, to follow your groups there. The place where it stops being that confident is the trust horizon: past it, the game stops following your groups.',
       why: 'The confidence at a place is the probability that your break rate there is on the side of ½ the verdict says, given the recency-weighted runs that reached it. It drops as fewer runs reach a place and as they disagree, but it’s noisy and would cross any level many times. So the game fits the best curve that only goes down, the confidence trend, and cuts where that falls below this level: once, so there’s a single horizon.',
       moving:
-        'At 0.9, about three recent runs need to agree. Higher asks for more of them, so the trust horizon comes sooner. Lower follows your groups further, into places fewer runs agree on.',
+        'At 0.9, about three recent runs need to agree. Higher asks for more of them, so the trust horizon comes sooner. Lower follows your groups further, into places fewer runs agree on: at 0, everywhere your runs reach.',
     },
   },
   priorStrength: {
