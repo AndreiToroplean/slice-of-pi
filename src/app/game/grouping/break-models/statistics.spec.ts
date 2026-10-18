@@ -6,9 +6,28 @@ import {
   fitMixture,
   isotonicDecreasing,
   mixtureDensity,
+  neighborsOf,
   trailingMedian,
 } from './statistics';
 import { priorMixture } from './steps';
+
+describe('neighbors', () => {
+  it('weighs the neighbors of a value around it, leaving it out', () => {
+    expect(neighborsOf([2, 2, 100, 2, 2], 2, 5)).toEqual({ mean: 2, spread: 0, count: 4 });
+    expect(neighborsOf([1, 3, 100, 3, 1], 2, 5).spread).toBeGreaterThan(0);
+  });
+
+  it('weighs nearer neighbors more', () => {
+    expect(neighborsOf([0, 10, 0, 0, 0], 2, 5).mean).toBeGreaterThan(
+      neighborsOf([10, 0, 0, 0, 0], 2, 5).mean,
+    );
+  });
+
+  it('takes no value before the first one asked for', () => {
+    expect(neighborsOf([100, 2, 2, 2], 2, 5, 1)).toEqual({ mean: 2, spread: 0, count: 2 });
+    expect(neighborsOf([5], 0, 5).count).toBe(0);
+  });
+});
 
 describe('medians', () => {
   it('takes a trailing median of the values so far only', () => {
