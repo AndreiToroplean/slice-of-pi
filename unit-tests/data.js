@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792313176961,
+  "lastUpdate": 1792335215825,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1558,6 +1558,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 569,
+            "unit": "ms",
+            "extra": "FitToGroupingsDialog fits the model to the groupings, sets the sliders and closes"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "22548766c2bf6a08595d91ea8a97a55abfa241d4",
+          "message": "chore: turn off the Angular CLI's analytics",
+          "timestamp": "2026-10-18T16:53:15+02:00",
+          "tree_id": "8aba4ac3b0d700781579cb59682505c80f58a342",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/22548766c2bf6a08595d91ea8a97a55abfa241d4"
+        },
+        "date": 1792335215206,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 8594,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 15969,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 543,
             "unit": "ms",
             "extra": "FitToGroupingsDialog fits the model to the groupings, sets the sliders and closes"
           }
