@@ -3,14 +3,7 @@ import type { Judged } from './terra';
 import { HYPERPARAMETERS } from './hyperparameters';
 import { groupEnds, modelFromSteps } from './model-from-steps';
 import { byIndex, groupsOf, longestOf, RunSteps, Steps, trustOf, usualBreaks } from './steps';
-import {
-  judge,
-  JudgedRun,
-  TERRA_DEFAULTS,
-  TERRA_HYPERPARAMETERS,
-  TerraSettings,
-  usualPace,
-} from './terra';
+import { judge, JudgedRun, TERRA_HYPERPARAMETERS, TerraSettings, usualPace } from './terra';
 
 /**
  * Mars: Terra (`terra.ts`) pooling what the runs say rather than what they conclude. Terra averages each run's P(break)
@@ -62,17 +55,20 @@ export type MarsSettings = Omit<TerraSettings, 'usualThreshold'> &
 /** How many neighbors' worth the prior unevenness weighs against a place's own neighbors. */
 const PRIOR_NEIGHBORS = 2;
 
-/** Terra's, to start from until Mars is fitted. */
+/**
+ * Tuned by the owner's play testing, the level at 0 so that the game follows the groups wherever a run reached: from
+ * the second run on, it plays the player's own groups.
+ */
 export const MARS_DEFAULTS: MarsSettings = {
-  window: TERRA_DEFAULTS.window,
-  recencyDecay: TERRA_DEFAULTS.recencyDecay,
-  spreadFloor: TERRA_DEFAULTS.spreadFloor,
-  breakShift: TERRA_DEFAULTS.breakShift,
-  breakShare: TERRA_DEFAULTS.breakShare,
-  fullTrustUnevenness: TERRA_DEFAULTS.fullTrustUnevenness,
-  breakThreshold: TERRA_DEFAULTS.breakThreshold,
-  level: TERRA_DEFAULTS.level,
-  startingSlots: TERRA_DEFAULTS.startingSlots,
+  window: 9,
+  recencyDecay: 0.96,
+  spreadFloor: 0.2,
+  breakShift: 2.7,
+  breakShare: 0.2,
+  fullTrustUnevenness: 0.3,
+  breakThreshold: 0.25,
+  level: 0,
+  startingSlots: 5,
   priorUnevenness: 0.2,
   trustInfluence: 1,
   currentDecay: 0.5,

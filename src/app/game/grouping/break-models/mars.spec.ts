@@ -97,15 +97,19 @@ describe('Mars', () => {
   });
 
   it('trusts the groups only once enough runs agree', () => {
+    // At level 0, the default, the game trusts any groups.
+    const settings = { ...MARS_DEFAULTS, level: 0.9 };
     const horizon = (runs: readonly (readonly number[])[]) =>
       mars(
-        runs.map((times) => judge(times, MARS_DEFAULTS)),
+        runs.map((times) => judge(times, settings)),
         undefined,
-        MARS_DEFAULTS,
+        settings,
       ).horizon;
 
-    expect(horizon(grouped.slice(0, 1))).toBe(0);
-    expect(horizon(grouped)).toBeGreaterThan(20);
+    const many = Array.from({ length: 12 }, () => timesOf(30, by3(30)));
+
+    expect(horizon(many.slice(0, 1))).toBe(0);
+    expect(horizon(many)).toBeGreaterThan(20);
   });
 
   it("follows the player's groups within the trust horizon", () => {
