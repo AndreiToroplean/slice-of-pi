@@ -187,7 +187,12 @@ describe('RunStore', () => {
     await put(database, [unchecked]);
     database.close();
 
-    const migrated = { ...unchecked, format: RUN_FORMAT, checked: false };
+    const migrated = {
+      ...unchecked,
+      format: RUN_FORMAT,
+      checked: false,
+      keypadLayout: 'calculator',
+    };
     expect(await storeWith().runs()).toEqual([migrated]);
     expect(await storedRecords()).toEqual([migrated]);
   });
@@ -394,7 +399,9 @@ describe('RunStore', () => {
 
       const preview = storeWith({ preview: true });
 
-      expect(await preview.runs()).toEqual([{ ...unchecked, format: RUN_FORMAT, checked: false }]);
+      expect(await preview.runs()).toEqual([
+        { ...unchecked, format: RUN_FORMAT, checked: false, keypadLayout: 'calculator' },
+      ]);
       expect(await storedRecords()).toEqual([unchecked]);
     });
 
