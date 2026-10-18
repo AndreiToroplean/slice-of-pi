@@ -90,6 +90,21 @@ describe('FitToGroupingsDialog', () => {
     expect(status(host)).toMatch(/^Now: F1 \d\.\d\d\. \d+ of 9 breaks matched, \d+ extra\.$/);
   });
 
+  it('draws the run-count curve of the model as set, as it opens', async () => {
+    const { host, detect } = await setUp(groupedBy(3));
+    await vi.waitFor(() => {
+      detect();
+      expect(host.querySelector('.spinner')).toBeNull();
+    });
+
+    expect(field(host, '.curve h3').textContent).toBe(
+      `Run-count curve of ${TestBed.inject(Tweaks).breakModelKind().label}`,
+    );
+    expect(field(host, '.curve .caption').textContent).toMatch(
+      /^F1 from 0 to 1 .*: \d\.\d\d with 1 run, \d\.\d\d with all 4\.$/,
+    );
+  });
+
   it('takes only digits and spaces, and keeps them', async () => {
     const { host, detect } = await setUp();
     type(host, '14a15, 926');
@@ -125,7 +140,7 @@ describe('FitToGroupingsDialog', () => {
     expect(field(host, '.picker').textContent.trim()).toBe(LUNA.label);
   });
 
-  it('fits the model to the groupings, sets the sliders and closes', async () => {
+  it('fits the model to the groupings, sets the sliders and draws their run-count curve', async () => {
     const { host, detect } = await setUp(groupedBy(3));
     // The quickest model, so that the test is.
     await TestBed.inject(Tweaks).setBreakModel(LUNA);
@@ -141,13 +156,25 @@ describe('FitToGroupingsDialog', () => {
     await vi.waitFor(
       () => {
         detect();
-        expect((field(host, 'dialog') as HTMLDialogElement).open).toBe(false);
+        expect(fitButton(host).textContent.trim()).toBe('Fitted');
+        expect(host.querySelector('.spinner')).toBeNull();
       },
       { timeout: 30_000, interval: 20 },
     );
     expect(TestBed.inject(Tweaks).values().grouping?.[LUNA.id]).toBeDefined();
     // How well the model, as now set, matches them.
     expect(Number(/F1 (\S+)\./.exec(status(host))?.[1])).toBeGreaterThan(before);
+    // The dialog stays open on the curve, and the same fit can't be run again.
+    expect((field(host, 'dialog') as HTMLDialogElement).open).toBe(true);
+    expect(field(host, '.curve h3').textContent).toBe(`Run-count curve of ${LUNA.label}`);
+    expect(field(host, '.curve .caption').textContent).toMatch(/with all 4\.$/);
+    expect(fitButton(host).disabled).toBe(true);
+    // Until the groupings change: then they can be fitted again, the last curve still shown.
+    type(host, groupedBy(5));
+    detect();
+    expect(fitButton(host).disabled).toBe(false);
+    expect(fitButton(host).textContent.trim()).toBe('Fit');
+    expect(field(host, '.curve h3').textContent).toBe(`Run-count curve of ${LUNA.label}`);
   }, 40_000);
 
   it('stops fitting when closed, leaving the hyperparameters as they were', async () => {
