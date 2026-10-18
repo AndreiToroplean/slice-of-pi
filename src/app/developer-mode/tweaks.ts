@@ -266,23 +266,18 @@ export function seasonsText(
 }
 
 /**
- * The break model picked and the hyperparameters of every break model, tuned or not, as text to hand back so they go
- * into the code, marking what differs.
+ * The break model picked and its hyperparameters, tuned or not, as text to hand back so they go into the code, marking
+ * what differs.
  */
-export function groupingText(
-  kind: BreakModelKind,
-  grouping: Readonly<Record<string, Settings>>,
-): string {
+export function groupingText(kind: BreakModelKind, settings: Settings | undefined): string {
   const changed = (yes: boolean): string => (yes ? ' (changed)' : '');
   return [
     `Break model: ${kind.label} (BREAK_MODEL in break-models.ts)${changed(kind !== BREAK_MODEL)}`,
-    ...BREAK_MODELS.flatMap((model) => [
-      `Hyperparameters of ${model.label}:`,
-      ...Object.entries(model.defaults).map(([key, value]) => {
-        const setting = grouping[model.id]?.[key] ?? value;
-        return `  ${key}: ${String(Number(setting.toPrecision(4)))}${changed(setting !== value)}`;
-      }),
-    ]),
+    `Hyperparameters of ${kind.label}:`,
+    ...Object.entries(kind.defaults).map(([key, value]) => {
+      const setting = settings?.[key] ?? value;
+      return `  ${key}: ${String(Number(setting.toPrecision(4)))}${changed(setting !== value)}`;
+    }),
   ].join('\n');
 }
 
