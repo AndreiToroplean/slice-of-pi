@@ -6,7 +6,7 @@ import { WRITE_CLIPBOARD } from '../tuning/copy-values';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { groupingText, Tweaks } from '../../developer-mode/tweaks';
 import { INDEXED_DB, IS_PREVIEW } from '../../player-data/run-store';
-import type { Settings } from '../../game/grouping/break-models/break-model';
+import type { BreakModelKind, Settings } from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import { oneIn } from '../../game/grouping/break-models/hyperparameters';
 import { LUNA, LUNA_DEFAULTS } from '../../game/grouping/break-models/luna';
@@ -270,24 +270,23 @@ describe('GroupingSettingsPanel', () => {
       );
     const labels = (): string[] =>
       switches().map((button) => button.firstChild?.textContent?.trim() ?? '');
-    expect(labels()).toEqual([
-      'Model: Mercury Is Selected',
-      'Model: Switch to Venus',
-      'Model: Switch to Luna',
-    ]);
+    /** The switches' labels with this model picked: it first, then the others, in their order. */
+    const expected = (picked: BreakModelKind): string[] => [
+      `Model: ${picked.label} Is Selected`,
+      ...BREAK_MODELS.filter((kind) => kind !== picked).map(
+        (kind) => `Model: Switch to ${kind.label}`,
+      ),
+    ];
+    expect(labels()).toEqual(expected(MERCURY));
     expect(switches()[0]?.disabled).toBe(true);
 
-    switches()[2]?.click();
+    switches()[BREAK_MODELS.indexOf(LUNA)]?.click();
     await vi.waitFor(() => {
       expect(TestBed.inject(Tweaks).breakModelKind()).toBe(LUNA);
     });
     detect();
 
-    expect(labels()).toEqual([
-      'Model: Luna Is Selected',
-      'Model: Switch to Mercury',
-      'Model: Switch to Venus',
-    ]);
+    expect(labels()).toEqual(expected(LUNA));
   });
 
   describe('copying from another model', () => {
