@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792360591929,
+  "lastUpdate": 1792363795662,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1800,6 +1800,46 @@ window.BENCHMARK_DATA = {
             "value": 508,
             "unit": "ms",
             "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "944d0d6e26b97e21b2cabba3dee2cf592fb04e5e",
+          "message": "feat: copy the hyperparameter values of the break model picked alone",
+          "timestamp": "2026-10-19T00:49:37+02:00",
+          "tree_id": "d0ce662d11526ead39a7fbb94dc60c9feaafee1b",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/944d0d6e26b97e21b2cabba3dee2cf592fb04e5e"
+        },
+        "date": 1792363795335,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 8279,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 16610,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1147,
+            "unit": "ms",
+            "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
           }
         ]
       }
