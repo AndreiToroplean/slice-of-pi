@@ -2,11 +2,20 @@
  * Each screen's content keeps to a column: the whole width on narrow screens, such as phones, and on wider ones, such as
  * computers, a 3:4 column, centered, growing no wider. The background, and the buttons in a screen's corners, span the
  * whole window. Each screen leaves `--margin` on its sides, around the column.
+ *
+ * The app fills the window, sized by it rather than by viewport units: an installed app on Android can start before its
+ * window has made room for the navigation bar, and viewport units may keep the taller size until something on the page
+ * changes. It is drawn under the system bars where the browser lets it (`viewport-fit=cover`), so that the background
+ * reaches the edges, and keeps the screens out from under them: the status bar here, the navigation bar at the bottom of
+ * each screen, where a page may scroll under it.
  */
 .app {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top);
   display: flex;
   flex-direction: column;
-  height: 100dvh;
   --column: min(100vw, 100dvh * 3 / 4);
   --margin: calc((100vw - var(--column)) / 2);
 }
