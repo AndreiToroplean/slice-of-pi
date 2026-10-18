@@ -3,7 +3,6 @@ import { WRITE_CLIPBOARD } from '../tuning/copy-values';
 import { groupingText, Tweaks } from '../../developer-mode/tweaks';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import { ChartGuides } from './chart-guides';
-import { PinnedHyperparameters } from './pinned-hyperparameters';
 import { GUIDE_COLORS } from './model-views';
 import type {
   BreakModelKind,
@@ -23,7 +22,7 @@ function keysOf(kind: BreakModelKind): string[] {
 /**
  * Developer mode's tabs on Your Runs: one with what is given to it, the runs, and the others with the sliders for every
  * hyperparameter of the break model picked, a few to a tab, each with a toggle button pinning it, so that fitting the
- * model to the player's groups leaves it where it is, a button bringing back the game's value and a help button
+ * model to the player's groups leaves it where it is (kept with the tweaks, for each model), a button bringing back the game's value and a help button
  * opening a dialog that says what it does, where another model has it too, a button copying its value from one of them,
  * and, where it acts on a chart, a checkbox to show it there as dashed lines. Beside the tabs, an overflow menu shows
  * the break model picked and switches it, copies the values of the hyperparameters it shares with another model, and
@@ -113,7 +112,7 @@ function keysOf(kind: BreakModelKind): string[] {
                 class="round pin"
                 [attr.aria-label]="'Pin the ' + control.label.toLowerCase() + ' when fitting'"
                 [attr.aria-pressed]="pinned().has(control.key)"
-                (click)="pins.toggle(kind(), control.key)"
+                (click)="togglePin(control.key)"
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M12 17v5" />
@@ -410,9 +409,8 @@ export class GroupingSettingsPanel {
   protected readonly guideColors: Readonly<Record<string, string | undefined>> = GUIDE_COLORS;
   protected readonly chartGuides = inject(ChartGuides);
   protected readonly guides = this.chartGuides.shown;
-  protected readonly pins = inject(PinnedHyperparameters);
   /** The keys of the hyperparameters of the break model picked that fitting it leaves where they are. */
-  protected readonly pinned = computed(() => this.pins.of(this.kind()));
+  protected readonly pinned = computed(() => this.tweaks.pinsOf(this.kind()));
   /** The break models to switch to: all but the one picked. */
   protected readonly otherModels = computed(() =>
     BREAK_MODELS.filter((each) => each !== this.kind()),
@@ -534,6 +532,10 @@ export class GroupingSettingsPanel {
 
   protected reset(): void {
     void this.tweaks.setGrouping(undefined);
+  }
+
+  protected togglePin(key: string): void {
+    void this.tweaks.togglePin(this.kind(), key);
   }
 
   /** Copies the settings' values as text, to hand back so they go into the code. */

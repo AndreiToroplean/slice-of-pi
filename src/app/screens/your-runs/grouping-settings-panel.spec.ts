@@ -12,7 +12,6 @@ import { oneIn } from '../../game/grouping/break-models/hyperparameters';
 import { LUNA, LUNA_DEFAULTS } from '../../game/grouping/break-models/luna';
 import { MERCURY, MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
 import { ChartGuides } from './chart-guides';
-import { PinnedHyperparameters } from './pinned-hyperparameters';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 
 describe('GroupingSettingsPanel', () => {
@@ -148,17 +147,17 @@ describe('GroupingSettingsPanel', () => {
     const pin = host.querySelector<HTMLButtonElement>(
       'button[aria-label="Pin the prior baseline when fitting"]',
     );
-    const pins = TestBed.inject(PinnedHyperparameters);
-    const kind = TestBed.inject(Tweaks).breakModelKind();
+    const tweaks = TestBed.inject(Tweaks);
+    const kind = tweaks.breakModelKind();
 
     pin?.click();
     detect();
-    expect([...pins.of(kind)]).toEqual(['priorBaseline']);
+    expect([...tweaks.pinsOf(kind)]).toEqual(['priorBaseline']);
     expect(pin?.getAttribute('aria-pressed')).toBe('true');
 
     pin?.click();
     detect();
-    expect(pins.of(kind).size).toBe(0);
+    expect(tweaks.pinsOf(kind).size).toBe(0);
     expect(pin?.getAttribute('aria-pressed')).toBe('false');
   });
 
