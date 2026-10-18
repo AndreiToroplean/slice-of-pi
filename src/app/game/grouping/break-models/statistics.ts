@@ -38,6 +38,47 @@ export function centeredMedian(values: Float64Array, size: number): Float64Array
   });
 }
 
+/**
+ * How many spreads of their bell curve the neighbors of a value reach on each side: further ones would weigh under
+ * 1.2%.
+ */
+const NEIGHBORS_CUTOFF = 3;
+
+/**
+ * The weighted mean and standard deviation (spread) of the neighbors of the value at index i, within a centered window
+ * of `window` values, from index `first` on, and how many there are. Each weighs by a bell curve of its distance to i,
+ * and i itself is left out, so that a value never raises its own bar.
+ */
+export function neighborsOf(
+  values: ArrayLike<number>,
+  i: number,
+  window: number,
+  first = 0,
+): { readonly mean: number; readonly spread: number; readonly count: number } {
+  const reach = Math.floor(window / 2);
+  const bell = reach / NEIGHBORS_CUTOFF;
+  let weights = 0;
+  let sum = 0;
+  let sumOfSquares = 0;
+  let count = 0;
+  for (let j = Math.max(first, i - reach); j <= Math.min(values.length - 1, i + reach); j++) {
+    const value = values[j];
+    if (j === i || value === undefined) {
+      continue;
+    }
+    const weight = Math.exp(-((j - i) ** 2) / (2 * bell ** 2));
+    weights += weight;
+    sum += weight * value;
+    sumOfSquares += weight * value ** 2;
+    count++;
+  }
+  if (count === 0) {
+    return { mean: 0, spread: 0, count };
+  }
+  const mean = sum / weights;
+  return { mean, spread: Math.sqrt(Math.max(0, sumOfSquares / weights - mean ** 2)), count };
+}
+
 /** The median of the values, which it sorts in place. */
 export function median(values: Float64Array): number {
   const sorted = values.sort();

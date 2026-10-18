@@ -2,7 +2,7 @@ import type { BreakModelKind, Settings, Values } from './break-model';
 import { BreakSettings, HYPERPARAMETERS } from './hyperparameters';
 import { MERCURY_DEFAULTS } from './mercury';
 import { modelFromSteps } from './model-from-steps';
-import { isotonicDecreasing } from './statistics';
+import { isotonicDecreasing, neighborsOf } from './statistics';
 import { groupsOf, Steps } from './steps';
 
 /**
@@ -56,8 +56,6 @@ export const LUNA_DEFAULTS: LunaSettings = {
  */
 const DECIDING = { breakThreshold: 0.5, usualThreshold: 0.5, startingSlots: 5 } as const;
 
-/** How many spreads of their bell curve the neighbors reach on each side: further ones would weigh under 1.2%. */
-const CUTOFF = 3;
 /** With fewer neighbors than this, a run is too short to judge: it falls back on a fixed pause and a middling trust. */
 const MINIMUM_NEIGHBORS = 3;
 const FALLBACK_PAUSE = 900;
@@ -87,55 +85,20 @@ export function verdictsOf(
     if (i === 0) {
       return undefined;
     }
-    const local = neighbors(intervals, i, settings.window);
-    if (local.count < MINIMUM_NEIGHBORS) {
+    // Index 0 has no interval. The weighted mean of the neighbors is the pace.
+    const { mean: pace, spread, count } = neighborsOf(intervals, i, settings.window, 1);
+    if (count < MINIMUM_NEIGHBORS) {
       return { time, pace: undefined, isBreak: time > FALLBACK_PAUSE, trust: FALLBACK_TRUST };
     }
-    const threshold = Math.max(
-      local.pace + settings.pauseMargin * local.spread,
-      local.pace * settings.minimumPause,
-    );
-    const unevenness = local.pace > 0 ? local.spread / local.pace : 0;
+    const threshold = Math.max(pace + settings.pauseMargin * spread, pace * settings.minimumPause);
+    const unevenness = pace > 0 ? spread / pace : 0;
     return {
       time,
-      pace: local.pace,
+      pace,
       isBreak: time > threshold,
       trust: Math.min(1, unevenness / settings.fullTrustUnevenness),
     };
   });
-}
-
-/**
- * The weighted mean (pace) and standard deviation (spread) of the intervals around index i, leaving i itself out so a
- * pause never raises its own bar. Index 0 has no interval.
- */
-function neighbors(
-  intervals: readonly number[],
-  i: number,
-  window: number,
-): { pace: number; spread: number; count: number } {
-  const reach = Math.floor(window / 2);
-  const bell = reach / CUTOFF;
-  let weights = 0;
-  let sum = 0;
-  let sumOfSquares = 0;
-  let count = 0;
-  for (let j = Math.max(1, i - reach); j <= Math.min(intervals.length - 1, i + reach); j++) {
-    const interval = intervals[j];
-    if (j === i || interval === undefined) {
-      continue;
-    }
-    const weight = Math.exp(-((j - i) ** 2) / (2 * bell ** 2));
-    weights += weight;
-    sum += weight * interval;
-    sumOfSquares += weight * interval ** 2;
-    count++;
-  }
-  if (count === 0) {
-    return { pace: 0, spread: 0, count };
-  }
-  const pace = sum / weights;
-  return { pace, spread: Math.sqrt(Math.max(0, sumOfSquares / weights - pace ** 2)), count };
 }
 
 /**
