@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792353181516,
+  "lastUpdate": 1792355473358,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1678,6 +1678,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 916,
+            "unit": "ms",
+            "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "4a5d77b5cac2f70a405e2c28db45c2db9a276336",
+          "message": "feat: pin hyperparameters on Your Runs so that fitting leaves them where they are\n\nEach slider gets a pin, a toggle button, filled while pressed. Fitting the model to the player's groups, with Fit or Fit Curve, leaves the pinned hyperparameters at their values, out of both the sweeps and the random draws. Pins are kept for each model while the app is open, never saved, like the chart guides.",
+          "timestamp": "2026-10-18T22:30:45+02:00",
+          "tree_id": "f323f7bca4ce5dd01ed8c40af22f1f027e3aed47",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/4a5d77b5cac2f70a405e2c28db45c2db9a276336"
+        },
+        "date": 1792355472631,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 8757,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 17184,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 949,
             "unit": "ms",
             "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
           }
