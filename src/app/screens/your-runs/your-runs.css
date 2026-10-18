@@ -337,6 +337,7 @@ button.aggregate {
   color: inherit;
   font: inherit;
   text-align: left;
+  -webkit-tap-highlight-color: transparent;
   cursor: pointer;
 
   & .title {
