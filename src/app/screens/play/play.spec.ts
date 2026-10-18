@@ -24,6 +24,7 @@ import { INDEXED_DB, RunStore } from '../../player-data/run-store';
 import { TypedDigits } from './typed-digits/typed-digits';
 import { backgroundsFrom, seasonAt } from '../../game/layers/seasons';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
+import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { Play } from './play';
 
@@ -400,6 +401,66 @@ describe('Play', () => {
       } finally {
         uninstallDialogs();
       }
+    });
+  });
+
+  describe('countdown to the end of the group', () => {
+    function countdown(host: HTMLElement): string | undefined {
+      return host.querySelector('app-break-countdown')?.textContent;
+    }
+
+    /** In developer mode, with a break model whose groups any pause long enough ends. */
+    function setUpCounting(): ReturnType<typeof setUp> {
+      return setUpWithRuns(4, true, async () => {
+        await TestBed.inject(DeveloperMode).set(true);
+        await TestBed.inject(Tweaks).setBreakModel(MARS);
+      });
+    }
+
+    it('counts down, in developer mode, the seconds left before the pause ends the group', async () => {
+      const { host, type, stable } = await setUpCounting();
+      // Into the second group, past the first, which ends at once: where the runs carried on.
+      await typeAll(type, '14159');
+      expect(words(host)).toEqual(['141']);
+      const left = Number(countdown(host));
+      time.advance(300);
+      await stable();
+
+      expect(countdown(host)).toMatch(/^\d+\.\d$/);
+      expect(Number(countdown(host))).toBeCloseTo(left - 0.3, 1);
+    });
+
+    it('ends the group as it reaches 0', async () => {
+      const { host, type, stable } = await setUpCounting();
+      await typeAll(type, '14159');
+      const left = Number(countdown(host)) * 1000;
+      time.advance(left - 100);
+      await stable();
+
+      expect(words(host)).toEqual(['141']);
+
+      time.advance(200);
+      await stable();
+
+      expect(words(host)).toEqual(['141', '59']);
+      expect(countdown(host)).toBeUndefined();
+    });
+
+    it('shows the longest wait looked at where no pause up to it ends the group', async () => {
+      // The game's model only ends the player's own groups where the runs agree they end.
+      const { host, type } = await setUpWithRuns(4, true, () =>
+        TestBed.inject(DeveloperMode).set(true),
+      );
+      await typeAll(type, '14');
+
+      expect(countdown(host)).toBe('> 10⁶');
+    });
+
+    it('shows nothing outside developer mode', async () => {
+      const { host, type } = await setUpWithRuns(4);
+      await typeAll(type, '14');
+
+      expect(countdown(host)).toBeUndefined();
     });
   });
 

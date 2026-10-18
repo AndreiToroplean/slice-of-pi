@@ -11,6 +11,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { Background } from '../../ui/background';
+import { BreakCountdown } from './break-countdown';
+import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { waitToEnd } from '../../game/grouping/wait-to-end';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from './flight/flight';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
@@ -38,13 +40,14 @@ import { TIMER } from './timer';
  * Every digit is checked against π, unless developer mode turns that off: a wrong one, and any typed on after it, show
  * as mistakes in their slots, and never finish the group, until backspace deletes them.
  * Backspace deletes the last digit, reopening the last word when the slots are empty, and brings the last word back when
- * it empties them, for the player to carry on, until they break there again. Pausing offers to restart the game
+ * it empties them, for the player to carry on, until they break there again. Developer mode counts down, left of 0, to
+ * when the group being typed ends. Pausing offers to restart the game
  * or end it, back to the main menu. Every key is recorded, with its time, in the player's runs; restarting or ending the
  * game ends the run.
  */
 @Component({
   selector: 'app-play',
-  imports: [Keypad, Pause, SeasonHeader, Slots, TypedDigits],
+  imports: [BreakCountdown, Keypad, Pause, SeasonHeader, Slots, TypedDigits],
   host: { class: 'screen' },
   template: `
     <h1 class="visually-hidden">Slice of Pi</h1>
@@ -62,7 +65,12 @@ import { TIMER } from './timer';
         {{ mistakes().charAt(0) }} is wrong: delete back to it to go on.
       }
     </p>
-    <app-keypad class="keypad" [colors]="keyColors()" (keyPressed)="press($event)" />
+    <app-keypad class="keypad" [colors]="keyColors()" (keyPressed)="press($event)">
+      @let wait = breakWait();
+      @if (developerMode() && wait !== undefined) {
+        <app-break-countdown [wait]="wait" />
+      }
+    </app-keypad>
     <app-pause [(paused)]="paused" (restart)="restart()" />
   `,
   styleUrl: './play.css',
@@ -83,6 +91,12 @@ export class Play {
   protected readonly paused = signal(false);
 
   private readonly recorder = inject(RunRecorder);
+  protected readonly developerMode = inject(DeveloperMode).enabled;
+  /**
+   * How long after the last digit the group being typed ends, in milliseconds, while the player may still pause:
+   * `Infinity` if no pause up to the longest wait looked at ends it.
+   */
+  protected readonly breakWait = signal<number | undefined>(undefined);
   /** The player's earlier runs, oldest first. */
   private readonly earlierRuns = signal<readonly Run[]>([]);
   /** How the break model plays the groups over the earlier runs that count in them, before this one. */
@@ -246,14 +260,24 @@ export class Play {
       return;
     }
     const trusted = this.plan().trusted;
-    const left = waitToEnd((wait) => this.endsAfter(wait, trusted)) - this.recorder.waited();
+    const wait = waitToEnd((waited) => this.endsAfter(waited, trusted));
+    const left = wait - this.recorder.waited();
     if (left <= 0) {
       this.finishGroup(flyNow);
-    } else if (left < Infinity) {
-      this.stopWatching = this.timer.after(left, () => {
-        this.finishGroup(true);
-      });
+      return;
     }
+    this.breakWait.set(wait);
+    const stop =
+      left < Infinity
+        ? this.timer.after(left, () => {
+            this.stopWatching();
+            this.finishGroup(true);
+          })
+        : (): void => undefined;
+    this.stopWatching = () => {
+      stop();
+      this.breakWait.set(undefined);
+    };
   }
 
   /**

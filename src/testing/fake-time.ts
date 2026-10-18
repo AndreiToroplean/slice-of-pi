@@ -22,6 +22,7 @@ export class FakeTime {
       provide: TIMER,
       useValue: {
         after: (delay: number, callback: () => void) => this.schedule(delay, Infinity, callback),
+        every: (period: number, callback: () => void) => this.schedule(period, period, callback),
       },
     },
   ];
