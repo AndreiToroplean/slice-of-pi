@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792281630524,
+  "lastUpdate": 1792281729012,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1398,6 +1398,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 273,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "68ae5480da2201e9cb7982a6a5be654e7c3edba4",
+          "message": "perf: load the main menu with the app rather than after it\n\nThe menu was a lazily loaded screen, so its code was only requested once the app had started. Being where the app opens, it now comes with the app's own code.\n\nClaude-Session: https://claude.ai/code/session_019KzsLg4Wmo2vtWD4UrLTeP",
+          "timestamp": "2026-10-18T02:01:47+02:00",
+          "tree_id": "fb88ee7f4702a3a1f684838b0e0e580498ea4d48",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/68ae5480da2201e9cb7982a6a5be654e7c3edba4"
+        },
+        "date": 1792281728667,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 7914,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 14807,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 407,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
