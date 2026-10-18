@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
+import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { INDEXED_DB } from '../../player-data/run-store';
 import { Settings } from './settings';
 
@@ -34,6 +35,19 @@ describe('Settings', () => {
 
     countdown(host)?.click();
     expect(tweaks.countdown()).toBe(true);
+  });
+
+  it('picks the keypad layout', async () => {
+    const host = await setUp();
+    const layout = (name: string): HTMLInputElement | null | undefined =>
+      Array.from(host.querySelectorAll('[aria-label="Keypad layout"] label'))
+        .find((label) => label.textContent.trim() === name)
+        ?.querySelector('input');
+    expect(layout('Calculator')?.checked).toBe(true);
+
+    layout('Telephone')?.click();
+
+    expect(TestBed.inject(KeypadLayoutSetting).layout()).toBe('telephone');
   });
 
   it('has no developer settings outside developer mode', async () => {

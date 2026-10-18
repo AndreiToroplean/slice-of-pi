@@ -1,3 +1,4 @@
+import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { Location } from '@angular/common';
 import { provideLocationMocks, SpyLocation } from '@angular/common/testing';
 import { ApplicationRef } from '@angular/core';
@@ -154,6 +155,17 @@ describe('Play', () => {
     const { host } = await setUp();
 
     expect(host.querySelector('h1')?.textContent).toBe('Slice of Pi');
+  });
+
+  it('lays the keypad out as the player picked', async () => {
+    await TestBed.inject(KeypadLayoutSetting).set('telephone');
+    const { host } = await setUp();
+
+    expect(
+      Array.from(host.querySelectorAll<HTMLElement>('app-keypad button'), (key) =>
+        key.textContent.trim(),
+      ).slice(0, 3),
+    ).toEqual(['1', '2', '3']);
   });
 
   it('starts with the "π=3." lead, no words and 5 empty slots', async () => {

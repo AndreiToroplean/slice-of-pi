@@ -4,6 +4,11 @@ import { BACKUP_KIND, readBackup, writeBackup } from '../../player-data/backup';
 import { addDigit, newRun, Run, RUN_FORMAT } from '../../player-data/run';
 import { RunStore } from '../../player-data/run-store';
 import { DEVELOPER_MODE, DEVELOPER_MODE_FORMAT } from '../../developer-mode/developer-mode';
+import {
+  KEYPAD_LAYOUT,
+  KEYPAD_LAYOUT_FORMAT,
+  KeypadLayoutSetting,
+} from '../../player-data/keypad-layout-setting';
 import { Tweaks, TWEAKS, TWEAKS_FORMAT } from '../../developer-mode/tweaks';
 import { MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
 import { button, message, OpenPage, openPage, text } from '../../../testing/player-data-pages';
@@ -125,6 +130,7 @@ describe('Data', () => {
         {
           [DEVELOPER_MODE]: { format: DEVELOPER_MODE_FORMAT, enabled: true },
           [TWEAKS]: { format: TWEAKS_FORMAT, grouping: { mercury: grouping } },
+          [KEYPAD_LAYOUT]: { format: KEYPAD_LAYOUT_FORMAT, layout: 'telephone' },
         },
         0,
       ),
@@ -134,6 +140,7 @@ describe('Data', () => {
       'Every run in this backup is already here. Its settings replace yours.',
     );
     expect(TestBed.inject(Tweaks).grouping()).toEqual(grouping);
+    expect(TestBed.inject(KeypadLayoutSetting).layout()).toBe('telephone');
   });
 
   it('says when every run of a backup is already kept', async () => {

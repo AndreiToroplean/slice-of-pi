@@ -56,6 +56,12 @@ describe('Menu', () => {
     expect((again.nativeElement as HTMLElement).classList).not.toContain('loading');
   });
 
+  it('leads to the settings', async () => {
+    const host = await setUp();
+
+    expect(host.querySelector('a[aria-label="Settings"]')?.getAttribute('href')).toBe('/settings');
+  });
+
   it('shows even when its icon fails to load', async () => {
     const fixture = TestBed.createComponent(Menu);
     await fixture.whenStable();
@@ -123,19 +129,6 @@ describe('Menu', () => {
         ['Key Colors', '/developer/key-colors'],
         ['Season Colors', '/developer/season-colors'],
       ]);
-    });
-
-    it('leads to the settings only in developer mode', async () => {
-      const fixture = TestBed.createComponent(Menu);
-      await fixture.whenStable();
-      const host = fixture.nativeElement as HTMLElement;
-      const gear = (): Element | null => host.querySelector('a[aria-label="Settings"]');
-      expect(gear()).toBeNull();
-
-      await TestBed.inject(DeveloperMode).set(true);
-      await fixture.whenStable();
-
-      expect(gear()?.getAttribute('href')).toBe('/settings');
     });
 
     it('turns checking the digits off and on', async () => {
