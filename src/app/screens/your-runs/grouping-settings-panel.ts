@@ -335,24 +335,6 @@ function keysOf(kind: BreakModelKind): string[] {
       margin: 0 0.25rem;
     }
 
-    .round {
-      display: grid;
-      place-items: center;
-      width: 1.5rem;
-      height: 1.5rem;
-      padding: 0;
-      border: none;
-      border-radius: 50%;
-      background: var(--frost-pressed);
-      color: inherit;
-      font: inherit;
-      font-weight: 600;
-    }
-
-    .round:disabled {
-      opacity: 0.4;
-    }
-
     /* Pinned: the colors of the tab shown, the pin filled. */
     .pin[aria-pressed='true'] {
       background: var(--candy);
@@ -361,21 +343,6 @@ function keysOf(kind: BreakModelKind): string[] {
 
     .pin[aria-pressed='true'] path {
       fill: currentColor;
-    }
-
-    .round svg {
-      width: 0.875rem;
-      height: 0.875rem;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2.4;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .round:focus-visible {
-      outline: 0.1875rem solid var(--focus-ring);
-      outline-offset: 0.125rem;
     }
 
     input[type='range'] {

@@ -190,19 +190,6 @@ h3 {
   }
 }
 
-/* A small button in the top bar, to delete all the runs. */
-.candy.small {
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.875rem;
-  box-shadow: 0 0.1875rem 0 var(--candy-edge);
-  font-size: 0.875rem;
-
-  &:active {
-    translate: 0 0.125rem;
-    box-shadow: 0 0.0625rem 0 var(--candy-edge);
-  }
-}
-
 /*
  * The groups of all runs, as words of digits; those past the trust horizon are dotted. However many there are, they take
  * at most 3 rows, and scroll.
