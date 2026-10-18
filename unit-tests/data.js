@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792355473358,
+  "lastUpdate": 1792360574444,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1718,6 +1718,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 949,
+            "unit": "ms",
+            "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "b0fd7ff21af53deb7ac7eeddc7e38c002a1f46bd",
+          "message": "fix: leave out the tap highlight of all runs on Your Runs, which a long press shows",
+          "timestamp": "2026-10-18T23:55:53+02:00",
+          "tree_id": "1be0d02080aeb791a02b26d739e7a2aedfbe4088",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/b0fd7ff21af53deb7ac7eeddc7e38c002a1f46bd"
+        },
+        "date": 1792360574102,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 8188,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 15793,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 756,
             "unit": "ms",
             "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
           }
