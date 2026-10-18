@@ -8,6 +8,7 @@ import {
   SEASON_COLOR_SPACE,
   SEASON_TURN,
 } from '../game/layers/seasons';
+import { BREAK_MODELS } from '../game/grouping/break-models/break-models';
 import { BreakSettings } from '../game/grouping/break-models/hyperparameters';
 import { MERCURY, MERCURY_DEFAULTS } from '../game/grouping/break-models/mercury';
 import { VENUS } from '../game/grouping/break-models/venus';
@@ -231,11 +232,9 @@ describe('Tweaks', () => {
   it('lists the grouping settings of every model, marking those that changed', () => {
     const text = groupingText(MERCURY, { mercury: grouping, luna: { window: 11 } }).split('\n');
 
-    expect(text.filter((line) => line.startsWith('Hyperparameters of'))).toEqual([
-      'Hyperparameters of Mercury:',
-      'Hyperparameters of Venus:',
-      'Hyperparameters of Luna:',
-    ]);
+    expect(text.filter((line) => line.startsWith('Hyperparameters of'))).toEqual(
+      BREAK_MODELS.map((kind) => `Hyperparameters of ${kind.label}:`),
+    );
     expect(text.filter((line) => line.endsWith('(changed)'))).toEqual([
       '  recencyDecay: 0.95 (changed)',
       '  window: 11 (changed)',
