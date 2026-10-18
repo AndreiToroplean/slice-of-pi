@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792281729012,
+  "lastUpdate": 1792285483197,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1438,6 +1438,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 407,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "e40151e7c0faa79889165d3364f878121b6ec095",
+          "message": "fix: let text fields open their long-press menu, to paste into them\n\nClaude-Session: https://claude.ai/code/session_01FAQLg8arTVvgRwYVf7oiFS",
+          "timestamp": "2026-10-18T03:04:19+02:00",
+          "tree_id": "bdc7c7d3e4fa7ae87dcac90d417a92cd9daaf7a0",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/e40151e7c0faa79889165d3364f878121b6ec095"
+        },
+        "date": 1792285482635,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 6212,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 11604,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 312,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
