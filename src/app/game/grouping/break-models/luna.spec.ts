@@ -62,7 +62,7 @@ describe('Luna', () => {
     const split = [...grouped.slice(1), timesOf(30, by3(30).slice(1))];
     const found = steps(split);
 
-    expect(found.confidence[3]).toBeLessThan(LUNA_DEFAULTS.confidenceNeeded);
+    expect(found.confidence[3]).toBeLessThan(LUNA_DEFAULTS.level);
     expect(found.horizon).toBeGreaterThan(20);
   });
 

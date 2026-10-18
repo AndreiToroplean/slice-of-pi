@@ -2,8 +2,8 @@ import type { BreakModelKind, Settings, Values } from './break-model';
 import { BreakSettings, HYPERPARAMETERS } from './hyperparameters';
 import { MERCURY_DEFAULTS } from './mercury';
 import { modelFromSteps } from './model-from-steps';
-import { isotonicDecreasing, neighborsOf } from './statistics';
-import { groupsOf, Steps } from './steps';
+import { neighborsOf } from './statistics';
+import { groupsOf, Steps, trustOf } from './steps';
 
 /**
  * Luna: each run is judged on its own first, at every place, whether the time the player took there is a pause (a break
@@ -14,9 +14,8 @@ import { groupsOf, Steps } from './steps';
  * against the whole run's average, the slow end of what the player knows would look like pauses everywhere. A verdict
  * is trusted as much as the run is uneven there, since where the player types like a metronome, a break is just noise.
  *
- * The confidence at a place is agreement × evidence: how far the vote is from a tie, and how much trusted vote there
- * is. A non-increasing curve is fitted to it, the confidence trend, and the trust horizon is where that drops below the
- * confidence needed, so that one shaky place doesn't end the trust in the solid ones after it.
+ * The confidence and trust horizon come from the vote as in Mercury (`mercury.ts`), each run weighing its recency times
+ * its trust there.
  *
  * Its steps are in the terms every break model's are: a run's baseline is its local pace, and its P(break) at a place
  * its verdict, 1 or 0. Nothing here is stored; it's always computed from the times of the runs.
@@ -26,7 +25,7 @@ import { groupsOf, Steps } from './steps';
  * Luna's hyperparameters, to be tuned by play testing. The window is the span of the neighbors of a place, centered on
  * it.
  */
-export type LunaSettings = Pick<BreakSettings, 'window' | 'recencyDecay'> &
+export type LunaSettings = Pick<BreakSettings, 'window' | 'recencyDecay' | 'level'> &
   Readonly<{
     /** How many local spreads above the local pace a time must be to count as a pause. */
     pauseMargin: number;
@@ -34,10 +33,6 @@ export type LunaSettings = Pick<BreakSettings, 'window' | 'recencyDecay'> &
     minimumPause: number;
     /** The local unevenness (spread divided by pace) at which a run's verdict is fully trusted. */
     fullTrustUnevenness: number;
-    /** How much trusted evidence makes the vote 63% sure, in fully trusted newest runs. */
-    evidenceNeeded: number;
-    /** The confidence required for the trust horizon, from 0 to 1: agreement × evidence, not a probability. */
-    confidenceNeeded: number;
   }>;
 
 export const LUNA_DEFAULTS: LunaSettings = {
@@ -46,8 +41,7 @@ export const LUNA_DEFAULTS: LunaSettings = {
   minimumPause: 1.35,
   fullTrustUnevenness: 0.6,
   recencyDecay: MERCURY_DEFAULTS.recencyDecay,
-  evidenceNeeded: 1.2,
-  confidenceNeeded: 0.45,
+  level: MERCURY_DEFAULTS.level,
 };
 
 /**
@@ -114,7 +108,7 @@ export function luna(
   const length = Math.max(0, ...runs.map((run) => run.length));
   const usual: (number | undefined)[] = [undefined];
   const coverage: (number | undefined)[] = [undefined];
-  const confidence: number[] = [];
+  const breaks: number[] = [];
   const speedCurve: (number | undefined)[] = [undefined];
   const averageTime: (number | undefined)[] = [undefined];
   for (let i = 1; i < length; i++) {
@@ -141,15 +135,12 @@ export function luna(
     });
     const breakShare = votes > 0 ? breakVotes / votes : 0;
     usual.push(breakShare);
-    coverage.push(reached);
-    confidence.push(
-      Math.abs(2 * breakShare - 1) * (1 - Math.exp(-votes / settings.evidenceNeeded)),
-    );
+    coverage.push(votes);
+    breaks.push(breakVotes);
     speedCurve.push(paced > 0 ? paces / paced : undefined);
     averageTime.push(times / reached);
   }
-  const trend = isotonicDecreasing(confidence);
-  const horizon = trend.filter((value) => value >= settings.confidenceNeeded).length;
+  const trust = trustOf(usual, breaks, coverage, { ...settings, ...DECIDING });
   return {
     settings: { ...settings, ...DECIDING },
     runs: runs.map((run) => ({
@@ -161,12 +152,10 @@ export function luna(
     })),
     usual,
     coverage,
-    confidence: [undefined, ...confidence],
-    confidenceTrend: [undefined, ...trend],
-    horizon,
+    ...trust,
     speedCurve,
     averageTime,
-    groups: groupsOf(usual, DECIDING.usualThreshold, length, horizon),
+    groups: groupsOf(usual, DECIDING.usualThreshold, length, trust.horizon),
   };
 }
 
@@ -236,37 +225,7 @@ export const LUNA: BreakModelKind = {
     },
     {
       name: 'Vote',
-      hyperparameters: [
-        HYPERPARAMETERS.recencyDecay,
-        {
-          key: 'evidenceNeeded',
-          label: 'Evidence needed',
-          min: 0.2,
-          max: 4,
-          step: 0.1,
-          format: (value) => `${value.toFixed(1)} runs`,
-          help: {
-            what: 'At each place, the confidence of all runs together is agreement × evidence. Agreement is 1 when all the weighted votes agree, and 0 at a 50/50 split. Evidence counts the trusted votes, in fully trusted new runs: it reaches 63% at this amount, 86% at twice it and 95% at three times.',
-            why: 'Multiplied because both are needed: one run agreeing with itself is unanimous but thin, and many runs split evenly are plenty of evidence but no answer. Each extra run helps less and less, and the confidence never goes past 1.',
-            moving:
-              'Lower makes a single run strong evidence, so a new player’s groups are followed right away. Higher waits for several runs that agree, so the trust horizon comes later at first.',
-          },
-        },
-        {
-          key: 'confidenceNeeded',
-          label: 'Confidence needed',
-          min: 0,
-          max: 1,
-          step: 0.05,
-          format: (value) => value.toFixed(2),
-          help: {
-            what: 'How confident the game must be of the vote at a place to follow your groups there. A non-increasing curve is fitted to the confidence along the places, its trend; the place where that drops below this is the trust horizon. Past it, a group starts with 5 slots and grows until you pause.',
-            why: 'The trend rather than the first place that falls short, so that one shaky place doesn’t end the trust in the solid places after it, while the trust still ends once and for all where the places past it are mostly shaky.',
-            moving:
-              'Lower follows your groups further, into shakier places. Higher brings the horizon sooner. It never moves the groups the runs agree on, only how far they’re followed: those past it are dotted.',
-          },
-        },
-      ],
+      hyperparameters: [HYPERPARAMETERS.recencyDecay, HYPERPARAMETERS.level],
     },
   ],
   create: (tuned) => {
