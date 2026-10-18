@@ -142,7 +142,8 @@ const FIT_SETS_PER_COUNT = 2;
  * a peak narrower than the coarse step. Not bisected: the score is flat over long stretches and has many bumps. Then,
  * so as to look over the whole space, it tries values drawn at random across every slider, and refines the best of
  * them the same way. Values are only taken when they score strictly better, so of values that score alike, those found
- * first stay, those near `start` first of all. The pinned hyperparameters stay at their values in `start` throughout.
+ * first stay, those near `start` first of all. The pinned hyperparameters stay at their values in `start` throughout, and the
+ * others go back to them at the end wherever that scores no worse.
  */
 export async function fitToGroupings(
   kind: BreakModelKind,
@@ -236,14 +237,32 @@ export async function fitToGroupings(
     return true;
   };
 
+  /**
+   * The fit with each slider in turn back at its value in `start` wherever that scores no worse, so that the fit only
+   * moves the sliders that make its score: not those the score never depends on, which the draws spread at random.
+   */
+  const reverted = (fit: GroupingsFit): GroupingsFit => {
+    let at = fit;
+    for (const { key } of sliders) {
+      const value = first.settings[key];
+      if (value !== undefined && value !== at.settings[key]) {
+        const back = fitOf({ ...at.settings, [key]: value });
+        if (back.score >= at.score) {
+          at = back;
+        }
+      }
+    }
+    return at;
+  };
+
   if (!(await refine(first, 0))) {
-    return best;
+    return reverted(best);
   }
   const random = mulberry32(SEED);
   const drawn: GroupingsFit[] = [];
   for (let k = 0; k < DRAWS; k++) {
     if (aborted()) {
-      return best;
+      return reverted(best);
     }
     const fit = fitOf({
       ...first.settings,
@@ -261,10 +280,10 @@ export async function fitToGroupings(
   const bestDrawn = drawn.sort((a, b) => b.score - a.score).slice(0, REFINED);
   for (const [k, from] of bestDrawn.entries()) {
     if (!(await refine(from, k + 1))) {
-      return best;
+      return reverted(best);
     }
   }
-  return best;
+  return reverted(best);
 }
 
 /** The indices of every `stride`-th of `size` values, from the first, and the last. */

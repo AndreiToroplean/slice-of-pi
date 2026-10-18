@@ -121,6 +121,18 @@ describe('Fitting to groupings', () => {
     expect(fit.settings).toEqual({ size: 3, ignored: 4 });
   });
 
+  it('leaves the hyperparameters the score never depends on where they started', async () => {
+    // Only size 3 makes groups, too narrow a peak for the search from size 9 to find, so a draw finds it.
+    const fit = await fitToGroupings(
+      sizedModel((settings) => (settings['size'] === 3 ? 3 : 30)),
+      { size: 9, ignored: 0 },
+      [run],
+      labelsOf(Array<number>(10).fill(3)),
+    );
+
+    expect(fit.settings).toEqual({ size: 3, ignored: 0 });
+  });
+
   it('tells how far it has gone', async () => {
     const seen: Progress[] = [];
     await fitToGroupings(sizedModel(), {}, [run], labelsOf([3, 3, 3]), {
@@ -185,7 +197,8 @@ describe('Fitting to groupings', () => {
       },
     });
 
-    expect(kind.created).toBe(2);
+    // The values started from, the first tried, then the size of those started from, which scores worse.
+    expect(kind.created).toBe(3);
     expect(fit.settings).toEqual({ size: 1, ignored: 2 });
   });
 
