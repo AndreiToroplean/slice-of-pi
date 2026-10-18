@@ -432,7 +432,7 @@ export class GroupingSettingsPanel {
   private readonly settings = this.tweaks.grouping;
   /** The settings as text, to hand back so they go into the code. */
   protected readonly copyText = computed(() =>
-    groupingText(this.kind(), this.tweaks.values().grouping ?? {}),
+    groupingText(this.kind(), this.tweaks.values().grouping?.[this.kind().id]),
   );
   protected readonly tuned = computed(
     () => this.tweaks.values().grouping?.[this.kind().id] !== undefined,

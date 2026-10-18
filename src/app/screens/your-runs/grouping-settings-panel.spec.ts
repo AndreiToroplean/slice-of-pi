@@ -277,9 +277,7 @@ describe('GroupingSettingsPanel', () => {
     detect();
     buttonLabelled(host, 'Copy Hyperparameter Values').click();
     await vi.waitFor(() => {
-      expect(copied).toEqual([
-        groupingText(MERCURY, { mercury: { ...MERCURY_DEFAULTS, level: 0.95 } }),
-      ]);
+      expect(copied).toEqual([groupingText(MERCURY, { ...MERCURY_DEFAULTS, level: 0.95 })]);
     });
   });
 
