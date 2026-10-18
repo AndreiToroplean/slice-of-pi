@@ -9,15 +9,20 @@ import { breaksOf, Steps } from './steps';
  */
 export type Fit = (current?: readonly number[], init?: Mixture) => Steps;
 
+/** Whether the group being typed is finished before the digit at index `next`, as {@link groupEnds} decides. */
+export type Ends = (steps: Steps, next: number, trusted: boolean) => boolean;
+
 /**
  * The model the game sees, from a model that works out its steps (`steps.ts`): `prepare` takes the finished runs,
- * oldest first, and gives what fits them, with a run in progress or without.
+ * oldest first, and gives what fits them, with a run in progress or without. `ends` decides where groups end, by
+ * default {@link groupEnds}.
  */
 export function modelFromSteps(
   prepare: (finished: readonly (readonly number[])[]) => Fit,
+  ends: Ends = groupEnds,
 ): BreakModel {
   return {
-    play: (finished) => gameplayOf(prepare(finished)),
+    play: (finished) => gameplayOf(prepare(finished), ends),
     stats: (finished) => statsOf(prepare(finished)()),
   };
 }
@@ -28,7 +33,7 @@ export function modelFromSteps(
  * the finished runs' alone, frozen for the run, so that the groups shown don't flicker between the player's own and
  * growing ones as they type.
  */
-function gameplayOf(fit: Fit): Gameplay {
+function gameplayOf(fit: Fit, ends: Ends): Gameplay {
   const horizon = fit().horizon;
   let mixture: Mixture | undefined;
   const withCurrent = (current: readonly number[]): Steps => {
@@ -38,7 +43,7 @@ function gameplayOf(fit: Fit): Gameplay {
   };
   return {
     groupAt: (current, start) => groupAt(withCurrent(current), start, horizon),
-    groupEnds: (current, trusted) => groupEnds(withCurrent(current), current.length - 1, trusted),
+    groupEnds: (current, trusted) => ends(withCurrent(current), current.length - 1, trusted),
   };
 }
 
