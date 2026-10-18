@@ -83,8 +83,12 @@ export class DropdownMenu {
     if (point === undefined) {
       return;
     }
-    point.style.left = `${String(at.x)}px`;
-    point.style.top = `${String(at.y)}px`;
+    // Fixed, but within a dialog card (whose frost and scale hold fixed elements) from the card rather than the window:
+    // placed from where it lands at 0, 0.
+    point.style.left = point.style.top = '0px';
+    const origin = point.getBoundingClientRect();
+    point.style.left = `${String(at.x - origin.left)}px`;
+    point.style.top = `${String(at.y - origin.top)}px`;
     const dropdown = this.dropdown().nativeElement;
     dropdown.showPopover();
     // So that the keyboard goes on from the menu.

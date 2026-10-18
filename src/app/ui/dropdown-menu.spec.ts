@@ -111,6 +111,21 @@ describe('DropdownMenu opened where something was pressed', () => {
     ]);
   });
 
+  it('opens where it was asked to in the window, even within a box that holds fixed elements', () => {
+    const point = dropdown.parentElement?.querySelector<HTMLElement>('.point');
+    if (point === undefined || point === null) {
+      throw new Error('No point');
+    }
+    // Within a box at 300, 100 in the window, as a dialog card is.
+    vi.spyOn(point, 'getBoundingClientRect').mockImplementation(
+      () => new DOMRect(300 + parseFloat(point.style.left), 100 + parseFloat(point.style.top)),
+    );
+
+    host.menu().openAt({ x: 340, y: 150 });
+
+    expect(point.getBoundingClientRect()).toMatchObject({ left: 340, top: 150 });
+  });
+
   it('closes and does what a button says once chosen', () => {
     host.menu().openAt({ x: 40, y: 50 });
 
