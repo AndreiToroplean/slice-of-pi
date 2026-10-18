@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792365586629,
+  "lastUpdate": 1792366989070,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1880,6 +1880,46 @@ window.BENCHMARK_DATA = {
             "value": 1323,
             "unit": "ms",
             "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "33b3fea0471705976c59f86ad957327f5e1a72a7",
+          "message": "perf: add the run being typed to what Mars's finished runs add up to, worked out once per run\n\nThe game asks Mars about the same run again and again, its next digit timed differently, and each time Mars added up every finished run again. It now adds them up once, as the run starts, and each question only adds the run being typed: the same sums in the same order, so the same steps to the bit. A digit takes about a run's work rather than all of them: 21 ms down to 3 at 20 runs of 200 digits on desktop, 53 down to 3 at 50 runs of 300.\n\nClaude-Session: https://claude.ai/code/session_01JcXiFprgRJ4VG8awJuQQGg",
+          "timestamp": "2026-10-19T01:42:45+02:00",
+          "tree_id": "adf9f54f6441e36cdbc6b75191d300b3004e9833",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/33b3fea0471705976c59f86ad957327f5e1a72a7"
+        },
+        "date": 1792366988175,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 8349,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 16298,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 772,
+            "unit": "ms",
+            "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
           }
         ]
       }
