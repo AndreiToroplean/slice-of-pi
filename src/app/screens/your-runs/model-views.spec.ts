@@ -190,5 +190,11 @@ describe('the views of the break model', () => {
         settings.level,
       ]);
     });
+
+    it('draws the level of a model that fits no mixture', () => {
+      const plain = { ...input([], true, ['level']), model: { ...model, mixture: undefined } };
+
+      expect(guideLines(confidenceView(plain).layers)).toEqual([settings.level]);
+    });
   });
 });

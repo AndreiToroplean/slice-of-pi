@@ -391,8 +391,7 @@ export function confidenceView(input: ViewInput): Plot {
     caption: 'How sure the verdict before each place is, and its trend, cut at the trust horizon.',
     x: alongPlaces(input.places),
     y: { min: 0, max: 1 },
-    // The level is a mixture model's.
-    layers: [...layers, ...(model.mixture === undefined ? [] : thresholdGuides(input, ['level']))],
+    layers: [...layers, ...thresholdGuides(input, ['level'])],
   };
 }
 
