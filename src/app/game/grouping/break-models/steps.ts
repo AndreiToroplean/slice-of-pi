@@ -169,15 +169,18 @@ export function fitBreaks(
 }
 
 /**
- * At each index, the weighted P(break) over the runs that reached it, the synthetic runs breaking there as often as the
- * prior says; the weight of those runs; the weight of their breaks; and the player's runs' average interval.
+ * At each index, the weighted P(break) over the runs that reached it, the synthetic runs, if any, breaking there as
+ * often as the prior says; the weight of those runs; the weight of their breaks; and the player's runs' average
+ * interval. Each run weighs its weight, or its weight at each interval.
  */
 export function usualBreaks(
   logs: readonly Float64Array[],
-  runs: readonly RunSteps[],
-  weights: readonly number[],
-  synthetic: number,
-  settings: BreakSettings,
+  runs: readonly Pick<RunSteps, 'breakProbability'>[],
+  weights: readonly (number | Float64Array)[],
+  synthetic: { readonly weight: number; readonly breakShare: number } = {
+    weight: 0,
+    breakShare: 0,
+  },
 ): {
   readonly usual: Values;
   readonly coverage: Values;
@@ -189,8 +192,8 @@ export function usualBreaks(
   const averageTime: (number | undefined)[] = [undefined];
   const breakSums: number[] = [];
   for (let p = 0; p < longestOf(logs); p++) {
-    let reached = synthetic;
-    let breaks = synthetic * settings.priorBreakShare;
+    let reached = synthetic.weight;
+    let breaks = synthetic.weight * synthetic.breakShare;
     let timed = 0;
     let time = 0;
     logs.forEach((log, k) => {
@@ -198,15 +201,16 @@ export function usualBreaks(
       if (value === undefined) {
         return;
       }
-      const weight = weights[k] ?? 0;
+      const runWeight = weights[k] ?? 0;
+      const weight = typeof runWeight === 'number' ? runWeight : (runWeight[p] ?? 0);
       reached += weight;
       breaks += weight * (runs[k]?.breakProbability[p + 1] ?? 0);
       timed += weight;
       time += weight * Math.exp(value);
     });
     coverage.push(reached);
-    averageTime.push(time / timed);
-    usual.push(breaks / reached);
+    averageTime.push(timed > 0 ? time / timed : undefined);
+    usual.push(reached > 0 ? breaks / reached : 0);
     breakSums.push(breaks);
   }
   return { usual, coverage, breaks: breakSums, averageTime };
@@ -220,7 +224,7 @@ export function trustOf(
   usual: Values,
   breaks: readonly number[],
   coverage: Values,
-  settings: BreakSettings,
+  settings: Pick<BreakSettings, 'usualThreshold' | 'level'>,
 ): { readonly confidence: Values; readonly confidenceTrend: Values; readonly horizon: number } {
   const threshold = settings.usualThreshold;
   const raw = breaks.map((weight, p) => {
