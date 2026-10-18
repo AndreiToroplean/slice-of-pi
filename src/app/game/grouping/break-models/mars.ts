@@ -2,8 +2,26 @@ import type { BreakModel, BreakModelKind, Settings } from './break-model';
 import type { Judged } from './terra';
 import { HYPERPARAMETERS } from './hyperparameters';
 import { groupEnds, modelFromSteps } from './model-from-steps';
-import { byIndex, groupsOf, longestOf, RunSteps, Steps, trustOf, usualBreaks } from './steps';
-import { judge, JudgedRun, TERRA_HYPERPARAMETERS, TerraSettings, usualPace } from './terra';
+import {
+  breakSums,
+  BreakSums,
+  byIndex,
+  groupsOf,
+  longestOf,
+  RunSteps,
+  Steps,
+  trustOf,
+  usualOf,
+} from './steps';
+import {
+  judge,
+  JudgedRun,
+  paceOf,
+  PaceSums,
+  paceSums,
+  TERRA_HYPERPARAMETERS,
+  TerraSettings,
+} from './terra';
 
 /**
  * Mars: Terra (`terra.ts`) pooling what the runs say rather than what they conclude. Terra averages each run's P(break)
@@ -83,18 +101,67 @@ export function mars(
   current: readonly number[] | undefined,
   settings: MarsSettings,
 ): Steps {
-  const runs = current === undefined ? finished : [...finished, judge(current, settings)];
+  return marsOver(finished, settings)(current);
+}
+
+/**
+ * {@link mars} over the judged finished runs, for any run in progress: what the finished runs add up to with one is
+ * worked out once, so that each run in progress only adds its own share to it, as the game asks about the same run
+ * again and again with its next digit timed differently.
+ */
+export function marsOver(
+  finished: readonly JudgedRun[],
+  settings: MarsSettings,
+): (current?: readonly number[]) => Steps {
+  const decays = (count: number): number[] =>
+    Array.from({ length: count }, (_, k) => settings.recencyDecay ** (count - 1 - k));
+  let withCurrent: Pool | undefined;
+  return (current) => {
+    if (current === undefined) {
+      const recency = decays(finished.length);
+      return stepsOf(pooled(undefined, finished, recency, recency, settings), settings);
+    }
+    // The run being typed counts 1, the newest finished run the current decay, each before it fading as usual; the
+    // pace weighs every run by its recency alone, the run being typed the newest.
+    withCurrent ??= pooled(
+      undefined,
+      finished,
+      decays(finished.length).map((decay) => settings.currentDecay * decay),
+      decays(finished.length + 1),
+      settings,
+    );
+    return stepsOf(pooled(withCurrent, [judge(current, settings)], [1], [1], settings), settings);
+  };
+}
+
+/** What the runs pooled add up to at each place, and each of them, so that more runs can be added. */
+interface Pool {
+  readonly runs: readonly JudgedRun[];
+  readonly weights: readonly Float64Array[];
+  readonly steps: readonly RunSteps[];
+  /** The log-odds of a break: the prior, plus each run's evidence times its weight. */
+  readonly logOdds: readonly number[];
+  /** The runs' own verdicts, to tell how many agree with the evidence pooled. */
+  readonly breaks: BreakSums;
+  readonly pace: PaceSums;
+}
+
+/**
+ * The runs added to the pool `from`, if any, in order, each weighing its recency (times its trust at each place) in the
+ * evidence and its pace recency in the pace.
+ */
+function pooled(
+  from: Pool | undefined,
+  runs: readonly JudgedRun[],
+  recency: readonly number[],
+  paceRecency: readonly number[],
+  settings: MarsSettings,
+): Pool {
   const prior = logit(settings.breakShare);
-  const weights = runs.map((run, k) => {
-    const recency =
-      current === undefined
-        ? settings.recencyDecay ** (runs.length - 1 - k)
-        : k === finished.length
-          ? 1
-          : settings.currentDecay * settings.recencyDecay ** (finished.length - 1 - k);
-    return Float64Array.from(run.places, (at) => recency * trustOfPlace(at, settings));
-  });
-  const runSteps = runs.map((run): RunSteps => ({
+  const weights = runs.map((run, k) =>
+    Float64Array.from(run.places, (at) => (recency[k] ?? 0) * trustOfPlace(at, settings)),
+  );
+  const steps = runs.map((run): RunSteps => ({
     baseline: byIndex(run.places.map((at) => at.pace)),
     breakProbability: byIndex(run.places.map((at) => logistic(prior + at.evidence))),
     residual: byIndex(
@@ -102,18 +169,25 @@ export function mars(
     ),
   }));
   const logs = runs.map((run) => run.logs);
-  const usual = byIndex(
-    Array.from({ length: longestOf(logs) }, (_, p) =>
-      logistic(
-        runs.reduce(
-          (sum, run, k) => sum + (weights[k]?.[p] ?? 0) * (run.places[p]?.evidence ?? 0),
-          prior,
-        ),
+  return {
+    runs: [...(from?.runs ?? []), ...runs],
+    weights: [...(from?.weights ?? []), ...weights],
+    steps: [...(from?.steps ?? []), ...steps],
+    logOdds: Array.from({ length: Math.max(from?.logOdds.length ?? 0, longestOf(logs)) }, (_, p) =>
+      runs.reduce(
+        (sum, run, k) => sum + (weights[k]?.[p] ?? 0) * (run.places[p]?.evidence ?? 0),
+        from?.logOdds[p] ?? prior,
       ),
     ),
-  );
-  // The runs' own verdicts, to tell how many agree with the evidence pooled.
-  const { coverage, breaks, averageTime } = usualBreaks(logs, runSteps, weights);
+    breaks: breakSums(logs, steps, weights, undefined, from?.breaks),
+    pace: paceSums(runs, paceRecency, from?.pace),
+  };
+}
+
+/** The steps of the runs pooled. */
+function stepsOf(pool: Pool, settings: MarsSettings): Steps {
+  const usual = byIndex(pool.logOdds.map(logistic));
+  const { coverage, breaks, averageTime } = usualOf(pool.breaks);
   const trust = trustOf(usual, breaks, coverage, {
     usualThreshold: settings.breakThreshold,
     level: settings.level,
@@ -121,16 +195,16 @@ export function mars(
   return {
     // One threshold for every break: where the runs usually break is where they break, pooled.
     settings: { ...settings, usualThreshold: settings.breakThreshold },
-    runs: runSteps,
+    runs: pool.steps,
     usual,
     coverage,
     ...trust,
-    speedCurve: usualPace(runs, settings),
+    speedCurve: paceOf(pool.pace),
     averageTime,
     groups: groupsOf(
       usual,
       settings.breakThreshold,
-      Math.max(0, ...runs.map((run) => run.digits)),
+      Math.max(0, ...pool.runs.map((run) => run.digits)),
       trust.horizon,
     ),
   };
@@ -163,10 +237,11 @@ function logistic(logOdds: number): number {
  */
 function marsModel(settings: MarsSettings): BreakModel {
   return modelFromSteps(
-    (finished) => {
-      const judged = finished.map((times) => judge(times, settings));
-      return (current) => mars(judged, current, settings);
-    },
+    (finished) =>
+      marsOver(
+        finished.map((times) => judge(times, settings)),
+        settings,
+      ),
     (steps, next) => groupEnds(steps, next, true),
   );
 }

@@ -1,5 +1,5 @@
 import type { Settings } from './break-model';
-import { mars, MARS, MARS_DEFAULTS } from './mars';
+import { mars, MARS, MARS_DEFAULTS, marsOver } from './mars';
 import { judge } from './terra';
 
 describe('Mars', () => {
@@ -149,6 +149,41 @@ describe('Mars', () => {
     expect(MARS.steps?.({ currentDecay: 0.1 }, uneven).usual).toEqual(
       MARS.steps?.({ currentDecay: 1 }, uneven).usual,
     );
+  });
+
+  it('gives the same steps for each run being typed however many were asked about before', () => {
+    const judged = [timesOf(30, by3(30)), timesOf(20, [5, 10, 15]), timesOf(30, [])].map((times) =>
+      judge(times, MARS_DEFAULTS),
+    );
+    const over = marsOver(judged, MARS_DEFAULTS);
+    for (const current of [timesOf(4, [3]), timesOf(14, by3(30), 1500), timesOf(40, by3(40))]) {
+      expect(over(current)).toEqual(mars(judged, current, MARS_DEFAULTS));
+    }
+    expect(over()).toEqual(mars(judged, undefined, MARS_DEFAULTS));
+  });
+
+  it('adds the run being typed to the recorded runs as one more run', () => {
+    // At the recency decay, the run being typed weighs what a run recorded after the others would.
+    const settings = { ...MARS_DEFAULTS, currentDecay: MARS_DEFAULTS.recencyDecay };
+    const recorded = [timesOf(30, by3(30)), timesOf(20, [5, 10, 15])];
+    const current = timesOf(40, by3(40), 1500);
+    const typed = mars(
+      recorded.map((times) => judge(times, settings)),
+      current,
+      settings,
+    );
+    const all = mars(
+      [...recorded, current].map((times) => judge(times, settings)),
+      undefined,
+      settings,
+    );
+
+    expect(typed.usual.length).toBe(all.usual.length);
+    typed.usual.slice(1).forEach((usual, p) => {
+      expect(usual).toBeCloseTo(all.usual[p + 1] ?? NaN, 12);
+    });
+    expect(typed.groups).toEqual(all.groups);
+    expect(typed.speedCurve).toEqual(all.speedCurve);
   });
 
   it('has no groups without digits', () => {
