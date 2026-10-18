@@ -3,6 +3,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
 import { installPopovers, uninstallPopovers } from '../../../testing/fake-popovers';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
+import { PinnedHyperparameters } from './pinned-hyperparameters';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LUNA } from '../../game/grouping/break-models/luna';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
@@ -180,6 +181,7 @@ describe('FitToGroupingsDialog', () => {
   it('fits the run-count curve, with fewer runs too, and can still fit with all of them', async () => {
     const { host, detect } = await setUp(groupedBy(3));
     await TestBed.inject(Tweaks).setBreakModel(LUNA);
+    TestBed.inject(PinnedHyperparameters).toggle(LUNA, 'window');
     detect();
     const curveButton = field(host, 'button.curve-fit') as HTMLButtonElement;
     curveButton.click();
@@ -199,6 +201,8 @@ describe('FitToGroupingsDialog', () => {
     expect(curveButton.disabled).toBe(true);
     expect(fitButton(host).disabled).toBe(false);
     expect(fitButton(host).textContent.trim()).toBe('Fit');
+    // Pinned on Your Runs, so left where it was.
+    expect(TestBed.inject(Tweaks).grouping()['window']).toBe(LUNA.defaults['window']);
   }, 40_000);
 
   it('stops fitting when closed, leaving the hyperparameters as they were', async () => {

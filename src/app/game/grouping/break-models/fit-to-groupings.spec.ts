@@ -151,6 +151,18 @@ describe('Fitting to groupings', () => {
     expect(seen.at(-1)?.done).toBe(1);
   });
 
+  it('leaves the pinned hyperparameters where they start', async () => {
+    const fit = await fitToGroupings(
+      sizedModel(),
+      { size: 4 },
+      [run],
+      labelsOf(Array<number>(10).fill(3)),
+      { pinned: new Set(['size']) },
+    );
+
+    expect(fit.settings['size']).toBe(4);
+  });
+
   it('looks past the values near where it starts', async () => {
     // Only the right size and the right other value together make the groups: one slider at a time can't find them.
     const kind = sizedModel((settings) =>

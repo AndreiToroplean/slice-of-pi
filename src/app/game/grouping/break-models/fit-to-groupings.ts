@@ -114,6 +114,8 @@ export interface FitOptions {
   readonly pause?: (progress: Progress) => Promise<void>;
   /** Stops the search, which then gives the best values found so far. */
   readonly signal?: AbortSignal;
+  /** The keys of the hyperparameters to keep at their values in `start`, the fit leaving them out of its search. */
+  readonly pinned?: ReadonlySet<string>;
   /** Whether to score over fewer runs too, so as to fit the run-count curve, not only its end (see `GroupingsFit.score`). */
   readonly curve?: boolean;
 }
@@ -140,16 +142,18 @@ const FIT_SETS_PER_COUNT = 2;
  * a peak narrower than the coarse step. Not bisected: the score is flat over long stretches and has many bumps. Then,
  * so as to look over the whole space, it tries values drawn at random across every slider, and refines the best of
  * them the same way. Values are only taken when they score strictly better, so of values that score alike, those found
- * first stay, those near `start` first of all.
+ * first stay, those near `start` first of all. The pinned hyperparameters stay at their values in `start` throughout.
  */
 export async function fitToGroupings(
   kind: BreakModelKind,
   start: Settings,
   runs: readonly (readonly number[])[],
   labels: Labels,
-  { pause, signal, curve = false }: FitOptions = {},
+  { pause, signal, curve = false, pinned = new Set() }: FitOptions = {},
 ): Promise<GroupingsFit> {
-  const sliders = kind.tabs.flatMap((tab) => tab.hyperparameters);
+  const sliders = kind.tabs
+    .flatMap((tab) => tab.hyperparameters)
+    .filter(({ key }) => !pinned.has(key));
   const grids = sliders.map(sliderValues);
   const strides = grids.map((grid) => Math.max(1, Math.round(Math.sqrt(grid.length))));
   const coarse = grids.map((grid, s) => coarseIndices(grid.length, strides[s] ?? 1));
@@ -241,14 +245,15 @@ export async function fitToGroupings(
     if (aborted()) {
       return best;
     }
-    const fit = fitOf(
-      Object.fromEntries(
+    const fit = fitOf({
+      ...first.settings,
+      ...Object.fromEntries(
         sliders.map(({ key }, s) => {
           const grid = grids[s] ?? [];
           return [key, grid[Math.floor(random() * grid.length)] ?? 0];
         }),
       ),
-    );
+    });
     drawn.push(fit);
     keep(fit);
     await pause?.({ stage: 'drawing', draws: DRAWS, done: (k + 1) / DRAWS, best });
