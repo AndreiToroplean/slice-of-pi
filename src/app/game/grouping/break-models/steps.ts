@@ -89,7 +89,7 @@ export function logIntervals(times: readonly number[]): Float64Array {
 }
 
 /** Values by interval, as values by index: interval p is the one before digit p + 1. */
-export function byIndex(values: readonly number[]): Values {
+export function byIndex(values: Values): Values {
   return [undefined, ...values];
 }
 
