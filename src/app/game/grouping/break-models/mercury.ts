@@ -153,13 +153,10 @@ export function mercury(
   }
 
   const { runs, mixture } = fitBreaks(logs, baselines, weights, synthetic, settings, init);
-  const { usual, coverage, breaks, averageTime } = usualBreaks(
-    logs,
-    runs,
-    weights,
-    synthetic,
-    settings,
-  );
+  const { usual, coverage, breaks, averageTime } = usualBreaks(logs, runs, weights, {
+    weight: synthetic,
+    breakShare: settings.priorBreakShare,
+  });
   const trust = trustOf(usual, breaks, coverage, settings);
   return {
     settings,
