@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792336420941,
+  "lastUpdate": 1792353181516,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1640,6 +1640,46 @@ window.BENCHMARK_DATA = {
             "value": 529,
             "unit": "ms",
             "extra": "FitToGroupingsDialog fits the model to the groupings, sets the sliders and draws their run-count curve"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "b01636a364cf16759933251d83a46aa875bfa599",
+          "message": "feat: count down to the end of the group being typed, over an emptying disk, in developer mode",
+          "timestamp": "2026-10-18T21:52:35+02:00",
+          "tree_id": "3cd911335255d5b3d09ecacbd758c4e89714810f",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/b01636a364cf16759933251d83a46aa875bfa599"
+        },
+        "date": 1792353180751,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 6391,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 12110,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 916,
+            "unit": "ms",
+            "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
           }
         ]
       }
