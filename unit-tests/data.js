@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792285483197,
+  "lastUpdate": 1792310852635,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1478,6 +1478,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 312,
+            "unit": "ms",
+            "extra": "YourRuns deletes every run once the player confirms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "ae1a1f068d60f46b640f496d3f859c569c28b04c",
+          "message": "docs: name the terms of fitting a break model in the glossary\n\nClaude-Session: https://claude.ai/code/session_01WxfvegTpfSDJVmAnGDikTS",
+          "timestamp": "2026-10-18T10:07:09+02:00",
+          "tree_id": "c1a99889dd4a00cdf51c02fc6ad15705e8eff46e",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/ae1a1f068d60f46b640f496d3f859c569c28b04c"
+        },
+        "date": 1792310852097,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 8022,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 14998,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 456,
             "unit": "ms",
             "extra": "YourRuns deletes every run once the player confirms"
           }
