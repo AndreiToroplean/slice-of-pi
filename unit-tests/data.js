@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792366989070,
+  "lastUpdate": 1792368378647,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1918,6 +1918,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 772,
+            "unit": "ms",
+            "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "deb9919fbcbed65c279ddae563f4f57eb820c40a",
+          "message": "fix: keep the keypad clear of Android's navigation bar in the installed app\n\nSince Chrome 155 on Android, the installed app starts with its keypad under the navigation bar and only moves it up on the first key press: the window seems to make room for the bar after the page has laid out, and the page keeps the taller size until something on it changes.\n\nThe app now fills the window as a fixed box instead of taking `100dvh`, so it follows the window's size rather than viewport units. It also opts into being drawn under the system bars (`viewport-fit=cover`) and keeps the play screen's keypad, the main menu's buttons and the top of every screen clear of them with the safe-area insets, so that wherever Chrome draws the page under the bar, nothing sits beneath it and the background reaches the edge.\n\nClaude-Session: https://claude.ai/code/session_01W2vehYWDSx2oGPxzc8e8hC",
+          "timestamp": "2026-10-19T02:05:53+02:00",
+          "tree_id": "a997544a54369f6abded76d3bf047b92d1760104",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/deb9919fbcbed65c279ddae563f4f57eb820c40a"
+        },
+        "date": 1792368377357,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 7148,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 13910,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 618,
             "unit": "ms",
             "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
           }
