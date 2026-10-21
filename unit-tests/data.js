@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792368378647,
+  "lastUpdate": 1792618757385,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -1958,6 +1958,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 618,
+            "unit": "ms",
+            "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "aa2134f91cfbdefea738198e3f6f9f6a8f1c0b85",
+          "message": "docs: collect wild ideas about the game's story and a memory palace\n\nIdeas from the main menu redesign discussion: toys as a theme, the name as a pun, layers unlocked as the player progresses, fading stars, and a memory palace layer walked like a board game.\n\nClaude-Session: https://claude.ai/code/session_01LAHFq4nSecVryCEf6c1TF1",
+          "timestamp": "2026-10-21T23:38:53+02:00",
+          "tree_id": "127316fcc9abb8fa9d9d4f0270fa66b9bb468ff8",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/aa2134f91cfbdefea738198e3f6f9f6a8f1c0b85"
+        },
+        "date": 1792618756586,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 7392,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 14501,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 721,
             "unit": "ms",
             "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
           }
