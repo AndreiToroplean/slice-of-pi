@@ -100,9 +100,4 @@ Some things are unique to each player, starting with the layout of their sky (§
 - A menu may offer **"Reset my seed"**, but that button must look clearly dangerous.
 - Seed-derived output is stable (§3). It comes from our own versioned random number generator, never one whose output might change.
 
-## 8. Wild ideas
-
-Ideas to pick from someday.
-
-- **Digitless mode.** The digits don't show anywhere: no labels on the keys, no typed digits, only colors, constellations, seasons and sounds. The player learns π without ever seeing it, like a game of repeating sequences of lights and sounds (`meaning.md` §3).
-- **Start anywhere.** The player picks where in π to start, for example 100 digits from the millionth place on, and learns that slice (`meaning.md` §2).
+Wilder ideas, to pick from someday, are in [`wild-ideas.md`](wild-ideas.md).
