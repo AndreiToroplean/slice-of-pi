@@ -7,6 +7,7 @@ import { DropdownMenu } from './dropdown-menu';
   imports: [DropdownMenu],
   template: `
     <app-dropdown-menu>
+      <button type="button" disabled>Chosen</button>
       <button type="button">Choose</button>
       <label class="toggle"><input type="checkbox" /> Toggle</label>
     </app-dropdown-menu>
@@ -39,9 +40,50 @@ describe('DropdownMenu', () => {
   it('closes once one of its buttons is chosen', () => {
     const { dropdown } = open();
 
-    dropdown.querySelector('button')?.click();
+    dropdown.querySelector<HTMLButtonElement>('button:enabled')?.click();
 
     expect(dropdown.hasAttribute('data-popover-open')).toBe(false);
+  });
+
+  function press(key: string): KeyboardEvent {
+    const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+    document.activeElement?.dispatchEvent(event);
+    return event;
+  }
+
+  it('opens with the focus on its first item it can take, moved on with the up and down keys', () => {
+    const { dropdown } = open();
+    const toggle = dropdown.querySelector('input');
+    expect(document.activeElement?.textContent).toBe('Choose');
+
+    expect(press('ArrowDown').defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(toggle);
+    press('ArrowDown');
+    expect(document.activeElement?.textContent).toBe('Choose');
+    press('ArrowUp');
+    expect(document.activeElement).toBe(toggle);
+  });
+
+  it('flips a toggle on Enter, and closes', () => {
+    const { dropdown } = open();
+    const toggle = dropdown.querySelector('input');
+    toggle?.focus();
+
+    expect(press('Enter').defaultPrevented).toBe(true);
+
+    expect(toggle?.checked).toBe(true);
+    expect(dropdown.hasAttribute('data-popover-open')).toBe(false);
+  });
+
+  it('leaves the up and down keys alone outside it', () => {
+    open();
+    const outside = document.createElement('button');
+    document.body.append(outside);
+    outside.focus();
+
+    expect(press('ArrowDown').defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(outside);
+    outside.remove();
   });
 
   it('tells the dropdown where it opened in the window', () => {
