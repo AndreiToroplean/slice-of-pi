@@ -39,11 +39,11 @@ describe('Settings', () => {
 
   it('picks the keypad layout', async () => {
     const host = await setUp();
-    const layout = (name: string): HTMLInputElement | null | undefined =>
-      Array.from(host.querySelectorAll('[aria-label="Keypad layout"] label'))
-        .find((label) => label.textContent.trim() === name)
-        ?.querySelector('input');
-    expect(layout('Calculator')?.checked).toBe(true);
+    const layout = (name: string): HTMLButtonElement | undefined =>
+      Array.from(host.querySelectorAll('[aria-label="Keypad layout"] [role="radio"]')).find(
+        (radio): radio is HTMLButtonElement => radio.textContent.trim() === name,
+      );
+    expect(layout('Calculator')?.getAttribute('aria-checked')).toBe('true');
 
     layout('Telephone')?.click();
 

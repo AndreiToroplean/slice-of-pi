@@ -39,6 +39,7 @@ import { plural } from '../../ui/plural';
 import { RunChart } from './run-chart';
 import { chartTop, digitTimes } from './run-charts';
 import { Candy } from '../../ui/candy';
+import { Segment, Segmented } from '../../ui/segmented';
 
 /**
  * The player's runs, opened from the main menu's overflow menu, on one screen: a chart of them all on top, and under it
@@ -54,6 +55,7 @@ import { Candy } from '../../ui/candy';
   selector: 'app-your-runs',
   imports: [
     Candy,
+    Segmented,
     Carousel,
     CdkDrag,
     CdkDragHandle,
@@ -93,26 +95,18 @@ import { Candy } from '../../ui/candy';
               or at the place picked on them, across the runs.
             -->
             <div class="perspectives">
-              <span id="perspective-label">Perspective</span>
-              <div role="tablist" aria-labelledby="perspective-label">
-                @for (each of PERSPECTIVES; track each.id) {
-                  <button
-                    type="button"
-                    role="tab"
-                    [id]="'tab-' + each.id"
-                    [attr.aria-controls]="'perspective-' + each.id"
-                    [attr.aria-selected]="perspective() === each.id"
-                    (click)="perspective.set(each.id)"
-                  >
-                    {{ each.label }}
-                  </button>
-                }
-              </div>
+              <span aria-hidden="true">Perspective</span>
+              <app-segmented
+                label="Perspective"
+                panels="perspective"
+                [segments]="PERSPECTIVES"
+                [(value)]="perspective"
+              />
             </div>
             <div
               role="tabpanel"
               id="perspective-run"
-              aria-labelledby="tab-run"
+              aria-labelledby="perspective-tab-run"
               [hidden]="perspective() !== 'run'"
             >
               <app-carousel label="The break model along the places, step by step">
@@ -147,7 +141,7 @@ import { Candy } from '../../ui/candy';
             <div
               role="tabpanel"
               id="perspective-place"
-              aria-labelledby="tab-place"
+              aria-labelledby="perspective-tab-place"
               [hidden]="perspective() !== 'place'"
             >
               @if (steps(); as model) {
@@ -170,7 +164,7 @@ import { Candy } from '../../ui/candy';
             <div
               role="tabpanel"
               id="perspective-group"
-              aria-labelledby="tab-group"
+              aria-labelledby="perspective-tab-group"
               [hidden]="perspective() !== 'group'"
             >
               <app-group-perspective [groups]="groups()" [plots]="groupPlots()" />
@@ -763,10 +757,10 @@ const TIMES_KEYS: readonly Key[] = Object.values(TIMES);
  */
 type Perspective = 'run' | 'place' | 'group';
 
-const PERSPECTIVES: readonly { readonly id: Perspective; readonly label: string }[] = [
-  { id: 'run', label: 'Run' },
-  { id: 'place', label: 'Place' },
-  { id: 'group', label: 'Group' },
+const PERSPECTIVES: readonly Segment<Perspective>[] = [
+  { value: 'run', label: 'Run' },
+  { value: 'place', label: 'Place' },
+  { value: 'group', label: 'Group' },
 ];
 
 /** What's picked for the context menu when it's all runs rather than one: no run's id is empty. */

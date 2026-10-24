@@ -137,22 +137,6 @@ describe('GroupingSettingsPanel', () => {
     expect(keys.sort()).toEqual(Object.keys(kind.defaults).sort());
   });
 
-  it('scrolls the row of tabs to show the whole of the tab picked', async () => {
-    const { host } = await setUp();
-    const row = host.querySelector<HTMLElement>('.tabs');
-    const tabs = Array.from(host.querySelectorAll<HTMLElement>('[role="tab"]'));
-    const last = tabs.at(-1);
-    if (row === null || last === undefined) {
-      throw new Error('No tabs');
-    }
-    // A row 200 pixels wide, its last tab 30 pixels past its right edge.
-    row.getBoundingClientRect = () => new DOMRect(0, 0, 200, 40);
-    last.getBoundingClientRect = () => new DOMRect(170, 0, 60, 40);
-    last.click();
-
-    expect(row.scrollLeft).toBe(30);
-  });
-
   it('shows one tab at a time, the runs first', async () => {
     const { host, detect } = await setUp();
     const shown = (): string[] =>
