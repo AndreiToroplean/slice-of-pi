@@ -25,7 +25,11 @@ import { CONFIRM } from '../../ui/confirm';
 import { FitToGroupingsDialog } from './fit-to-groupings-dialog';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { LongPress } from '../../ui/long-press';
+import { GroupList } from './group-list';
+import { GroupPerspective } from './group-perspective';
+import { MyGroupings } from './my-groupings';
 import { PlacePerspective } from './place-perspective';
+import { groupViews } from './views/group-views';
 import { modelViews } from './views/model-views';
 import type { Key, Plot } from './views/plot';
 import { PlotLegend } from './views/plot-legend';
@@ -58,6 +62,8 @@ import { chartTop, digitTimes } from './run-charts';
     LongPress,
     NgTemplateOutlet,
     Page,
+    GroupList,
+    GroupPerspective,
     PlacePerspective,
     PlotLegend,
     PlotView,
@@ -81,19 +87,22 @@ import { chartTop, digitTimes } from './run-charts';
               In developer mode, the steps of the break model, one after the other: along the places, over the runs,
               or at the place picked on them, across the runs.
             -->
-            <div class="perspectives" role="tablist" aria-label="Perspective">
-              @for (each of PERSPECTIVES; track each.id) {
-                <button
-                  type="button"
-                  role="tab"
-                  [id]="'tab-' + each.id"
-                  [attr.aria-controls]="'perspective-' + each.id"
-                  [attr.aria-selected]="perspective() === each.id"
-                  (click)="perspective.set(each.id)"
-                >
-                  {{ each.label }}
-                </button>
-              }
+            <div class="perspectives">
+              <span id="perspective-label">Perspective</span>
+              <div role="tablist" aria-labelledby="perspective-label">
+                @for (each of PERSPECTIVES; track each.id) {
+                  <button
+                    type="button"
+                    role="tab"
+                    [id]="'tab-' + each.id"
+                    [attr.aria-controls]="'perspective-' + each.id"
+                    [attr.aria-selected]="perspective() === each.id"
+                    (click)="perspective.set(each.id)"
+                  >
+                    {{ each.label }}
+                  </button>
+                }
+              </div>
             </div>
             <div
               role="tabpanel"
@@ -124,7 +133,6 @@ import { chartTop, digitTimes } from './run-charts';
                   />
                 }
               </app-carousel>
-              <ng-container [ngTemplateOutlet]="groupList" />
             </div>
             <div
               role="tabpanel"
@@ -149,10 +157,18 @@ import { chartTop, digitTimes } from './run-charts';
                 <p>This break model doesn’t show its steps.</p>
               }
             </div>
+            <div
+              role="tabpanel"
+              id="perspective-group"
+              aria-labelledby="tab-group"
+              [hidden]="perspective() !== 'group'"
+            >
+              <app-group-perspective [groups]="groups()" [plots]="groupPlots()" />
+            </div>
           } @else {
             <h3>{{ summaryTitle() }}</h3>
             <ng-container [ngTemplateOutlet]="timesChart" />
-            <ng-container [ngTemplateOutlet]="groupList" />
+            <app-group-list [groups]="groups()" />
           }
         </article>
       }
@@ -222,14 +238,6 @@ import { chartTop, digitTimes } from './run-charts';
       <p class="axis" aria-hidden="true">
         <span>Place 1</span><span>Place {{ places() }}</span>
       </p>
-    </ng-template>
-    <!-- The groups of all runs. -->
-    <ng-template #groupList>
-      <ul class="groups" aria-label="Your groups" tabindex="0">
-        @for (group of groups(); track group.start) {
-          <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
-        }
-      </ul>
     </ng-template>
     <!-- The runs, scrolling under the chart of them all: the only part of the page that scrolls. -->
     <ng-template #runList>
@@ -458,6 +466,22 @@ export class YourRuns {
       this.pickedPlace() ?? (first === undefined ? 1 : first.start + first.size),
     );
   });
+  /** In developer mode, the views along the digits of a group, the player's own groups among them if they're π. */
+  protected readonly groupPlots = computed(() => {
+    const steps = this.steps();
+    const mine = this.myGroupings.mistake() === undefined ? this.myGroupings.groups() : [];
+    return steps === undefined
+      ? []
+      : groupViews(
+          {
+            model: steps,
+            picked: this.pickedRuns(),
+            aggregate: this.aggregateShown(),
+            places: this.places(),
+          },
+          mine.map((group) => group.length),
+        );
+  });
   /** In developer mode, the steps of the break model after the times, for all the runs and those picked. */
   protected readonly views = computed(() => {
     const steps = this.steps();
@@ -512,6 +536,7 @@ export class YourRuns {
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
   private readonly confirm = inject(CONFIRM);
+  private readonly myGroupings = inject(MyGroupings);
 
   constructor() {
     void this.refresh();
@@ -671,6 +696,7 @@ export class YourRuns {
   private async refresh(): Promise<void> {
     await this.recorder.saved();
     this.runs.set(await this.store.runs());
+    await this.myGroupings.load();
     this.loaded.set(true);
   }
 }
@@ -684,12 +710,16 @@ const TIMES_KEYS: readonly Key[] = [
   { mark: 'line', role: 'faint', label: 'Runs picked' },
 ];
 
-/** The perspectives on the break model: along the places, over the runs, or across the runs, at one place. */
-type Perspective = 'run' | 'place';
+/**
+ * The perspectives on the break model, by what its steps are plotted along: the places, over the runs; the runs, at one
+ * place; or the digits of a group.
+ */
+type Perspective = 'run' | 'place' | 'group';
 
 const PERSPECTIVES: readonly { readonly id: Perspective; readonly label: string }[] = [
-  { id: 'run', label: 'Run Perspective' },
-  { id: 'place', label: 'Place Perspective' },
+  { id: 'run', label: 'Run' },
+  { id: 'place', label: 'Place' },
+  { id: 'group', label: 'Group' },
 ];
 
 /** What's picked for the context menu when it's all runs rather than one: no run's id is empty. */

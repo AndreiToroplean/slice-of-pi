@@ -1,6 +1,5 @@
 import { Component, computed, ElementRef, inject, input, signal, viewChild } from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
-import { RunStore } from '../../player-data/run-store';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import type { Plot } from './views/plot';
 import { PlotChart } from './views/plot-chart';
@@ -14,21 +13,15 @@ import {
   Score,
   scoreGroups,
 } from '../../game/grouping/break-models/fit-to-groupings';
-import {
-  firstMistake,
-  groupsIn,
-  loadMyGroupings,
-  onlyDigitsAndSpaces,
-  saveMyGroupings,
-} from './my-groupings';
+import { MyGroupings } from './my-groupings';
 
 /** How long the search runs before letting the page draw, in milliseconds. */
 const FRAME = 30;
 
 /**
  * Developer mode's dialog that fits a break model's hyperparameters to the player's own groups, opened from the overflow
- * menu of Your Runs: pick the model, type or paste the groups, a space between each, and fit. Groups that aren't π show
- * as an error, saying where. The search, which leaves the hyperparameters pinned on Your Runs where they are, runs while the dialog stays open, showing how well the model matches the groups
+ * menu of Your Runs: pick the model and fit it to the groups typed in the Group tab of Your Runs. Groups that aren't π
+ * show as an error, saying where. The search, which leaves the hyperparameters pinned on Your Runs where they are, runs while the dialog stays open, showing how well the model matches the groups
  * as an F1 score, which tells models apart on the same groups, with all the runs or, fitting the run-count curve, with
  * fewer too; then the sliders are set to the best values found. It
  * stays open, so as to fit again once the model or the groups change. It draws the run-count curve of the model as set,
@@ -64,19 +57,6 @@ const FRAME = 30;
           }
         </app-dropdown-menu>
       </div>
-      <label class="field">
-        My groupings, a space between groups
-        <textarea
-          rows="6"
-          spellcheck="false"
-          autocomplete="off"
-          aria-describedby="fit-status"
-          [value]="text()"
-          [disabled]="locked()"
-          [attr.aria-invalid]="mistake() !== undefined"
-          (input)="type($event)"
-        ></textarea>
-      </label>
       <!-- Kept in its place while idle, so the dialog doesn't change size as a fit starts and ends. -->
       <progress
         max="1"
@@ -191,28 +171,6 @@ const FRAME = 30;
       outline: none;
     }
 
-    textarea {
-      box-sizing: border-box;
-      width: 100%;
-      margin: 0;
-      padding: 0.5rem 0.75rem;
-      border: 0.125rem solid transparent;
-      border-radius: 0.75rem;
-      background: var(--candy);
-      color: var(--on-candy);
-      font-family: var(--font-digits);
-      font-size: 1rem;
-      font-weight: 500;
-      line-height: 1.4;
-      resize: vertical;
-      /* Its caret shows it has the focus, and its border whether it's valid. */
-      outline: none;
-    }
-
-    textarea[aria-invalid='true'] {
-      border-color: var(--candy-danger);
-    }
-
     /* On a touch screen, no focus rings: what's tapped is plain to see. */
     @media (pointer: coarse) {
       :focus-visible {
@@ -314,14 +272,14 @@ export class FitToGroupingsDialog {
 
   protected readonly models = BREAK_MODELS;
   private readonly tweaks = inject(Tweaks);
-  private readonly store = inject(RunStore);
   protected readonly kind = this.tweaks.breakModelKind;
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
   /** The groupings as typed. */
-  protected readonly text = signal('');
-  private readonly groups = computed(() => groupsIn(this.text()));
-  protected readonly mistake = computed(() => firstMistake(this.groups()));
+  private readonly myGroupings = inject(MyGroupings);
+  private readonly text = this.myGroupings.text;
+  private readonly groups = this.myGroupings.groups;
+  protected readonly mistake = this.myGroupings.mistake;
   private readonly labels = computed(() => labelsOf(this.groups().map((group) => group.length)));
   /** Whether there are groups to fit to, all of π, and runs to fit with. */
   protected readonly ready = computed(
@@ -380,7 +338,7 @@ export class FitToGroupingsDialog {
       return '';
     }
     if (this.groups().length === 0) {
-      return 'Type or paste the decimals of π as you group them.';
+      return 'Type or paste the decimals of π as you group them in the Group tab on top of Your Runs.';
     }
     if (this.runs().length === 0) {
       return 'No runs to fit to.';
@@ -404,7 +362,7 @@ export class FitToGroupingsDialog {
 
   /** Opens the dialog, with the groupings typed last. */
   async open(): Promise<void> {
-    this.text.set(await loadMyGroupings(this.store));
+    await this.myGroupings.load();
     this.fittedFor.set(undefined);
     this.curve.set(undefined);
     this.dialog().nativeElement.showModal();
@@ -429,17 +387,6 @@ export class FitToGroupingsDialog {
   protected under(event: Event): { readonly x: number; readonly y: number } {
     const button = (event.currentTarget as HTMLElement).getBoundingClientRect();
     return { x: button.left + button.width / 2, y: button.bottom };
-  }
-
-  /** Takes what's typed, keeping only digits and spaces. */
-  protected type(event: Event): void {
-    const field = event.target as HTMLTextAreaElement;
-    const text = onlyDigitsAndSpaces(field.value);
-    if (text !== field.value) {
-      field.value = text;
-    }
-    this.text.set(text);
-    void saveMyGroupings(this.store, text);
   }
 
   /**

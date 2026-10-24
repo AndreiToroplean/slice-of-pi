@@ -5,6 +5,7 @@ import {
   MERCURY_DEFAULTS,
 } from '../../../game/grouping/break-models/mercury';
 import type { Steps } from '../../../game/grouping/break-models/steps';
+import { groupViews } from './group-views';
 import { modelViews } from './model-views';
 import { placeAnalysis } from './place-views';
 import type { Key, Layer, Plot } from './plot';
@@ -60,9 +61,10 @@ describe('the keys to the views of the break model', () => {
   }
 
   for (const [name, model] of Object.entries(models)) {
-    it(`tells what every kind of mark stands for, along the places, in ${name}`, () => {
+    it(`tells what every kind of mark stands for, along the places and in groups, in ${name}`, () => {
       for (const picked of [[], [1]]) {
-        const views = modelViews({ model, picked, aggregate: true, places: 30 });
+        const input = { model, picked, aggregate: true, places: 30 };
+        const views = [...modelViews(input), ...groupViews(input, [3, 3, 4])];
 
         expect(views.flatMap(unkeyed)).toEqual([]);
       }

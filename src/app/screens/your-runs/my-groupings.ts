@@ -1,3 +1,4 @@
+import { computed, inject, Service, signal } from '@angular/core';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { RunStore } from '../../player-data/run-store';
 
@@ -65,4 +66,29 @@ export async function loadMyGroupings(store: RunStore): Promise<string> {
 
 export function saveMyGroupings(store: RunStore, text: string): Promise<void> {
   return store.saveSetting(MY_GROUPINGS, { format: MY_GROUPINGS_FORMAT, text });
+}
+
+/**
+ * The player's groupings as Your Runs has them, read from the store and saved there as they're typed, so that the
+ * Group tab, where they're typed, and the dialog fitting the break model to them share them.
+ */
+@Service()
+export class MyGroupings {
+  private readonly store = inject(RunStore);
+  /** The groupings as typed. */
+  readonly text = signal('');
+  readonly groups = computed(() => groupsIn(this.text()));
+  /** The first digit in them that isn't π's, if any. */
+  readonly mistake = computed(() => firstMistake(this.groups()));
+
+  /** Reads them from the store again. */
+  async load(): Promise<void> {
+    this.text.set(await loadMyGroupings(this.store));
+  }
+
+  /** Takes them as typed, keeping only digits and spaces, and saves them. */
+  set(text: string): void {
+    this.text.set(onlyDigitsAndSpaces(text));
+    void saveMyGroupings(this.store, this.text());
+  }
 }
