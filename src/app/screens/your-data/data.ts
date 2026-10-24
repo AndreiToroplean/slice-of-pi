@@ -1,6 +1,7 @@
 import { Component, computed, inject, InjectionToken, signal } from '@angular/core';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
+import { ButtonList } from '../../ui/button-list';
 import { Page } from '../../ui/page';
 import { backupFileName, readBackup, writeBackup } from '../../player-data/backup';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
@@ -30,7 +31,7 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
  */
 @Component({
   selector: 'app-data',
-  imports: [Page],
+  imports: [ButtonList, Page],
   template: `
     <app-page title="Your Data">
       <section class="panel" aria-labelledby="backup-title">
@@ -54,7 +55,7 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
         @if (tuned()) {
           <p>It also keeps what you tuned in developer mode.</p>
         }
-        <div class="buttons">
+        <app-button-list class="buttons">
           <button type="button" class="candy" (click)="save()">Save a Backup</button>
           <label class="candy">
             Restore a Backup
@@ -65,7 +66,7 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
               (change)="restore($event)"
             />
           </label>
-        </div>
+        </app-button-list>
         <p class="message" role="status">{{ message() }}</p>
       </section>
     </app-page>

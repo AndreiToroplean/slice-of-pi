@@ -1,5 +1,6 @@
 import { Component, ElementRef, model, output, viewChild } from '@angular/core';
 import { injectBackToMenu } from '../../../ui/back-to-menu';
+import { ButtonList } from '../../../ui/button-list';
 
 /**
  * The pause button, and the dialog it opens over the game: resume, restart the game, or end it, back to the main
@@ -7,6 +8,7 @@ import { injectBackToMenu } from '../../../ui/back-to-menu';
  */
 @Component({
   selector: 'app-pause',
+  imports: [ButtonList],
   host: { '(document:keydown.escape)': 'escape($event)' },
   template: `
     <button type="button" class="frosted pause-button" aria-label="Pause" (click)="pause()">
@@ -17,9 +19,11 @@ import { injectBackToMenu } from '../../../ui/back-to-menu';
     </button>
     <dialog #dialog class="card" aria-labelledby="pause-title" (close)="paused.set(false)">
       <h2 id="pause-title">Paused</h2>
-      <button type="button" class="candy primary" autofocus (click)="resume()">Resume</button>
-      <button type="button" class="candy" (click)="restart.emit(); resume()">Restart</button>
-      <button type="button" class="candy danger" (click)="void endGame()">End Game</button>
+      <app-button-list>
+        <button type="button" class="candy primary" autofocus (click)="resume()">Resume</button>
+        <button type="button" class="candy" (click)="restart.emit(); resume()">Restart</button>
+        <button type="button" class="candy danger" (click)="void endGame()">End Game</button>
+      </app-button-list>
     </dialog>
   `,
   styleUrl: './pause.css',
