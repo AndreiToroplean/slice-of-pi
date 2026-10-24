@@ -1,2 +1,5 @@
 # Text files use LF everywhere, as Prettier expects, whatever the checkout's platform.
 * text=auto eol=lf
+# Except the scripts cmd.exe runs, which need CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
