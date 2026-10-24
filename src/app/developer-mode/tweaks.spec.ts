@@ -12,16 +12,8 @@ import { BreakSettings } from '../game/grouping/break-models/hyperparameters';
 import { MERCURY, MERCURY_DEFAULTS } from '../game/grouping/break-models/mercury';
 import { VENUS } from '../game/grouping/break-models/venus';
 import { DeveloperMode } from './developer-mode';
-import {
-  groupingText,
-  paletteText,
-  parseTweaks,
-  SEASON_STARTS,
-  seasonsText,
-  Tweaks,
-  TWEAKS,
-  TWEAKS_FORMAT,
-} from './tweaks';
+import { parseTweaks, SEASON_STARTS, Tweaks, TWEAKS, TWEAKS_FORMAT, tweaksBackup } from './tweaks';
+import { readBackup } from '../player-data/backup';
 import { PLAY_WITH_MERCURY } from '../../testing/game-break-model';
 
 describe('Tweaks', () => {
@@ -214,59 +206,18 @@ describe('Tweaks', () => {
     expect(tweaks.values()).toEqual({ grouping: { mercury: grouping } });
   });
 
-  describe('as text', () => {
-    it('lists the key colors, saying when they are the game’s own', () => {
-      expect(paletteText(PALETTE).split('\n')[0]).toBe(
-        "Key colors (PALETTE in place-colors.ts), keys 0 to 9, the game's own:",
-      );
-      expect(paletteText(palette)).toBe(
-        [
-          'Key colors (PALETTE in place-colors.ts), keys 0 to 9:',
-          ...palette.map((color, i) => `  ${String(i)}: ${color}`),
-        ].join('\n'),
-      );
-    });
+  it('writes tuned values as a backup holding them alone, which reads back as the same tweaks', () => {
+    const backup = readBackup(tweaksBackup({ palette, seasonTurn: 3 }, 1000));
 
-    it("lists every season's colors, their color space and turn, marking those that changed", () => {
-      expect(seasonsText(seasons, SEASON_COLOR_SPACE, SEASON_TURN)).toBe(
-        [
-          'Season colors (early colors in SEASON_BACKGROUNDS in seasons.ts), top then bottom:',
-          `  spring: ${SEASON_STARTS.spring[0]}, ${SEASON_STARTS.spring[1]}`,
-          `  summer: ${SEASON_STARTS.summer[0]}, ${SEASON_STARTS.summer[1]}`,
-          '  autumn: #000000, #ffffff (changed)',
-          `  winter: ${SEASON_STARTS.winter[0]}, ${SEASON_STARTS.winter[1]}`,
-          'Blended in OKLCH (SEASON_COLOR_SPACE in seasons.ts)',
-          'Turning over 5 digits (SEASON_TURN in seasons.ts)',
-        ].join('\n'),
-      );
-      expect(seasonsText(SEASON_STARTS, 'srgb', 1).split('\n').slice(-2)).toEqual([
-        'Blended in sRGB (SEASON_COLOR_SPACE in seasons.ts) (changed)',
-        'Turning over 1 digit (SEASON_TURN in seasons.ts) (changed)',
-      ]);
+    expect(backup).toEqual({
+      runs: [],
+      skipped: 0,
+      settings: { [TWEAKS]: { format: TWEAKS_FORMAT, palette, seasonTurn: 3 } },
     });
-  });
-
-  it('lists the grouping settings of the model picked alone, marking those that changed', () => {
-    expect(groupingText(MERCURY, grouping)).toBe(
-      [
-        'Break model: Mercury (BREAK_MODEL in break-models.ts) (changed)',
-        'Hyperparameters of Mercury:',
-        '  window: 21',
-        '  recencyDecay: 0.95 (changed)',
-        '  level: 0.9',
-        '  priorStrength: 5',
-        '  syntheticRuns: 5',
-        '  syntheticDecay: 0.5',
-        '  priorBaseline: 300',
-        '  priorBreakShare: 0.15',
-        '  priorBreakSize: 2.5',
-        '  priorNormalSpread: 0.25',
-        '  priorBreakSpread: 0.4',
-        '  breakThreshold: 0.5',
-        '  usualThreshold: 0.5',
-        '  startingSlots: 5',
-      ].join('\n'),
-    );
+    expect('settings' in backup && parseTweaks(backup.settings[TWEAKS])).toEqual({
+      palette,
+      seasonTurn: 3,
+    });
   });
 
   it('puts back the default of each stored grouping setting that is missing or out of range', () => {

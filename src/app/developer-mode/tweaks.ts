@@ -1,6 +1,7 @@
 import { computed, inject, Service, signal } from '@angular/core';
-import { COLOR_SPACE_NAMES, COLOR_SPACES, ColorSpace } from '../game/color/color-spaces';
+import { COLOR_SPACES, ColorSpace } from '../game/color/color-spaces';
 import { Palette, PALETTE } from '../game/layers/place-colors';
+import { writeBackup } from '../player-data/backup';
 import { migrate, Migration } from '../player-data/migration';
 import { RunOrder } from '../player-data/run';
 import { RunStore } from '../player-data/run-store';
@@ -17,7 +18,6 @@ import {
 } from '../game/layers/seasons';
 import { BreakModelKind, Settings } from '../game/grouping/break-models/break-model';
 import {
-  BREAK_MODEL,
   BREAK_MODELS,
   breakModelKindById,
   GAME_BREAK_MODEL,
@@ -44,7 +44,7 @@ export interface TweakValues {
   readonly palette?: Palette;
   /** The seasons' starting colors, for {@link SEASON_BACKGROUNDS}. */
   readonly seasons?: SeasonStarts;
-  /** The name of the break model the groups come from, for {@link BREAK_MODEL}. */
+  /** The name of the break model the groups come from, for the game's own (`BREAK_MODEL` in `break-models.ts`). */
   readonly breakModel?: string;
   /** The hyperparameters tuned for each break model, by its id, for its defaults: each keeps its own. */
   readonly grouping?: Readonly<Record<string, Settings>>;
@@ -73,7 +73,7 @@ export const SEASON_STARTS: SeasonStarts = Object.fromEntries(
  * The game's values as tuned in developer mode: they apply to the whole game while developer mode is on, and the
  * game's own values apply otherwise. Kept with the player's data, so they survive turning developer mode off and on.
  * The game's own values never change here: tuned values go into the code once the owner is happy with them, from the
- * text each page copies ({@link paletteText}, {@link seasonsText}, {@link groupingText}).
+ * backup each page copies ({@link tweaksBackup}).
  */
 @Service()
 export class Tweaks {
@@ -245,52 +245,12 @@ export class Tweaks {
   }
 }
 
-/** Key colors as text to hand back so they go into the code, saying whether they differ from the game's. */
-export function paletteText(palette: Palette): string {
-  const changed = palette.some((color, i) => color !== PALETTE[i]);
-  return [
-    `Key colors (PALETTE in place-colors.ts), keys 0 to 9${changed ? '' : ", the game's own"}:`,
-    ...palette.map((color, i) => `  ${String(i)}: ${color}`),
-  ].join('\n');
-}
-
 /**
- * The seasons' starting colors, the color space they blend in and how long they take to turn, as text to hand back so
- * they go into the code, marking what differs.
+ * Tuned values as the text of a backup file holding them alone, in the tweaks setting, to hand back so they go into the
+ * code: backups are the one format the game writes its values in, for players and for the owner alike.
  */
-export function seasonsText(
-  seasons: SeasonStarts,
-  colorSpace: ColorSpace,
-  seasonTurn: number,
-): string {
-  const changed = (yes: boolean): string => (yes ? ' (changed)' : '');
-  return [
-    'Season colors (early colors in SEASON_BACKGROUNDS in seasons.ts), top then bottom:',
-    ...SEASONS.map(
-      (season) =>
-        `  ${season}: ${seasons[season][0]}, ${seasons[season][1]}${changed(
-          seasons[season].some((color, k) => color !== SEASON_STARTS[season][k]),
-        )}`,
-    ),
-    `Blended in ${COLOR_SPACE_NAMES[colorSpace]} (SEASON_COLOR_SPACE in seasons.ts)${changed(colorSpace !== SEASON_COLOR_SPACE)}`,
-    `Turning over ${String(seasonTurn)} digit${seasonTurn === 1 ? '' : 's'} (SEASON_TURN in seasons.ts)${changed(seasonTurn !== SEASON_TURN)}`,
-  ].join('\n');
-}
-
-/**
- * The break model picked and its hyperparameters, tuned or not, as text to hand back so they go into the code, marking
- * what differs.
- */
-export function groupingText(kind: BreakModelKind, settings: Settings | undefined): string {
-  const changed = (yes: boolean): string => (yes ? ' (changed)' : '');
-  return [
-    `Break model: ${kind.label} (BREAK_MODEL in break-models.ts)${changed(kind !== BREAK_MODEL)}`,
-    `Hyperparameters of ${kind.label}:`,
-    ...Object.entries(kind.defaults).map(([key, value]) => {
-      const setting = settings?.[key] ?? value;
-      return `  ${key}: ${String(Number(setting.toPrecision(4)))}${changed(setting !== value)}`;
-    }),
-  ].join('\n');
+export function tweaksBackup(values: TweakValues, exportedAt: number): string {
+  return writeBackup([], { [TWEAKS]: { format: TWEAKS_FORMAT, ...values } }, exportedAt);
 }
 
 /** The tweaks in a stored setting, leaving out what isn't valid. A format this version doesn't know gives none. */

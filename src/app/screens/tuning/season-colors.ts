@@ -15,7 +15,7 @@ import {
 } from '../../game/layers/seasons';
 import { ColorPicker } from './color-picker';
 import { CopyValues } from './copy-values';
-import { SEASON_STARTS, SeasonStarts, seasonsText, Tweaks } from '../../developer-mode/tweaks';
+import { SEASON_STARTS, SeasonStarts, Tweaks, TweakValues } from '../../developer-mode/tweaks';
 
 /** Which of a season's colors: the top of the screen, or the bottom. */
 const ENDS = [
@@ -103,7 +103,7 @@ const ENDS = [
           }
         </span>
       </label>
-      <app-copy-values [text]="copyText()" />
+      <app-copy-values [values]="copied()" />
     </app-page>
   `,
   styleUrl: './season-colors.css',
@@ -177,10 +177,12 @@ export class SeasonColors {
       this.colorSpace() !== SEASON_COLOR_SPACE ||
       this.seasonTurn() !== SEASON_TURN,
   );
-  /** The colors as text, to hand back so they go into the code. */
-  protected readonly copyText = computed(() =>
-    seasonsText(this.starts(), this.colorSpace(), this.seasonTurn()),
-  );
+  /** The colors, and how they blend and turn, tuned or not, to hand back so they go into the code. */
+  protected readonly copied = computed((): TweakValues => ({
+    seasons: this.starts(),
+    colorSpace: this.colorSpace(),
+    seasonTurn: this.seasonTurn(),
+  }));
   protected readonly view = computed(() =>
     seasonAt(this.place(), backgroundsFrom(this.starts()), this.colorSpace(), this.seasonTurn()),
   );

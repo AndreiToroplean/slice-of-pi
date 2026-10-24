@@ -1,6 +1,7 @@
 import { Component, computed, ElementRef, inject, output, signal, viewChild } from '@angular/core';
 import { WRITE_CLIPBOARD } from '../tuning/copy-values';
-import { groupingText, Tweaks } from '../../developer-mode/tweaks';
+import { RUN_CLOCK } from '../../player-data/run-recorder';
+import { Tweaks, tweaksBackup } from '../../developer-mode/tweaks';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import type {
   BreakModelKind,
@@ -443,13 +444,10 @@ export class GroupingSettingsPanel {
 
   private readonly tweaks = inject(Tweaks);
   private readonly writeClipboard = inject(WRITE_CLIPBOARD);
+  private readonly clock = inject(RUN_CLOCK);
   /** The break model picked, and its hyperparameters. */
   protected readonly kind = this.tweaks.breakModelKind;
   private readonly settings = this.tweaks.grouping;
-  /** The settings as text, to hand back so they go into the code. */
-  protected readonly copyText = computed(() =>
-    groupingText(this.kind(), this.tweaks.values().grouping?.[this.kind().id]),
-  );
   protected readonly tuned = computed(
     () => this.tweaks.values().grouping?.[this.kind().id] !== undefined,
   );
@@ -566,10 +564,12 @@ export class GroupingSettingsPanel {
     void this.tweaks.togglePin(this.kind(), key);
   }
 
-  /** Copies the settings' values as text, to hand back so they go into the code. */
+  /** Copies the break model and its settings' values, tuned or not, to hand back so they go into the code. */
   protected async copy(): Promise<void> {
     try {
-      await this.writeClipboard(this.copyText());
+      const { id } = this.kind();
+      const values = { breakModel: id, grouping: { [id]: this.settings() } };
+      await this.writeClipboard(tweaksBackup(values, this.clock.epoch()));
       this.told.emit('Copied the hyperparameter values.');
     } catch {
       this.told.emit("Couldn't copy the hyperparameter values.");

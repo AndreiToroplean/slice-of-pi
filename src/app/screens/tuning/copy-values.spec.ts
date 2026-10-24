@@ -1,8 +1,13 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { COPIED_MS, CopyValues, WRITE_CLIPBOARD } from './copy-values';
+import { tweaksBackup } from '../../developer-mode/tweaks';
+import { RUN_CLOCK } from '../../player-data/run-recorder';
 
-@Component({ imports: [CopyValues], template: `<app-copy-values text="Some values" />` })
+@Component({
+  imports: [CopyValues],
+  template: `<app-copy-values [values]="{ seasonTurn: 3 }" />`,
+})
 class Host {}
 
 describe('CopyValues', () => {
@@ -11,7 +16,10 @@ describe('CopyValues', () => {
   beforeEach(() => {
     writeClipboard.mockReset();
     TestBed.configureTestingModule({
-      providers: [{ provide: WRITE_CLIPBOARD, useValue: writeClipboard }],
+      providers: [
+        { provide: WRITE_CLIPBOARD, useValue: writeClipboard },
+        { provide: RUN_CLOCK, useValue: { now: () => 0, epoch: () => 1000, newId: () => 'id' } },
+      ],
     });
   });
 
@@ -31,7 +39,7 @@ describe('CopyValues', () => {
     };
   }
 
-  it('copies the values, and says so for a moment', async () => {
+  it('copies the values as a backup holding them, and says so for a moment', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     writeClipboard.mockResolvedValue();
     const { button, stable } = await setUp();
@@ -40,7 +48,7 @@ describe('CopyValues', () => {
     button?.click();
     await stable();
 
-    expect(writeClipboard).toHaveBeenCalledWith('Some values');
+    expect(writeClipboard).toHaveBeenCalledWith(tweaksBackup({ seasonTurn: 3 }, 1000));
     expect(button?.textContent.trim()).toBe('Copied');
     vi.advanceTimersByTime(COPIED_MS);
     await stable();
