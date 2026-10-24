@@ -226,13 +226,23 @@ body {
   box-shadow: var(--selected-glow);
 }
 
+/*
+ * How far a candy button has breathed out, from 0, at rest, to 3: its face and what it says grow from it (see `Candy`).
+ * One value for both, so that they keep in step.
+ */
+@property --candy-breath {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
 @keyframes breathe {
   from {
-    scale: 1.03;
+    --candy-breath: 1;
   }
 
   to {
-    scale: 1.07;
+    --candy-breath: 3;
   }
 }
 

@@ -1,14 +1,28 @@
 /* A big, colorful button with a thick edge, that sinks when pressed. */
 :host {
+  /* How thick its edge is, and the shadow it drops. */
+  --candy-depth: 0.3125rem;
+  --candy-drop: 0 0.5rem 1.25rem rgb(40 20 60 / 18%);
+  /* Room around what it says. */
+  --candy-padding-block: 0.75rem;
+  --candy-padding-inline: 0.75rem;
+  /*
+   * Breathing, it grows by as much on every side, however wide it is (see `breathe` in `styles.css`): its padding, by
+   * a sixteenth of a rem per breath, over a negative margin as wide, so that nothing around it moves; its face, shine
+   * and edge with it.
+   */
+  --grown: calc(var(--candy-breath) * 0.0625rem);
   display: block;
-  padding: 0.75rem;
+  margin: calc(-1 * var(--grown));
+  padding: calc(var(--candy-padding-block) + var(--grown))
+    calc(var(--candy-padding-inline) + var(--grown));
   border: none;
   border-radius: var(--radius-key);
   /* Its face, and its shine, off it until it's picked out (see below). */
   background: var(--candy-shine) var(--candy);
   box-shadow:
-    0 0.3125rem 0 var(--candy-edge),
-    0 0.5rem 1.25rem rgb(40 20 60 / 18%);
+    0 var(--candy-depth) 0 var(--candy-edge),
+    var(--candy-drop);
   color: var(--on-candy);
   text-align: center;
   text-decoration: none;
@@ -82,9 +96,11 @@
 
 /* A small candy button, such as in the top bar of a page. */
 :host(.small) {
-  padding: 0.375rem 0.75rem;
+  --candy-depth: 0.1875rem;
+  --candy-drop: 0 0 transparent;
+  --candy-padding-block: 0.375rem;
+  --candy-padding-inline: 0.75rem;
   border-radius: 0.875rem;
-  box-shadow: 0 0.1875rem 0 var(--candy-edge);
   font-size: 0.875rem;
 }
 
@@ -108,11 +124,21 @@
   animation: none;
 }
 
+/* What it says grows with its face, by two-thirds as much. A see-through one lays out what it holds as if bare. */
+.content {
+  display: inline-block;
+  scale: calc(1 + var(--candy-breath) * 0.0133);
+}
+
+:host(.clear) .content {
+  display: contents;
+}
+
+/* Without motion, it stays grown. */
 @media (prefers-reduced-motion: reduce) {
   :host(:focus-visible),
   :host(:has(input:focus-visible)) {
-    scale: 1.05;
-    animation: none;
+    --candy-breath: 2;
   }
 }
 
@@ -121,7 +147,6 @@
  * to a dim halo past its edge, a little below it.
  */
 :host(.clear:focus-visible) {
-  scale: none;
   animation: none;
   background: radial-gradient(
       farthest-side at 50% 60%,
