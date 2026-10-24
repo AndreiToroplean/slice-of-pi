@@ -43,5 +43,9 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
+# What the end-to-end tests leave behind
+/test-results
+/playwright-report
+
 # What the Playwright MCP server leaves behind
 .playwright-mcp/
