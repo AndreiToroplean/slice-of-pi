@@ -1,0 +1,1 @@
+import{Tt as h,l as Br,o as Ar}from"./chunk-D8faO6ia.js";function s(){let t=h(Br),e=h(Ar);return()=>{t.lastSuccessfulNavigation()?.previousNavigation?.finalUrl?.toString()===`/`?e.back():t.navigateByUrl(`/`,{replaceUrl:!0})}}export{s as t};
