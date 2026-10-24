@@ -15,7 +15,10 @@ import {
   KEY_POSITIONS,
   KeypadKey,
   KeypadLayout,
+  KeypadPoint,
+  KeypadTouch,
   keyAt,
+  pointAt,
 } from '../../../game/layers/keypad-layout';
 import { Candy } from '../../../ui/candy';
 
@@ -26,11 +29,16 @@ export const REPEAT_INTERVAL = 70;
 /** How long a digit key stays filled with its color at least, however short the press, in ms. */
 export const SPLASH_DURATION = 150;
 
-/** A touch (or mouse press) in progress on a key. */
+/** A touch (or mouse press) in progress on the keypad. */
 interface Press {
-  readonly key: KeypadKey;
+  /** The key it landed on, if any. */
+  readonly key: KeypadKey | null;
+  /** Whether it slid off its key, in which case releasing it types nothing. */
+  slid: boolean;
   /** Whether the key has already repeated, in which case releasing it does not type it once more. */
   repeated: boolean;
+  /** Where it is. */
+  point: KeypadPoint;
   /** Pending repeat, for backspace only. */
   timer: ReturnType<typeof setTimeout> | undefined;
 }
@@ -50,6 +58,11 @@ interface Press {
  *
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
  * repeats it.
+ *
+ * Every touch is reported as it's released, typing a key or not (`null`), with where it was released (see
+ * {@link KeypadPoint}); a mouse press, as the mouse is released. Each repeat of backspace held down is reported where the
+ * finger is, and releasing it after it repeated, nothing. A touch the browser cancels isn't reported. Keys typed on a
+ * physical keyboard, or by assistive technology, are reported without a place on the keypad.
  * The keys are see-through candy buttons. Keys being pressed, by touch or keyboard, are shown pressed, a digit key for at
  * least `SPLASH_DURATION`. Each digit key shows its color on its edge; pressing it fills it with that color at once.
  * The keys don't take the focus, being typed from the keyboard's own keys, but the buttons still work with assistive
@@ -68,7 +81,7 @@ interface Press {
     '(pointerdown)': 'onPointerDown($event)',
     '(pointermove)': 'onPointerMove($event)',
     '(pointerup)': 'onPointerUp($event)',
-    '(pointercancel)': 'abandonPress($event.pointerId)',
+    '(pointercancel)': 'cancelPress($event.pointerId)',
     '(document:keydown)': 'onKeydown($event)',
     '(document:keyup)': 'onKeyup($event)',
     '(window:blur)': 'heldKeys.set([])',
@@ -125,7 +138,8 @@ export class Keypad {
   readonly layout = input<KeypadLayout>(DEFAULT_KEYPAD_LAYOUT);
   /** Whether to show the area of each key, where touches type it. */
   readonly showAreas = input(false);
-  readonly keyPressed = output<KeypadKey>();
+  /** A touch on the keypad, or a key typed: what it typed, if anything, and where it was. */
+  readonly touched = output<KeypadTouch>();
 
   protected readonly keys = computed(() => KEY_POSITIONS[this.layout()]);
 
@@ -179,17 +193,16 @@ export class Keypad {
     if (event.button !== 0) {
       return;
     }
-    const key = this.keyAt(event);
-    if (key === null) {
-      return;
-    }
+    const { key, point } = this.touchAt(event);
     // No focus change, text selection or emulated mouse events: the touch is all ours.
     event.preventDefault();
     this.host.setPointerCapture(event.pointerId);
-    this.cancelPress(event.pointerId);
+    this.dropPress(event.pointerId);
     const press: Press = {
       key,
+      slid: false,
       repeated: false,
+      point,
       timer:
         key === 'backspace'
           ? setTimeout(() => {
@@ -199,13 +212,20 @@ export class Keypad {
     };
     this.presses.set(event.pointerId, press);
     this.updateTouchedKeys();
-    this.splash(key);
+    if (key !== null) {
+      this.splash(key);
+    }
   }
 
   protected onPointerMove(event: PointerEvent): void {
     const press = this.presses.get(event.pointerId);
-    if (press !== undefined && this.keyAt(event) !== press.key) {
-      this.abandonPress(event.pointerId);
+    if (press === undefined) {
+      return;
+    }
+    const { key, point } = this.touchAt(event);
+    press.point = point;
+    if (!press.slid && key !== press.key) {
+      this.slideOff(press);
     }
   }
 
@@ -214,23 +234,35 @@ export class Keypad {
     if (press === undefined) {
       return;
     }
-    this.cancelPress(event.pointerId);
-    if (!press.repeated && this.keyAt(event) === press.key) {
-      this.keyPressed.emit(press.key);
+    this.dropPress(event.pointerId);
+    if (press.repeated) {
+      return;
+    }
+    const { key, point } = this.touchAt(event);
+    this.touched.emit({ key: !press.slid && key === press.key ? key : null, ...point });
+  }
+
+  /** Ends a touch the browser cancels, without typing its key, and without leaving its key filled. */
+  protected cancelPress(pointerId: number): void {
+    const press = this.presses.get(pointerId);
+    if (press !== undefined) {
+      this.dropPress(pointerId);
+      this.slideOff(press);
     }
   }
 
-  /** Ends a touch without typing its key, and without leaving its key filled. */
-  protected abandonPress(pointerId: number): void {
-    const press = this.presses.get(pointerId);
-    if (press !== undefined) {
-      this.cancelPress(pointerId);
+  /** Lets go of the key a touch slid off: it no longer types it, nor shows it pressed or filled. */
+  private slideOff(press: Press): void {
+    press.slid = true;
+    clearTimeout(press.timer);
+    this.updateTouchedKeys();
+    if (press.key !== null) {
       this.endSplash(press.key);
     }
   }
 
-  /** Ends a touch without typing its key. */
-  private cancelPress(pointerId: number): void {
+  /** Forgets a touch. */
+  private dropPress(pointerId: number): void {
     const press = this.presses.get(pointerId);
     if (press === undefined) {
       return;
@@ -243,7 +275,7 @@ export class Keypad {
   /** Activation of a focused button from the keyboard or assistive technology; touches and clicks are handled above. */
   protected onClick(event: MouseEvent, key: KeypadKey): void {
     if (event.detail === 0) {
-      this.keyPressed.emit(key);
+      this.type(key);
     }
   }
 
@@ -258,7 +290,7 @@ export class Keypad {
       this.splash(key);
     }
     if (!event.repeat || key === 'backspace') {
-      this.keyPressed.emit(key);
+      this.type(key);
     }
   }
 
@@ -269,16 +301,21 @@ export class Keypad {
     }
   }
 
+  /** Types a key without touching the keypad. */
+  private type(key: KeypadKey): void {
+    this.touched.emit({ key });
+  }
+
   private repeat(pointerId: number): void {
     const press = this.presses.get(pointerId);
-    if (press === undefined) {
+    if (press?.key == null) {
       return;
     }
     press.repeated = true;
     press.timer = setTimeout(() => {
       this.repeat(pointerId);
     }, REPEAT_INTERVAL);
-    this.keyPressed.emit(press.key);
+    this.touched.emit({ key: press.key, ...press.point });
   }
 
   /** Fills a digit key with its color: the color its digit takes when typed now. */
@@ -308,21 +345,34 @@ export class Keypad {
   }
 
   private updateTouchedKeys(): void {
-    this.touchedKeys.set(Array.from(this.presses.values(), (press) => press.key));
+    this.touchedKeys.set(
+      Array.from(this.presses.values()).flatMap((press) =>
+        press.key === null || press.slid ? [] : [press.key],
+      ),
+    );
   }
 
-  private keyAt(event: PointerEvent): KeypadKey | null {
+  /** Where a touch is on the keypad, and the key there: none outside the keypad, where touches reach no key. */
+  private touchAt(event: PointerEvent): {
+    readonly key: KeypadKey | null;
+    readonly point: KeypadPoint;
+  } {
     const grid = this.grid().nativeElement;
     const style = getComputedStyle(grid);
-    return keyAt(
-      this.layout(),
+    const point = pointAt(
       grid.getBoundingClientRect(),
       // None where there's no layout, as in tests.
       { column: parseFloat(style.columnGap) || 0, row: parseFloat(style.rowGap) || 0 },
-      this.host.getBoundingClientRect(),
       event.clientX,
       event.clientY,
     );
+    const area = this.host.getBoundingClientRect();
+    const inside =
+      event.clientX >= area.left &&
+      event.clientX < area.right &&
+      event.clientY >= area.top &&
+      event.clientY < area.bottom;
+    return { key: inside ? keyAt(this.layout(), point) : null, point };
   }
 }
 

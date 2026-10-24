@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { isDigit } from '../../../game/pi/digit';
 import { keyColors, PALETTE } from '../../../game/layers/place-colors';
 import { Keypad, REPEAT_DELAY, REPEAT_INTERVAL, SPLASH_DURATION } from './keypad';
-import { KeypadKey } from '../../../game/layers/keypad-layout';
+import { KeypadKey, KeypadTouch } from '../../../game/layers/keypad-layout';
 
 /**
  * Center of each key's cell on the 300 × 400 grid of keys used here (100 × 100 cells), in a keypad reaching 30 beyond it
@@ -27,6 +27,7 @@ describe('Keypad', () => {
   let fixture: ComponentFixture<Keypad>;
   let host: HTMLElement;
   let typed: KeypadKey[];
+  let touches: KeypadTouch[];
   let setPointerCapture: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
@@ -43,10 +44,15 @@ describe('Keypad', () => {
       DOMRect.fromRect({ x: -30, y: -20, width: 360, height: 460 }),
     );
     typed = [];
+    touches = [];
     // Like the play screen, each digit typed moves its key on to its next color.
     fixture.componentRef.setInput('colors', keyColors(''));
-    fixture.componentInstance.keyPressed.subscribe((key) => {
-      typed.push(key);
+    fixture.componentInstance.touched.subscribe((touch) => {
+      touches.push(touch);
+      if (touch.key === null) {
+        return;
+      }
+      typed.push(touch.key);
       fixture.componentRef.setInput('colors', keyColors(typed.filter(isDigit).join('')));
     });
     await vi.advanceTimersByTimeAsync(0);
@@ -366,6 +372,63 @@ describe('Keypad', () => {
       down('9', 3);
       pointer('pointercancel', CENTERS['9'], { pointerId: 3 });
       expect(pressedKeys()).toEqual([]);
+    });
+  });
+
+  describe('reporting touches', () => {
+    it('reports where each touch is released, in steps between keys from the center of 5', () => {
+      tap('7');
+      pointer('pointerdown', CENTERS['5']);
+      pointer('pointerup', [175, 125]);
+      tap('0');
+
+      expect(touches).toEqual([
+        { key: '7', x: -1, y: -1 },
+        { key: '5', x: 0.25, y: -0.25 },
+        { key: '0', x: 0, y: 2 },
+      ]);
+    });
+
+    it('reports the touches that type nothing: on the empty cell, slid off their key, or released outside', () => {
+      pointer('pointerdown', EMPTY_CELL);
+      pointer('pointerup', EMPTY_CELL);
+      down('5');
+      pointer('pointermove', CENTERS['6']);
+      up('6');
+      down('9');
+      pointer('pointerup', [335, 50]);
+
+      expect(touches).toEqual([
+        { key: null, x: -1, y: 2 },
+        { key: null, x: 1, y: 0 },
+        { key: null, x: 1.85, y: -1 },
+      ]);
+    });
+
+    it('reports nothing of a touch the browser cancels', () => {
+      down('9');
+      pointer('pointercancel', CENTERS['9']);
+
+      expect(touches).toEqual([]);
+    });
+
+    it('reports each repeat of backspace where the finger is, and nothing as it lifts after', () => {
+      down('backspace');
+      pointer('pointermove', [237.5, 337.5]);
+      vi.advanceTimersByTime(REPEAT_DELAY + REPEAT_INTERVAL);
+      up('backspace');
+
+      expect(touches).toEqual([
+        { key: 'backspace', x: 0.875, y: 1.875 },
+        { key: 'backspace', x: 0.875, y: 1.875 },
+      ]);
+    });
+
+    it('reports keys typed on a physical keyboard without a place on the keypad', () => {
+      keyboard('keydown', { key: '3' });
+      keyboard('keydown', { key: 'Backspace' });
+
+      expect(touches).toEqual([{ key: '3' }, { key: 'backspace' }]);
     });
   });
 
