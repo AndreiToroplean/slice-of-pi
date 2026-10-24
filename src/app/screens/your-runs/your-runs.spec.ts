@@ -1,7 +1,8 @@
 import { DebugElement, getDebugNode } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Digit } from '../../game/pi/digit';
-import { addDigit, newRun, Run } from '../../player-data/run';
+import { newTouchLog, TouchLog } from '../../player-data/touch-log';
+import { typeKey } from '../../../testing/touch-logs';
 import { RunStore } from '../../player-data/run-store';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
@@ -10,17 +11,17 @@ import { button, message, OpenPage, openPage } from '../../../testing/player-dat
 import { YourRuns } from './your-runs';
 
 describe('YourRuns', () => {
-  const first = addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250);
-  const second = addDigit(newRun('b', 2_000), '1', 0);
+  const first = typeKey(typeKey(newTouchLog('a', 1_000), '1', 0), '4', 250);
+  const second = typeKey(newTouchLog('b', 2_000), '1', 0);
   // Groups of 3: about 200 ms between digits, 700 ms before every fourth.
   const grouped = Array.from(PI_DECIMALS.slice(0, 30)).reduce(
     (run, digit, i) =>
-      addDigit(
+      typeKey(
         run,
         digit as Digit,
-        i === 0 ? 0 : (run.times.at(-1) ?? 0) + (i % 3 ? ([180, 230][i % 2] ?? 0) : 700),
+        i === 0 ? 0 : (run.touches.at(-1)?.time ?? 0) + (i % 3 ? ([180, 230][i % 2] ?? 0) : 700),
       ),
-    newRun('c', 3_000),
+    newTouchLog('c', 3_000),
   );
   const groupsBy3 = PI_DECIMALS.slice(0, 30).match(/.../g) ?? [];
   /** Enough runs grouped by 3 for the game to trust their groups. */
@@ -80,7 +81,7 @@ describe('YourRuns', () => {
   }
 
   function setUp(
-    runs: Run[] = [],
+    runs: TouchLog[] = [],
     persisted = false,
     preview = false,
     mainFormat?: number,
@@ -114,7 +115,7 @@ describe('YourRuns', () => {
       'Delete all 2 runs kept on this device? Only a backup file can bring them back.',
     ]);
     expect(message(host)).toBe('Deleted 2 runs.');
-    expect(await TestBed.inject(RunStore).runs()).toEqual([]);
+    expect(await TestBed.inject(RunStore).touchLogs()).toEqual([]);
     expect(button(host, 'Delete All Runs').disabled).toBe(true);
   });
 
@@ -129,7 +130,7 @@ describe('YourRuns', () => {
       ]);
     });
 
-    expect(await TestBed.inject(RunStore).runs()).toEqual([first]);
+    expect(await TestBed.inject(RunStore).touchLogs()).toEqual([first]);
   });
 
   it('says when there are no runs to chart', async () => {
@@ -255,7 +256,7 @@ describe('YourRuns', () => {
         'Delete the unchecked run? Only a backup file can bring it back.',
       ]);
       expect(message(host)).toBe('Deleted 1 unchecked run.');
-      expect(await TestBed.inject(RunStore).runs()).toEqual([grouped]);
+      expect(await TestBed.inject(RunStore).touchLogs()).toEqual([grouped]);
       expect(button(host, 'Delete Unchecked Runs').disabled).toBe(true);
     });
   });
@@ -263,7 +264,7 @@ describe('YourRuns', () => {
   describe('playing from a run', () => {
     // A run grouped by 3, one to play from, then three grouped by 3 played after it.
     const from = { ...grouped, id: 'from', startedAt: 3_001 };
-    const runs: Run[] = [grouped, from, ...trusted.slice(0, 3)];
+    const runs: TouchLog[] = [grouped, from, ...trusted.slice(0, 3)];
     /** Playing from before the run to play from, with the runs after it played since. */
     const playedSince = { ids: ['c', 'from'], line: 1 };
 
@@ -437,7 +438,7 @@ describe('YourRuns', () => {
 
       expect(questions).toEqual(['Delete this run? Only a backup file can bring it back.']);
       expect(message(host)).toBe('Deleted the run.');
-      expect(await TestBed.inject(RunStore).runs()).toEqual([second]);
+      expect(await TestBed.inject(RunStore).touchLogs()).toEqual([second]);
       expect(articles(host)).toHaveLength(1);
     });
 
@@ -451,7 +452,7 @@ describe('YourRuns', () => {
         expect(questions).toHaveLength(1);
       });
 
-      expect(await TestBed.inject(RunStore).runs()).toEqual([first, second]);
+      expect(await TestBed.inject(RunStore).touchLogs()).toEqual([first, second]);
     });
 
     it('sets playing from a run apart from deleting it, in developer mode', async () => {

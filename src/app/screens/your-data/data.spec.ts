@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { BACKUP_KIND, readBackup, writeBackup } from '../../player-data/backup';
-import { addDigit, newRun, Run, RUN_FORMAT } from '../../player-data/run';
+import { newTouchLog, TouchLog, TOUCH_LOG_FORMAT } from '../../player-data/touch-log';
+import { typeKey } from '../../../testing/touch-logs';
 import { RunStore } from '../../player-data/run-store';
 import { DEVELOPER_MODE, DEVELOPER_MODE_FORMAT } from '../../developer-mode/developer-mode';
 import {
@@ -15,8 +16,8 @@ import { button, message, OpenPage, openPage, text } from '../../../testing/play
 import { Data } from './data';
 
 describe('Data', () => {
-  const first = addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250);
-  const second = addDigit(newRun('b', 2_000), '1', 0);
+  const first = typeKey(typeKey(newTouchLog('a', 1_000), '1', 0), '4', 250);
+  const second = typeKey(newTouchLog('b', 2_000), '1', 0);
   let saved: { name: string; text: string }[];
 
   beforeEach(() => {
@@ -24,7 +25,7 @@ describe('Data', () => {
   });
 
   function setUp(
-    runs: Run[] = [],
+    runs: TouchLog[] = [],
     persisted = false,
     preview = false,
     mainFormat?: number,
@@ -115,7 +116,7 @@ describe('Data', () => {
 
     expect(message(host)).toBe('Added 1 run from the backup.');
     expect(text(host)).toContain('2 runs kept on this device.');
-    expect(await TestBed.inject(RunStore).runs()).toEqual([first, second]);
+    expect(await TestBed.inject(RunStore).touchLogs()).toEqual([first, second]);
   });
 
   it('restores the settings of a backup, and applies them', async () => {
@@ -169,11 +170,11 @@ describe('Data', () => {
     await choose(host, until, 'not a backup');
 
     expect(message(host)).toBe('This file is not a Slice of π backup.');
-    expect(await TestBed.inject(RunStore).runs()).toEqual([]);
+    expect(await TestBed.inject(RunStore).touchLogs()).toEqual([]);
   });
 
   it('says when a preview keeps its runs apart from the main game', async () => {
-    const { host } = await setUp([], false, true, RUN_FORMAT + 1);
+    const { host } = await setUp([], false, true, TOUCH_LOG_FORMAT + 1);
 
     expect(text(host)).toContain(
       "This preview of the game stores runs in a different format from the main game, so it keeps them apart: it has a copy of the main game's runs, and the runs played here stay here.",

@@ -1,96 +1,84 @@
-import { Digit } from '../game/pi/digit';
-import {
-  addDigit,
-  countsInGroups,
-  groupRuns,
-  moveRun,
-  orderRuns,
-  deleteMistake,
-  newRun,
-  parseRun,
-  removeDigit,
-  Run,
-  RUN_FORMAT,
-} from './run';
+import { KeypadKey } from '../game/layers/keypad-layout';
+import { countsInGroups, groupRuns, moveRun, orderRuns, replay, Run, runOf } from './run';
+import { addTouch, newTouchLog, TouchLog } from './touch-log';
 
 describe('run', () => {
-  const empty = newRun('run-1', 1_760_000_000_000);
-
-  function play(...digits: [Digit, number][]): Run {
-    return digits.reduce((run, [digit, time]) => addDigit(run, digit, time), empty);
+  /** A run with no digits, from a touch log with no touches. */
+  function log(id: string, startedAt: number, checked = true): Run {
+    return runOf(newTouchLog(id, startedAt, checked));
   }
 
-  it('starts with no digits', () => {
-    expect(empty).toEqual({
-      format: RUN_FORMAT,
-      id: 'run-1',
-      checked: true,
-      keypadLayout: 'calculator',
-      startedAt: 1_760_000_000_000,
-      digits: '',
-      times: [],
-      backspaces: [],
+  /** A touch log of these touches, each a key, or a miss (`null`), at a time. */
+  function touches(checked: boolean, ...keys: [KeypadKey | null, number][]): TouchLog {
+    return keys.reduce(
+      (touched, [key, time]) => addTouch(touched, { key, x: 0, y: 0 }, time),
+      newTouchLog('run-1', 1_760_000_000_000, checked, 'telephone'),
+    );
+  }
+
+  describe('replay', () => {
+    it('makes a run of the digits typed and their times, on the touch log’s run', () => {
+      expect(runOf(touches(true, ['1', 0], ['4', 212], ['1', 531]))).toEqual({
+        id: 'run-1',
+        checked: true,
+        keypadLayout: 'telephone',
+        startedAt: 1_760_000_000_000,
+        digits: '141',
+        times: [0, 212, 531],
+      });
+    });
+
+    it('leaves out the touches typing nothing', () => {
+      const run = runOf(touches(true, ['1', 0], [null, 100], ['4', 212]));
+
+      expect([run.digits, run.times]).toEqual(['14', [0, 212]]);
+    });
+
+    it('deletes the last digit on backspace, the next one timed from the backspace', () => {
+      const { run, rewound } = replay(
+        touches(true, ['1', 0], ['4', 200], ['1', 400], ['backspace', 600], ['1', 700]),
+      );
+
+      expect([run.digits, run.times, rewound]).toEqual(['141', [0, 200, 300], 400]);
+    });
+
+    it('leaves out wrong digits in a checked run, and any typed after them, until deleted', () => {
+      const log = touches(true, ['1', 0], ['4', 200], ['9', 300], ['1', 400]);
+      const { run, rewound } = replay(log);
+      expect([run.digits, run.times, rewound]).toEqual(['14', [0, 200], 0]);
+
+      const deleted = replay(
+        [
+          ['backspace', 500],
+          ['backspace', 600],
+          ['1', 650],
+        ].reduce(
+          (touched, [key, time]) =>
+            addTouch(touched, { key: key as KeypadKey, x: 0, y: 0 }, time as number),
+          log,
+        ),
+      );
+      expect([deleted.run.digits, deleted.run.times, deleted.rewound]).toEqual([
+        '141',
+        [0, 200, 250],
+        400,
+      ]);
+    });
+
+    it('keeps every digit of an unchecked run', () => {
+      expect(runOf(touches(false, ['9', 0], ['9', 100])).digits).toBe('99');
+    });
+
+    it('ignores backspace with no digit to delete', () => {
+      const { run, rewound } = replay(touches(true, ['backspace', 50], ['1', 100]));
+
+      expect([run.digits, run.times, rewound]).toEqual(['1', [100], 0]);
     });
   });
 
-  it('starts unchecked when asked', () => {
-    expect(newRun('run-1', 0, false).checked).toBe(false);
-  });
-
-  it('starts on the keypad layout it is played on', () => {
-    expect(newRun('run-1', 0, true, 'telephone').keypadLayout).toBe('telephone');
-  });
-
-  it('records every digit and when it was typed, in whole milliseconds', () => {
-    const run = play(['1', 0], ['4', 212.4], ['1', 530.6]);
-
-    expect(run.digits).toBe('141');
-    expect(run.times).toEqual([0, 212, 531]);
-  });
-
-  it('removes the last digit and its time, and records the place of the backspace apart', () => {
-    const run = removeDigit(play(['1', 0], ['5', 212]));
-
-    expect(run.digits).toBe('1');
-    expect(run.times).toEqual([0]);
-    expect(run.backspaces).toEqual([2]);
-  });
-
-  it('records every backspace, even several at one place', () => {
-    let run = play(['1', 0], ['4', 200], ['5', 400]);
-    run = removeDigit(run);
-    run = addDigit(run, '7', 500);
-    run = removeDigit(run);
-    run = removeDigit(run);
-
-    expect(run.digits).toBe('1');
-    expect(run.backspaces).toEqual([3, 3, 2]);
-  });
-
-  it('records the backspace deleting a wrong digit after the last one, which it never kept', () => {
-    const run = deleteMistake(play(['1', 0], ['4', 212]), 3);
-
-    expect(run.digits).toBe('14');
-    expect(run.times).toEqual([0, 212]);
-    expect(run.backspaces).toEqual([3]);
-  });
-
-  it('records no backspace when there is no digit to delete', () => {
-    expect(removeDigit(empty)).toBe(empty);
-  });
-
-  it('leaves the run it changes unchanged', () => {
-    const run = play(['1', 0]);
-    addDigit(run, '4', 200);
-    removeDigit(run);
-
-    expect(run.digits).toBe('1');
-    expect(run.times).toEqual([0]);
-  });
-
   it('computes the groups from the checked runs, unless the unchecked ones are included', () => {
-    const checked = newRun('checked', 0);
-    const unchecked = newRun('unchecked', 1, false);
+    const checked = log('checked', 0);
+    const unchecked = log('unchecked', 1, false);
 
     expect(countsInGroups(checked, false)).toBe(true);
     expect(countsInGroups(unchecked, false)).toBe(false);
@@ -98,7 +86,7 @@ describe('run', () => {
   });
 
   describe('the order of the runs', () => {
-    const runs = [newRun('a', 0), newRun('b', 1, false), newRun('c', 2), newRun('d', 3)];
+    const runs = [log('a', 0), log('b', 1, false), log('c', 2), log('d', 3)];
     const ids = (some: readonly Run[]): string[] => some.map((run) => run.id);
 
     it('keeps the runs in the order they were played, all counted, unless put in another', () => {
@@ -125,7 +113,7 @@ describe('run', () => {
     });
 
     it('puts the runs played since just above the line, counting them as the newest', () => {
-      const played = [...runs, newRun('e', 11), newRun('f', 12)];
+      const played = [...runs, log('e', 11), log('f', 12)];
       const order = { ids: ['a', 'b', 'c', 'd'], line: 1 };
 
       expect(ids(orderRuns(played, order).runs)).toEqual(['a', 'e', 'f', 'b', 'c', 'd']);
@@ -134,7 +122,7 @@ describe('run', () => {
     });
 
     it('puts the runs played since after all the others when there is no line', () => {
-      const played = [...runs, newRun('e', 11)];
+      const played = [...runs, log('e', 11)];
 
       expect(ids(orderRuns(played, { ids: ['d', 'c', 'b', 'a'] }).runs)).toEqual([
         'd',
@@ -168,80 +156,6 @@ describe('run', () => {
 
       expect(ids(order.runs)).toEqual(['b', 'c', 'd']);
       expect(order.line).toBe(1);
-    });
-  });
-
-  describe('parseRun', () => {
-    const run = removeDigit(play(['1', 0], ['4', 212], ['1', 531], ['9', 700]));
-
-    it('reads a valid run', () => {
-      expect(parseRun(JSON.parse(JSON.stringify(run)))).toEqual(run);
-    });
-
-    it('keeps only the fields of a run', () => {
-      expect(parseRun({ ...run, extra: true })).toEqual(run);
-    });
-
-    it('reads an unchecked run', () => {
-      expect(parseRun({ ...run, checked: false })).toEqual({ ...run, checked: false });
-    });
-
-    it('reads a run on the telephone layout', () => {
-      expect(parseRun({ ...run, keypadLayout: 'telephone' })).toEqual({
-        ...run,
-        keypadLayout: 'telephone',
-      });
-    });
-
-    it('migrates a run of format 1, from before the game checked digits, to an unchecked run', () => {
-      const { id, startedAt, digits, times, backspaces } = run;
-      const older = { format: 1, id, startedAt, digits, times, backspaces };
-
-      expect(parseRun(older)).toEqual({ ...run, checked: false });
-    });
-
-    it('migrates a run of format 2, from before players picked the keypad layout, to one on the calculator layout', () => {
-      const { id, checked, startedAt, digits, times, backspaces } = run;
-      const older = { format: 2, id, checked, startedAt, digits, times, backspaces };
-
-      expect(parseRun(older)).toEqual({ ...run, keypadLayout: 'calculator' });
-    });
-
-    it('migrates a run without a format as one of format 1', () => {
-      const { id, startedAt, digits, times, backspaces } = run;
-
-      expect(parseRun({ id, startedAt, digits, times, backspaces })).toEqual({
-        ...run,
-        checked: false,
-      });
-    });
-
-    it.each([
-      ['not an object', 'run'],
-      ['null', null],
-      ['an unknown format', { ...run, format: RUN_FORMAT + 1 }],
-      ['an empty id', { ...run, id: '' }],
-      ['no checked flag', { ...run, checked: undefined }],
-      ['a checked flag that is not a boolean', { ...run, checked: 'yes' }],
-      ['no keypad layout', { ...run, keypadLayout: undefined }],
-      ['an unknown keypad layout', { ...run, keypadLayout: 'typewriter' }],
-      ['a numeric id', { ...run, id: 1 }],
-      ['a negative start', { ...run, startedAt: -1 }],
-      ['a start that is not a number', { ...run, startedAt: '2026-10-10' }],
-      ['a character that is not a digit', { ...run, digits: '1<1' }],
-      ['digits that are not a string', { ...run, digits: ['1', '4', '1'] }],
-      ['fewer times than digits', { ...run, times: [0, 212] }],
-      ['times that are not an array', { ...run, times: '0,212,531' }],
-      ['a time that is not a number', { ...run, times: [0, '212', 531] }],
-      ['an infinite time', { ...run, times: [0, 212, Infinity] }],
-      ['a negative time', { ...run, times: [-5, 212, 531] }],
-      ['times going back', { ...run, times: [0, 531, 212] }],
-      ['no backspaces', { ...run, backspaces: undefined }],
-      ['a backspace at place 0', { ...run, backspaces: [0] }],
-      ['a backspace between places', { ...run, backspaces: [1.5] }],
-      ['a backspace that is not a number', { ...run, backspaces: ['4'] }],
-    ])('rejects %s', (_, value) => {
-      expect(parseRun(value)).toBeUndefined();
     });
   });
 });

@@ -1,15 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { Tweaks } from '../developer-mode/tweaks';
-import { KeypadKey, KeypadLayout } from '../game/layers/keypad-layout';
+import { KeypadKey, KeypadLayout, KeypadTouch } from '../game/layers/keypad-layout';
 import { KeypadLayoutSetting } from './keypad-layout-setting';
-import { Run, RUN_FORMAT } from './run';
+import { Run, runOf } from './run';
+import { TOUCH_LOG_FORMAT, TouchLog } from './touch-log';
 import { RUN_CLOCK, RunRecorder } from './run-recorder';
 import { RunStore } from './run-store';
 
 describe('RunRecorder', () => {
   let time: number;
   let ids: number;
-  let saves: Run[];
+  let saves: TouchLog[];
   let deletes: string[];
   let persist: ReturnType<typeof vi.fn<() => Promise<boolean>>>;
   /** Saves hold until released, when set. */
@@ -45,14 +46,14 @@ describe('RunRecorder', () => {
         {
           provide: RunStore,
           useValue: {
-            save: async (run: Run) => {
+            save: async (log: TouchLog) => {
               if (held !== undefined) {
                 await new Promise<void>((resolve) => held?.push(resolve));
               }
               if (failing) {
                 throw new Error('disk full');
               }
-              saves.push(run);
+              saves.push(log);
             },
             delete: (id: string) => {
               deletes.push(id);
@@ -69,23 +70,33 @@ describe('RunRecorder', () => {
     vi.restoreAllMocks();
   });
 
+  /** Types these keys, `<` for backspace, one every `step` milliseconds. */
   function press(recorder: RunRecorder, keys: string, step = 200): void {
     for (const key of keys) {
-      recorder.record((key === '<' ? 'backspace' : key) as KeypadKey);
-      time += step;
+      touch(recorder, { key: (key === '<' ? 'backspace' : key) as KeypadKey }, step);
     }
   }
 
-  /** The last save of each run not deleted, in order of their first save. */
+  function touch(recorder: RunRecorder, touched: KeypadTouch, step = 200): void {
+    recorder.record(touched);
+    time += step;
+  }
+
+  /** The touch log last saved of each run not deleted, in order of their first save. */
+  function storedLogs(): TouchLog[] {
+    const logs = new Map<string, TouchLog>();
+    for (const log of saves) {
+      logs.set(log.id, log);
+    }
+    return [...logs.values()].filter((log) => !deletes.includes(log.id));
+  }
+
+  /** The runs of the touch logs stored. */
   function stored(): Run[] {
-    const runs = new Map<string, Run>();
-    for (const run of saves) {
-      runs.set(run.id, run);
-    }
-    return [...runs.values()].filter((run) => !deletes.includes(run.id));
+    return storedLogs().map(runOf);
   }
 
-  it('saves the run after every key', async () => {
+  it('saves the touch log of the run after every key', async () => {
     const recorder = TestBed.inject(RunRecorder);
 
     press(recorder, '1');
@@ -93,19 +104,37 @@ describe('RunRecorder', () => {
     press(recorder, '4');
     await recorder.saved();
 
-    expect(saves.map((run) => run.digits)).toEqual(['1', '14']);
-    expect(stored()).toEqual([
+    expect(saves.map((log) => log.touches.length)).toEqual([1, 2]);
+    expect(storedLogs()).toEqual([
       {
-        format: RUN_FORMAT,
+        format: TOUCH_LOG_FORMAT,
         id: 'run-1',
         checked: true,
         keypadLayout: 'calculator',
         startedAt: 1_760_000_005_000,
-        digits: '14',
-        times: [0, 200],
-        backspaces: [],
+        touches: [
+          { key: '1', time: 0 },
+          { key: '4', time: 200 },
+        ],
       },
     ]);
+  });
+
+  it('records every touch from the first digit, where it was, those typing nothing included', async () => {
+    const recorder = TestBed.inject(RunRecorder);
+
+    touch(recorder, { key: null, x: -1, y: 2 });
+    touch(recorder, { key: '1', x: -0.8, y: 1.2 });
+    touch(recorder, { key: null, x: 2.1234, y: 0 });
+    touch(recorder, { key: '4', x: -1, y: 0 });
+    await recorder.saved();
+
+    expect(storedLogs()[0]?.touches).toEqual([
+      { key: '1', x: -0.8, y: 1.2, time: 0 },
+      { key: null, x: 2.123, y: 0, time: 200 },
+      { key: '4', x: -1, y: 0, time: 400 },
+    ]);
+    expect(stored()).toMatchObject([{ digits: '14', times: [0, 400] }]);
   });
 
   it('shows the run being played as recorded so far, until it ends', () => {
@@ -113,7 +142,7 @@ describe('RunRecorder', () => {
     expect(recorder.run()).toBeUndefined();
 
     press(recorder, '145<');
-    expect(recorder.run()).toMatchObject({ digits: '14', times: [0, 200], backspaces: [3] });
+    expect(recorder.run()).toMatchObject({ digits: '14', times: [0, 200] });
 
     recorder.end();
     expect(recorder.run()).toBeUndefined();
@@ -148,30 +177,24 @@ describe('RunRecorder', () => {
     await recorder.saved();
 
     // As if 1 had come 300ms after 4, with no mistake.
-    expect(stored()).toMatchObject([{ digits: '141', times: [0, 200, 500], backspaces: [3] }]);
+    expect(stored()).toMatchObject([{ digits: '141', times: [0, 200, 500] }]);
+    expect(storedLogs()[0]?.touches.map(({ key }) => key)).toEqual([
+      '1',
+      '4',
+      '5',
+      'backspace',
+      '1',
+    ]);
   });
 
-  it("records the backspace deleting a wrong digit it never recorded, the clock going back as for a digit's", async () => {
+  it('keeps nothing of a wrong first digit deleted', async () => {
     const recorder = TestBed.inject(RunRecorder);
 
-    // 1 at 0, 4 at 200, a wrong 5 never recorded at 400, its backspace at 900, 1 at 1200.
-    press(recorder, '14', 200);
-    time += 500;
-    recorder.deleteMistake(3);
-    time += 300;
-    press(recorder, '1');
-    await recorder.saved();
-
-    expect(stored()).toMatchObject([{ digits: '141', times: [0, 200, 500], backspaces: [3] }]);
-  });
-
-  it('records nothing for a wrong first digit deleted', async () => {
-    const recorder = TestBed.inject(RunRecorder);
-
-    recorder.deleteMistake(1);
+    press(recorder, '9<');
     await recorder.saved();
 
     expect(saves).toEqual([]);
+    expect(recorder.run()).toBeUndefined();
   });
 
   it('takes the clock back one digit per backspace', async () => {
@@ -186,16 +209,19 @@ describe('RunRecorder', () => {
     press(recorder, '4');
     await recorder.saved();
 
-    expect(stored()).toMatchObject([{ digits: '14', times: [0, 400], backspaces: [3, 2] }]);
+    expect(stored()).toMatchObject([{ digits: '14', times: [0, 400] }]);
   });
 
-  it('starts a run only with a digit', async () => {
+  it('starts a run only with a digit, keeping no touch before it', async () => {
     const recorder = TestBed.inject(RunRecorder);
 
-    press(recorder, '<<1');
+    press(recorder, '<<');
+    touch(recorder, { key: null, x: 0, y: 3 });
+    press(recorder, '1');
     await recorder.saved();
 
-    expect(stored()).toMatchObject([{ digits: '1', times: [0], startedAt: 1_760_000_005_400 }]);
+    expect(stored()).toMatchObject([{ digits: '1', times: [0], startedAt: 1_760_000_005_600 }]);
+    expect(storedLogs()[0]?.touches).toHaveLength(1);
   });
 
   it('deletes the run when every digit is deleted, and starts a new one with the next digit', async () => {
@@ -208,14 +234,12 @@ describe('RunRecorder', () => {
     expect(deletes).toEqual(['run-1']);
     expect(stored()).toEqual([
       {
-        format: RUN_FORMAT,
         id: 'run-2',
         checked: true,
         keypadLayout: 'calculator',
         startedAt: 1_760_000_006_000,
         digits: '14',
         times: [0, 200],
-        backspaces: [],
       },
     ]);
   });
@@ -229,7 +253,7 @@ describe('RunRecorder', () => {
     await recorder.saved();
 
     expect(stored()).toMatchObject([
-      { id: 'run-1', digits: '14', backspaces: [] },
+      { id: 'run-1', digits: '14' },
       { id: 'run-2', digits: '1', times: [0] },
     ]);
   });
@@ -290,7 +314,7 @@ describe('RunRecorder', () => {
     release();
     await saved;
 
-    expect(saves.map((run) => run.digits)).toEqual(['1', '1415']);
+    expect(saves.map((log) => runOf(log).digits)).toEqual(['1', '1415']);
   });
 
   it('keeps recording when a save fails', async () => {

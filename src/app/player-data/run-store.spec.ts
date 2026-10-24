@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
-import { addDigit, newRun, RUN_FORMAT } from './run';
+import { runOf } from './run';
+import { newTouchLog, TOUCH_LOG_FORMAT } from './touch-log';
+import { typeKey } from '../../testing/touch-logs';
 import {
   DATABASE_NAME,
   DATABASE_VERSION,
@@ -87,8 +89,8 @@ describe('RunStore', () => {
     return records;
   }
 
-  const first = addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250);
-  const second = addDigit(newRun('b', 2_000), '1', 0);
+  const first = typeKey(typeKey(newTouchLog('a', 1_000), '1', 0), '4', 250);
+  const second = typeKey(newTouchLog('b', 2_000), '1', 0);
   /** A run as the game stored it before it checked digits, in format 1. */
   const unchecked = {
     format: 1,
@@ -100,7 +102,15 @@ describe('RunStore', () => {
   };
 
   it('has no runs at first', async () => {
-    expect(await storeWith().runs()).toEqual([]);
+    expect(await storeWith().touchLogs()).toEqual([]);
+  });
+
+  it('gives the run of each touch log', async () => {
+    const store = storeWith();
+
+    await store.save(first);
+
+    expect(await store.runs()).toEqual([runOf(first)]);
   });
 
   it('keeps the runs saved, oldest first', async () => {
@@ -109,17 +119,17 @@ describe('RunStore', () => {
     await store.save(second);
     await store.save(first);
 
-    expect(await store.runs()).toEqual([first, second]);
+    expect(await store.touchLogs()).toEqual([first, second]);
   });
 
   it('replaces an earlier save of the same run', async () => {
     const store = storeWith();
 
     await store.save(first);
-    const longer = addDigit(first, '1', 600);
+    const longer = typeKey(first, '1', 600);
     await store.save(longer);
 
-    expect(await store.runs()).toEqual([longer]);
+    expect(await store.touchLogs()).toEqual([longer]);
   });
 
   it('deletes a run', async () => {
@@ -129,7 +139,7 @@ describe('RunStore', () => {
 
     await store.delete(first.id);
 
-    expect(await store.runs()).toEqual([second]);
+    expect(await store.touchLogs()).toEqual([second]);
   });
 
   it('deletes several runs at once', async () => {
@@ -139,14 +149,14 @@ describe('RunStore', () => {
 
     await store.deleteRuns([first.id, 'missing']);
 
-    expect(await store.runs()).toEqual([second]);
+    expect(await store.touchLogs()).toEqual([second]);
   });
 
   it('deletes every run, even those it cannot read', async () => {
     const store = storeWith();
     await store.save(first);
     const database = await openDirectly();
-    await put(database, [{ ...second, format: RUN_FORMAT + 1 }]);
+    await put(database, [{ ...second, format: TOUCH_LOG_FORMAT + 1 }]);
     database.close();
 
     await store.deleteAllRuns();
@@ -158,18 +168,18 @@ describe('RunStore', () => {
     await storeWith().save(first);
     TestBed.resetTestingModule();
 
-    expect(await storeWith().runs()).toEqual([first]);
+    expect(await storeWith().touchLogs()).toEqual([first]);
   });
 
   it('skips records it cannot read, and leaves them in the database', async () => {
     const store = storeWith();
     await store.save(first);
     const database = await openDirectly();
-    const future = { ...second, format: RUN_FORMAT + 1, rhythm: [] };
+    const future = { ...second, format: TOUCH_LOG_FORMAT + 1, rhythm: [] };
     await put(database, [future, { id: 'broken' }]);
     database.close();
 
-    expect(await store.runs()).toEqual([first]);
+    expect(await store.touchLogs()).toEqual([first]);
     const after = await openDirectly();
     const count = await new Promise<number>((resolve) => {
       const request = after.transaction(RUNS).objectStore(RUNS).count();
@@ -188,12 +198,14 @@ describe('RunStore', () => {
     database.close();
 
     const migrated = {
-      ...unchecked,
-      format: RUN_FORMAT,
+      format: TOUCH_LOG_FORMAT,
+      id: 'old',
+      startedAt: 500,
       checked: false,
       keypadLayout: 'calculator',
+      touches: [{ key: '7', time: 0 }],
     };
-    expect(await storeWith().runs()).toEqual([migrated]);
+    expect(await storeWith().touchLogs()).toEqual([migrated]);
     expect(await storedRecords()).toEqual([migrated]);
   });
 
@@ -209,17 +221,17 @@ describe('RunStore', () => {
     const store = storeWith();
     await store.save(second);
 
-    expect(await store.runs()).toEqual([first, second]);
+    expect(await store.touchLogs()).toEqual([first, second]);
   });
 
   it('adds the runs not stored yet, leaving the stored ones as they are', async () => {
     const store = storeWith();
     await store.save(first);
 
-    const changed = addDigit(first, '1', 400);
+    const changed = typeKey(first, '1', 400);
     expect(await store.addRuns([changed, second])).toBe(1);
     expect(await store.addRuns([second])).toBe(0);
-    expect(await store.runs()).toEqual([first, second]);
+    expect(await store.touchLogs()).toEqual([first, second]);
   });
 
   it('keeps nothing without IndexedDB', async () => {
@@ -229,7 +241,7 @@ describe('RunStore', () => {
     await store.delete(first.id);
 
     expect(await store.addRuns([first])).toBe(0);
-    expect(await store.runs()).toEqual([]);
+    expect(await store.touchLogs()).toEqual([]);
   });
 
   it('keeps nothing when the database fails to open', async () => {
@@ -241,7 +253,7 @@ describe('RunStore', () => {
 
     await store.save(first);
 
-    expect(await store.runs()).toEqual([]);
+    expect(await store.touchLogs()).toEqual([]);
     expect(error).toHaveBeenCalledOnce();
   });
 
@@ -255,7 +267,7 @@ describe('RunStore', () => {
     const store = storeWith();
     await store.save(second);
 
-    expect(await store.runs()).toEqual([first, second]);
+    expect(await store.touchLogs()).toEqual([first, second]);
   });
 
   describe('settings', () => {
@@ -338,7 +350,7 @@ describe('RunStore', () => {
       const store = storeWith();
 
       expect(await store.writable()).toBe(true);
-      expect(await mainFormat()).toEqual({ format: RUN_FORMAT });
+      expect(await mainFormat()).toEqual({ format: TOUCH_LOG_FORMAT });
     });
 
     it("uses the main game's runs, and keeps runs, when its run format is the main game's", async () => {
@@ -349,7 +361,7 @@ describe('RunStore', () => {
       await preview.save(second);
 
       expect(await preview.writable()).toBe(true);
-      expect(await preview.runs()).toEqual([first, second]);
+      expect(await preview.touchLogs()).toEqual([first, second]);
     });
 
     it("keeps its runs apart, from a copy of the main game's, when its run format is not the main game's", async () => {
@@ -357,7 +369,7 @@ describe('RunStore', () => {
       await main.save(first);
       await main.saveSetting('colors', 1);
       TestBed.resetTestingModule();
-      await noteMainFormat(RUN_FORMAT - 1);
+      await noteMainFormat(TOUCH_LOG_FORMAT - 1);
       const preview = storeWith({ preview: true });
 
       await preview.save(second);
@@ -366,17 +378,17 @@ describe('RunStore', () => {
 
       expect(await preview.writable()).toBe(true);
       expect(await preview.separate()).toBe(true);
-      expect(await preview.runs()).toEqual([second]);
+      expect(await preview.touchLogs()).toEqual([second]);
       expect(await preview.settings()).toEqual({ colors: 1, sounds: 1 });
       expect(await storedRecords()).toEqual([first]);
-      expect(await mainFormat()).toEqual({ format: RUN_FORMAT - 1 });
+      expect(await mainFormat()).toEqual({ format: TOUCH_LOG_FORMAT - 1 });
     });
 
     it("adds the main game's new runs each time it opens, but copies its settings only once", async () => {
       const main = storeWith();
       await main.saveSetting('colors', 1);
       TestBed.resetTestingModule();
-      await noteMainFormat(RUN_FORMAT - 1);
+      await noteMainFormat(TOUCH_LOG_FORMAT - 1);
       await storeWith({ preview: true }).saveSetting('colors', 2);
       TestBed.resetTestingModule();
       const database = await openDirectly();
@@ -385,7 +397,7 @@ describe('RunStore', () => {
 
       const preview = storeWith({ preview: true });
 
-      expect(await preview.runs()).toEqual([first]);
+      expect(await preview.touchLogs()).toEqual([first]);
       expect(await preview.settings()).toEqual({ colors: 2 });
     });
 
@@ -395,12 +407,19 @@ describe('RunStore', () => {
       const database = await openDirectly();
       await put(database, [unchecked]);
       database.close();
-      await noteMainFormat(RUN_FORMAT - 1);
+      await noteMainFormat(TOUCH_LOG_FORMAT - 1);
 
       const preview = storeWith({ preview: true });
 
-      expect(await preview.runs()).toEqual([
-        { ...unchecked, format: RUN_FORMAT, checked: false, keypadLayout: 'calculator' },
+      expect(await preview.touchLogs()).toEqual([
+        {
+          format: TOUCH_LOG_FORMAT,
+          id: 'old',
+          startedAt: 500,
+          checked: false,
+          keypadLayout: 'calculator',
+          touches: [{ key: '7', time: 0 }],
+        },
       ]);
       expect(await storedRecords()).toEqual([unchecked]);
     });
@@ -418,7 +437,7 @@ describe('RunStore', () => {
       await preview.save(first);
 
       expect(await preview.writable()).toBe(true);
-      expect(await preview.runs()).toEqual([first]);
+      expect(await preview.touchLogs()).toEqual([first]);
       expect(await mainFormat()).toBeUndefined();
     });
 

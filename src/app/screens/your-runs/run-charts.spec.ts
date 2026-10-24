@@ -1,9 +1,13 @@
-import { addDigit, newRun, Run } from '../../player-data/run';
+import { Run, runOf } from '../../player-data/run';
+import { newTouchLog } from '../../player-data/touch-log';
+import { typeKey } from '../../../testing/touch-logs';
 import { areaPath, CHART_HEIGHT, chartPath, chartTop, digitTimes } from './run-charts';
 
 describe('run charts', () => {
   function runAt(times: number[]): Run {
-    return times.reduce((run, time) => addDigit(run, '1', time), newRun('run', 0));
+    return runOf(
+      times.reduce((log, time) => typeKey(log, '1', time), newTouchLog('run', 0, false)),
+    );
   }
 
   describe('digitTimes', () => {
@@ -12,7 +16,7 @@ describe('run charts', () => {
     });
 
     it('gives nothing for a run without digits', () => {
-      expect(digitTimes(newRun('run', 0))).toEqual([]);
+      expect(digitTimes(runAt([]))).toEqual([]);
     });
   });
 

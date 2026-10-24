@@ -5,7 +5,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { CONFIRM } from '../app/ui/confirm';
 import { SAVE_FILE } from '../app/screens/your-data/data';
 import { DeveloperMode } from '../app/developer-mode/developer-mode';
-import { Run } from '../app/player-data/run';
+import { TouchLog } from '../app/player-data/touch-log';
 import { RUN_CLOCK } from '../app/player-data/run-recorder';
 import {
   DATABASE_NAME,
@@ -22,7 +22,7 @@ import { PLAY_WITH_MERCURY } from './game-break-model';
 
 /** The player's data a page opens on, and what stands in for the player and the browser. */
 export interface PageSetUp {
-  readonly runs?: readonly Run[];
+  readonly runs?: readonly TouchLog[];
   /** Whether the browser keeps the storage safe from eviction. */
   readonly persisted?: boolean;
   /** Whether the page is served by a pull request preview. */

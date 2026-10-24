@@ -51,7 +51,7 @@
 ## Player
 
 - **Seed** (player seed): what makes a player's sky, and anything else unique to them, unique. **Seeded** means derived from it.
-- **Player data:** what must never be lost: the seed and the raw timings of every run.
+- **Player data:** what must never be lost: the seed and the **touch log** of every run, each touch on the keypad and each key typed, what it typed, if anything, when, and where. Everything else about a run, its digits and their timings first, comes from it.
 
 ## Developer
 
