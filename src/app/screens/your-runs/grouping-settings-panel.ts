@@ -2,8 +2,6 @@ import { Component, computed, ElementRef, inject, output, signal, viewChild } fr
 import { WRITE_CLIPBOARD } from '../tuning/copy-values';
 import { groupingText, Tweaks } from '../../developer-mode/tweaks';
 import { DropdownMenu } from '../../ui/dropdown-menu';
-import { ChartGuides } from './chart-guides';
-import { GUIDE_COLORS } from './views/model-views';
 import type {
   BreakModelKind,
   Hyperparameter,
@@ -23,8 +21,8 @@ function keysOf(kind: BreakModelKind): string[] {
  * Developer mode's tabs on Your Runs: one with what is given to it, the runs, and the others with the sliders for every
  * hyperparameter of the break model picked, a few to a tab, each with a toggle button pinning it, so that fitting the
  * model to the player's groups leaves it where it is (kept with the tweaks, for each model), a button bringing back the game's value and a help button
- * opening a dialog that says what it does, where another model has it too, a button copying its value from one of them,
- * and, where it acts on a chart, a checkbox to show it there as dashed lines. Beside the tabs, an overflow menu shows
+ * opening a dialog that says what it does, and, where another model has it too, a button copying its value from one of
+ * them. Beside the tabs, an overflow menu shows
  * the break model picked and switches it, copies the values of the hyperparameters it shares with another model, and
  * has buttons to copy the settings' values so they go into the code and to bring back the game's settings, then what
  * is given to it marked `menuItem`.
@@ -97,16 +95,6 @@ function keysOf(kind: BreakModelKind): string[] {
           <div class="setting">
             <div class="top">
               <label [for]="'setting-' + control.key">{{ control.label }}</label>
-              @if (guideColors[control.key]; as color) {
-                <input
-                  type="checkbox"
-                  class="guide"
-                  [style.accent-color]="color"
-                  [attr.aria-label]="'Show ' + control.label.toLowerCase() + ' on the charts'"
-                  [checked]="guides().has(control.key)"
-                  (change)="chartGuides.toggle(control.key)"
-                />
-              }
               <button
                 type="button"
                 class="round pin"
@@ -328,13 +316,6 @@ function keysOf(kind: BreakModelKind): string[] {
       opacity: 0.85;
     }
 
-    /* Shows the setting on the charts, where it acts, as dashed lines. */
-    .guide {
-      width: 1.125rem;
-      height: 1.125rem;
-      margin: 0 0.25rem;
-    }
-
     /* Pinned: the colors of the tab shown, the pin filled. */
     .pin[aria-pressed='true'] {
       background: var(--candy);
@@ -372,10 +353,6 @@ export class GroupingSettingsPanel {
   readonly told = output<string>();
 
   protected readonly runsTab = RUNS_TAB;
-  /** The settings that can be shown on the charts, and those shown. */
-  protected readonly guideColors: Readonly<Record<string, string | undefined>> = GUIDE_COLORS;
-  protected readonly chartGuides = inject(ChartGuides);
-  protected readonly guides = this.chartGuides.shown;
   /** The keys of the hyperparameters of the break model picked that fitting it leaves where they are. */
   protected readonly pinned = computed(() => this.tweaks.pinsOf(this.kind()));
   /** The break models to switch to: all but the one picked. */

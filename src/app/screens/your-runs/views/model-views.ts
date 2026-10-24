@@ -1,94 +1,23 @@
-import type { Values } from '../../../game/grouping/break-models/break-model';
-import type { BreakSettings } from '../../../game/grouping/break-models/hyperparameters';
 import {
   breakBoundary,
   Mixture,
   mixtureDensity,
 } from '../../../game/grouping/break-models/statistics';
-import { priorMixture, Steps } from '../../../game/grouping/break-models/steps';
+import type { Steps } from '../../../game/grouping/break-models/steps';
 import { agreementView, judgedViews, nextRunView, ownBreak } from './judged-views';
 import { alongPlaces, clamp, Layer, Plot, Point, pointsOf } from './plot';
 import { niceStep, runsShown, stepTicks, ViewInput } from './view-input';
 
-/** The settings that can be shown on the charts, as lines where they act, each in its own color. */
-export const GUIDE_COLORS: Partial<Record<keyof BreakSettings, string>> = {
-  priorBaseline: '#2f80ed',
-  priorBreakShare: '#9b51e0',
-  priorBreakSize: '#e2731b',
-  priorNormalSpread: '#1e9e6a',
-  priorBreakSpread: '#c2185b',
+/** The thresholds and the level, each dashed in its own color where it's drawn, so that they tell apart. */
+export const THRESHOLD_COLORS = {
   breakThreshold: '#d4a017',
   usualThreshold: '#0097a7',
   level: '#6d4c41',
-};
+} as const;
 
-/** A setting shown on a chart of times: its line, and its color. */
-export interface TimeGuide {
-  readonly series: Values;
-  readonly color: string;
-}
-
-function colorOf(key: keyof BreakSettings): string {
-  return GUIDE_COLORS[key] ?? 'currentColor';
-}
-
-/**
- * The settings shown on a chart of times, as lines over a baseline, in milliseconds: the prior baseline itself, the
- * prior's typical break, its normal intervals' spread above the baseline, and the time over which an interval is taken
- * for a break. Only a model that tells breaks by a mixture has them.
- */
-export function timeGuides(
-  baseline: Values,
-  model: Steps | undefined,
-  guides: ReadonlySet<string>,
-): TimeGuide[] {
-  if (model?.mixture === undefined) {
-    return [];
-  }
-  const { settings } = model;
-  const over = (residual: number): Values =>
-    baseline.map((value) => (value === undefined ? undefined : value * Math.exp(residual)));
-  const boundary = breakBoundary(model.mixture, settings.breakThreshold);
-  const lines: [keyof BreakSettings, Values | undefined][] = [
-    [
-      'priorBaseline',
-      baseline.map((value) => (value === undefined ? undefined : settings.priorBaseline)),
-    ],
-    ['priorBreakSize', over(Math.log(settings.priorBreakSize))],
-    ['priorNormalSpread', over(settings.priorNormalSpread)],
-    ['breakThreshold', boundary === undefined ? undefined : over(boundary)],
-  ];
-  return lines.flatMap(([key, series]) =>
-    guides.has(key) && series !== undefined ? [{ series, color: colorOf(key) }] : [],
-  );
-}
-
-/**
- * The settings shown among the residuals, as lines at the residuals they set, across `kind` lines. Only a model that
- * tells breaks by a mixture has them.
- */
-function residualGuides({ model, guides }: ViewInput, kind: 'hline' | 'vline'): Layer[] {
-  if (model.mixture === undefined) {
-    return [];
-  }
-  const { settings } = model;
-  const size = Math.log(settings.priorBreakSize);
-  const boundary = breakBoundary(model.mixture, settings.breakThreshold);
-  const lines: [keyof BreakSettings, readonly number[]][] = [
-    ['priorBreakSize', [size]],
-    ['priorNormalSpread', [-settings.priorNormalSpread, settings.priorNormalSpread]],
-    ['priorBreakSpread', [size - settings.priorBreakSpread, size + settings.priorBreakSpread]],
-    ['breakThreshold', boundary !== undefined && kind === 'hline' ? [boundary] : []],
-  ];
-  return lines.flatMap(([key, at]) =>
-    guides.has(key)
-      ? at.map((value) =>
-          kind === 'hline'
-            ? { kind, y: value, role: 'guide' as const, color: colorOf(key) }
-            : { kind, x: value, role: 'guide' as const, color: colorOf(key) },
-        )
-      : [],
-  );
+/** A threshold or the level as a dashed line across a plot of probabilities, at its value. */
+function thresholdLine(model: Steps, key: keyof typeof THRESHOLD_COLORS): Layer {
+  return { kind: 'hline', y: model.settings[key], role: 'guide', color: THRESHOLD_COLORS[key] };
 }
 
 /** The widest residuals shown, from the log of about a third of the baseline to twenty times it: farther ones are cut off. */
@@ -168,6 +97,10 @@ export function residualView(input: ViewInput): Plot {
     });
   }
   const fitted = aggregate && model.mixture !== undefined ? [model.mixture] : [];
+  const boundary =
+    model.mixture === undefined
+      ? undefined
+      : breakBoundary(model.mixture, model.settings.breakThreshold);
   const layers = fitted.flatMap(({ mean, sd }): Layer[] => [
     { kind: 'band', from: mean[0] - sd[0], to: mean[0] + sd[0], role: 'faint' },
     { kind: 'band', from: mean[1] - sd[1], to: mean[1] + sd[1], role: 'faint' },
@@ -181,7 +114,16 @@ export function residualView(input: ViewInput): Plot {
     y: range,
     layers: [
       ...layers,
-      ...residualGuides(input, 'hline'),
+      ...(boundary === undefined
+        ? []
+        : [
+            {
+              kind: 'hline',
+              y: boundary,
+              role: 'guide',
+              color: THRESHOLD_COLORS.breakThreshold,
+            } as const,
+          ]),
       { kind: 'dots', points: normal, role },
       { kind: 'dots', points: breaks, role: 'break' },
     ],
@@ -227,20 +169,6 @@ export function mixtureView(
         ...(boundary === undefined ? [] : [{ kind: 'vline', x: boundary, role: 'break' } as const]),
       ]
     : [];
-  const prior = priorMixture(settings);
-  const priorCurve: Layer[] = input.guides.has('priorBreakShare')
-    ? [
-        {
-          kind: 'line',
-          points: xs.map((x) => {
-            const [normal, pause] = mixtureDensity(prior, x);
-            return [x, normal + pause];
-          }),
-          role: 'guide',
-          color: colorOf('priorBreakShare'),
-        },
-      ]
-    : [];
   const top = Math.max(
     0.1,
     ...density,
@@ -266,8 +194,6 @@ export function mixtureView(
         role: 'run',
       },
       ...curves,
-      ...priorCurve,
-      ...residualGuides(input, 'vline'),
     ],
   };
 }
@@ -296,7 +222,8 @@ export function probabilityView(input: ViewInput): Plot {
       ...(aggregate
         ? [{ kind: 'line', points: pointsOf(model.usual), role: 'aggregate' } as const]
         : []),
-      ...thresholdGuides(input, ['breakThreshold', 'usualThreshold']),
+      thresholdLine(model, 'breakThreshold'),
+      thresholdLine(model, 'usualThreshold'),
     ],
   };
 }
@@ -320,18 +247,8 @@ export function confidenceView(input: ViewInput): Plot {
     caption: 'How sure the verdict before each place is, and its trend, cut at the trust horizon.',
     x: alongPlaces(input.places),
     y: { min: 0, max: 1, ticks: stepTicks(0, 1, 0.5) },
-    layers: [...layers, ...thresholdGuides(input, ['level'])],
+    layers: [...layers, thresholdLine(model, 'level')],
   };
-}
-
-/** The settings shown that are probabilities, as lines across a chart of probabilities. */
-function thresholdGuides(
-  { model, guides }: ViewInput,
-  keys: readonly ('breakThreshold' | 'usualThreshold' | 'level')[],
-): Layer[] {
-  return keys
-    .filter((key) => guides.has(key))
-    .map((key) => ({ kind: 'hline', y: model.settings[key], role: 'guide', color: colorOf(key) }));
 }
 
 /** How much weight the runs that reached each place carry, which the confidence there rests on. */

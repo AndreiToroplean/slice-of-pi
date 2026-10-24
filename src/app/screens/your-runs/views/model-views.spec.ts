@@ -1,4 +1,3 @@
-import type { BreakSettings } from '../../../game/grouping/break-models/hyperparameters';
 import {
   finishedRuns,
   mercury,
@@ -12,7 +11,6 @@ import {
   modelViews,
   probabilityView,
   residualView,
-  timeGuides,
 } from './model-views';
 import type { ViewInput } from './view-input';
 import type { Layer } from './plot';
@@ -37,9 +35,8 @@ describe('the views of the break model', () => {
   function input(
     picked: number[] = [],
     aggregate = true,
-    guides: (keyof BreakSettings)[] = [],
   ): ViewInput & { readonly model: typeof model } {
-    return { model, picked, aggregate, places: 30, guides: new Set(guides) };
+    return { model, picked, aggregate, places: 30 };
   }
 
   function guideLines(layers: readonly Layer[]): number[] {
@@ -82,7 +79,6 @@ describe('the views of the break model', () => {
       'Group sizes',
     ]);
     expect(residualView(plain).layers.every((layer) => layer.kind === 'dots')).toBe(true);
-    expect(timeGuides([undefined, 200], plain.model, new Set(['priorBaseline']))).toEqual([]);
   });
 
   it('shows the residuals of all the runs while none is picked, else of those picked', () => {
@@ -112,9 +108,11 @@ describe('the views of the break model', () => {
 
     expect(lines(true)).toBeGreaterThan(0);
     expect(lines(false)).toBe(0);
-    expect(residualView(input([0], false)).layers.every((layer) => layer.kind === 'dots')).toBe(
-      true,
-    );
+    expect(
+      residualView(input([0], false)).layers.every(
+        (layer) => layer.kind === 'dots' || layer.role === 'guide',
+      ),
+    ).toBe(true);
   });
 
   it('spreads the residuals as a histogram of their density, cut at the break boundary', () => {
@@ -146,7 +144,7 @@ describe('the views of the break model', () => {
       x: model.horizon + 0.5,
       role: 'break',
     });
-    expect(confidenceView(input([0], false)).layers).toEqual([]);
+    expect(confidenceView(input([0], false)).layers.map((layer) => layer.role)).toEqual(['guide']);
   });
 
   it("counts how big the groups are, as shares, the game's and those the runs break into on their own", () => {
@@ -161,61 +159,16 @@ describe('the views of the break model', () => {
     expect(played.indexOf(Math.max(...played))).toBe(2);
   });
 
-  describe('the settings shown on the charts', () => {
-    it('shows none unless told to', () => {
-      expect(modelViews(input()).flatMap((plot) => guideLines(plot.layers))).toEqual([]);
-      expect(timeGuides([undefined, 200], model, new Set())).toEqual([]);
-    });
+  it('draws the thresholds and the level where they act', () => {
+    const boundary = breakBoundary(model.mixture, settings.breakThreshold);
+    const plain = { ...input(), model: { ...model, mixture: undefined } };
 
-    it('draws the prior baseline, typical break, normal spread and break boundary over a baseline of times', () => {
-      const boundary = breakBoundary(model.mixture, settings.breakThreshold) ?? 0;
-      const guides = timeGuides(
-        [undefined, 200],
-        model,
-        new Set(['priorBaseline', 'priorBreakSize', 'priorNormalSpread', 'breakThreshold']),
-      );
-
-      expect(guides.map(({ series }) => series[0])).toEqual([
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-      ]);
-      expect(new Set(guides.map(({ color }) => color)).size).toBe(4);
-      expect(guides.map(({ series }) => series[1] ?? 0)).toEqual([
-        300,
-        500,
-        expect.closeTo(200 * Math.exp(0.25), 6),
-        expect.closeTo(200 * Math.exp(boundary), 6),
-      ]);
-    });
-
-    it('draws the prior mixture among the residuals', () => {
-      const size = Math.log(settings.priorBreakSize);
-
-      expect(
-        guideLines(residualView(input([], true, ['priorBreakSize', 'priorBreakSpread'])).layers),
-      ).toEqual([size, size - 0.4, size + 0.4]);
-      expect(
-        mixtureView(input([], true, ['priorBreakShare'])).layers.filter(
-          (layer) => layer.role === 'guide' && layer.kind === 'line',
-        ),
-      ).toHaveLength(1);
-    });
-
-    it('draws the thresholds and the level across the probabilities', () => {
-      expect(
-        guideLines(probabilityView(input([], true, ['breakThreshold', 'usualThreshold'])).layers),
-      ).toEqual([settings.breakThreshold, settings.usualThreshold]);
-      expect(guideLines(confidenceView(input([], true, ['level'])).layers)).toEqual([
-        settings.level,
-      ]);
-    });
-
-    it('draws the level of a model that fits no mixture', () => {
-      const plain = { ...input([], true, ['level']), model: { ...model, mixture: undefined } };
-
-      expect(guideLines(confidenceView(plain).layers)).toEqual([settings.level]);
-    });
+    expect(guideLines(residualView(input()).layers)).toEqual([boundary]);
+    expect(guideLines(probabilityView(input()).layers)).toEqual([
+      settings.breakThreshold,
+      settings.usualThreshold,
+    ]);
+    expect(guideLines(confidenceView(input()).layers)).toEqual([settings.level]);
+    expect(guideLines(confidenceView(plain).layers)).toEqual([settings.level]);
   });
 });
