@@ -5,6 +5,7 @@ import { DEFAULT_KEYPAD_LAYOUT, KeypadLayout } from '../../game/layers/keypad-la
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { Page } from '../../ui/page';
 import { Segment, Segmented } from '../../ui/segmented';
+import { Candy } from '../../ui/candy';
 
 /**
  * The game's settings, opened from the main menu's gear: the keypad's layout, and in developer mode, whether to count
@@ -13,13 +14,14 @@ import { Segment, Segmented } from '../../ui/segmented';
  */
 @Component({
   selector: 'app-settings',
-  imports: [Page, Segmented],
+  imports: [Candy, Page, Segmented],
   template: `
     <app-page title="Settings">
       <button
         pageAction
         type="button"
-        class="candy danger small"
+        appCandy="danger"
+        class="small"
         [disabled]="allDefault()"
         (click)="resetAll()"
       >

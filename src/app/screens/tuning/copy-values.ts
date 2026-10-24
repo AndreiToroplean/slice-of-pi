@@ -1,6 +1,7 @@
 import { Component, inject, InjectionToken, input, signal } from '@angular/core';
 import { TweakValues, tweaksBackup } from '../../developer-mode/tweaks';
 import { RUN_CLOCK } from '../../player-data/run-recorder';
+import { Candy } from '../../ui/candy';
 
 /** Puts text on the clipboard. */
 export const WRITE_CLIPBOARD = new InjectionToken<(text: string) => Promise<void>>(
@@ -18,7 +19,8 @@ const LABEL = 'Copy Hyperparameter Values';
  */
 @Component({
   selector: 'app-copy-values',
-  template: `<button type="button" class="candy" (click)="void copy()">{{ label() }}</button>`,
+  imports: [Candy],
+  template: `<button type="button" appCandy (click)="void copy()">{{ label() }}</button>`,
   styleUrl: './copy-values.css',
 })
 export class CopyValues {
