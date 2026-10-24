@@ -596,14 +596,14 @@ describe('Play', () => {
       const { host, type } = await setUp();
       await typeAll(type, '14');
       const colors = Array.from(host.querySelectorAll<HTMLElement>('app-keypad button'), (key) =>
-        key.style.getPropertyValue('--key-color'),
+        key.style.getPropertyValue('--press-color'),
       );
 
       await typeAll(type, '4');
 
       expect(
         Array.from(host.querySelectorAll<HTMLElement>('app-keypad button'), (key) =>
-          key.style.getPropertyValue('--key-color'),
+          key.style.getPropertyValue('--press-color'),
         ),
       ).toEqual(colors);
     });
@@ -645,7 +645,7 @@ describe('Play', () => {
     function keyColor(host: HTMLElement, key: string): string | undefined {
       return host
         .querySelector<HTMLElement>(`button[data-key="${key}"]`)
-        ?.style.getPropertyValue('--key-color');
+        ?.style.getPropertyValue('--press-color');
     }
 
     function placeColorsShown(host: HTMLElement, selector: string): string[] {

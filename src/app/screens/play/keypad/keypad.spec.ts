@@ -298,12 +298,14 @@ describe('Keypad', () => {
       expect(typed).toEqual(['1']);
     });
 
-    it('shows touched keys pressed until released, cancelled or slid off', () => {
+    it('shows touched keys pressed until released, a digit a moment longer, or cancelled or slid off', () => {
       down('5', 1);
       down('backspace', 2);
       expect(pressedKeys()).toEqual(['5', 'backspace']);
 
       up('5', 1);
+      expect(pressedKeys()).toEqual(['5', 'backspace']);
+      vi.advanceTimersByTime(SPLASH_DURATION);
       expect(pressedKeys()).toEqual(['backspace']);
 
       pointer('pointermove', CENTERS['3'], { pointerId: 2 });
@@ -404,12 +406,14 @@ describe('Keypad', () => {
       keyboard('keydown', { key: '4', repeat: true });
       expect(pressedKeys()).toEqual(['4', 'backspace']);
 
+      vi.advanceTimersByTime(SPLASH_DURATION);
       keyboard('keyup', { key: '4' });
       expect(pressedKeys()).toEqual(['backspace']);
     });
 
     it('lets go of held keys when the window loses focus', () => {
       keyboard('keydown', { key: '4' });
+      vi.advanceTimersByTime(SPLASH_DURATION);
       window.dispatchEvent(new Event('blur'));
 
       expect(pressedKeys()).toEqual([]);
@@ -430,10 +434,11 @@ describe('Keypad', () => {
       expect(pressedKeys()).toEqual([]);
     });
 
-    it('types a focused key activated with Enter or Space, or by assistive technology', () => {
+    it('types a key activated by assistive technology, keys taking no focus', () => {
       button('6').dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
 
       expect(typed).toEqual(['6']);
+      expect([button('6').tabIndex, button('backspace').tabIndex]).toEqual([-1, -1]);
     });
 
     it('ignores the click that follows a touch, which is already handled', () => {
@@ -445,20 +450,19 @@ describe('Keypad', () => {
   });
 
   describe('colors', () => {
+    /** The color a key shows on its edge, and fills with while pressed. */
     function accent(key: KeypadKey): string {
       fixture.detectChanges();
-      return button(key).style.getPropertyValue('--key-color');
+      return button(key).style.getPropertyValue('--press-color');
     }
 
     /** The color a key is filled with, or `null` when it isn't. */
     function splash(key: KeypadKey): string | null {
-      fixture.detectChanges();
-      return button(key).classList.contains('splash')
-        ? button(key).style.getPropertyValue('--splash-color')
-        : null;
+      const color = accent(key);
+      return button(key).classList.contains('pressed') ? color || null : null;
     }
 
-    it('shows each digit key its color as an accent, and backspace none', () => {
+    it('shows each digit key its color on its edge, and backspace none', () => {
       expect(['0', '1', '9'].map((key) => accent(key as KeypadKey))).toEqual([
         PALETTE[0],
         PALETTE[1],
@@ -474,10 +478,9 @@ describe('Keypad', () => {
       expect(splash('4')).toBeNull();
     });
 
-    it('keeps the color the digit took once released, for a moment, then shows the next accent', () => {
+    it('keeps the color the digit took once released, for a moment, then shows the next one', () => {
       tap('3');
 
-      expect(accent('3')).toBe(PALETTE[4]);
       expect(splash('3')).toBe(PALETTE[3]);
 
       vi.advanceTimersByTime(SPLASH_DURATION - 1);
@@ -485,6 +488,7 @@ describe('Keypad', () => {
 
       vi.advanceTimersByTime(1);
       expect(splash('3')).toBeNull();
+      expect(accent('3')).toBe(PALETTE[4]);
     });
 
     it('stays filled while held for longer', () => {
@@ -518,7 +522,6 @@ describe('Keypad', () => {
     it('fills a key typed on a physical keyboard with the color its digit took', () => {
       keyboard('keydown', { key: '7' });
 
-      expect(accent('7')).toBe(PALETTE[8]);
       expect(splash('7')).toBe(PALETTE[7]);
 
       keyboard('keydown', { key: '7', repeat: true });
@@ -527,6 +530,7 @@ describe('Keypad', () => {
       vi.advanceTimersByTime(SPLASH_DURATION);
       keyboard('keyup', { key: '7' });
       expect(splash('7')).toBeNull();
+      expect(accent('7')).toBe(PALETTE[8]);
     });
 
     it('never fills backspace', () => {

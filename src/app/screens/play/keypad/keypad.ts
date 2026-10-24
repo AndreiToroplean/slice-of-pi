@@ -16,6 +16,7 @@ import {
   KeypadLayout,
   keyAt,
 } from '../../../game/layers/keypad-layout';
+import { Candy } from '../../../ui/candy';
 
 /** How long a key must be held before it starts repeating, in ms. */
 export const REPEAT_DELAY = 400;
@@ -45,14 +46,16 @@ interface Press {
  *
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
  * repeats it.
- * Keys being pressed, by touch or keyboard, are shown pressed. Each digit key shows its color as an accent; pressing it
- * fills it with that color at once, for at least `SPLASH_DURATION`. The buttons themselves still work with the keyboard and
- * assistive technology (Enter or Space on a focused key).
+ * The keys are see-through candy buttons. Keys being pressed, by touch or keyboard, are shown pressed, a digit key for at
+ * least `SPLASH_DURATION`. Each digit key shows its color on its edge; pressing it fills it with that color at once.
+ * The keys don't take the focus, being typed from the keyboard's own keys, but the buttons still work with assistive
+ * technology.
  *
  * What it's given goes in its grid with the keys, placing itself, such as in the empty corner left of 0.
  */
 @Component({
   selector: 'app-keypad',
+  imports: [Candy],
   host: {
     role: 'group',
     'aria-label': 'Keypad',
@@ -68,12 +71,12 @@ interface Press {
     @for (position of keys(); track position.key) {
       <button
         type="button"
+        appCandy="clear"
         class="key"
+        [focusable]="false"
         [class.backspace]="position.key === 'backspace'"
-        [class.pressed]="isPressed(position.key)"
-        [class.splash]="splashColor(position.key) !== null"
-        [style.--key-color]="position.key === 'backspace' ? null : colors()[position.key]"
-        [style.--splash-color]="splashColor(position.key)"
+        [pressed]="shownPressed(position.key)"
+        [pressColor]="pressColor(position.key)"
         [attr.data-key]="position.key"
         [attr.aria-label]="position.key === 'backspace' ? 'Delete last digit' : null"
         [style.grid-row]="position.row + 1"
@@ -128,16 +131,24 @@ export class Keypad {
     });
   }
 
-  protected isPressed(key: KeypadKey): boolean {
+  private isPressed(key: KeypadKey): boolean {
     return this.heldKeys().includes(key) || this.touchedKeys().includes(key);
   }
 
-  /** The color a digit key is filled with while pressed, and shortly after, or `null` when it isn't. */
-  protected splashColor(key: KeypadKey): string | null {
-    if (key === 'backspace' || !(this.isPressed(key) || this.splashing().includes(key))) {
-      return null;
+  /** Whether a key shows pressed: while pressed, and, for a digit key, for a moment after. */
+  protected shownPressed(key: KeypadKey): boolean {
+    return this.isPressed(key) || (key !== 'backspace' && this.splashing().includes(key));
+  }
+
+  /**
+   * A digit key's color: while it shows pressed, the color its digit took then, and otherwise the color it takes when
+   * typed next. Backspace has none.
+   */
+  protected pressColor(key: KeypadKey): string | undefined {
+    if (key === 'backspace') {
+      return undefined;
     }
-    return this.splashColors()[key] ?? null;
+    return (this.shownPressed(key) ? this.splashColors()[key] : undefined) ?? this.colors()[key];
   }
 
   protected onPointerDown(event: PointerEvent): void {
