@@ -29,6 +29,31 @@ describe('App', () => {
     expect(main?.style.getPropertyValue('--background-space')).toBe(SEASON_COLOR_SPACE);
   });
 
+  it('gives a candy button the focus under the mouse, and only a candy button', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<button class="candy">Candy</button><button class="frosted">Frosted</button>',
+    );
+    const [candy, frosted] = Array.from(document.querySelectorAll<HTMLElement>('.candy, .frosted'));
+    const hover = (target: Element | undefined, pointerType: string): void => {
+      target?.dispatchEvent(
+        Object.assign(new MouseEvent('pointerover', { bubbles: true }), { pointerType }),
+      );
+    };
+
+    hover(candy, 'touch');
+    expect(document.activeElement).not.toBe(candy);
+    hover(candy, 'mouse');
+    expect(document.activeElement).toBe(candy);
+    hover(frosted, 'mouse');
+    expect(document.activeElement).toBe(candy);
+
+    candy?.remove();
+    frosted?.remove();
+  });
+
   it('keeps the long-press menu from opening anywhere', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
