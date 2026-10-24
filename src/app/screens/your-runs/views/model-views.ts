@@ -112,6 +112,23 @@ export function residualView(input: ViewInput): Plot {
     caption: 'Each interval over its baseline, on a log scale: normal ones near 0, breaks above.',
     x: alongPlaces(input.places),
     y: range,
+    legend: [
+      { mark: 'dots', role, label: 'Interval' },
+      { mark: 'dots', role: 'break', label: 'Taken for a break' },
+      ...(fitted.length > 0
+        ? ([
+            { mark: 'line', role: 'aggregate', label: 'Normal mean' },
+            { mark: 'line', role: 'break', label: 'Break mean' },
+            { mark: 'area', role: 'faint', label: 'Give or take a spread' },
+          ] as const)
+        : []),
+      {
+        mark: 'line',
+        role: 'guide',
+        color: THRESHOLD_COLORS.breakThreshold,
+        label: 'Break boundary',
+      },
+    ],
     layers: [
       ...layers,
       ...(boundary === undefined
@@ -166,7 +183,16 @@ export function mixtureView(
           points: xs.map((x, i) => [x, (components[i]?.[0] ?? 0) + (components[i]?.[1] ?? 0)]),
           role: 'aggregate',
         },
-        ...(boundary === undefined ? [] : [{ kind: 'vline', x: boundary, role: 'break' } as const]),
+        ...(boundary === undefined
+          ? []
+          : [
+              {
+                kind: 'vline',
+                x: boundary,
+                role: 'guide',
+                color: THRESHOLD_COLORS.breakThreshold,
+              } as const,
+            ]),
       ]
     : [];
   const top = Math.max(
@@ -183,6 +209,22 @@ export function mixtureView(
       labels: [`×${times(range.min)} baseline`, `×${times(range.max)}`],
     },
     y: { min: 0, max: top * 1.1 },
+    legend: [
+      { mark: 'bars', role: 'run', label: 'Residuals' },
+      ...(aggregate
+        ? ([
+            { mark: 'line', role: 'faint', label: 'Normal' },
+            { mark: 'line', role: 'break', label: 'Breaks' },
+            { mark: 'line', role: 'aggregate', label: 'Both' },
+            {
+              mark: 'line',
+              role: 'guide',
+              color: THRESHOLD_COLORS.breakThreshold,
+              label: 'Break boundary',
+            },
+          ] as const)
+        : []),
+    ],
     layers: [
       {
         kind: 'bars',
@@ -211,6 +253,22 @@ export function probabilityView(input: ViewInput): Plot {
     caption: 'How likely a break is before each place: over all runs, and in each run picked.',
     x: alongPlaces(input.places),
     y: { min: 0, max: 1, ticks: stepTicks(0, 1, 0.5) },
+    legend: [
+      { mark: 'line', role: 'aggregate', label: 'Over all runs' },
+      { mark: 'dots', role: 'run', label: 'Each run picked' },
+      {
+        mark: 'line',
+        role: 'guide',
+        color: THRESHOLD_COLORS.breakThreshold,
+        label: 'Break threshold',
+      },
+      {
+        mark: 'line',
+        role: 'guide',
+        color: THRESHOLD_COLORS.usualThreshold,
+        label: 'Usual threshold',
+      },
+    ],
     layers: [
       ...picked.map((k): Layer => ({
         kind: 'dots',
@@ -247,6 +305,12 @@ export function confidenceView(input: ViewInput): Plot {
     caption: 'How sure the verdict before each place is, and its trend, cut at the trust horizon.',
     x: alongPlaces(input.places),
     y: { min: 0, max: 1, ticks: stepTicks(0, 1, 0.5) },
+    legend: [
+      { mark: 'dots', role: 'faint', label: 'Confidence' },
+      { mark: 'line', role: 'aggregate', label: 'Its trend' },
+      { mark: 'line', role: 'break', label: 'Trust horizon' },
+      { mark: 'line', role: 'guide', color: THRESHOLD_COLORS.level, label: 'Level' },
+    ],
     layers: [...layers, thresholdLine(model, 'level')],
   };
 }
@@ -263,6 +327,7 @@ export function coverageView(input: ViewInput): Plot {
         : 'How much weight the runs that reached each place carry: each its recency times its trust there.',
     x: alongPlaces(input.places),
     y: { min: 0, max: top * 1.05, ticks: stepTicks(0, top, niceStep(top)) },
+    legend: [{ mark: 'line', role: 'aggregate', label: 'Weight of the runs here' }],
     layers: aggregate
       ? [{ kind: 'line', points: pointsOf(model.coverage), role: 'aggregate' }]
       : [],
@@ -304,9 +369,13 @@ export function groupSizesView(input: ViewInput): Plot {
   const top = Math.max(0.1, ...playedShares, ...ownShares);
   return {
     title: 'Group sizes',
-    caption: `How many digits the groups have: the game’s (dark) and those the runs shown break into on their own (light), as shares, ${String(LARGEST_GROUP)} holding larger.`,
+    caption: `How many digits the groups have, as shares of all of them, ${String(LARGEST_GROUP)} holding larger ones.`,
     x: { min: 0.5, max: LARGEST_GROUP + 0.5, labels: ['1 digit', `${String(LARGEST_GROUP)}+`] },
     y: { min: 0, max: top * 1.1, ticks: stepTicks(0, top, niceStep(top)) },
+    legend: [
+      { mark: 'bars', role: 'aggregate', label: 'The game’s groups' },
+      { mark: 'bars', role: 'run', label: 'Each run’s own' },
+    ],
     layers: [
       { kind: 'bars', bars: bars(playedShares, -0.5), role: 'aggregate' },
       { kind: 'bars', bars: bars(ownShares, 0), role: 'run' },

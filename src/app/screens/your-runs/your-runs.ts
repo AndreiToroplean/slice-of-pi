@@ -27,8 +27,9 @@ import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { LongPress } from '../../ui/long-press';
 import { PlacePerspective } from './place-perspective';
 import { modelViews } from './views/model-views';
-import type { Plot } from './views/plot';
-import { PlotChart } from './views/plot-chart';
+import type { Key, Plot } from './views/plot';
+import { PlotLegend } from './views/plot-legend';
+import { PlotView } from './views/plot-view';
 import { plural } from '../../ui/plural';
 import { RunChart } from './run-chart';
 import { chartTop, digitTimes } from './run-charts';
@@ -58,7 +59,8 @@ import { chartTop, digitTimes } from './run-charts';
     NgTemplateOutlet,
     Page,
     PlacePerspective,
-    PlotChart,
+    PlotLegend,
+    PlotView,
     RunChart,
   ],
   template: `
@@ -106,27 +108,20 @@ import { chartTop, digitTimes } from './run-charts';
                     <span class="step">1/{{ views().length + 1 }}</span>
                   </div>
                   <ng-container [ngTemplateOutlet]="timesChart" />
+                  <app-plot-legend [keys]="TIMES_KEYS" />
                   <p class="caption">
-                    The time per digit, along the places. Tap a chart to pick a place.
+                    The time per digit, along the places, recent runs weighing more. Tap any chart
+                    here to pick a place.
                   </p>
                 </section>
                 @for (plot of views(); track plot.title; let index = $index) {
-                  <section class="view">
-                    <div class="heading">
-                      <h3>{{ plot.title }}</h3>
-                      <span class="step">{{ index + 2 }}/{{ views().length + 1 }}</span>
-                    </div>
-                    <app-plot-chart
-                      [plot]="plot"
-                      [marker]="plot.x.places ? place() : undefined"
-                      (picked)="pickPlaceOn(plot, $event)"
-                    />
-                    <p class="axis" aria-hidden="true">
-                      <span>{{ plot.x.labels[0] }}</span
-                      ><span>{{ plot.x.labels[1] }}</span>
-                    </p>
-                    <p class="caption">{{ plot.caption }}</p>
-                  </section>
+                  <app-plot-view
+                    class="view"
+                    [plot]="plot"
+                    [step]="index + 2 + '/' + (views().length + 1)"
+                    [marker]="plot.x.places ? place() : undefined"
+                    (picked)="pickPlaceOn(plot, $event)"
+                  />
                 }
               </app-carousel>
               <ng-container [ngTemplateOutlet]="groupList" />
@@ -442,6 +437,7 @@ export class YourRuns {
   /** In developer mode, which perspective on the break model the card on top shows. */
   protected readonly perspective = signal<Perspective>('run');
   protected readonly PERSPECTIVES = PERSPECTIVES;
+  protected readonly TIMES_KEYS = TIMES_KEYS;
   /** The runs picked, by their index among the runs counted, as the steps have them. */
   protected readonly pickedRuns = computed(() =>
     this.counted().flatMap((run, k) => (this.selected().has(run.id) ? [k] : [])),
@@ -678,6 +674,15 @@ export class YourRuns {
     this.loaded.set(true);
   }
 }
+
+/** The key to the chart of times, on top in developer mode, drawn like its marks. */
+const TIMES_KEYS: readonly Key[] = [
+  { mark: 'line', role: 'aggregate', label: 'Time per digit' },
+  { mark: 'line', role: 'run', label: 'Without breaks' },
+  { mark: 'bars', role: 'break', label: 'Usual break' },
+  { mark: 'area', role: 'faint', label: 'Confidence trend' },
+  { mark: 'line', role: 'faint', label: 'Runs picked' },
+];
 
 /** The perspectives on the break model: along the places, over the runs, or across the runs, at one place. */
 type Perspective = 'run' | 'place';
