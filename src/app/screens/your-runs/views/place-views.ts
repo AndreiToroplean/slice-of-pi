@@ -116,11 +116,15 @@ function rateOf({ model, place }: PlaceInput): {
   return { breaks: agreement * reached, reached };
 }
 
-/** How the evidence of the runs adds up at the place, and what the next run would need there. */
+/**
+ * How the evidence of the runs adds up at the place, with the group-size envelope's if it adds any, and what the next
+ * run would need there.
+ */
 function poolFacts(input: PlaceInput, workings: Workings, pool: PoolWorkings): Fact[] {
   const { place, titles } = input;
+  const envelope = pool.envelope[place] ?? 0;
   const logOdds = pool.logOdds[place] ?? pool.prior;
-  const margin = logOdds - pool.threshold;
+  const margin = logOdds + envelope - pool.threshold;
   const shares = workings.runs.map((run, k) => ({ k, value: weightedEvidence(run)[place] }));
   const given = shares.flatMap(({ k, value }) => (value === undefined ? [] : [{ k, value }]));
   const forBreak = given.reduce((sum, { value }) => sum + Math.max(0, value), 0);
@@ -135,8 +139,20 @@ function poolFacts(input: PlaceInput, workings: Workings, pool: PoolWorkings): F
   return [
     {
       label: 'Log-odds',
-      value: `${format(logOdds)}, ${format(Math.abs(margin))} ${margin > 0 ? 'over' : 'short of'} the threshold, ${format(pool.threshold)}`,
+      value: Number.isFinite(margin)
+        ? `${format(logOdds + envelope)}, ${format(Math.abs(margin))} ${margin > 0 ? 'over' : 'short of'} the threshold, ${format(pool.threshold)}`
+        : `${margin > 0 ? 'over' : 'under'} the threshold, ${format(pool.threshold)}, whatever the runs say`,
     },
+    ...(envelope === 0
+      ? []
+      : [
+          {
+            label: 'Envelope',
+            value: Number.isFinite(envelope)
+              ? `${signed(envelope)} on the runs’ ${format(logOdds)}, for the groups on either side`
+              : `rules a break ${envelope > 0 ? 'in' : 'out'}, for the groups on either side`,
+          },
+        ]),
     {
       label: 'Evidence',
       value: `the prior ${format(pool.prior)}, ${signed(forBreak)} for a break, ${signed(against)} against`,
@@ -146,9 +162,11 @@ function poolFacts(input: PlaceInput, workings: Workings, pool: PoolWorkings): F
     {
       label: 'Next run',
       value:
-        nextZ <= 0
-          ? 'ends its group here even typing on fast'
-          : `ends its group here pausing ${format(nextZ)} spreads over its pace: ×${format(Math.exp(nextZ * workings.spreadFloor))} its pace at least, at the spread floor`,
+        nextZ === Infinity
+          ? 'never ends its group here, however long it pauses'
+          : nextZ <= 0
+            ? 'ends its group here even typing on fast'
+            : `ends its group here pausing ${format(nextZ)} spreads over its pace: ×${format(Math.exp(nextZ * workings.spreadFloor))} its pace at least, at the spread floor`,
     },
   ];
 }

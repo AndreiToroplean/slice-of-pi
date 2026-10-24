@@ -25,6 +25,12 @@ describe('Mars', () => {
 
   const grouped = Array.from({ length: 4 }, () => timesOf(30, by3(30)));
 
+  /**
+   * The envelope at 1 for every size, so that each place breaks on the runs' evidence alone: with groups of 3, a break
+   * anywhere else leaves a group of 1 digit beside it, which the envelope rules out.
+   */
+  const FLAT: Settings = { envelopeFactor1: 1, envelopeFactor4: 1 };
+
   /** How long the player must wait after typing `typed` digits of a grouped run for the group to end, to 10 ms. */
   function waitToEnd(
     earlier: readonly (readonly number[])[],
@@ -52,12 +58,12 @@ describe('Mars', () => {
 
   it('ends a group at a long enough pause, however many runs carried on there', () => {
     // Before index 14, where no run breaks.
-    expect(waitToEnd(grouped.slice(0, 1), 14)).toBeLessThan(10_000);
-    expect(waitToEnd(grouped, 14)).toBeLessThan(10_000);
+    expect(waitToEnd(grouped.slice(0, 1), 14, FLAT)).toBeLessThan(10_000);
+    expect(waitToEnd(grouped, 14, FLAT)).toBeLessThan(10_000);
   });
 
   it('asks for a longer pause the more runs carried on there', () => {
-    expect(waitToEnd(grouped, 14)).toBeGreaterThan(waitToEnd(grouped.slice(0, 1), 14));
+    expect(waitToEnd(grouped, 14, FLAT)).toBeGreaterThan(waitToEnd(grouped.slice(0, 1), 14, FLAT));
   });
 
   it('ends a group where the runs usually break before the next digit would come', () => {
@@ -134,15 +140,15 @@ describe('Mars', () => {
     // A metronome: no unevenness, so no trust, but steady all along, so evidence against a break everywhere.
     const steady = [Array.from({ length: 12 }, (_, i) => 200 * i)];
     const usual = (trustInfluence: number) =>
-      MARS.steps?.({ priorUnevenness: 0, trustInfluence }, steady).usual[6];
+      MARS.steps?.({ ...FLAT, priorUnevenness: 0, trustInfluence }, steady).usual[6];
 
     expect(usual(1)).toBeCloseTo(MARS_DEFAULTS.breakShare, 5);
     expect(usual(0)).toBeLessThan(MARS_DEFAULTS.breakShare - 0.1);
   });
 
   it('lets the run being typed count for more than the recorded runs, by the current decay', () => {
-    expect(waitToEnd(grouped, 14, { currentDecay: 0.1 })).toBeLessThan(
-      waitToEnd(grouped, 14, { currentDecay: 1 }),
+    expect(waitToEnd(grouped, 14, { ...FLAT, currentDecay: 0.1 })).toBeLessThan(
+      waitToEnd(grouped, 14, { ...FLAT, currentDecay: 1 }),
     );
   });
 
@@ -204,7 +210,10 @@ describe('Mars', () => {
       );
 
       expect(pool?.logOdds[at]).toBeCloseTo(sum, 12);
-      expect(logistic(pool?.logOdds[at] ?? NaN)).toBeCloseTo(steps?.usual[at] ?? NaN, 12);
+      expect(logistic((pool?.logOdds[at] ?? NaN) + (pool?.envelope[at] ?? NaN))).toBeCloseTo(
+        steps?.usual[at] ?? NaN,
+        12,
+      );
       expect(workings?.runs.map((run) => run.recency)).toEqual([
         MARS_DEFAULTS.recencyDecay ** 2,
         MARS_DEFAULTS.recencyDecay,
@@ -226,7 +235,11 @@ describe('Mars', () => {
       const prior = logit(breakShare);
 
       expect(
-        prior + currentDecay * (logOdds - prior) + breakShift * z - breakShift ** 2 / 2,
+        prior +
+          currentDecay * (logOdds - prior) +
+          (pool?.envelope[at] ?? NaN) +
+          breakShift * z -
+          breakShift ** 2 / 2,
       ).toBeCloseTo(logit(breakThreshold), 12);
       expect(pool?.nextRunZ[15]).toBeLessThan(z);
     });
@@ -239,6 +252,53 @@ describe('Mars', () => {
     it('judges no place without neighbors', () => {
       expect(workings?.runs[0]?.z[0]).toBeUndefined();
       expect(workings?.runs[0]?.z[1]).toBeDefined();
+    });
+  });
+
+  describe('the group-size envelope', () => {
+    it('keeps the groups to the sizes it allows', () => {
+      // Groups of 12, which the envelope rules out.
+      const runs = Array.from({ length: 4 }, () => timesOf(30, [12, 24]));
+      const largest = (settings: Settings) =>
+        Math.max(
+          ...MARS.create(settings)
+            .stats(runs)
+            .groups.filter((group) => !group.open)
+            .map((group) => group.size),
+        );
+
+      expect(largest(FLAT)).toBe(12);
+      expect(largest({})).toBeLessThanOrEqual(10);
+    });
+
+    it('ends a group being typed at once once it has the most digits allowed', () => {
+      const steady = Array.from({ length: 4 }, () => timesOf(30, []));
+      const play = MARS.create({}).play(steady);
+      const endsAt = (typed: number) => {
+        const times = timesOf(typed, []);
+        return play.groupEnds([...times, times.at(-1) ?? 0], 0, true);
+      };
+
+      expect(endsAt(9)).toBe(false);
+      expect(endsAt(10)).toBe(true);
+    });
+
+    it('never ends a group being typed at a size it rules out, however long the pause', () => {
+      // The first digit of the group starting at 12 typed: a group of 1 digit if it ended now.
+      const times = timesOf(13, by3(30));
+      const ends = (settings: Settings) =>
+        MARS.create(settings)
+          .play(grouped)
+          .groupEnds([...times, (times.at(-1) ?? 0) + 1e6], 12, true);
+
+      expect(ends(FLAT)).toBe(true);
+      expect(ends({})).toBe(false);
+    });
+
+    it('adds nothing to the runs’ evidence at 1 for every size', () => {
+      expect(MARS.steps?.(FLAT, grouped).workings?.pool?.envelope.slice(1)).toEqual(
+        Array<number>(29).fill(0),
+      );
     });
   });
 

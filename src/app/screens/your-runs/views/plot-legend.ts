@@ -19,6 +19,7 @@ import { Key, keyIdOf } from './plot';
             <i
               aria-hidden="true"
               [class]="key.mark + ' ' + key.role"
+              [class.faded]="key.faded === true"
               [style.--swatch]="key.color ?? null"
             ></i
             >{{ key.label }}
@@ -128,6 +129,14 @@ import { Key, keyIdOf } from './plot';
     i.bars.break,
     i.area.break {
       opacity: 0.6;
+    }
+
+    i.bars.faded {
+      opacity: 0.2;
+    }
+
+    i.bars.run.faded {
+      opacity: 0.1;
     }
   `,
 })

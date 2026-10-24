@@ -1,4 +1,5 @@
-import { ownBreak, padded } from './judged-views';
+import { envelopeIn, isFlat, weightOf } from '../../../game/grouping/break-models/envelope';
+import { ENVELOPE_COLOR, ownBreak, padded } from './judged-views';
 import { clamp, Plot, Point } from './plot';
 import { niceStep, runsShown, stepTicks, ViewInput } from './view-input';
 
@@ -9,6 +10,8 @@ import { niceStep, runsShown, stepTicks, ViewInput } from './view-input';
 
 /** The largest group size the views of groups tell apart: larger ones count with it. */
 const LARGEST_GROUP = 12;
+/** How many points the envelope's curve is drawn with, per size. */
+const ENVELOPE_STEPS = 10;
 
 /** The views of the groups: their sizes, then the time per digit within them. */
 export function groupViews(input: ViewInput, mine: readonly number[]): Plot[] {
@@ -22,16 +25,32 @@ function sizesBetween(breaks: readonly number[]): number[] {
 
 /**
  * How big the groups are: those the game plays, those each run shown breaks into on its own, and the player's own, as
- * shares of their groups, the last bin holding every larger one. None counts a group open at the end.
+ * shares of their groups, the last bin holding every larger one. None counts a group open at the end. Where the model
+ * has a group-size envelope that changes anything, the game's and each run's are as it weighs them, with what they'd
+ * be without it faded behind them, and the envelope over them, as it weighs each size, 1 at the top.
  */
 export function groupSizesView(input: ViewInput, mine: readonly number[] = []): Plot {
   const { model, aggregate } = input;
+  const pool = model.workings?.pool;
+  const runBreaks = pool?.runBreaks;
+  const { runs } = runsShown(input);
   const played = model.groups.filter((group) => !group.open).map((group) => group.size);
-  const own = runsShown(input).runs.flatMap((k) =>
+  const ownWithout = runs.flatMap((k) =>
     sizesBetween(
       (model.runs[k]?.breakProbability ?? []).flatMap((_, i) => (ownBreak(model, k, i) ? [i] : [])),
     ),
   );
+  const own =
+    runBreaks === undefined ? ownWithout : runs.flatMap((k) => sizesBetween(runBreaks[k] ?? []));
+  // The game's groups without the envelope: wherever the runs' log-odds are over the threshold.
+  const playedWithout =
+    pool === undefined
+      ? played
+      : sizesBetween(
+          pool.logOdds.flatMap((logOdds, i) =>
+            logOdds !== undefined && logOdds > pool.threshold ? [i] : [],
+          ),
+        );
   const shares = (sizes: readonly number[]): number[] => {
     const counts = new Array<number>(LARGEST_GROUP).fill(0);
     for (const size of sizes) {
@@ -47,10 +66,22 @@ export function groupSizesView(input: ViewInput, mine: readonly number[] = []): 
       to: bin + 1 + offset + 0.3,
       height,
     }));
+  const shaped = runBreaks !== undefined;
   const playedShares = aggregate ? shares(played) : [];
   const ownShares = shares(own);
+  const playedWithoutShares = aggregate && shaped ? shares(playedWithout) : [];
+  const ownWithoutShares = shaped ? shares(ownWithout) : [];
   const mineShares = mine.length > 0 ? shares(mine) : [];
-  const top = Math.max(0.1, ...playedShares, ...ownShares, ...mineShares);
+  const top = Math.max(
+    0.1,
+    ...playedShares,
+    ...ownShares,
+    ...playedWithoutShares,
+    ...ownWithoutShares,
+    ...mineShares,
+  );
+  const envelope = envelopeIn(model.settings);
+  const weight = shaped && !isFlat(envelope) ? weightOf(envelope) : undefined;
   return {
     title: 'Group sizes',
     caption: `How many digits the groups have, as shares of all of them, ${String(LARGEST_GROUP)} holding larger ones.`,
@@ -60,11 +91,47 @@ export function groupSizesView(input: ViewInput, mine: readonly number[] = []): 
       { mark: 'bars', role: 'aggregate', label: 'The game’s groups' },
       { mark: 'bars', role: 'run', label: 'Each run’s own' },
       ...(mine.length > 0 ? ([{ mark: 'bars', role: 'break', label: 'Yours' }] as const) : []),
+      ...(weight === undefined
+        ? []
+        : ([
+            {
+              mark: 'bars',
+              role: 'aggregate',
+              faded: true,
+              label: 'The game’s without the envelope',
+            },
+            { mark: 'bars', role: 'run', faded: true, label: 'Each run’s without it' },
+            { mark: 'line', role: 'guide', color: ENVELOPE_COLOR, label: 'Envelope, 1 at the top' },
+          ] as const)),
     ],
     layers: [
+      ...(weight === undefined
+        ? []
+        : ([
+            {
+              kind: 'bars',
+              bars: bars(playedWithoutShares, -0.45),
+              role: 'aggregate',
+              faded: true,
+            },
+            { kind: 'bars', bars: bars(ownWithoutShares, -0.15), role: 'run', faded: true },
+          ] as const)),
       { kind: 'bars', bars: bars(playedShares, -0.45), role: 'aggregate' },
       { kind: 'bars', bars: bars(ownShares, -0.15), role: 'run' },
       { kind: 'bars', bars: bars(mineShares, 0.15), role: 'break' },
+      ...(weight === undefined
+        ? []
+        : ([
+            {
+              kind: 'line',
+              points: Array.from({ length: LARGEST_GROUP * ENVELOPE_STEPS + 1 }, (_, k): Point => {
+                const size = 0.5 + k / ENVELOPE_STEPS;
+                return [size, weight(size) * top];
+              }),
+              role: 'guide',
+              color: ENVELOPE_COLOR,
+            },
+          ] as const)),
     ],
   };
 }

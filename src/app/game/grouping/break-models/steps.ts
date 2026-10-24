@@ -301,17 +301,28 @@ export function groupsOf(
   digits: number,
   horizon: number,
 ): Group[] {
-  const found: Group[] = [];
-  let start = 0;
-  for (let i = 1; i <= digits; i++) {
-    const open = i === digits;
-    if (!open && (usual[i] ?? 0) <= threshold) {
-      continue;
+  const breaks: number[] = [];
+  for (let i = 1; i < digits; i++) {
+    if ((usual[i] ?? 0) > threshold) {
+      breaks.push(i);
     }
-    found.push({ start, size: i - start, open, trusted: !open && i <= horizon });
-    start = i;
   }
-  return found;
+  return groupsBetween(breaks, digits, horizon);
+}
+
+/**
+ * The groups cut by the breaks at these indices, in order, over `digits` digits; a group is trusted when the break
+ * ending it is within the horizon.
+ */
+export function groupsBetween(breaks: readonly number[], digits: number, horizon: number): Group[] {
+  if (digits === 0) {
+    return [];
+  }
+  return [...breaks, digits].map((end, k) => {
+    const start = breaks[k - 1] ?? 0;
+    const open = end === digits;
+    return { start, size: end - start, open, trusted: !open && end <= horizon };
+  });
 }
 
 /** A break wherever the probability is over the threshold, the stronger the further over it. */

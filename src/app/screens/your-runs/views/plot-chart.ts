@@ -22,6 +22,7 @@ type Mark =
       readonly width: number;
       readonly height: number;
       readonly role: string;
+      readonly faded?: boolean | undefined;
     };
 
 /**
@@ -46,6 +47,7 @@ type Mark =
         @if (mark.shape === 'rect') {
           <rect
             [class]="mark.role"
+            [class.faded]="mark.faded"
             [attr.x]="mark.x"
             [attr.y]="mark.y"
             [attr.width]="mark.width"
@@ -167,6 +169,11 @@ type Mark =
     rect.break {
       fill: var(--chart-break);
       fill-opacity: 0.7;
+    }
+
+    /* What they'd be without something, behind what they are. */
+    rect.faded {
+      opacity: 0.35;
     }
 
     /* The values marked on the y-axis, at the left, past a carousel's arrow, readable over the marks. */
@@ -321,6 +328,7 @@ function marksOf(layer: Layer, x: (value: number) => number, y: (value: number) 
           width: Math.max(0, x(bar.to) - x(bar.from) - 1),
           height: Math.max(0, bottom - top),
           role: layer.role,
+          faded: layer.faded,
         };
       });
   }
