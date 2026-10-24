@@ -343,7 +343,7 @@ function waterfall(input: PlaceInput, workings: Workings, pool: PoolWorkings): P
       .map(({ k, base, height }) => ({ from: k + 0.1, to: k + 0.9, base, height }));
   return {
     title: 'Evidence here',
-    caption: `How the log-odds here add up, run by run, oldest first: from the prior, ${format(pool.prior)}, each run’s evidence times its weight, up for a break (red) or down, to ${format(total)}, against the threshold, ${format(pool.threshold)} (red line).`,
+    caption: `The log-odds here, run by run, oldest first: from the prior, ${format(pool.prior)}, each run’s weighted evidence, up for a break (red) or down, to ${format(total)}; the threshold is red.`,
     x: acrossRuns(model),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
     layers: [

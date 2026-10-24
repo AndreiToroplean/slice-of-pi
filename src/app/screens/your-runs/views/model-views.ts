@@ -387,7 +387,7 @@ export function groupSizesView(input: ViewInput): Plot {
   const top = Math.max(0.1, ...playedShares, ...ownShares);
   return {
     title: 'Group sizes',
-    caption: `How many digits the groups have: the game’s (dark), and those the runs shown break into on their own (light), as shares, ${String(LARGEST_GROUP)} counting every larger one.`,
+    caption: `How many digits the groups have: the game’s (dark) and those the runs shown break into on their own (light), as shares, ${String(LARGEST_GROUP)} holding larger.`,
     x: { min: 0.5, max: LARGEST_GROUP + 0.5, labels: ['1 digit', `${String(LARGEST_GROUP)}+`] },
     y: { min: 0, max: top * 1.1, ticks: stepTicks(0, top, niceStep(top)) },
     layers: [

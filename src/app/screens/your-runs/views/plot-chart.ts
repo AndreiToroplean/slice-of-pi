@@ -162,10 +162,10 @@ type Mark =
       fill-opacity: 0.7;
     }
 
-    /* The values marked on the y-axis, at the left, readable over the marks. */
+    /* The values marked on the y-axis, at the left, past a carousel's arrow, readable over the marks. */
     .label {
       position: absolute;
-      left: 0;
+      left: 1.125rem;
       translate: 0 -50%;
       padding: 0 0.125rem;
       border-radius: 0.25rem;
