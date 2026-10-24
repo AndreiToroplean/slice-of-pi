@@ -6,20 +6,9 @@ import {
   mixtureDensity,
 } from '../../../game/grouping/break-models/statistics';
 import { priorMixture, Steps } from '../../../game/grouping/break-models/steps';
+import { agreementView, judgedViews, nextRunView, ownBreak } from './judged-views';
 import { alongPlaces, clamp, Layer, Plot, Point, pointsOf } from './plot';
-
-/** What the views are made of: the steps of the model over the runs counted, and what of them to show. */
-export interface ViewInput {
-  readonly model: Steps;
-  /** The runs picked, by their index in the model's runs. */
-  readonly picked: readonly number[];
-  /** Whether to show what the model makes of all the runs. */
-  readonly aggregate: boolean;
-  /** How many places the plots along the places span, as the charts of the times do. */
-  readonly places: number;
-  /** The settings to show on the charts, where they have a place. */
-  readonly guides: ReadonlySet<string>;
-}
+import { niceStep, runsShown, stepTicks, ViewInput } from './view-input';
 
 /** The settings that can be shown on the charts, as lines where they act, each in its own color. */
 export const GUIDE_COLORS: Partial<Record<keyof BreakSettings, string>> = {
@@ -107,28 +96,29 @@ const RESIDUALS = { min: -1, max: 3 } as const;
 const HISTOGRAM_BINS = 32;
 const CURVE_POINTS = 80;
 
-/** The steps of the break model after the times, in order, as plots: the mixture, if it fits one. */
+/**
+ * The steps of the break model after the times, in the order it works them out, as plots: how it judges the runs, then
+ * what it makes of them all, and the groups that come of it.
+ */
 export function modelViews(input: ViewInput): Plot[] {
   const { model } = input;
+  const { workings } = model;
+  const pool = workings?.pool;
   return [
-    residualView(input),
+    ...(workings === undefined ? [residualView(input)] : judgedViews(input, workings)),
     ...(model.mixture === undefined ? [] : [mixtureView({ ...input, model })]),
     probabilityView(input),
+    coverageView(input),
+    ...(pool === undefined ? [] : [agreementView(input, pool)]),
     confidenceView(input),
+    ...(workings === undefined || pool === undefined ? [] : [nextRunView(input, workings, pool)]),
+    groupSizesView(input),
   ];
-}
-
-/**
- * The runs whose intervals the views of residuals show: the runs picked, or all of them while none is but all of them
- * are shown.
- */
-function residualRuns({ model, picked, aggregate }: ViewInput): readonly number[] {
-  return picked.length > 0 || !aggregate ? picked : model.runs.map((_, k) => k);
 }
 
 /** The residuals of the runs shown. */
 function residualsOf(input: ViewInput): number[] {
-  return residualRuns(input).flatMap((k) =>
+  return runsShown(input).runs.flatMap((k) =>
     (input.model.runs[k]?.residual ?? []).filter((residual) => residual !== undefined),
   );
 }
@@ -164,8 +154,7 @@ function clampRange({ min, max }: { readonly min: number; readonly max: number }
  */
 export function residualView(input: ViewInput): Plot {
   const { model, aggregate } = input;
-  const runs = residualRuns(input);
-  const all = runs.length > 1 && input.picked.length === 0;
+  const { runs, role } = runsShown(input);
   const range = residualRange(input);
   const normal: Point[] = [];
   const breaks: Point[] = [];
@@ -174,8 +163,7 @@ export function residualView(input: ViewInput): Plot {
     run?.residual.forEach((residual, i) => {
       if (residual !== undefined) {
         const point = [i, clamp(residual, range)] as const;
-        const { breakThreshold } = model.settings;
-        ((run.breakProbability[i] ?? 0) > breakThreshold ? breaks : normal).push(point);
+        (ownBreak(model, k, i) ? breaks : normal).push(point);
       }
     });
   }
@@ -194,7 +182,7 @@ export function residualView(input: ViewInput): Plot {
     layers: [
       ...layers,
       ...residualGuides(input, 'hline'),
-      { kind: 'dots', points: normal, role: all ? 'faint' : 'run' },
+      { kind: 'dots', points: normal, role },
       { kind: 'dots', points: breaks, role: 'break' },
     ],
   };
@@ -296,7 +284,7 @@ export function probabilityView(input: ViewInput): Plot {
     title: 'Break probability',
     caption: 'How likely a break is before each place: over all runs, and in each run picked.',
     x: alongPlaces(input.places),
-    y: { min: 0, max: 1 },
+    y: { min: 0, max: 1, ticks: stepTicks(0, 1, 0.5) },
     layers: [
       ...picked.map((k): Layer => ({
         kind: 'dots',
@@ -331,7 +319,7 @@ export function confidenceView(input: ViewInput): Plot {
     title: 'Confidence',
     caption: 'How sure the verdict before each place is, and its trend, cut at the trust horizon.',
     x: alongPlaces(input.places),
-    y: { min: 0, max: 1 },
+    y: { min: 0, max: 1, ticks: stepTicks(0, 1, 0.5) },
     layers: [...layers, ...thresholdGuides(input, ['level'])],
   };
 }
@@ -344,4 +332,67 @@ function thresholdGuides(
   return keys
     .filter((key) => guides.has(key))
     .map((key) => ({ kind: 'hline', y: model.settings[key], role: 'guide', color: colorOf(key) }));
+}
+
+/** How much weight the runs that reached each place carry, which the confidence there rests on. */
+export function coverageView(input: ViewInput): Plot {
+  const { model, aggregate } = input;
+  const top = Math.max(1, ...model.coverage.filter((value) => value !== undefined));
+  return {
+    title: 'Coverage',
+    caption:
+      model.workings === undefined
+        ? 'How much weight the runs that reached each place carry, synthetic ones included.'
+        : 'How much weight the runs that reached each place carry: each its recency times its trust there.',
+    x: alongPlaces(input.places),
+    y: { min: 0, max: top * 1.05, ticks: stepTicks(0, top, niceStep(top)) },
+    layers: aggregate
+      ? [{ kind: 'line', points: pointsOf(model.coverage), role: 'aggregate' }]
+      : [],
+  };
+}
+
+/** The largest group size the histogram of group sizes tells apart: larger ones count with it. */
+const LARGEST_GROUP = 12;
+
+/** How many digits there are between one break and the next, for the breaks at these indices. */
+function sizesBetween(breaks: readonly number[]): number[] {
+  return breaks.map((place, k) => place - (breaks[k - 1] ?? 0));
+}
+
+/**
+ * How big the groups are: those the game plays, and those each run shown breaks into on its own, as shares of their
+ * groups, the last bin holding every larger one. Neither counts the group open at the end.
+ */
+export function groupSizesView(input: ViewInput): Plot {
+  const { model, aggregate } = input;
+  const played = model.groups.filter((group) => !group.open).map((group) => group.size);
+  const own = runsShown(input).runs.flatMap((k) =>
+    sizesBetween(
+      (model.runs[k]?.breakProbability ?? []).flatMap((_, i) => (ownBreak(model, k, i) ? [i] : [])),
+    ),
+  );
+  const shares = (sizes: readonly number[]): number[] => {
+    const counts = new Array<number>(LARGEST_GROUP).fill(0);
+    for (const size of sizes) {
+      const bin = Math.min(LARGEST_GROUP, Math.max(1, size)) - 1;
+      counts[bin] = (counts[bin] ?? 0) + 1;
+    }
+    return counts.map((count) => count / Math.max(1, sizes.length));
+  };
+  const bars = (values: readonly number[], offset: number) =>
+    values.map((height, bin) => ({ from: bin + 1 + offset, to: bin + 1.5 + offset, height }));
+  const playedShares = aggregate ? shares(played) : [];
+  const ownShares = shares(own);
+  const top = Math.max(0.1, ...playedShares, ...ownShares);
+  return {
+    title: 'Group sizes',
+    caption: `How many digits the groups have: the game’s (dark), and those the runs shown break into on their own (light), as shares, ${String(LARGEST_GROUP)} counting every larger one.`,
+    x: { min: 0.5, max: LARGEST_GROUP + 0.5, labels: ['1 digit', `${String(LARGEST_GROUP)}+`] },
+    y: { min: 0, max: top * 1.1, ticks: stepTicks(0, top, niceStep(top)) },
+    layers: [
+      { kind: 'bars', bars: bars(playedShares, -0.5), role: 'aggregate' },
+      { kind: 'bars', bars: bars(ownShares, 0), role: 'run' },
+    ],
+  };
 }
