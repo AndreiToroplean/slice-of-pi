@@ -119,6 +119,11 @@ const FRAME = 30;
     </dialog>
   `,
   styles: `
+    /* Only its dialog, over the page: no place of its own where it's put. */
+    :host {
+      display: contents;
+    }
+
     dialog {
       width: min(100% - 2rem, 26rem);
     }

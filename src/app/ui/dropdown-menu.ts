@@ -10,7 +10,8 @@ let menus = 0;
  */
 @Component({
   selector: 'app-dropdown-menu',
-  host: { '(click)': 'chosen($event)' },
+  // Without its button, only an anchor and the menu, which the browser places: no place of its own where it's put.
+  host: { '(click)': 'chosen($event)', '[style.display]': "button() ? null : 'contents'" },
   template: `
     @if (button()) {
       <button
