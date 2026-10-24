@@ -55,11 +55,11 @@ export function format(value: number): string {
   return Number.isInteger(value) ? String(value) : String(Number(value.toPrecision(2)));
 }
 
-/** A round step for ticks over a span: 1, 2 or 5 times a power of 10, for about five of them. */
+/** A round step for ticks over a span: 1, 2 or 5 times a power of 10, for about four of them, as a short plot fits. */
 export function niceStep(span: number): number {
-  const power = 10 ** Math.floor(Math.log10(Math.max(span, 1e-9) / 5));
+  const power = 10 ** Math.floor(Math.log10(Math.max(span, 1e-9) / 4));
   const steps = [1, 2, 5, 10].map((each) => each * power);
   return steps.reduce((best, step) =>
-    Math.abs(span / step - 5) < Math.abs(span / best - 5) ? step : best,
+    Math.abs(span / step - 4) < Math.abs(span / best - 4) ? step : best,
   );
 }
