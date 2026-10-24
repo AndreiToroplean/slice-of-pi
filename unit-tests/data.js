@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792861378707,
+  "lastUpdate": 1792866867903,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2078,6 +2078,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1030,
+            "unit": "ms",
+            "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "4c7359e592bdd96b5a7079e6c4715f22a70ff3ec",
+          "message": "feat: pick out the button the keyboard is on as in a game's menu, candy buttons breathing and shining, simpler ones glowing, and let the mouse pick out candy buttons too",
+          "timestamp": "2026-10-24T20:34:03+02:00",
+          "tree_id": "4635d89f76ff0775be162e44eb790429f73420d6",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/4c7359e592bdd96b5a7079e6c4715f22a70ff3ec"
+        },
+        "date": 1792866867513,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 10337,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 21447,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1355,
             "unit": "ms",
             "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
           }
