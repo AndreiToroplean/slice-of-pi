@@ -48,11 +48,21 @@ export interface PoolWorkings {
   readonly threshold: number;
   /** The log-odds of a break at each place: the prior plus every run's weighted evidence. */
   readonly logOdds: Values;
+  /**
+   * The evidence of the group-size envelope at each place, in log-odds, added to the runs' to make the breaks:
+   * infinite where it rules a break in or out, 0 everywhere without one.
+   */
+  readonly envelope: Values;
+  /**
+   * Each run's own breaks, by index, as the group-size envelope weighs them over that run alone: only where it changes
+   * anything.
+   */
+  readonly runBreaks?: readonly (readonly number[])[];
   /** The weighted share of the runs whose own verdict at each place says break. */
   readonly agreement: Values;
   /**
    * The z the next run would need at each place to end its group there, if fully trusted: what its evidence must add
-   * to the finished runs', which count the current decay less.
+   * to the finished runs', which count the current decay less, and to the envelope's.
    */
   readonly nextRunZ: Values;
 }

@@ -373,22 +373,41 @@ export function forAndAgainstView(input: ViewInput, workings: Workings, pool: Po
 /** How far the log-odds of a break are from the threshold at each place, near it: further ones are cut off. */
 const LOG_ODDS_REACH = 12;
 
-/** The log-odds of a break at each place, against the threshold: over it, the place is a break. */
+/** The color of the group-size envelope, wherever it's drawn. */
+export const ENVELOPE_COLOR = '#8e24aa';
+
+/**
+ * The log-odds of a break at each place, against the threshold, and with the group-size envelope's evidence added, if
+ * it adds any: over the threshold, the place is a break.
+ */
 export function logOddsView(input: ViewInput, pool: PoolWorkings): Plot {
   const range = { min: pool.threshold - LOG_ODDS_REACH, max: pool.threshold + LOG_ODDS_REACH };
+  const shaped = pool.envelope.some((value) => value !== undefined && value !== 0);
+  const final = pool.logOdds.map((value, i) =>
+    value === undefined ? undefined : value + (pool.envelope[i] ?? 0),
+  );
   const over: Point[] = [];
-  pool.logOdds.forEach((value, i) => {
+  final.forEach((value, i) => {
     if (value !== undefined && value > pool.threshold) {
       over.push([i, clamp(value, range)]);
     }
   });
+  const line = (values: Values) =>
+    pointsOf(values.map((v) => (v === undefined ? undefined : clamp(v, range))));
   return {
     title: 'Log-odds',
-    caption: `The log-odds of a break at each place: the prior plus the runs’ evidence, cut off ${String(LOG_ODDS_REACH)} from the threshold.`,
+    caption: shaped
+      ? `The log-odds of a break at each place: the prior plus the runs’ evidence, then the envelope’s, cut off ${String(LOG_ODDS_REACH)} from the threshold.`
+      : `The log-odds of a break at each place: the prior plus the runs’ evidence, cut off ${String(LOG_ODDS_REACH)} from the threshold.`,
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, 5) },
     legend: [
-      { mark: 'line', role: 'aggregate', label: 'Log-odds' },
+      { mark: 'line', role: 'aggregate', label: shaped ? 'The runs’' : 'Log-odds' },
+      ...(shaped
+        ? ([
+            { mark: 'line', role: 'aggregate', color: ENVELOPE_COLOR, label: 'With the envelope' },
+          ] as const)
+        : []),
       { mark: 'dots', role: 'break', label: 'A break' },
       { mark: 'line', role: 'faint', label: `Prior, ${format(pool.prior)}` },
       { mark: 'line', role: 'break', label: `Threshold, ${format(pool.threshold)}` },
@@ -397,13 +416,12 @@ export function logOddsView(input: ViewInput, pool: PoolWorkings): Plot {
       ? [
           { kind: 'hline', y: pool.prior, role: 'faint' },
           { kind: 'hline', y: pool.threshold, role: 'break' },
-          {
-            kind: 'line',
-            points: pointsOf(
-              pool.logOdds.map((v) => (v === undefined ? undefined : clamp(v, range))),
-            ),
-            role: 'aggregate',
-          },
+          { kind: 'line', points: line(pool.logOdds), role: 'aggregate' },
+          ...(shaped
+            ? ([
+                { kind: 'line', points: line(final), role: 'aggregate', color: ENVELOPE_COLOR },
+              ] as const)
+            : []),
           { kind: 'dots', points: over, role: 'break' },
         ]
       : [],

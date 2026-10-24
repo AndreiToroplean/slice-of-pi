@@ -58,6 +58,7 @@
 - **Developer mode:** a hidden mode for tuning the game.
 - **Tweaks:** the values tuned in developer mode, which apply to the game only while it's on.
 - **Break model:** how the game tells breaks from the intervals of the runs. Developer mode switches between several, each named after a planet or a moon.
+- **Group-size envelope:** a factor from 0 to 1 for each size of group, by which a break model weighs how likely a grouping is: groups of sizes near 0 are rare, and those at 0 never happen. Its **strength** raises every factor to a power, so that it can weigh as much as many runs. At 1 for every size, it changes nothing.
 - **Hyperparameter:** a value of a break model set by hand or by a fit, as opposed to what the model works out from the runs (baselines, breaks). A full set of values for a model is a **configuration**.
 - **Fit** (hyperparameter search): looking for the configuration whose groups best match the groupings a player gives. The runs it looks at are its **training runs**.
 - **F1 score:** how well a model's breaks match the player's, from 0 to 1: 1 when they're the same, lower for each break missed or added.

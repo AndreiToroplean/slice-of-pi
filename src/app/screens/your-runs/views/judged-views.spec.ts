@@ -3,8 +3,10 @@ import type { Steps } from '../../../game/grouping/break-models/steps';
 import { TERRA } from '../../../game/grouping/break-models/terra';
 import type { Workings } from '../../../game/grouping/break-models/workings';
 import {
+  ENVELOPE_COLOR,
   forAndAgainstView,
   judgedViews,
+  logOddsView,
   nextRunView,
   ownBreak,
   paceView,
@@ -49,6 +51,17 @@ describe('the views of a model that judges each run on its own', () => {
   function layer(layers: readonly Layer[], kind: Layer['kind'], role?: string): Layer | undefined {
     return layers.find((each) => each.kind === kind && (role === undefined || each.role === role));
   }
+
+  it('adds the group-size envelope to the log-odds, where it changes anything', () => {
+    const enveloped = (model: Steps & { readonly workings: Workings }) =>
+      logOddsView(input(model), model.workings.pool ?? fail()).layers.filter(
+        (each) => each.kind === 'line' && each.color === ENVELOPE_COLOR,
+      );
+    const flat = stepsOf(MARS.steps?.({ envelopeFactor1: 1, envelopeFactor4: 1 }, runs));
+
+    expect(enveloped(mars)).toHaveLength(1);
+    expect(enveloped(flat)).toEqual([]);
+  });
 
   it('shows how each run is judged, how the runs add up, and what comes of it, in order', () => {
     expect(modelViews(input()).map((plot) => plot.title)).toEqual([

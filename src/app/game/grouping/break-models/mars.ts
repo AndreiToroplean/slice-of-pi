@@ -1,4 +1,14 @@
 import type { BreakModel, BreakModelKind, Settings } from './break-model';
+import {
+  ENVELOPE_DEFAULTS,
+  ENVELOPE_HYPERPARAMETERS,
+  enveloped,
+  Enveloped,
+  envelopeIn,
+  EnvelopeSettings,
+  isFlat,
+  Played,
+} from './envelope';
 import { HYPERPARAMETERS } from './hyperparameters';
 import { logistic, logit } from './statistics';
 import { groupEnds, modelFromSteps } from './model-from-steps';
@@ -6,6 +16,7 @@ import {
   breakSums,
   BreakSums,
   byIndex,
+  groupsBetween,
   groupsOf,
   longestOf,
   RunSteps,
@@ -46,7 +57,9 @@ import {
  * 3. One threshold, the break threshold, makes the usual break spots, so the groups, and ends every group as it's
  *    played: the run being typed counts like any other, its next digit timed as if typed now. Its evidence rises with
  *    the wait, so a long enough pause ends a group anywhere, the longer the more runs carried on there; and the group
- *    ends at once where the runs usually break.
+ *    ends at once where the runs usually break. The group-size envelope (`envelope.ts`) adds its own evidence at each
+ *    place, weighed over all the places at once, so that groups too small or too big are less likely, or never: as
+ *    it's played, it takes the groups before the one being typed as they were played.
  * 4. The confidence is how surely enough runs agree with the verdict at a place, as in Mercury: the weighted share of
  *    runs whose own P(break) there says break, with the break share as the prior, against the threshold. So one run's
  *    long pause can make a break, but not one the game trusts.
@@ -59,6 +72,7 @@ import {
  * much the run being typed counts.
  */
 export type MarsSettings = Omit<TerraSettings, 'usualThreshold'> &
+  EnvelopeSettings &
   Readonly<{
     /** The unevenness a run is taken to have around a place before its neighbors say, in log-interval. */
     priorUnevenness: number;
@@ -92,6 +106,7 @@ export const MARS_DEFAULTS: MarsSettings = {
   priorUnevenness: 0.2,
   trustInfluence: 1,
   currentDecay: 0.5,
+  ...ENVELOPE_DEFAULTS,
 };
 
 /**
@@ -109,18 +124,20 @@ export function mars(
 /**
  * {@link mars} over the judged finished runs, for any run in progress: what the finished runs add up to with one is
  * worked out once, so that each run in progress only adds its own share to it, as the game asks about the same run
- * again and again with its next digit timed differently.
+ * again and again with its next digit timed differently. With the index where its group being typed starts, the groups
+ * before it are taken as played.
  */
 export function marsOver(
   finished: readonly JudgedRun[],
   settings: MarsSettings,
-): (current?: readonly number[]) => Steps {
+): (current?: readonly number[], start?: number) => Steps {
   const decays = (count: number): number[] => recencyOf(count, settings);
   let withCurrent: Pool | undefined;
-  return (current) => {
+  return (current, start) => {
     if (current === undefined) {
       const recency = decays(finished.length);
-      return stepsOf(pooled(undefined, finished, recency, recency, settings), settings);
+      const pool = pooled(undefined, finished, recency, recency, settings);
+      return stepsOf(pool, settings, envelopeOver(pool, settings));
     }
     // The run being typed counts 1, the newest finished run the current decay, each before it fading as usual; the
     // pace weighs every run by its recency alone, the run being typed the newest.
@@ -131,7 +148,9 @@ export function marsOver(
       decays(finished.length + 1),
       settings,
     );
-    return stepsOf(pooled(withCurrent, [judge(current, settings)], [1], [1], settings), settings);
+    const pool = pooled(withCurrent, [judge(current, settings)], [1], [1], settings);
+    const played = start === undefined ? undefined : { start, last: current.length - 1 };
+    return stepsOf(pool, settings, envelopeOver(pool, settings, played));
   };
 }
 
@@ -147,30 +166,73 @@ function recencyOf(count: number, settings: MarsSettings): number[] {
 export function marsSteps(finished: readonly JudgedRun[], settings: MarsSettings): Steps {
   const recency = recencyOf(finished.length, settings);
   const pool = pooled(undefined, finished, recency, recency, settings);
+  const shaped = envelopeOver(pool, settings);
   const prior = logit(settings.breakShare);
   const threshold = logit(settings.breakThreshold);
   const workings = judgedWorkings(finished, recency, (at) => trustOfPlace(at, settings), settings);
+  const envelope = byIndex(pool.logOdds.map((_, p) => shaped?.evidence[p + 1] ?? 0));
+  // Each run's own breaks, as the envelope weighs them over that run alone.
+  const runBreaks =
+    shaped === undefined
+      ? undefined
+      : finished.map(
+          (run) =>
+            enveloped(
+              byIndex(run.places.map((at) => prior + at.evidence - threshold)),
+              run.digits,
+              envelopeIn(settings),
+            )?.breaks ?? [],
+        );
   return {
-    ...stepsOf(pool, settings),
+    ...stepsOf(pool, settings, shaped),
     workings: {
       ...workings,
       pool: {
         prior,
         threshold,
         logOdds: byIndex(pool.logOdds),
+        envelope,
+        ...(runBreaks === undefined ? {} : { runBreaks }),
         agreement: usualOf(pool.breaks).usual,
         // The next run counts 1, and the finished runs the current decay times what they count here: its evidence
-        // makes up the rest, straight in z.
+        // makes up the rest, straight in z, the envelope's as it stands.
         nextRunZ: byIndex(
           pool.logOdds.map(
-            (logOdds) =>
+            (logOdds, p) =>
               workings.evenZ +
-              (threshold - prior - settings.currentDecay * (logOdds - prior)) / settings.breakShift,
+              (threshold -
+                (envelope[p + 1] ?? 0) -
+                prior -
+                settings.currentDecay * (logOdds - prior)) /
+                settings.breakShift,
           ),
         ),
       },
     },
   };
+}
+
+/**
+ * What the group-size envelope (`envelope.ts`) makes of the breaks of the runs pooled, given the group being typed if
+ * any: nothing if it changes nothing, at 1 for every size, or if no grouping fits it.
+ */
+function envelopeOver(pool: Pool, settings: MarsSettings, played?: Played): Enveloped | undefined {
+  const envelope = envelopeIn(settings);
+  if (isFlat(envelope)) {
+    return undefined;
+  }
+  const threshold = logit(settings.breakThreshold);
+  return enveloped(
+    byIndex(pool.logOdds.map((logOdds) => logOdds - threshold)),
+    digitsOf(pool),
+    envelope,
+    played,
+  );
+}
+
+/** How many digits the longest run pooled has. */
+function digitsOf(pool: Pool): number {
+  return Math.max(0, ...pool.runs.map((run) => run.digits));
 }
 
 /** What the runs pooled add up to at each place, and each of them, so that more runs can be added. */
@@ -223,14 +285,21 @@ function pooled(
   };
 }
 
-/** The steps of the runs pooled. */
-function stepsOf(pool: Pool, settings: MarsSettings): Steps {
-  const usual = byIndex(pool.logOdds.map(logistic));
+/**
+ * The steps of the runs pooled, with what the envelope makes of them, if anything: its evidence counts in the
+ * usual-break probability, so in the groups, but not in the confidence, which is in the runs alone, as the envelope
+ * says nothing of them.
+ */
+function stepsOf(pool: Pool, settings: MarsSettings, shaped: Enveloped | undefined): Steps {
+  const usual = byIndex(
+    pool.logOdds.map((logOdds, p) => logistic(logOdds + (shaped?.evidence[p + 1] ?? 0))),
+  );
   const { coverage, breaks, averageTime } = usualOf(pool.breaks);
-  const trust = trustOf(usual, breaks, coverage, {
+  const trust = trustOf(byIndex(pool.logOdds.map(logistic)), breaks, coverage, {
     usualThreshold: settings.breakThreshold,
     level: settings.level,
   });
+  const digits = digitsOf(pool);
   return {
     // One threshold for every break: where the runs usually break is where they break, pooled.
     settings: { ...settings, usualThreshold: settings.breakThreshold },
@@ -240,12 +309,11 @@ function stepsOf(pool: Pool, settings: MarsSettings): Steps {
     ...trust,
     speedCurve: paceOf(pool.pace),
     averageTime,
-    groups: groupsOf(
-      usual,
-      settings.breakThreshold,
-      Math.max(0, ...pool.runs.map((run) => run.digits)),
-      trust.horizon,
-    ),
+    // The envelope's own breaks rather than the probability's over the threshold, which they only miss on a tie.
+    groups:
+      shaped === undefined
+        ? groupsOf(usual, settings.breakThreshold, digits, trust.horizon)
+        : groupsBetween(shaped.breaks, digits, trust.horizon),
   };
 }
 
@@ -267,11 +335,13 @@ function trustOfPlace(at: Judged, settings: MarsSettings): number {
  */
 function marsModel(settings: MarsSettings): BreakModel {
   return modelFromSteps(
-    (finished) =>
-      marsOver(
+    (finished) => {
+      const over = marsOver(
         finished.map((times) => judge(times, settings)),
         settings,
-      ),
+      );
+      return (current, _init, start) => over(current, start);
+    },
     (steps, next) => groupEnds(steps, next, true),
   );
 }
@@ -286,7 +356,8 @@ export const MARS: BreakModelKind = {
   description:
     'Each run’s evidence for a break against the pace and spread around it in that run, added up over the runs at each place.',
   defaults: MARS_DEFAULTS,
-  // How each run is judged, how the runs are weighed by recency and by trust, then how breaks make groups.
+  // How each run is judged, how the runs are weighed by recency and by trust, then how breaks make groups, of which
+  // sizes.
   tabs: [
     {
       name: 'Breaks',
@@ -371,6 +442,7 @@ export const MARS: BreakModelKind = {
       name: 'Groups',
       hyperparameters: [H.breakThreshold, H.level, H.startingSlots],
     },
+    { name: 'Envelope', hyperparameters: ENVELOPE_HYPERPARAMETERS },
   ],
   create: (tuned) => marsModel(withDefaults(tuned)),
   steps: (tuned, finished) => {

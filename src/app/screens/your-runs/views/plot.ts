@@ -33,7 +33,10 @@ export type Layer =
       readonly lower: readonly (Point | undefined)[];
       readonly role: Role;
     }
-  /** Bars from their base, the bottom of the plot if none, to their height. */
+  /**
+   * Bars from their base, the bottom of the plot if none, to their height; faded, for what they'd be without something,
+   * behind the bars of what they are.
+   */
   | {
       readonly kind: 'bars';
       readonly bars: readonly {
@@ -43,6 +46,7 @@ export type Layer =
         readonly base?: number;
       }[];
       readonly role: Role;
+      readonly faded?: boolean;
     };
 
 /** A value marked on the y-axis, with a faint line across the plot. */
@@ -56,6 +60,7 @@ export interface Key {
   readonly mark: 'line' | 'dots' | 'area' | 'bars';
   readonly role: Role;
   readonly color?: string;
+  readonly faded?: boolean;
   readonly label: string;
 }
 
@@ -86,8 +91,9 @@ export function keyIdOf(key: {
   readonly mark: Key['mark'];
   readonly role: Role;
   readonly color?: string | undefined;
+  readonly faded?: boolean | undefined;
 }): string {
-  return `${key.mark} ${key.role} ${key.color ?? ''}`;
+  return `${key.mark} ${key.role} ${key.color ?? ''}${key.faded === true ? ' faded' : ''}`;
 }
 
 /** The swatch a layer's marks show as in a key. */
@@ -111,6 +117,7 @@ export function keyIdOfLayer(layer: Layer): string {
     mark: markOf(layer),
     role: layer.role,
     color: 'color' in layer ? layer.color : undefined,
+    faded: 'faded' in layer ? layer.faded : undefined,
   });
 }
 
