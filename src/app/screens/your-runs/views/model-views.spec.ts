@@ -7,13 +7,14 @@ import {
 import { breakBoundary } from '../../../game/grouping/break-models/statistics';
 import {
   confidenceView,
+  groupSizesView,
   mixtureView,
   modelViews,
   probabilityView,
   residualView,
   timeGuides,
-  ViewInput,
 } from './model-views';
+import type { ViewInput } from './view-input';
 import type { Layer } from './plot';
 
 describe('the views of the break model', () => {
@@ -64,7 +65,9 @@ describe('the views of the break model', () => {
       'Residuals',
       'Mixture',
       'Break probability',
+      'Coverage',
       'Confidence',
+      'Group sizes',
     ]);
   });
 
@@ -74,7 +77,9 @@ describe('the views of the break model', () => {
     expect(modelViews(plain).map((plot) => plot.title)).toEqual([
       'Residuals',
       'Break probability',
+      'Coverage',
       'Confidence',
+      'Group sizes',
     ]);
     expect(residualView(plain).layers.every((layer) => layer.kind === 'dots')).toBe(true);
     expect(timeGuides([undefined, 200], plain.model, new Set(['priorBaseline']))).toEqual([]);
@@ -142,6 +147,18 @@ describe('the views of the break model', () => {
       role: 'break',
     });
     expect(confidenceView(input([0], false)).layers).toEqual([]);
+  });
+
+  it("counts how big the groups are, as shares, the game's and those the runs break into on their own", () => {
+    const [played = [], own = []] = groupSizesView(input()).layers.map((layer) =>
+      layer.kind === 'bars' ? layer.bars.map((bar) => bar.height) : [],
+    );
+    const sum = (heights: readonly number[]) => heights.reduce((a, b) => a + b, 0);
+
+    expect(sum(played)).toBeCloseTo(1, 12);
+    expect(sum(own)).toBeCloseTo(1, 12);
+    // A pause before every third digit: groups of 3.
+    expect(played.indexOf(Math.max(...played))).toBe(2);
   });
 
   describe('the settings shown on the charts', () => {
