@@ -1,5 +1,5 @@
 import { Component, computed, input, output } from '@angular/core';
-import { Layer, Plot, Point } from './plot';
+import { Layer, Plot, Point, Range } from './plot';
 
 /** The size of a plot, in the units of its `viewBox`: it's stretched to its box, its lines keeping their width. */
 const WIDTH = 1000;
@@ -36,6 +36,7 @@ type Mark =
       preserveAspectRatio="none"
       role="img"
       [attr.aria-label]="plot().title + ': ' + plot().caption"
+      [class.zoomed]="window() !== undefined"
       (pointerup)="pickAt($event)"
     >
       @for (tick of ticks(); track $index) {
@@ -80,6 +81,11 @@ type Mark =
       width: 100%;
       height: 100%;
       overflow: visible;
+    }
+
+    /* Zoomed in, what's out of the window on either side isn't drawn. */
+    svg.zoomed {
+      overflow: hidden;
     }
 
     path {
@@ -182,14 +188,19 @@ export class PlotChart {
   readonly plot = input.required<Plot>();
   /** Where to mark the plot across, in its x units, such as the place picked: nowhere if undefined. */
   readonly marker = input<number>();
+  /** The window of its x-axis shown, zoomed in: all of it if undefined. */
+  readonly window = input<Range>();
   /** Where the plot was tapped, in its x units. */
   readonly picked = output<number>();
 
   protected readonly viewBox = `0 0 ${String(WIDTH)} ${String(HEIGHT)}`;
+  /** The x-axis shown: the window zoomed into, or all of it. */
+  private readonly shown = computed(() => this.window() ?? this.plot().x);
   private readonly scales = computed(() => {
     const plot = this.plot();
+    const { min, max } = this.shown();
     return {
-      x: (value: number): number => (WIDTH * (value - plot.x.min)) / (plot.x.max - plot.x.min || 1),
+      x: (value: number): number => (WIDTH * (value - min)) / (max - min || 1),
       y: (value: number): number =>
         HEIGHT *
         (1 -
@@ -215,7 +226,7 @@ export class PlotChart {
   });
   protected readonly markerPath = computed(() => {
     const marker = this.marker();
-    const { min, max } = this.plot().x;
+    const { min, max } = this.shown();
     return marker === undefined || marker < min || marker > max
       ? undefined
       : `M${round(this.scales().x(marker))} 0V${String(HEIGHT)}`;
@@ -225,7 +236,7 @@ export class PlotChart {
   protected pickAt(event: MouseEvent): void {
     const box = (event.currentTarget as Element).getBoundingClientRect();
     if (box.width > 0) {
-      const { min, max } = this.plot().x;
+      const { min, max } = this.shown();
       this.picked.emit(min + ((max - min) * (event.clientX - box.left)) / box.width);
     }
   }

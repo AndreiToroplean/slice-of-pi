@@ -132,4 +132,15 @@ describe('PlotChart', () => {
     expect(picked).toEqual([2.5]);
     expect(draw(plot, 11).querySelector('path.marker')).toBeNull();
   });
+
+  it('draws the window of its x-axis zoomed into, leaving out what is out of it', () => {
+    const fixture = render(plot, 2.5);
+    fixture.componentRef.setInput('window', { min: 0, max: 5 });
+    fixture.detectChanges();
+    const svg = (fixture.nativeElement as HTMLElement).querySelector('svg') as SVGElement;
+
+    expect(svg.querySelector('path.dots.break')?.getAttribute('d')).toBe('M1000 50h0M2000 0h0');
+    expect(svg.querySelector('path.marker')?.getAttribute('d')).toBe('M500 0V100');
+    expect(svg.classList.contains('zoomed')).toBe(true);
+  });
 });

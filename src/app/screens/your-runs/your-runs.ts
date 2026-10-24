@@ -31,9 +31,10 @@ import { MyGroupings } from './my-groupings';
 import { PlacePerspective } from './place-perspective';
 import { groupViews } from './views/group-views';
 import { modelViews } from './views/model-views';
-import type { Key, Plot } from './views/plot';
+import type { Key, Plot, Range } from './views/plot';
 import { PlotLegend } from './views/plot-legend';
 import { PlotView } from './views/plot-view';
+import { Zoom } from './views/zoom';
 import { plural } from '../../ui/plural';
 import { RunChart } from './run-chart';
 import { chartTop, digitTimes } from './run-charts';
@@ -68,6 +69,7 @@ import { chartTop, digitTimes } from './run-charts';
     PlotLegend,
     PlotView,
     RunChart,
+    Zoom,
   ],
   template: `
     <app-page title="Your Runs">
@@ -129,6 +131,7 @@ import { chartTop, digitTimes } from './run-charts';
                     [plot]="plot"
                     [step]="index + 2 + '/' + (views().length + 1)"
                     [marker]="plot.x.places ? place() : undefined"
+                    [(zoom)]="placeZoom"
                     (picked)="pickPlaceOn(plot, $event)"
                   />
                 }
@@ -232,11 +235,15 @@ import { chartTop, digitTimes } from './run-charts';
         [places]="places()"
         [top]="top()"
         [marker]="developerMode() ? place() : undefined"
+        [window]="placeZoom()"
+        [appZoom]="placeAxis()"
+        [(zoom)]="placeZoom"
         label="Time per digit over all runs, recent ones weighing more, with your usual break spots"
         (picked)="pickPlace($event)"
       />
       <p class="axis" aria-hidden="true">
-        <span>Place 1</span><span>Place {{ places() }}</span>
+        <span>{{ placeLabels()[0] }}</span
+        ><span>{{ placeLabels()[1] }}</span>
       </p>
     </ng-template>
     <!-- The runs, scrolling under the chart of them all: the only part of the page that scrolls. -->
@@ -327,6 +334,7 @@ import { chartTop, digitTimes } from './run-charts';
                       [breaks]="chart.breaks"
                       [places]="places()"
                       [top]="top()"
+                      [window]="placeZoom()"
                       [label]="'Time per digit, ' + chart.title"
                     />
                   </article>
@@ -413,6 +421,20 @@ export class YourRuns {
   protected readonly places = computed(() =>
     Math.max(1, ...this.shown().map((run) => run.digits.length)),
   );
+  /**
+   * The window of the places the charts show, zoomed into on the chart of all runs or the steps along the places: the
+   * charts of the runs follow it. All of them if undefined.
+   */
+  protected readonly placeZoom = signal<Range | undefined>(undefined);
+  /** All the places, by index, as the charts span them. */
+  protected readonly placeAxis = computed(() => ({ min: 0, max: Math.max(this.places() - 1, 1) }));
+  /** The ends of the places shown on the chart of all runs. */
+  protected readonly placeLabels = computed(() => {
+    const zoom = this.placeZoom();
+    return zoom === undefined
+      ? ['Place 1', `Place ${String(this.places())}`]
+      : [`Place ${String(Math.round(zoom.min) + 1)}`, `Place ${String(Math.round(zoom.max) + 1)}`];
+  });
   protected readonly top = computed(() => chartTop(this.charts().map((chart) => chart.times)));
   protected readonly aggregateChart = computed(() => {
     const stats = this.stats();

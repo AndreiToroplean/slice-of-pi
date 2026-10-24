@@ -72,6 +72,8 @@ export interface Plot {
     readonly labels: readonly [string, string];
     /** Whether x is the index of a place, as along the charts of the times, so that a place can be picked on it. */
     readonly places?: boolean;
+    /** What an x reads as, for the ends of a window zoomed into: without it, the labels stay. */
+    readonly label?: (x: number) => string;
   };
   readonly y: { readonly min: number; readonly max: number; readonly ticks?: readonly Tick[] };
   readonly layers: readonly Layer[];
@@ -92,6 +94,7 @@ export function alongPlaces(places: number): Plot['x'] {
     max: Math.max(places - 1, 1),
     labels: ['Place 1', `Place ${String(places)}`],
     places: true,
+    label: (x) => `Place ${String(Math.round(x) + 1)}`,
   };
 }
 
