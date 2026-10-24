@@ -219,9 +219,17 @@ function intervalsHere(input: PlaceInput): Plot {
     });
   return {
     title: 'Intervals here',
-    caption: `Each run’s interval here, on a log scale, red where it breaks on its own, and the ${judged === undefined ? 'baseline' : 'pace around it in the run, give or take its spread'} it was judged against.`,
+    caption: `Each run’s interval here, on a log scale, against the ${judged === undefined ? 'baseline' : 'pace around it in its run'} it was judged by.`,
     x: acrossRuns(model),
     y: { ...range, ticks: intervalTicks() },
+    legend: [
+      { mark: 'dots', role: 'run', label: 'Interval' },
+      { mark: 'dots', role: 'break', label: 'A break on its own' },
+      { mark: 'line', role: 'faint', label: judged === undefined ? 'Baseline' : 'Pace' },
+      ...(judged === undefined
+        ? []
+        : ([{ mark: 'area', role: 'faint', label: 'Give or take a spread' }] as const)),
+    ],
     layers: [
       ...(judged === undefined
         ? []
@@ -254,9 +262,15 @@ function zHere(input: PlaceInput, workings: Workings): Plot {
       .map(({ k, z }) => [k + 0.5, clamp(z, range)]);
   return {
     title: 'z here',
-    caption: `How many spreads each run’s interval here is above its pace: its evidence is 0 at ${format(workings.evenZ)} (faint), and a lone run breaks over ${format(workings.breakZ)} (red).`,
+    caption: 'How many spreads each run’s interval here is above the pace around it in its run.',
     x: acrossRuns(model),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
+    legend: [
+      { mark: 'dots', role: 'run', label: 'z' },
+      { mark: 'dots', role: 'break', label: 'A break on its own' },
+      { mark: 'line', role: 'faint', label: `No evidence, ${format(workings.evenZ)}` },
+      { mark: 'line', role: 'break', label: `A lone run breaks, ${format(workings.breakZ)}` },
+    ],
     layers: [
       { kind: 'hline', y: workings.evenZ, role: 'faint' },
       { kind: 'hline', y: workings.breakZ, role: 'break' },
@@ -282,6 +296,10 @@ function recencyOf(input: PlaceInput, workings: Workings): Plot {
       'How much each run counts for its age, oldest to newest, here as everywhere: its weight is this times its trust.',
     x: acrossRuns(model),
     y: { min: 0, max: 1.05, ticks: stepTicks(0, 1, 0.5) },
+    legend: [
+      { mark: 'bars', role: 'run', label: 'Recency' },
+      { mark: 'bars', role: 'break', label: 'A run picked' },
+    ],
     layers: [
       { kind: 'bars', bars: all.filter((k) => !picked.has(k)).map(bar), role: 'run' },
       { kind: 'bars', bars: all.filter((k) => picked.has(k)).map(bar), role: 'break' },
@@ -300,10 +318,14 @@ function weightHere(input: PlaceInput, workings: Workings): Plot {
   };
   return {
     title: 'Weight here',
-    caption:
-      'How much each run counts here: its recency times its trust (bars), under its recency alone (line). The runs picked are red.',
+    caption: 'How much each run counts here: its recency times its trust.',
     x: acrossRuns(model),
     y: { min: 0, max: 1.05, ticks: stepTicks(0, 1, 0.5) },
+    legend: [
+      { mark: 'bars', role: 'run', label: 'Weight' },
+      { mark: 'bars', role: 'break', label: 'A run picked' },
+      { mark: 'line', role: 'faint', label: 'Recency alone' },
+    ],
     layers: [
       { kind: 'bars', bars: runs.filter((k) => !picked.has(k)).map(bar), role: 'run' },
       { kind: 'bars', bars: runs.filter((k) => picked.has(k)).map(bar), role: 'break' },
@@ -343,11 +365,16 @@ function waterfall(input: PlaceInput, workings: Workings, pool: PoolWorkings): P
       .map(({ k, base, height }) => ({ from: k + 0.1, to: k + 0.9, base, height }));
   return {
     title: 'Evidence here',
-    caption: `The log-odds here, run by run, oldest first: from the prior, ${format(pool.prior)}, each run’s weighted evidence, up for a break (red) or down, to ${format(total)}; the threshold is red.`,
+    caption: `The log-odds here, run by run, oldest first: from the prior, ${format(pool.prior)}, each run’s weighted evidence, to ${format(total)}.`,
     x: acrossRuns(model),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
+    legend: [
+      { mark: 'bars', role: 'break', label: 'For a break' },
+      { mark: 'bars', role: 'aggregate', label: 'Against' },
+      { mark: 'line', role: 'faint', label: 'Running total' },
+      { mark: 'line', role: 'break', label: `Threshold, ${format(pool.threshold)}` },
+    ],
     layers: [
-      { kind: 'hline', y: 0, role: 'faint' },
       { kind: 'hline', y: pool.threshold, role: 'break' },
       { kind: 'bars', bars: bars(false), role: 'aggregate' },
       { kind: 'bars', bars: bars(true), role: 'break' },
@@ -371,9 +398,15 @@ function probabilityHere(input: PlaceInput): Plot {
   return {
     title: 'P(break) here',
     caption:
-      'How likely each run breaks here on its own, red over the break threshold (red line), and the usual-break probability over them all (dark line).',
+      'How likely each run breaks here on its own, and the usual-break probability over them all.',
     x: acrossRuns(model),
     y: { min: 0, max: 1, ticks: stepTicks(0, 1, 0.5) },
+    legend: [
+      { mark: 'dots', role: 'run', label: 'P(break)' },
+      { mark: 'dots', role: 'break', label: 'A break on its own' },
+      { mark: 'line', role: 'break', label: 'Break threshold' },
+      { mark: 'line', role: 'aggregate', label: 'Usual-break probability' },
+    ],
     layers: [
       { kind: 'hline', y: model.settings.breakThreshold, role: 'break' },
       { kind: 'hline', y: model.usual[place] ?? 0, role: 'aggregate' },
@@ -401,9 +434,18 @@ function rateHere(input: PlaceInput): Plot {
   const side = points.map((point) => (point[0] > threshold === breaksHere ? point : undefined));
   return {
     title: 'Break rate here',
-    caption: `How likely each share of the runs’ weight breaking here is, from the ${format(breaks)} of ${format(reached)} that do: the confidence is the part on the verdict’s side of ${format(threshold)} (shaded).`,
+    caption: `How likely each share of the runs’ weight breaking here is, from the ${format(breaks)} of ${format(reached)} that do.`,
     x: { min: 0, max: 1, labels: ['None break', 'All do'] },
     y: { min: 0, max: top * 1.05 },
+    legend: [
+      { mark: 'line', role: 'aggregate', label: 'How likely' },
+      {
+        mark: 'area',
+        role: breaksHere ? 'break' : 'faint',
+        label: 'On the verdict’s side: the confidence',
+      },
+      { mark: 'line', role: 'break', label: `Threshold, ${format(threshold)}` },
+    ],
     layers: [
       {
         kind: 'area',

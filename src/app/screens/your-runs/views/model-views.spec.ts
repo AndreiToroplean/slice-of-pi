@@ -124,11 +124,13 @@ describe('the views of the break model', () => {
         : 0;
 
     expect(area).toBeCloseTo(1, 6);
-    expect(plot.layers).toContainEqual({
-      kind: 'vline',
-      x: breakBoundary(model.mixture, settings.breakThreshold),
-      role: 'break',
-    });
+    expect(plot.layers).toContainEqual(
+      expect.objectContaining({
+        kind: 'vline',
+        x: breakBoundary(model.mixture, settings.breakThreshold),
+        role: 'guide',
+      }),
+    );
   });
 
   it('shows the usual-break probability, and P(break) in the runs picked', () => {

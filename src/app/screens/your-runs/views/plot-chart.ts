@@ -130,6 +130,7 @@ type Mark =
 
     path.area.break {
       fill: var(--chart-break);
+      fill-opacity: 0.45;
     }
 
     path.tick {

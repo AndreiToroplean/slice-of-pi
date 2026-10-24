@@ -179,9 +179,19 @@ export function paceView(input: ViewInput, workings: Workings): Plot {
   return {
     title: 'Pace',
     caption:
-      'Each interval, on a log scale, against the pace around it in its run, give or take its spread (the band): breaks stand out.',
+      'Each interval, on a log scale, against the pace of the intervals around it in its run: a break stands out.',
     x: alongPlaces(input.places),
     y: { ...range, ticks: intervalTicks() },
+    legend: [
+      { mark: 'dots', role: runsShown(input).role, label: 'Interval' },
+      { mark: 'dots', role: 'break', label: 'A break on its own' },
+      ...(input.picked.length > 0
+        ? ([
+            { mark: 'line', role: 'run', label: 'Pace' },
+            { mark: 'area', role: 'faint', label: 'Give or take a spread' },
+          ] as const)
+        : ([{ mark: 'line', role: 'aggregate', label: 'Usual pace' }] as const)),
+    ],
     layers: [
       ...bands,
       ...pickedLines(input, (run) => run.pace, workings),
@@ -201,9 +211,18 @@ export function unevennessView(input: ViewInput, workings: Workings): Plot {
   return {
     title: 'Unevenness',
     caption:
-      'How uneven each run is around each place: its z is counted in at least the floor (faint), and from full trust (solid) on, it counts fully.',
+      'How uneven each run is around each place: the spread its z is counted in, and how much it’s trusted.',
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
+    legend: [
+      { mark: 'dots', role: runsShown(input).role, label: 'Unevenness' },
+      ...(input.picked.length > 0
+        ? ([{ mark: 'line', role: 'run', label: 'Each run picked' }] as const)
+        : []),
+      { mark: 'dots', role: 'break', label: 'At a break on its own' },
+      { mark: 'line', role: 'faint', label: 'Spread floor' },
+      { mark: 'line', role: 'aggregate', label: 'Full trust' },
+    ],
     layers: [
       { kind: 'hline', y: workings.spreadFloor, role: 'faint' },
       { kind: 'hline', y: workings.fullTrustUnevenness, role: 'aggregate' },
@@ -221,11 +240,16 @@ export function zView(input: ViewInput, workings: Workings): Plot {
   ]);
   return {
     title: 'z',
-    caption: `How many spreads each interval is above its pace: evidence for a break from ${format(workings.evenZ)} (faint), and a lone run breaks over ${format(workings.breakZ)} (red).`,
+    caption: 'How many spreads each interval is above the pace around it in its run.',
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
+    legend: [
+      { mark: 'dots', role: runsShown(input).role, label: 'z' },
+      { mark: 'dots', role: 'break', label: 'A break on its own' },
+      { mark: 'line', role: 'faint', label: `No evidence, ${format(workings.evenZ)}` },
+      { mark: 'line', role: 'break', label: `A lone run breaks, ${format(workings.breakZ)}` },
+    ],
     layers: [
-      { kind: 'hline', y: 0, role: 'faint' },
       { kind: 'hline', y: workings.evenZ, role: 'faint' },
       { kind: 'hline', y: workings.breakZ, role: 'break' },
       ...runDots(input, (run) => run.z, workings, range),
@@ -242,6 +266,13 @@ export function trustView(input: ViewInput, workings: Workings): Plot {
       'How much each run counts at each place besides its recency, from 0 to 1: as much as it’s uneven around the place.',
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(0, 1, 0.5) },
+    legend: [
+      { mark: 'dots', role: runsShown(input).role, label: 'Trust' },
+      ...(input.picked.length > 0
+        ? ([{ mark: 'line', role: 'run', label: 'Each run picked' }] as const)
+        : []),
+      { mark: 'dots', role: 'break', label: 'At a break on its own' },
+    ],
     layers: [
       ...pickedLines(input, (run) => run.trust, workings),
       ...runDots(input, (run) => run.trust, workings, range),
@@ -265,11 +296,14 @@ export function evidenceView(input: ViewInput, workings: Workings): Plot {
   return {
     title: 'Evidence',
     caption:
-      'What each run adds to the log-odds of a break at each place: its evidence times its recency and trust, red for a break.',
+      'What each run adds to the log-odds of a break at each place: its evidence times its recency and trust.',
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
+    legend: [
+      { mark: 'dots', role: runsShown(input).role, label: 'Against a break' },
+      { mark: 'dots', role: 'break', label: 'For a break' },
+    ],
     layers: [
-      { kind: 'hline', y: 0, role: 'faint' },
       { kind: 'dots', points: against, role },
       { kind: 'dots', points: forBreak, role: 'break' },
     ],
@@ -302,12 +336,16 @@ export function forAndAgainstView(input: ViewInput, workings: Workings, pool: Po
   return {
     title: 'For and against',
     caption:
-      'The runs’ evidence at each place added up: for a break (red), against (below 0), and their sum, from the prior to the log-odds.',
+      'The runs’ evidence at each place added up, each way: their sum takes the prior to the log-odds.',
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
+    legend: [
+      { mark: 'area', role: 'break', label: 'For a break' },
+      { mark: 'area', role: 'faint', label: 'Against' },
+      { mark: 'line', role: 'aggregate', label: 'Sum' },
+    ],
     layers: input.aggregate
       ? [
-          { kind: 'hline', y: 0, role: 'faint' },
           {
             kind: 'area',
             upper: pointsOf(forBreak),
@@ -320,8 +358,6 @@ export function forAndAgainstView(input: ViewInput, workings: Workings, pool: Po
             lower: pointsOf(against),
             role: 'faint',
           },
-          { kind: 'line', points: pointsOf(forBreak), role: 'break' },
-          { kind: 'line', points: pointsOf(against), role: 'run' },
           {
             kind: 'line',
             points: pointsOf(
@@ -348,9 +384,15 @@ export function logOddsView(input: ViewInput, pool: PoolWorkings): Plot {
   });
   return {
     title: 'Log-odds',
-    caption: `The log-odds of a break at each place: the prior (faint) plus the runs’ evidence. Over ${format(pool.threshold)} (red), it’s a break. Cut off ${String(LOG_ODDS_REACH)} away.`,
+    caption: `The log-odds of a break at each place: the prior plus the runs’ evidence, cut off ${String(LOG_ODDS_REACH)} from the threshold.`,
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, 5) },
+    legend: [
+      { mark: 'line', role: 'aggregate', label: 'Log-odds' },
+      { mark: 'dots', role: 'break', label: 'A break' },
+      { mark: 'line', role: 'faint', label: `Prior, ${format(pool.prior)}` },
+      { mark: 'line', role: 'break', label: `Threshold, ${format(pool.threshold)}` },
+    ],
     layers: input.aggregate
       ? [
           { kind: 'hline', y: pool.prior, role: 'faint' },
@@ -373,9 +415,14 @@ export function agreementView(input: ViewInput, pool: PoolWorkings): Plot {
   const { breakThreshold } = input.model.settings;
   return {
     title: 'Agreement',
-    caption: `The weighted share of the runs that break at each place on their own: the confidence is how surely it’s over or under ${format(breakThreshold)} (red).`,
+    caption:
+      'The weighted share of the runs that break at each place on their own: the confidence is how surely it’s over or under the threshold.',
     x: alongPlaces(input.places),
     y: { min: 0, max: 1, ticks: stepTicks(0, 1, 0.5) },
+    legend: [
+      { mark: 'line', role: 'aggregate', label: 'Share breaking' },
+      { mark: 'line', role: 'break', label: `Threshold, ${format(breakThreshold)}` },
+    ],
     layers: input.aggregate
       ? [
           { kind: 'hline', y: breakThreshold, role: 'break' },
@@ -391,12 +438,20 @@ export function nextRunView(input: ViewInput, workings: Workings, pool: PoolWork
   const range = padded([0, workings.breakZ, ...values], { min: -8, max: 30 });
   return {
     title: 'Pause to break',
-    caption: `How many spreads above its pace the next run must pause to end its group at each place: ${format(workings.breakZ)} (red) with no runs before, under 0 at once.`,
+    caption:
+      'How many spreads above its pace the next run must pause to end its group at each place: under 0, it ends there at once.',
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
+    legend: [
+      { mark: 'line', role: 'aggregate', label: 'z needed' },
+      {
+        mark: 'line',
+        role: 'break',
+        label: `With no runs before, ${format(workings.breakZ)}`,
+      },
+    ],
     layers: input.aggregate
       ? [
-          { kind: 'hline', y: 0, role: 'faint' },
           { kind: 'hline', y: workings.breakZ, role: 'break' },
           {
             kind: 'line',

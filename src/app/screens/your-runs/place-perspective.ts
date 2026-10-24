@@ -3,7 +3,7 @@ import type { Steps } from '../../game/grouping/break-models/steps';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { Carousel } from '../../ui/carousel';
 import { placeAnalysis } from './views/place-views';
-import { PlotChart } from './views/plot-chart';
+import { PlotView } from './views/plot-view';
 
 /** How many of π's digits show on each side of the place. */
 const CONTEXT = 6;
@@ -16,7 +16,7 @@ const CONTEXT = 6;
  */
 @Component({
   selector: 'app-place-perspective',
-  imports: [Carousel, PlotChart],
+  imports: [Carousel, PlotView],
   template: `
     <div class="picker" role="group" aria-label="The place">
       <button
@@ -85,18 +85,7 @@ const CONTEXT = 6;
         </div>
       </section>
       @for (plot of analysis().plots; track plot.title; let index = $index) {
-        <section class="view">
-          <div class="heading">
-            <h4>{{ plot.title }}</h4>
-            <span class="step">{{ index + 2 }}/{{ count() }}</span>
-          </div>
-          <app-plot-chart [plot]="plot" />
-          <p class="axis" aria-hidden="true">
-            <span>{{ plot.x.labels[0] }}</span
-            ><span>{{ plot.x.labels[1] }}</span>
-          </p>
-          <p class="caption">{{ plot.caption }}</p>
-        </section>
+        <app-plot-view class="view" [plot]="plot" [step]="index + 2 + '/' + count()" />
       }
       <section class="view">
         <div class="heading">

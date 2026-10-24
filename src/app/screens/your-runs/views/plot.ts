@@ -51,7 +51,18 @@ export interface Tick {
   readonly label: string;
 }
 
-/** A plot of one step of the break model: what it shows, its ranges, and its marks, the first drawn first. */
+/** What a kind of mark on a plot stands for, as its key shows it: a swatch drawn like the mark, and what it is. */
+export interface Key {
+  readonly mark: 'line' | 'dots' | 'area' | 'bars';
+  readonly role: Role;
+  readonly color?: string;
+  readonly label: string;
+}
+
+/**
+ * A plot of one step of the break model: what it shows, its ranges, its marks, the first drawn first, and the key to
+ * them.
+ */
 export interface Plot {
   readonly title: string;
   readonly caption: string;
@@ -64,6 +75,8 @@ export interface Plot {
   };
   readonly y: { readonly min: number; readonly max: number; readonly ticks?: readonly Tick[] };
   readonly layers: readonly Layer[];
+  /** What each kind of mark stands for, those that only help reading aside. */
+  readonly legend?: readonly Key[];
 }
 
 /** A range of values. */
