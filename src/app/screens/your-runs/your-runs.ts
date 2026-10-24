@@ -31,8 +31,8 @@ import { MyGroupings } from './my-groupings';
 import { PlacePerspective } from './place-perspective';
 import { groupViews } from './views/group-views';
 import { modelViews } from './views/model-views';
-import type { Key, Plot, Range } from './views/plot';
-import { PlotLegend } from './views/plot-legend';
+import { Key, keyIdOf, Plot, Range } from './views/plot';
+import { PlotLegend, toggledIn } from './views/plot-legend';
 import { PlotView } from './views/plot-view';
 import { Zoom } from './views/zoom';
 import { plural } from '../../ui/plural';
@@ -119,7 +119,11 @@ import { chartTop, digitTimes } from './run-charts';
                     <span class="step">1/{{ views().length + 1 }}</span>
                   </div>
                   <ng-container [ngTemplateOutlet]="timesChart" />
-                  <app-plot-legend [keys]="TIMES_KEYS" />
+                  <app-plot-legend
+                    [keys]="TIMES_KEYS"
+                    [hidden]="hiddenTimes()"
+                    (toggled)="toggleTimes($event)"
+                  />
                   <p class="caption">
                     The time per digit, along the places, recent runs weighing more. Tap any chart
                     here to pick a place.
@@ -227,11 +231,13 @@ import { chartTop, digitTimes } from './run-charts';
     <!-- The chart of the times of all runs, and of the runs picked. -->
     <ng-template #timesChart>
       <app-run-chart
-        [values]="aggregateShown() ? aggregateChart().times : []"
-        [baseline]="aggregateShown() ? aggregateChart().baseline : []"
-        [breaks]="aggregateShown() ? aggregateChart().breaks : []"
-        [confidence]="aggregateShown() ? aggregateChart().confidence : []"
-        [others]="selectedTimes()"
+        [values]="aggregateShown() && timesShown(TIMES.time) ? aggregateChart().times : []"
+        [baseline]="aggregateShown() && timesShown(TIMES.baseline) ? aggregateChart().baseline : []"
+        [breaks]="aggregateShown() && timesShown(TIMES.breaks) ? aggregateChart().breaks : []"
+        [confidence]="
+          aggregateShown() && timesShown(TIMES.confidence) ? aggregateChart().confidence : []
+        "
+        [others]="timesShown(TIMES.others) ? selectedTimes() : []"
         [places]="places()"
         [top]="top()"
         [marker]="developerMode() ? place() : undefined"
@@ -468,6 +474,9 @@ export class YourRuns {
   protected readonly perspective = signal<Perspective>('run');
   protected readonly PERSPECTIVES = PERSPECTIVES;
   protected readonly TIMES_KEYS = TIMES_KEYS;
+  protected readonly TIMES = TIMES;
+  /** The marks of the chart of times hidden from its key, by id: only while the page is open, never saved. */
+  protected readonly hiddenTimes = signal<ReadonlySet<string>>(new Set());
   /** The runs picked, by their index among the runs counted, as the steps have them. */
   protected readonly pickedRuns = computed(() =>
     this.counted().flatMap((run, k) => (this.selected().has(run.id) ? [k] : [])),
@@ -581,6 +590,16 @@ export class YourRuns {
       }
       return next;
     });
+  }
+
+  /** Whether the marks of the chart of times under this key show: outside developer mode, all of them do. */
+  protected timesShown(key: Key): boolean {
+    return !this.developerMode() || !this.hiddenTimes().has(keyIdOf(key));
+  }
+
+  /** Hides or shows the marks of the chart of times under a key. */
+  protected toggleTimes(id: string): void {
+    this.hiddenTimes.update((hidden) => toggledIn(hidden, id));
   }
 
   /** Picks the place tapped on the chart of times, in developer mode, for the place perspective. */
@@ -723,14 +742,17 @@ export class YourRuns {
   }
 }
 
-/** The key to the chart of times, on top in developer mode, drawn like its marks. */
-const TIMES_KEYS: readonly Key[] = [
-  { mark: 'line', role: 'aggregate', label: 'Time per digit' },
-  { mark: 'line', role: 'run', label: 'Without breaks' },
-  { mark: 'bars', role: 'break', label: 'Usual break' },
-  { mark: 'area', role: 'faint', label: 'Confidence trend' },
-  { mark: 'line', role: 'faint', label: 'Runs picked' },
-];
+/** The marks of the chart of times, on top in developer mode, by the key each shows under. */
+const TIMES = {
+  time: { mark: 'line', role: 'aggregate', label: 'Time per digit' },
+  baseline: { mark: 'line', role: 'run', label: 'Without breaks' },
+  breaks: { mark: 'bars', role: 'break', label: 'Usual break' },
+  confidence: { mark: 'area', role: 'faint', label: 'Confidence trend' },
+  others: { mark: 'line', role: 'faint', label: 'Runs picked' },
+} as const satisfies Record<string, Key>;
+
+/** The key to the chart of times, drawn like its marks. */
+const TIMES_KEYS: readonly Key[] = Object.values(TIMES);
 
 /**
  * The perspectives on the break model, by what its steps are plotted along: the places, over the runs; the runs, at one

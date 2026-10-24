@@ -1,12 +1,13 @@
-import { Component, computed, input, model, output } from '@angular/core';
-import type { Plot, Range } from './plot';
+import { Component, computed, input, model, output, signal } from '@angular/core';
+import { keyIdOfLayer, Plot, Range } from './plot';
 import { PlotChart } from './plot-chart';
-import { PlotLegend } from './plot-legend';
+import { PlotLegend, toggledIn } from './plot-legend';
 import { Zoom } from './zoom';
 
 /**
  * One step of the break model as a carousel shows it: its title and where it comes among the steps, its plot, zoomed in
- * and out along its x-axis, the ends of the window of it shown, the key to its marks, and what it shows.
+ * and out along its x-axis, the ends of the window of it shown, the key to its marks, which hides or shows them, and
+ * what it shows.
  */
 @Component({
   selector: 'app-plot-view',
@@ -17,7 +18,7 @@ import { Zoom } from './zoom';
       <span class="step">{{ step() }}</span>
     </div>
     <app-plot-chart
-      [plot]="plot()"
+      [plot]="shownPlot()"
       [marker]="marker()"
       [window]="zoom()"
       [appZoom]="plot().x"
@@ -29,7 +30,7 @@ import { Zoom } from './zoom';
       ><span>{{ labels()[1] }}</span>
     </p>
     @if (plot().legend; as keys) {
-      <app-plot-legend [keys]="keys" />
+      <app-plot-legend [keys]="keys" [hidden]="hidden()" (toggled)="toggle($event)" />
     }
     <p class="caption">{{ plot().caption }}</p>
   `,
@@ -81,6 +82,21 @@ export class PlotView {
   readonly picked = output<number>();
   /** The window of its x-axis shown, shared with the steps along the same axis: all of it if undefined. */
   readonly zoom = model<Range | undefined>(undefined);
+
+  /** The keys whose marks are hidden, by id, toggled on the key: only while the page is open, never saved. */
+  protected readonly hidden = signal<ReadonlySet<string>>(new Set());
+  /** The plot without the marks hidden. */
+  protected readonly shownPlot = computed(() => {
+    const plot = this.plot();
+    const hidden = this.hidden();
+    return hidden.size === 0
+      ? plot
+      : { ...plot, layers: plot.layers.filter((layer) => !hidden.has(keyIdOfLayer(layer))) };
+  });
+
+  protected toggle(id: string): void {
+    this.hidden.update((hidden) => toggledIn(hidden, id));
+  }
 
   /** The ends of the x-axis shown, as they read. */
   protected readonly labels = computed(() => {

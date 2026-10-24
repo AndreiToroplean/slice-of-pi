@@ -8,7 +8,7 @@ import type { Steps } from '../../../game/grouping/break-models/steps';
 import { groupViews } from './group-views';
 import { modelViews } from './model-views';
 import { placeAnalysis } from './place-views';
-import type { Key, Layer, Plot } from './plot';
+import { keyIdOf, keyIdOfLayer, Plot } from './plot';
 
 describe('the keys to the views of the break model', () => {
   /** The times of a run typed about 200 ms apart, pausing 700 ms before every third digit. */
@@ -36,28 +36,19 @@ describe('the keys to the views of the break model', () => {
     Mercury: mercury(finishedRuns(runs, MERCURY_DEFAULTS.window), undefined, MERCURY_DEFAULTS),
   };
 
-  /** The swatch a layer's marks show as in a key. */
-  function markOf(layer: Layer): Key['mark'] {
-    switch (layer.kind) {
-      case 'line':
-      case 'hline':
-      case 'vline':
-        return 'line';
-      case 'area':
-      case 'band':
-        return 'area';
-      default:
-        return layer.kind;
-    }
-  }
-
   /** The kinds of mark a plot draws that its key doesn't tell. */
   function unkeyed(plot: Plot): string[] {
-    const keys = new Set((plot.legend ?? []).map((key) => `${key.mark} ${key.role}`));
+    const keys = new Set((plot.legend ?? []).map(keyIdOf));
     return plot.layers
-      .map((layer) => `${markOf(layer)} ${layer.role}`)
-      .filter((mark) => !keys.has(mark))
-      .map((mark) => `${plot.title}: ${mark}`);
+      .map(keyIdOfLayer)
+      .filter((id) => !keys.has(id))
+      .map((id) => `${plot.title}: ${id}`);
+  }
+
+  /** The keys of a plot that show the same marks as another: none, so that each toggles its own. */
+  function twins(plot: Plot): string[] {
+    const ids = (plot.legend ?? []).map(keyIdOf);
+    return ids.filter((id, k) => ids.indexOf(id) !== k).map((id) => `${plot.title}: ${id}`);
   }
 
   for (const [name, model] of Object.entries(models)) {
@@ -67,6 +58,7 @@ describe('the keys to the views of the break model', () => {
         const views = [...modelViews(input), ...groupViews(input, [3, 3, 4])];
 
         expect(views.flatMap(unkeyed)).toEqual([]);
+        expect(views.flatMap(twins)).toEqual([]);
       }
     });
 
@@ -75,6 +67,7 @@ describe('the keys to the views of the break model', () => {
         const { plots } = placeAnalysis({ model, place, picked: [1], titles: [] });
 
         expect(plots.flatMap(unkeyed)).toEqual([]);
+        expect(plots.flatMap(twins)).toEqual([]);
       }
     });
   }
