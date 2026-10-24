@@ -4,7 +4,10 @@ import { keyColors, PALETTE } from '../../../game/layers/place-colors';
 import { Keypad, REPEAT_DELAY, REPEAT_INTERVAL, SPLASH_DURATION } from './keypad';
 import { KeypadKey } from '../../../game/layers/keypad-layout';
 
-/** Center of each key's cell on the 300 × 400 keypad used here (100 × 100 cells). */
+/**
+ * Center of each key's cell on the 300 × 400 grid of keys used here (100 × 100 cells), in a keypad reaching 30 beyond it
+ * on its sides, 20 above and 40 below.
+ */
 const CENTERS: Record<KeypadKey, readonly [number, number]> = {
   '7': [50, 50],
   '8': [150, 50],
@@ -37,7 +40,7 @@ describe('Keypad', () => {
     fixture = TestBed.createComponent(Keypad);
     host = fixture.nativeElement as HTMLElement;
     vi.spyOn(host, 'getBoundingClientRect').mockReturnValue(
-      DOMRect.fromRect({ x: 0, y: 0, width: 300, height: 400 }),
+      DOMRect.fromRect({ x: -30, y: -20, width: 360, height: 460 }),
     );
     typed = [];
     // Like the play screen, each digit typed moves its key on to its next color.
@@ -48,6 +51,12 @@ describe('Keypad', () => {
     });
     await vi.advanceTimersByTimeAsync(0);
     fixture.detectChanges();
+    const grid = host.querySelector<HTMLElement>('.grid');
+    if (grid !== null) {
+      vi.spyOn(grid, 'getBoundingClientRect').mockReturnValue(
+        DOMRect.fromRect({ x: 0, y: 0, width: 300, height: 400 }),
+      );
+    }
   });
 
   afterEach(() => {
@@ -147,6 +156,22 @@ describe('Keypad', () => {
       expect(button('backspace').getAttribute('aria-label')).toBe('Delete last digit');
       expect(button('backspace').querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
     });
+
+    it("shows each key's area when told to, in its cell, in its color", () => {
+      expect(host.querySelector('.area')).toBeNull();
+
+      fixture.componentRef.setInput('showAreas', true);
+      fixture.detectChanges();
+
+      const areas = host.querySelectorAll<HTMLElement>('.area');
+      const seven = host.querySelector<HTMLElement>('.area[data-key="7"]');
+      expect(areas.length).toBe(11);
+      expect([seven?.style.gridRow, seven?.style.gridColumn]).toEqual(['1', '1']);
+      expect(seven?.style.getPropertyValue('--key-color')).toBe(
+        button('7').style.getPropertyValue('--press-color'),
+      );
+      expect(host.querySelector('.areas')?.getAttribute('aria-hidden')).toBe('true');
+    });
   });
 
   describe('touch', () => {
@@ -190,6 +215,33 @@ describe('Keypad', () => {
       expect(typed).toEqual(['7', '5']);
     });
 
+    it('types the keys on the edges touched beyond them, out to the edges of the keypad', () => {
+      for (const point of [
+        [-30, 150],
+        [329, 150],
+        [150, -20],
+        [150, 439],
+        [329, 439],
+      ] as const) {
+        pointer('pointerdown', point);
+        pointer('pointerup', point);
+      }
+
+      expect(typed).toEqual(['4', '6', '8', '0', 'backspace']);
+    });
+
+    it('splits the gaps between keys in their middle', () => {
+      const grid = host.querySelector<HTMLElement>('.grid');
+      grid?.style.setProperty('column-gap', '30px');
+      // Keys 80 wide, 30 apart: 7 ends at 80, 8 starts at 110.
+      for (const x of [94, 96]) {
+        pointer('pointerdown', [x, 50]);
+        pointer('pointerup', [x, 50]);
+      }
+
+      expect(typed).toEqual(['7', '8']);
+    });
+
     it('does not type a key when the finger slides off it before release', () => {
       down('5');
       pointer('pointermove', CENTERS['6']);
@@ -209,7 +261,7 @@ describe('Keypad', () => {
 
     it('does not type a key released outside the keypad', () => {
       down('9');
-      pointer('pointerup', [350, 50]);
+      pointer('pointerup', [330, 50]);
 
       expect(typed).toEqual([]);
     });
@@ -222,11 +274,11 @@ describe('Keypad', () => {
       expect(typed).toEqual([]);
     });
 
-    it('ignores touches on the empty cell, outside the keypad, and with another mouse button', () => {
-      pointer('pointerdown', EMPTY_CELL);
-      pointer('pointerup', EMPTY_CELL);
-      pointer('pointerdown', [-5, 50]);
-      pointer('pointerup', [-5, 50]);
+    it('ignores touches on the empty cell or beyond it, outside the keypad, and with another mouse button', () => {
+      for (const point of [EMPTY_CELL, [-10, 420], [-31, 50]] as const) {
+        pointer('pointerdown', point);
+        pointer('pointerup', point);
+      }
       pointer('pointerdown', CENTERS['7'], { button: 2 });
       pointer('pointerup', CENTERS['7'], { button: 2 });
 

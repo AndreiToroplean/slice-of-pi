@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { Digit, isDigit } from '../../../game/pi/digit';
 import {
@@ -38,7 +39,10 @@ interface Press {
  * On-screen keypad: digits and backspace, in the layout given.
  *
  * Touches are handled on the whole keypad rather than on each button, for speed and reliability while typing fast:
- * - The keypad is split into equal cells, so a touch anywhere in a key's cell (gaps and corners included) is on it.
+ * - The keys' grid is split into cells, halfway between the keys, so a touch anywhere in a key's cell (gaps and corners
+ *   included) is on it.
+ * - The keys on the grid's edges reach out over the rest of the keypad, around the grid, as far as it goes, so that
+ *   they're easy to hit; whoever lays it out gives it its room with its padding, which can reach over what's around.
  * - A key is typed when the touch is released, provided it is still on that key; sliding within the key is fine, but
  *   sliding off it cancels the press.
  * - Several fingers can press keys at once; each key is typed when its finger is released.
@@ -52,6 +56,8 @@ interface Press {
  * technology.
  *
  * What it's given goes in its grid with the keys, placing itself, such as in the empty corner left of 0.
+ *
+ * In developer mode, it can show the area of each key, where touches type it.
  */
 @Component({
   selector: 'app-keypad',
@@ -68,32 +74,47 @@ interface Press {
     '(window:blur)': 'heldKeys.set([])',
   },
   template: `
-    @for (position of keys(); track position.key) {
-      <button
-        type="button"
-        appCandy="clear"
-        class="key"
-        [focusable]="false"
-        [class.backspace]="position.key === 'backspace'"
-        [pressed]="shownPressed(position.key)"
-        [pressColor]="pressColor(position.key)"
-        [attr.data-key]="position.key"
-        [attr.aria-label]="position.key === 'backspace' ? 'Delete last digit' : null"
-        [style.grid-row]="position.row + 1"
-        [style.grid-column]="position.column + 1"
-        (click)="onClick($event, position.key)"
-      >
-        @if (position.key === 'backspace') {
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M8.5 5h11a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1-1.5 1.5h-11L3 12z" />
-            <path d="m11 9 6 6m0-6-6 6" />
-          </svg>
-        } @else {
-          {{ position.key }}
+    <div #grid class="grid">
+      @for (position of keys(); track position.key) {
+        <button
+          type="button"
+          appCandy="clear"
+          class="key"
+          [focusable]="false"
+          [class.backspace]="position.key === 'backspace'"
+          [pressed]="shownPressed(position.key)"
+          [pressColor]="pressColor(position.key)"
+          [attr.data-key]="position.key"
+          [attr.aria-label]="position.key === 'backspace' ? 'Delete last digit' : null"
+          [style.grid-row]="position.row + 1"
+          [style.grid-column]="position.column + 1"
+          (click)="onClick($event, position.key)"
+        >
+          @if (position.key === 'backspace') {
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8.5 5h11a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1-1.5 1.5h-11L3 12z" />
+              <path d="m11 9 6 6m0-6-6 6" />
+            </svg>
+          } @else {
+            {{ position.key }}
+          }
+        </button>
+      }
+      <ng-content />
+    </div>
+    @if (showAreas()) {
+      <div class="areas" aria-hidden="true">
+        @for (position of keys(); track position.key) {
+          <span
+            class="area"
+            [attr.data-key]="position.key"
+            [style.grid-row]="position.row + 1"
+            [style.grid-column]="position.column + 1"
+            [style.--key-color]="pressColor(position.key)"
+          ></span>
         }
-      </button>
+      </div>
     }
-    <ng-content />
   `,
   styleUrl: './keypad.css',
 })
@@ -102,6 +123,8 @@ export class Keypad {
   readonly colors = input.required<Readonly<Record<Digit, string>>>();
   /** Where the keys sit. */
   readonly layout = input<KeypadLayout>(DEFAULT_KEYPAD_LAYOUT);
+  /** Whether to show the area of each key, where touches type it. */
+  readonly showAreas = input(false);
   readonly keyPressed = output<KeypadKey>();
 
   protected readonly keys = computed(() => KEY_POSITIONS[this.layout()]);
@@ -119,6 +142,7 @@ export class Keypad {
   private readonly splashTimers = new Map<Digit, ReturnType<typeof setTimeout>>();
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly grid = viewChild.required<ElementRef<HTMLElement>>('grid');
 
   constructor() {
     inject(DestroyRef).onDestroy(() => {
@@ -288,7 +312,17 @@ export class Keypad {
   }
 
   private keyAt(event: PointerEvent): KeypadKey | null {
-    return keyAt(this.layout(), this.host.getBoundingClientRect(), event.clientX, event.clientY);
+    const grid = this.grid().nativeElement;
+    const style = getComputedStyle(grid);
+    return keyAt(
+      this.layout(),
+      grid.getBoundingClientRect(),
+      // None where there's no layout, as in tests.
+      { column: parseFloat(style.columnGap) || 0, row: parseFloat(style.rowGap) || 0 },
+      this.host.getBoundingClientRect(),
+      event.clientX,
+      event.clientY,
+    );
   }
 }
 

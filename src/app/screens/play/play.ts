@@ -69,6 +69,7 @@ import { TIMER } from './timer';
       class="keypad"
       [layout]="keypadLayout()"
       [colors]="keyColors()"
+      [showAreas]="showTouchAreas()"
       (keyPressed)="press($event)"
     >
       @let wait = breakWait();
@@ -76,7 +77,7 @@ import { TIMER } from './timer';
         <app-break-countdown [wait]="wait" />
       }
     </app-keypad>
-    <app-pause [(paused)]="paused" (restart)="restart()" />
+    <app-pause [(paused)]="paused" [(showTouchAreas)]="showTouchAreas" (restart)="restart()" />
   `,
   styleUrl: './play.css',
 })
@@ -94,6 +95,8 @@ export class Play {
 
   /** Whether the game is paused: keys typed on a keyboard meanwhile don't count. */
   protected readonly paused = signal(false);
+  /** Whether the keypad shows its touch areas, as developer mode lets the player choose when paused. */
+  protected readonly showTouchAreas = signal(false);
 
   private readonly recorder = inject(RunRecorder);
   /** The keypad layout the player picked. */

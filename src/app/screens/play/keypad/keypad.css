@@ -1,8 +1,16 @@
+/*
+ * The keys' grid, in the keypad's padding: all of it takes touches, the keys on the grid's edges reaching out over it
+ * (see `Keypad`). Whoever lays the keypad out sets how far on each side (`--reach-*`), as its padding.
+ */
 :host {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(4, 1fr);
-  gap: var(--space-2);
+  --key-height: 3.75rem;
+  --gap: var(--space-2);
+  --reach-top: 0px;
+  --reach-sides: 0px;
+  --reach-bottom: 0px;
+  position: relative;
+  display: block;
+  padding: var(--reach-top) var(--reach-sides) var(--reach-bottom);
   user-select: none;
   -webkit-user-select: none;
   /* Touches on the keypad only type keys: no scrolling, zooming or double-tap delay. */
@@ -10,9 +18,16 @@
   -webkit-touch-callout: none;
 }
 
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: var(--gap);
+}
+
 /* See-through candy buttons (see `Candy`), for digits. */
 .key {
-  min-height: 3.75rem;
+  min-height: var(--key-height);
   padding: 0;
   font-size: 1.6875rem;
   font-variant-numeric: tabular-nums;
@@ -27,4 +42,28 @@
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/*
+ * Each key's area, over the whole keypad: its cell in the grid, halfway to the next keys, those on its edges reaching
+ * out to the keypad's, tinted with the key's color.
+ */
+.areas {
+  /* Each cell a key and half a gap on either side of it. */
+  --cell-width: calc((100% - 2 * var(--reach-sides) + var(--gap)) / 3);
+  --cell-height: calc((100% - var(--reach-top) - var(--reach-bottom) + var(--gap)) / 4);
+  --side-width: calc(var(--reach-sides) - var(--gap) / 2 + var(--cell-width));
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: var(--side-width) 1fr var(--side-width);
+  grid-template-rows:
+    calc(var(--reach-top) - var(--gap) / 2 + var(--cell-height))
+    1fr 1fr calc(var(--reach-bottom) - var(--gap) / 2 + var(--cell-height));
+  pointer-events: none;
+}
+
+.area {
+  border: 1px dashed rgb(255 255 255 / 80%);
+  background: color-mix(in oklab, var(--key-color, #ffffff) 35%, transparent);
 }
