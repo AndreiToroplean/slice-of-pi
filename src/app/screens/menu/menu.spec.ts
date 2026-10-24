@@ -98,6 +98,83 @@ describe('Menu', () => {
     expect(link(host, 'Your Runs')?.getAttribute('href')).toBe('/runs');
   });
 
+  describe('from the keyboard', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    async function shown(hover: boolean): Promise<HTMLElement> {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: hover && query === '(hover: hover)',
+      }));
+      const fixture = TestBed.createComponent(Menu);
+      await fixture.whenStable();
+      const host = fixture.nativeElement as HTMLElement;
+      host.querySelector('img')?.dispatchEvent(new Event('load'));
+      await fixture.whenStable();
+      return host;
+    }
+
+    function press(key: string): KeyboardEvent {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+      (document.activeElement ?? document).dispatchEvent(event);
+      return event;
+    }
+
+    const focused = (): string | null | undefined =>
+      document.activeElement?.getAttribute('aria-label') ??
+      document.activeElement?.textContent.trim();
+
+    it('gives Play the focus once shown, with a mouse, for Enter to play', async () => {
+      const host = await shown(true);
+
+      expect(document.activeElement).toBe(link(host, 'Play'));
+    });
+
+    it('leaves the focus alone on touch screens, until up or down moves it onto Play', async () => {
+      const host = await shown(false);
+      expect(document.activeElement).toBe(document.body);
+
+      expect(press('ArrowUp').defaultPrevented).toBe(true);
+
+      expect(document.activeElement).toBe(link(host, 'Play'));
+    });
+
+    it('moves up and down its main buttons only, round from either end', async () => {
+      const host = await shown(true);
+
+      press('ArrowUp');
+      expect(focused()).toBe('Your Runs');
+      press('ArrowUp');
+      expect(focused()).toBe('Play');
+      press('ArrowDown');
+      expect(focused()).toBe('Your Runs');
+
+      host.querySelector<HTMLElement>('[aria-label="Settings"]')?.focus();
+      expect(press('ArrowDown').defaultPrevented).toBe(false);
+      expect(focused()).toBe('Settings');
+    });
+
+    it('goes from one group of buttons to the next with left and right, as with Tab', async () => {
+      await shown(true);
+
+      press('ArrowLeft');
+      expect(focused()).toBe('Slice of Pi');
+      press('ArrowLeft');
+      expect(focused()).toBe('Settings');
+      expect(press('ArrowLeft').defaultPrevented).toBe(false);
+      press('ArrowRight');
+      press('ArrowRight');
+      expect(focused()).toBe('Play');
+      press('ArrowUp');
+      press('ArrowRight');
+      expect(focused()).toBe('More');
+      expect(press('ArrowRight').defaultPrevented).toBe(false);
+      press('ArrowLeft');
+      expect(focused()).toBe('Your Runs');
+    });
+  });
+
   describe('in developer mode', () => {
     const seasons = {
       spring: ['#000000', '#111111'],

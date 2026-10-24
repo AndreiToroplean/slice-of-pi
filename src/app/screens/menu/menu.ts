@@ -1,5 +1,14 @@
 import { NgOptimizedImage } from '@angular/common';
-import { afterNextRender, Component, DOCUMENT, effect, inject } from '@angular/core';
+import {
+  afterNextRender,
+  afterRenderEffect,
+  Component,
+  DOCUMENT,
+  effect,
+  ElementRef,
+  inject,
+  viewChild,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Background } from '../../ui/background';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
@@ -13,12 +22,20 @@ import { ButtonList } from '../../ui/button-list';
 /**
  * The main menu, where the app opens: the game's icon and name, a button to play and one above it to the player's runs,
  * with more in an overflow menu in a corner, and the settings behind a gear in the other. It shows once its icon and fonts have arrived, over the background alone
- * until then.
+ * until then. Tab, or left and right, go from one group of buttons to the next, from the left to the right, and up and
+ * down between its main buttons; with a mouse, Play has the focus from the start, for Enter to play.
  */
 @Component({
   selector: 'app-menu',
   imports: [NgOptimizedImage, RouterLink, ButtonList, DeveloperTaps, DropdownMenu],
-  host: { class: 'screen', '[class.loading]': '!assets.ready()' },
+  host: {
+    class: 'screen',
+    '[class.loading]': '!assets.ready()',
+    '(document:keydown.arrowup)': 'startOnPlay($event)',
+    '(document:keydown.arrowdown)': 'startOnPlay($event)',
+    '(document:keydown.arrowleft)': 'side($event, -1)',
+    '(document:keydown.arrowright)': 'side($event, 1)',
+  },
   template: `
     <a class="frosted settings" routerLink="/settings" aria-label="Settings">
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -28,20 +45,6 @@ import { ButtonList } from '../../ui/button-list';
         />
       </svg>
     </a>
-    <app-dropdown-menu>
-      <a routerLink="/data">Your Data</a>
-      @if (developerMode.enabled()) {
-        <div class="section" role="group" aria-labelledby="developer-title">
-          <h2 id="developer-title">Developer</h2>
-          <a routerLink="/developer/key-colors">Key Colors</a>
-          <a routerLink="/developer/season-colors">Season Colors</a>
-          <label class="toggle">
-            <input type="checkbox" [checked]="tweaks.checking()" (change)="setChecking($event)" />
-            Check Digits
-          </label>
-        </div>
-      }
-    </app-dropdown-menu>
     <div class="title">
       <!-- Tapping it ten times in a row turns developer mode on or off. -->
       <button
@@ -85,8 +88,23 @@ import { ButtonList } from '../../ui/button-list';
     </p>
     <app-button-list class="actions">
       <a class="candy" routerLink="/runs">Your Runs</a>
-      <a class="candy primary" routerLink="/play">Play</a>
+      <a #play class="candy primary" routerLink="/play">Play</a>
     </app-button-list>
+    <!-- After the middle of the menu, for Tab to go through it from the left to the right. -->
+    <app-dropdown-menu>
+      <a routerLink="/data">Your Data</a>
+      @if (developerMode.enabled()) {
+        <div class="section" role="group" aria-labelledby="developer-title">
+          <h2 id="developer-title">Developer</h2>
+          <a routerLink="/developer/key-colors">Key Colors</a>
+          <a routerLink="/developer/season-colors">Season Colors</a>
+          <label class="toggle">
+            <input type="checkbox" [checked]="tweaks.checking()" (change)="setChecking($event)" />
+            Check Digits
+          </label>
+        </div>
+      }
+    </app-dropdown-menu>
   `,
   styleUrl: './menu.css',
 })
@@ -99,10 +117,23 @@ export class Menu {
   /** The values tuned in developer mode, checking the digits among them. */
   protected readonly tweaks = inject(Tweaks);
   protected readonly assets = inject(MenuAssets);
+  private readonly document = inject(DOCUMENT);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly play = viewChild.required<ElementRef<HTMLElement>>('play');
 
   constructor() {
-    const fonts = inject(DOCUMENT).fonts;
+    const fonts = this.document.fonts;
     afterNextRender(() => void this.assets.waitForFonts(fonts));
+    // Once shown, as it can't take the focus before. Not on touch screens, where it would only show its focus ring.
+    afterRenderEffect(() => {
+      if (
+        this.assets.ready() &&
+        typeof matchMedia === 'function' &&
+        matchMedia('(hover: hover)').matches
+      ) {
+        this.play().nativeElement.focus();
+      }
+    });
 
     // The background of a new game, so that playing starts on the same colors.
     const background = inject(Background);
@@ -111,6 +142,33 @@ export class Menu {
         seasonAt(0, this.tweaks.seasonBackgrounds(), this.tweaks.colorSpace()).background,
       );
     });
+  }
+
+  /** Up or down onto Play when nothing has the focus, as on touch screens, from where they move on. */
+  protected startOnPlay(event: Event): void {
+    const active = this.document.activeElement;
+    if (active === null || active === this.document.body) {
+      event.preventDefault();
+      this.play().nativeElement.focus();
+    }
+  }
+
+  /**
+   * Left and right go back and on as Tab does, from one group to the next: the settings, the game's icon, the main
+   * buttons, the overflow menu's button. Not from within the overflow menu, nor past either end.
+   */
+  protected side(event: Event, step: number): void {
+    const stops = Array.from(this.host.querySelectorAll<HTMLElement>('a[href], button')).filter(
+      (stop) => stop.tabIndex >= 0 && stop.closest('[popover]') === null,
+    );
+    const at = stops.findIndex((stop) => stop.matches(':focus'));
+    const next = at === -1 ? undefined : stops[at + step];
+    if (next !== undefined) {
+      event.preventDefault();
+      next.focus();
+    } else {
+      this.startOnPlay(event);
+    }
   }
 
   /** Turns checking the digits on or off, from developer mode. */

@@ -6,9 +6,8 @@
   grid-template-rows: 1fr auto;
   justify-items: center;
   padding: 2rem calc(var(--space-3) + var(--margin)) calc(3rem + env(safe-area-inset-bottom));
-  transition:
-    opacity var(--duration-screen) var(--ease),
-    visibility var(--duration-screen);
+  /* Fading in, but visible at once, so that Play can take the focus as it shows. */
+  transition: opacity var(--duration-screen) var(--ease);
 }
 
 /* Until its icon and fonts have arrived, laid out to fetch them but unseen. */
