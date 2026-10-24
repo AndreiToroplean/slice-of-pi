@@ -29,14 +29,17 @@ describe('App', () => {
     expect(main?.style.getPropertyValue('--background-space')).toBe(SEASON_COLOR_SPACE);
   });
 
-  it('gives a candy button the focus under the mouse, and only a candy button', async () => {
+  it('gives a solid candy button the focus under the mouse, and only a solid candy button', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     document.body.insertAdjacentHTML(
       'beforeend',
-      '<button class="candy">Candy</button><button class="frosted">Frosted</button>',
+      '<button class="candy">Candy</button><button class="frosted">Frosted</button>' +
+        '<button class="candy clear">Clear</button>',
     );
-    const [candy, frosted] = Array.from(document.querySelectorAll<HTMLElement>('.candy, .frosted'));
+    const [candy, frosted, clear] = Array.from(
+      document.querySelectorAll<HTMLElement>('.candy, .frosted'),
+    );
     const hover = (target: Element | undefined, pointerType: string): void => {
       target?.dispatchEvent(
         Object.assign(new MouseEvent('pointerover', { bubbles: true }), { pointerType }),
@@ -49,9 +52,12 @@ describe('App', () => {
     expect(document.activeElement).toBe(candy);
     hover(frosted, 'mouse');
     expect(document.activeElement).toBe(candy);
+    hover(clear, 'mouse');
+    expect(document.activeElement).toBe(candy);
 
     candy?.remove();
     frosted?.remove();
+    clear?.remove();
   });
 
   it('keeps the long-press menu from opening anywhere', async () => {

@@ -8,12 +8,6 @@
   position: absolute;
   top: 0.625rem;
   right: 0.75rem;
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  padding: 0;
-  border-radius: 50%;
 }
 
 .pause-button svg {

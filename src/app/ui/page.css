@@ -50,16 +50,6 @@ h1 {
   text-shadow: var(--text-shadow-large);
 }
 
-/* A small frosted button, like the pause button, in the top left corner. */
-.back {
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  padding: 0;
-  border-radius: 50%;
-}
-
 .back svg {
   width: 1.25rem;
   height: 1.25rem;

@@ -1,5 +1,6 @@
 import { Component, DOCUMENT, inject, input } from '@angular/core';
 import { injectBackToMenu } from './back-to-menu';
+import { Candy } from './candy';
 
 /**
  * A page opened from the main menu, scrolling under a frosted top bar that stays at its top: a back button, to the main
@@ -8,10 +9,11 @@ import { injectBackToMenu } from './back-to-menu';
  */
 @Component({
   selector: 'app-page',
+  imports: [Candy],
   host: { class: 'screen', '(document:keydown.escape)': 'escape($event)' },
   template: `
     <header class="top-bar">
-      <button type="button" class="frosted back" aria-label="Back" (click)="back()">
+      <button type="button" appCandy="clear" class="corner back" aria-label="Back" (click)="back()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
       </button>
       <h1>{{ title() }}</h1>

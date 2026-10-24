@@ -27,6 +27,8 @@
   --frost-pressed: rgb(255 255 255 / 45%);
   --frost-highlight: rgb(255 255 255 / 45%);
   --frost-blur: 10px;
+  /* The edge of a see-through candy button. */
+  --frost-edge: rgb(40 20 60 / 22%);
   /* Empty slots in the typing area. */
   --frost-slot: rgb(255 255 255 / 20%);
 
@@ -150,6 +152,16 @@ body {
 .frosted:active {
   scale: 0.96;
   background: var(--frost-pressed);
+}
+
+/* A button in a screen's corner, such as the pause button: a square candy button, for an icon. */
+.candy.corner {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border-radius: 0.875rem;
 }
 
 /* A small frosted pill, such as a button in the top bar of a page. */
