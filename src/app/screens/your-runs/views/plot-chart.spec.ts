@@ -3,11 +3,16 @@ import { Plot } from './plot';
 import { PlotChart } from './plot-chart';
 
 describe('PlotChart', () => {
-  function draw(plot: Plot): SVGElement {
+  function render(plot: Plot, marker?: number) {
     const fixture = TestBed.createComponent(PlotChart);
     fixture.componentRef.setInput('plot', plot);
+    fixture.componentRef.setInput('marker', marker);
     fixture.detectChanges();
-    return (fixture.nativeElement as HTMLElement).querySelector('svg') as SVGElement;
+    return fixture;
+  }
+
+  function draw(plot: Plot, marker?: number): SVGElement {
+    return (render(plot, marker).nativeElement as HTMLElement).querySelector('svg') as SVGElement;
   }
 
   const plot: Plot = {
@@ -42,5 +47,89 @@ describe('PlotChart', () => {
     expect(draw(plot).getAttribute('aria-label')).toBe(
       'Residuals: Each interval over its baseline.',
     );
+  });
+
+  it('draws an area between two lines, broken where either has no point', () => {
+    const svg = draw({
+      ...plot,
+      layers: [
+        {
+          kind: 'area',
+          upper: [[0, 1], [5, 1], undefined, [10, 0.5]],
+          lower: [
+            [0, -1],
+            [5, 0],
+            [8, 0],
+            [10, 0],
+          ],
+          role: 'faint',
+        },
+      ],
+    });
+
+    expect(svg.querySelector('path.area')?.getAttribute('d')).toBe(
+      'M0 0L500 0L500 50L0 100ZM1000 25L1000 50Z',
+    );
+  });
+
+  it('draws bars from their base, else from the bottom', () => {
+    const svg = draw({
+      ...plot,
+      layers: [
+        {
+          kind: 'bars',
+          bars: [
+            { from: 0, to: 5, height: 1, base: 0 },
+            { from: 5, to: 10, height: -0.5, base: 0.5 },
+            { from: 0, to: 5, height: 0 },
+          ],
+          role: 'run',
+        },
+      ],
+    });
+
+    expect(
+      [...svg.querySelectorAll('rect')].map((rect) => [
+        rect.getAttribute('y'),
+        rect.getAttribute('height'),
+      ]),
+    ).toEqual([
+      ['0', '50'],
+      ['25', '50'],
+      ['50', '50'],
+    ]);
+  });
+
+  it('marks values on its y-axis, within its range', () => {
+    const fixture = render({
+      ...plot,
+      y: {
+        min: -1,
+        max: 1,
+        ticks: [
+          { value: 0.5, label: '½' },
+          { value: 3, label: 'out' },
+        ],
+      },
+    });
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect([...host.querySelectorAll('.label')].map((label) => label.textContent.trim())).toEqual([
+      '½',
+    ]);
+    expect(host.querySelector('path.tick')?.getAttribute('d')).toBe('M0 25H1000');
+  });
+
+  it('marks where it is told to, and tells where it is tapped', () => {
+    const fixture = render(plot, 2.5);
+    const svg = (fixture.nativeElement as HTMLElement).querySelector('svg') as SVGElement;
+    const picked: number[] = [];
+    fixture.componentInstance.picked.subscribe((x) => picked.push(x));
+    svg.getBoundingClientRect = () => new DOMRect(10, 0, 200, 50);
+    svg.dispatchEvent(new MouseEvent('pointerup', { clientX: 60 }));
+
+    expect(svg.querySelector('path.marker')?.getAttribute('d')).toBe('M250 0V100');
+    expect(picked).toEqual([2.5]);
+    expect(draw(plot, 11).querySelector('path.marker')).toBeNull();
   });
 });
