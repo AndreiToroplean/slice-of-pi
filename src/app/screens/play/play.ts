@@ -42,8 +42,8 @@ import { TIMER } from './timer';
  * Backspace deletes the last digit, reopening the last word when the slots are empty, and brings the last word back when
  * it empties them, for the player to carry on, until they break there again. Developer mode counts down, left of 0, to
  * when the group being typed ends, unless its settings hide that. Pausing offers to restart the game
- * or end it, back to the main menu. Every key is recorded, with its time, in the player's runs; restarting or ending the
- * game ends the run.
+ * or end it, back to the main menu. Every touch on the keypad, and every key typed, is recorded, with where and when, in
+ * the run's touch log; restarting or ending the game ends the run.
  */
 @Component({
   selector: 'app-play',
@@ -184,8 +184,13 @@ export class Play {
     });
   }
 
-  protected press({ key }: KeypadTouch): void {
-    if (this.paused() || key === null) {
+  protected press(touch: KeypadTouch): void {
+    if (this.paused()) {
+      return;
+    }
+    this.recorder.record(touch);
+    const key = touch.key;
+    if (key === null) {
       return;
     }
     // Keys are typed into the game, not into what has the focus, such as the typed digits once clicked or the pause
@@ -195,7 +200,6 @@ export class Play {
     }
     if (this.mistakes() !== '') {
       if (key === 'backspace') {
-        this.recorder.deleteMistake(this.digits().length + this.mistakes().length);
         this.mistakes.update((mistakes) => mistakes.slice(0, -1));
         this.bringBackEmptied(this.sizes().length);
       } else {
@@ -213,7 +217,6 @@ export class Play {
       this.mistakes.set(key);
       return;
     }
-    this.recorder.record(key);
     if (key === 'backspace') {
       this.landFlights();
       const words = this.sizes().length;

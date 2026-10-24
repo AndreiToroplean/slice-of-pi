@@ -19,7 +19,9 @@ import { Menu } from '../menu/menu';
 import { PALETTE, placeColors } from '../../game/layers/place-colors';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { IDBFactory } from 'fake-indexeddb';
-import { newRun } from '../../player-data/run';
+import { newTouchLog } from '../../player-data/touch-log';
+import { typeKey } from '../../../testing/touch-logs';
+import { Digit } from '../../game/pi/digit';
 import { RunRecorder } from '../../player-data/run-recorder';
 import { INDEXED_DB, RunStore } from '../../player-data/run-store';
 import { TypedDigits } from './typed-digits/typed-digits';
@@ -130,11 +132,13 @@ describe('Play', () => {
     await before();
     const store = TestBed.inject(RunStore);
     for (let i = 0; i < count; i++) {
-      await store.save({
-        ...newRun(`earlier-${String(i)}`, i, checked),
-        digits: PI_DECIMALS.slice(0, length),
-        times: times(i),
-      });
+      const digitTimes = times(i);
+      await store.save(
+        Array.from(PI_DECIMALS.slice(0, length)).reduce(
+          (log, digit, place) => typeKey(log, digit as Digit, digitTimes[place] ?? 0),
+          newTouchLog(`earlier-${String(i)}`, i, checked),
+        ),
+      );
     }
     const setup = await setUp();
     // Reads come back in order: once this one is back, so is the play screen's.
@@ -628,16 +632,25 @@ describe('Play', () => {
       expect(host.querySelector('app-slots .wrong')?.textContent).toBe('3');
     });
 
-    it('records the backspaces deleting mistakes, at their places, but never the mistakes', async () => {
+    it('records every key, mistakes and the backspaces deleting them included, its run leaving them out', async () => {
       const recorder = TestBed.inject(RunRecorder);
       const record = vi.spyOn(recorder, 'record');
-      const deleteMistake = vi.spyOn(recorder, 'deleteMistake');
       const { type } = await setUp();
 
       await typeAll(type, '1415<03<<');
 
-      expect(record.mock.calls).toEqual([['1'], ['4'], ['1'], ['5'], ['backspace']]);
-      expect(deleteMistake.mock.calls).toEqual([[5], [4]]);
+      expect(record.mock.calls.map(([touch]) => touch.key)).toEqual([
+        '1',
+        '4',
+        '1',
+        '5',
+        'backspace',
+        '0',
+        '3',
+        'backspace',
+        'backspace',
+      ]);
+      expect(recorder.run()?.digits).toBe('141');
     });
   });
 
@@ -708,7 +721,12 @@ describe('Play', () => {
 
     await typeAll(type, '14<4');
 
-    expect(record.mock.calls).toEqual([['1'], ['4'], ['backspace'], ['4']]);
+    expect(record.mock.calls).toEqual([
+      [{ key: '1' }],
+      [{ key: '4' }],
+      [{ key: 'backspace' }],
+      [{ key: '4' }],
+    ]);
   });
 
   describe('when a group is finished', () => {

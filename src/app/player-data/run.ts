@@ -1,32 +1,16 @@
-import { DEFAULT_KEYPAD_LAYOUT, KEYPAD_LAYOUTS, KeypadLayout } from '../game/layers/keypad-layout';
-import { Digit } from '../game/pi/digit';
-import { migrate, Migration } from './migration';
+import { KeypadLayout } from '../game/layers/keypad-layout';
+import { isPiDecimal } from '../game/pi/pi';
+import { TouchLog } from './touch-log';
 
-/**
- * The format of run records. Stored runs and backup files carry it. Bump it whenever the shape of a run changes, with a
- * step in {@link RUN_MIGRATIONS} (see {@link migrate}). Code that finds a record
- * in a newer format than it knows (written by a pull request preview sharing the site's storage) leaves it alone
- * rather than misreading it.
- */
-export const RUN_FORMAT = 3;
-
-/**
- * The raw record of one run: each digit typed and when. Nothing derived (groups, pauses, pace) is stored; it's always
- * computed from these.
- *
- * Backspace leaves no trace in the timings: it deletes the last digit's record and takes the clock back to when the digit before it
- * was typed, so the next digit's interval runs from the backspace. A run reads as if the player had typed it without
- * the mistake.
- */
-export interface Run {
-  readonly format: typeof RUN_FORMAT;
+/** What a run holds (see {@link Run}). */
+interface RunFields {
   readonly id: string;
   /**
    * Whether the game checked each digit as it was typed, so the run only holds decimals of π. Runs played without
    * checking, in developer mode, aren't, nor are those from before the game checked digits: they may hold mistakes.
    */
   readonly checked: boolean;
-  /** The keypad layout the run was played on: where each key was. Runs from before players could pick it were on a calculator's. */
+  /** The keypad layout the run was played on: where each key was. */
   readonly keypadLayout: KeypadLayout;
   /** When the run started, in milliseconds since the Unix epoch. */
   readonly startedAt: number;
@@ -37,48 +21,67 @@ export interface Run {
    * spent on deleted digits is left out.
    */
   readonly times: readonly number[];
-  /**
-   * Where the player pressed backspace, kept apart from the timings: the place of each digit deleted, in order (place 1
-   * is the first decimal). A backspace isn't necessarily a mistake, only that the player thought it was one.
-   */
-  readonly backspaces: readonly number[];
 }
 
-/** A run that has no digits yet, checked and on the default keypad layout unless said otherwise. */
-export function newRun(
-  id: string,
-  startedAt: number,
-  checked = true,
-  keypadLayout: KeypadLayout = DEFAULT_KEYPAD_LAYOUT,
-): Run {
-  return {
-    format: RUN_FORMAT,
-    id,
-    checked,
-    keypadLayout,
-    startedAt,
-    digits: '',
-    times: [],
-    backspaces: [],
-  };
-}
+declare const runBrand: unique symbol;
 
-/** The run with one more digit, typed `time` milliseconds after its first digit. */
-export function addDigit(run: Run, digit: Digit, time: number): Run {
-  return { ...run, digits: run.digits + digit, times: [...run.times, Math.round(time)] };
-}
+/**
+ * A run: each digit typed and when, as the game plays the groups from it. Nothing derived from it (groups, pauses, pace)
+ * is kept; it's always computed from these. A run is itself derived from its touch log, the record kept of it, only by
+ * {@link replay}.
+ */
+export type Run = RunFields & { readonly [runBrand]: true };
 
-/** The run without its last digit, as if it had never been typed, but with the backspace that deleted it. */
-export function removeDigit(run: Run): Run {
-  if (run.digits === '') {
-    return run;
+/**
+ * The run a touch log records, and how far back backspaces have taken its clock, in milliseconds: how much time spent
+ * on deleted digits is left out since its first digit.
+ *
+ * Touches typing nothing are left out. Backspace deletes the last digit: its time is left out, and the clock goes back to
+ * when the digit before it was typed, so the next digit's interval runs from the backspace. A run reads as if the player
+ * had typed it without the deleted digits. In a checked run, a wrong digit, and any typed after it until backspace
+ * deletes them all, are mistakes: never kept, they leave no timings, but backspace takes the clock back to the last
+ * digit kept all the same.
+ */
+export function replay(log: TouchLog): { readonly run: Run; readonly rewound: number } {
+  const digits: string[] = [];
+  const times: number[] = [];
+  let mistakes = 0;
+  let rewound = 0;
+  for (const { key, time } of log.touches) {
+    if (key === null) {
+      continue;
+    }
+    if (key === 'backspace') {
+      if (mistakes > 0) {
+        mistakes--;
+      } else if (digits.length > 0) {
+        digits.pop();
+        times.pop();
+      } else {
+        continue;
+      }
+      rewound = time - (times.at(-1) ?? 0);
+    } else if (log.checked && (mistakes > 0 || !isPiDecimal(digits.length + 1, key))) {
+      mistakes++;
+    } else {
+      digits.push(key);
+      times.push(time - rewound);
+    }
   }
-  return {
-    ...run,
-    digits: run.digits.slice(0, -1),
-    times: run.times.slice(0, -1),
-    backspaces: [...run.backspaces, run.digits.length],
+  const run: RunFields = {
+    id: log.id,
+    checked: log.checked,
+    keypadLayout: log.keypadLayout,
+    startedAt: log.startedAt,
+    digits: digits.join(''),
+    times,
   };
+  return { run: run as Run, rewound };
+}
+
+/** The run a touch log records (see {@link replay}). */
+export function runOf(log: TouchLog): Run {
+  return replay(log).run;
 }
 
 /**
@@ -156,66 +159,4 @@ export function groupRuns(
 ): Run[] {
   const ordered = orderRuns(runs, order);
   return ordered.runs.slice(0, ordered.line).filter((run) => countsInGroups(run, includeUnchecked));
-}
-
-/**
- * The run with the backspace that deleted a wrong digit typed after its last one, at `place` (the first wrong digit is
- * at the place after the run's last digit, and any typed after it further on). The game never kept those digits, so
- * only the backspace is recorded.
- */
-export function deleteMistake(run: Run, place: number): Run {
-  return { ...run, backspaces: [...run.backspaces, place] };
-}
-
-/**
- * Reads a run from untrusted data (storage, a backup file): the run if it's a valid run in a known format, migrated to
- * the current one.
- */
-export function parseRun(value: unknown): Run | undefined {
-  if (typeof value !== 'object' || value === null) {
-    return undefined;
-  }
-  const { format, id, checked, keypadLayout, startedAt, digits, times, backspaces } = migrate(
-    value,
-    RUN_MIGRATIONS,
-  );
-  if (
-    format !== RUN_FORMAT ||
-    typeof id !== 'string' ||
-    id === '' ||
-    typeof checked !== 'boolean' ||
-    !KEYPAD_LAYOUTS.some((layout) => layout === keypadLayout) ||
-    !isTime(startedAt) ||
-    typeof digits !== 'string' ||
-    !/^[0-9]*$/.test(digits) ||
-    !Array.isArray(times) ||
-    times.length !== digits.length ||
-    !times.every((time, i) => isTime(time) && time >= (times[i - 1] ?? 0)) ||
-    !Array.isArray(backspaces) ||
-    !backspaces.every((place) => Number.isInteger(place) && (place as number) >= 1)
-  ) {
-    return undefined;
-  }
-  return {
-    format,
-    id,
-    checked,
-    keypadLayout: keypadLayout as KeypadLayout,
-    startedAt,
-    digits,
-    times,
-    backspaces: backspaces as number[],
-  };
-}
-
-/** The steps that bring runs in older formats to the current one, one per format (see {@link migrate}). */
-export const RUN_MIGRATIONS: readonly Migration[] = [
-  // Format 1 runs are from before the game checked digits.
-  (run) => ({ ...run, checked: false }),
-  // Format 2 runs are from before players could pick the keypad layout: they played on a calculator's.
-  (run) => ({ ...run, keypadLayout: 'calculator' }),
-];
-
-function isTime(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }

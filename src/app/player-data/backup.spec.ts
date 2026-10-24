@@ -1,10 +1,11 @@
 import { BACKUP_FORMAT, BACKUP_KIND, backupFileName, readBackup, writeBackup } from './backup';
-import { addDigit, newRun, RUN_FORMAT } from './run';
+import { newTouchLog, TOUCH_LOG_FORMAT } from './touch-log';
+import { typeKey } from '../../testing/touch-logs';
 
 describe('backup', () => {
   const runs = [
-    addDigit(addDigit(newRun('a', 1_000), '1', 0), '4', 250),
-    addDigit(newRun('b', 2_000), '1', 0),
+    typeKey(typeKey(newTouchLog('a', 1_000), '1', 0), '4', 250),
+    typeKey(newTouchLog('b', 2_000), '1', 0),
   ];
   const settings = { 'developer-mode': { format: 1, enabled: true } };
 
@@ -42,7 +43,7 @@ describe('backup', () => {
 
   it('skips the runs it cannot read, and counts them', () => {
     const backup = JSON.parse(writeBackup(runs, {}, 0)) as Record<string, unknown>;
-    backup['runs'] = [...runs, { ...runs[0], format: RUN_FORMAT + 1 }, 'run'];
+    backup['runs'] = [...runs, { ...runs[0], format: TOUCH_LOG_FORMAT + 1 }, 'run'];
 
     expect(readBackup(JSON.stringify(backup))).toEqual({ runs, skipped: 2, settings: {} });
   });

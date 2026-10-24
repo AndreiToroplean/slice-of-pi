@@ -112,7 +112,7 @@ export class Data {
 
   protected async save(): Promise<void> {
     await this.recorder.saved();
-    const [runs, settings] = await Promise.all([this.store.runs(), this.store.settings()]);
+    const [runs, settings] = await Promise.all([this.store.touchLogs(), this.store.settings()]);
     const now = this.clock.epoch();
     this.saveFile(backupFileName(now), writeBackup(runs, settings, now));
     this.message.set(`Saved ${plural(runs.length, 'run')} in the backup.`);

@@ -1,9 +1,10 @@
 import { DOCUMENT } from '@angular/common';
 import { inject, InjectionToken, Service } from '@angular/core';
 import { isOlderFormat } from './migration';
-import { parseRun, Run, RUN_FORMAT } from './run';
+import { Run, runOf } from './run';
+import { parseTouchLog, TOUCH_LOG_FORMAT, TouchLog } from './touch-log';
 
-/** The browser's IndexedDB, where runs are stored; missing in browsers without it. */
+/** The browser's IndexedDB, where runs are stored, as their touch logs; missing in browsers without it. */
 export const INDEXED_DB = new InjectionToken<IDBFactory | undefined>('INDEXED_DB', {
   factory: () => (typeof indexedDB === 'undefined' ? undefined : indexedDB),
 });
@@ -29,21 +30,22 @@ export function isPreviewPath(path: string): boolean {
 export const DATABASE_NAME = 'slice-of-pi';
 /**
  * The version of the database's layout (its object stores), not of the records in it: those carry their own format
- * (`RUN_FORMAT`). Pull request previews share the site's storage, so a newer layout must keep the stores older code
+ * (`TOUCH_LOG_FORMAT`). Pull request previews share the site's storage, so a newer layout must keep the stores older code
  * reads; older code then still opens the database at its newer version.
  */
 export const DATABASE_VERSION = 3;
+/** The touch log of each run, by id. */
 export const RUNS = 'runs';
 /** The player's settings, by name, each in its own format (such as `developer-mode.ts`). */
 export const SETTINGS = 'settings';
 /** Facts about the stored data, by key. */
 export const META = 'meta';
-/** Under {@link META}: the run format of the main game that last opened the database, as `{ format }`. */
+/** Under {@link META}: the touch log format of the main game that last opened the database, as `{ format }`. */
 export const MAIN_FORMAT = 'main-format';
 /** Under {@link META}, in a preview's own database: set once the main game's settings were copied into it. */
 export const COPIED_SETTINGS = 'copied-settings';
 
-/** The database of previews whose run format isn't the main game's, kept apart from the main game's. */
+/** The database of previews whose touch log format isn't the main game's, kept apart from the main game's. */
 export function previewDatabaseName(format: number): string {
   return `${DATABASE_NAME}-format-${String(format)}`;
 }
@@ -56,12 +58,12 @@ interface Database {
 }
 
 /**
- * Keeps the player's runs, and their settings, in IndexedDB, and asks the browser to keep that storage safe from eviction. Where IndexedDB
+ * Keeps the player's runs, as their touch logs, and their settings, in IndexedDB, and asks the browser to keep that storage safe from eviction. Where IndexedDB
  * is missing or fails to open, nothing is stored and there are no runs.
  *
- * Pull request previews share the main game's storage. The main game notes its run format in
- * the database each time it opens it. A preview whose run format is the main game's (or which finds no runs from the
- * main game yet) uses the main game's database. Any other preview keeps its own database for its run format, so it
+ * Pull request previews share the main game's storage. The main game notes its touch log format in
+ * the database each time it opens it. A preview whose touch log format is the main game's (or which finds no runs from
+ * the main game yet) uses the main game's database. Any other preview keeps its own database for its format, so it
  * never leaves records the main game can't load: each time it opens, it adds the main game's runs it doesn't have yet,
  * migrated, and the first time it also copies the main game's settings.
  */
@@ -72,14 +74,14 @@ export class RunStore {
   private readonly preview = inject(IS_PREVIEW);
   private database: Promise<Database | undefined> | undefined;
 
-  /** Saves a run, replacing the earlier save of the same run. */
-  async save(run: Run): Promise<void> {
+  /** Saves a run's touch log, replacing the earlier save of the same run. */
+  async save(log: TouchLog): Promise<void> {
     const database = await this.openForWriting();
     if (database === undefined) {
       return;
     }
     const transaction = database.transaction(RUNS, 'readwrite');
-    transaction.objectStore(RUNS).put(run);
+    transaction.objectStore(RUNS).put(log);
     await completion(transaction);
   }
 
@@ -118,8 +120,10 @@ export class RunStore {
     await completion(transaction);
   }
 
-  /** Adds the runs not stored yet, such as those of a backup, leaving the runs already stored as they are. */
-  async addRuns(runs: readonly Run[]): Promise<number> {
+  /**
+   * Adds the touch logs of runs not stored yet, such as those of a backup, leaving the runs already stored as they are.
+   */
+  async addRuns(logs: readonly TouchLog[]): Promise<number> {
     const database = await this.openForWriting();
     if (database === undefined) {
       return 0;
@@ -127,19 +131,19 @@ export class RunStore {
     const transaction = database.transaction(RUNS, 'readwrite');
     const store = transaction.objectStore(RUNS);
     const stored = new Set(await result(store.getAllKeys()));
-    const added = runs.filter((run) => !stored.has(run.id));
-    for (const run of added) {
-      store.add(run);
+    const added = logs.filter((log) => !stored.has(log.id));
+    for (const log of added) {
+      store.add(log);
     }
     await completion(transaction);
     return added.length;
   }
 
   /**
-   * Every run stored in a format this version of the game knows, oldest first. Records in other formats are left in
-   * the database, untouched.
+   * The touch log of every run stored in a format this version of the game knows, oldest first. Records in other formats
+   * are left in the database, untouched.
    */
-  async runs(): Promise<Run[]> {
+  async touchLogs(): Promise<TouchLog[]> {
     const database = (await this.open())?.database;
     if (database === undefined) {
       return [];
@@ -148,9 +152,14 @@ export class RunStore {
       database.transaction(RUNS).objectStore(RUNS).getAll() as IDBRequest<unknown[]>,
     );
     return records
-      .map(parseRun)
-      .filter((run) => run !== undefined)
+      .map(parseTouchLog)
+      .filter((log) => log !== undefined)
       .sort((a, b) => a.startedAt - b.startedAt);
+  }
+
+  /** Every run stored, from its touch log (see {@link touchLogs}), oldest first. */
+  async runs(): Promise<Run[]> {
+    return (await this.touchLogs()).map(runOf);
   }
 
   /** A setting, as stored, or `undefined` where there is none. */
@@ -209,7 +218,7 @@ export class RunStore {
     return (await this.open())?.writable ?? false;
   }
 
-  /** Whether this is a preview keeping its runs apart from the main game's, as its run format is another. */
+  /** Whether this is a preview keeping its runs apart from the main game's, as its touch log format is another. */
   async separate(): Promise<boolean> {
     return (await this.open())?.separate ?? false;
   }
@@ -259,10 +268,10 @@ async function openDatabase(
   // Until the main game has opened the database, it keeps no runs, so there are none to protect.
   const meta = database.transaction(META).objectStore(META);
   const main = (await result(meta.get(MAIN_FORMAT))) as { format?: unknown } | undefined;
-  if (main === undefined || main.format === RUN_FORMAT) {
+  if (main === undefined || main.format === TOUCH_LOG_FORMAT) {
     return { database, writable: true, separate: false };
   }
-  const own = await openLayout(indexedDb, previewDatabaseName(RUN_FORMAT));
+  const own = await openLayout(indexedDb, previewDatabaseName(TOUCH_LOG_FORMAT));
   await copyFromMain(database, own);
   database.close();
   return { database: own, writable: true, separate: true };
@@ -284,9 +293,9 @@ async function copyFromMain(main: IDBDatabase, own: IDBDatabase): Promise<void> 
   const transaction = own.transaction([RUNS, SETTINGS, META], 'readwrite');
   const runs = transaction.objectStore(RUNS);
   const kept = new Set(await result(runs.getAllKeys()));
-  for (const run of records.map(parseRun)) {
-    if (run !== undefined && !kept.has(run.id)) {
-      runs.add(run);
+  for (const log of records.map(parseTouchLog)) {
+    if (log !== undefined && !kept.has(log.id)) {
+      runs.add(log);
     }
   }
   const meta = transaction.objectStore(META);
@@ -298,18 +307,19 @@ async function copyFromMain(main: IDBDatabase, own: IDBDatabase): Promise<void> 
 }
 
 /**
- * Brings the runs stored in older formats to the current one, and notes it as the main game's run format, all at once.
- * Only the main game does: previews never write runs the main game couldn't load.
+ * Brings the runs stored in older formats, touch logs or the runs before them, to the current touch log format, and
+ * notes it as the main game's format, all at once. Only the main game does: previews never write runs the main game
+ * couldn't load.
  */
 async function migrateRuns(database: IDBDatabase): Promise<void> {
   const transaction = database.transaction([META, RUNS], 'readwrite');
-  transaction.objectStore(META).put({ format: RUN_FORMAT }, MAIN_FORMAT);
+  transaction.objectStore(META).put({ format: TOUCH_LOG_FORMAT }, MAIN_FORMAT);
   const runs = transaction.objectStore(RUNS);
   const records = await result(runs.getAll() as IDBRequest<unknown[]>);
-  for (const record of records.filter((record) => isOlderFormat(record, RUN_FORMAT))) {
-    const run = parseRun(record);
-    if (run !== undefined) {
-      runs.put(run);
+  for (const record of records.filter((record) => isOlderFormat(record, TOUCH_LOG_FORMAT))) {
+    const log = parseTouchLog(record);
+    if (log !== undefined) {
+      runs.put(log);
     }
   }
   await completion(transaction);

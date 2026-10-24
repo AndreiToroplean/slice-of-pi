@@ -1,5 +1,5 @@
 import { migrate, Migration } from './migration';
-import { parseRun, Run } from './run';
+import { parseTouchLog, TouchLog } from './touch-log';
 
 /** What a backup file says it is, so that any other file is turned down. */
 export const BACKUP_KIND = 'slice-of-pi-backup';
@@ -12,13 +12,14 @@ export const BACKUP_FORMAT = 1;
 /** The steps that bring backups in older formats to the current one, one per format (see {@link migrate}). */
 export const BACKUP_MIGRATIONS: readonly Migration[] = [];
 
-/** A backup of the player's data: everything in the database, runs and settings, as stored. */
+/** A backup of the player's data: everything in the database, the touch logs of their runs and settings, as stored. */
 export interface Backup {
   readonly kind: typeof BACKUP_KIND;
   readonly format: typeof BACKUP_FORMAT;
   /** When the backup was made, in milliseconds since the Unix epoch. */
   readonly exportedAt: number;
-  readonly runs: readonly Run[];
+  /** The touch log of each run, under the name runs were kept under before touch logs replaced them. */
+  readonly runs: readonly TouchLog[];
   /** Every setting, by name, each in its own format; missing from backups made before settings were kept in them. */
   readonly settings: Settings;
 }
@@ -29,15 +30,19 @@ export type Settings = Readonly<Record<string, unknown>>;
 /** What a backup file holds, or why it can't be read. */
 export type BackupContents =
   | {
-      readonly runs: readonly Run[];
-      /** Runs in the file that aren't valid runs in a known format. */
+      readonly runs: readonly TouchLog[];
+      /** Runs in the file that aren't valid touch logs, or runs from before them, in a known format. */
       readonly skipped: number;
       readonly settings: Settings;
     }
   | { readonly error: string };
 
-/** The text of a backup file holding these runs and settings. */
-export function writeBackup(runs: readonly Run[], settings: Settings, exportedAt: number): string {
+/** The text of a backup file holding the touch logs of these runs, and these settings. */
+export function writeBackup(
+  runs: readonly TouchLog[],
+  settings: Settings,
+  exportedAt: number,
+): string {
   const backup: Backup = { kind: BACKUP_KIND, format: BACKUP_FORMAT, exportedAt, runs, settings };
   return JSON.stringify(backup);
 }
@@ -67,7 +72,7 @@ export function readBackup(text: string): BackupContents {
   if (format !== BACKUP_FORMAT) {
     return { error: 'This backup was made by a newer version of the game.' };
   }
-  const parsed = runs.map(parseRun).filter((run) => run !== undefined);
+  const parsed = runs.map(parseTouchLog).filter((log) => log !== undefined);
   // Each setting is checked by what reads it, as when it's read from the database.
   const isSettings = typeof settings === 'object' && settings !== null && !Array.isArray(settings);
   return {
