@@ -1,5 +1,6 @@
 import type { Settings } from './break-model';
 import { mars, MARS, MARS_DEFAULTS, marsOver } from './mars';
+import { logistic, logit } from './statistics';
 import { judge } from './terra';
 
 describe('Mars', () => {
@@ -184,6 +185,59 @@ describe('Mars', () => {
     });
     expect(typed.groups).toEqual(all.groups);
     expect(typed.speedCurve).toEqual(all.speedCurve);
+  });
+
+  describe('working out its steps', () => {
+    const runs = [timesOf(30, by3(30)), timesOf(20, [5, 10, 15]), timesOf(30, [])];
+    const steps = MARS.steps?.({}, runs);
+    const workings = steps?.workings;
+    const pool = workings?.pool;
+    const { breakShift, breakShare, breakThreshold, currentDecay } = MARS_DEFAULTS;
+
+    it("adds up each run's evidence, times its recency and its trust, to the prior", () => {
+      const at = 15;
+      const sum = (workings?.runs ?? []).reduce(
+        (total, run) => total + run.recency * (run.trust[at] ?? 0) * (run.evidence[at] ?? 0),
+        logit(breakShare),
+      );
+
+      expect(pool?.logOdds[at]).toBeCloseTo(sum, 12);
+      expect(logistic(pool?.logOdds[at] ?? NaN)).toBeCloseTo(steps?.usual[at] ?? NaN, 12);
+      expect(workings?.runs.map((run) => run.recency)).toEqual([
+        MARS_DEFAULTS.recencyDecay ** 2,
+        MARS_DEFAULTS.recencyDecay,
+        1,
+      ]);
+    });
+
+    it('takes the prior to the break threshold at the z a lone run breaks at', () => {
+      const evidence = breakShift * (workings?.breakZ ?? NaN) - breakShift ** 2 / 2;
+
+      expect(logistic(logit(breakShare) + evidence)).toBeCloseTo(breakThreshold, 12);
+      expect(workings?.evenZ).toBe(breakShift / 2);
+    });
+
+    it('asks the next run for a longer pause where the runs carry on than where they break', () => {
+      const at = 14;
+      const z = pool?.nextRunZ[at] ?? NaN;
+      const logOdds = pool?.logOdds[at] ?? NaN;
+      const prior = logit(breakShare);
+
+      expect(
+        prior + currentDecay * (logOdds - prior) + breakShift * z - breakShift ** 2 / 2,
+      ).toBeCloseTo(logit(breakThreshold), 12);
+      expect(pool?.nextRunZ[15]).toBeLessThan(z);
+    });
+
+    it('tells how many runs agree on a break at each place', () => {
+      expect(pool?.agreement[15]).toBeGreaterThan(0.5);
+      expect(pool?.agreement[14]).toBeLessThan(0.1);
+    });
+
+    it('judges no place without neighbors', () => {
+      expect(workings?.runs[0]?.z[0]).toBeUndefined();
+      expect(workings?.runs[0]?.z[1]).toBeDefined();
+    });
   });
 
   it('has no groups without digits', () => {

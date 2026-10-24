@@ -235,6 +235,16 @@ export function fitMixture(
   return { mixture: { weight: share, mean, sd }, posterior };
 }
 
+/** The log-odds of a probability. */
+export function logit(probability: number): number {
+  return Math.log(probability / (1 - probability));
+}
+
+/** The probability of log-odds, without overflow however far they are from 0. */
+export function logistic(logOdds: number): number {
+  return logOdds >= 0 ? 1 / (1 + Math.exp(-logOdds)) : Math.exp(logOdds) / (1 + Math.exp(logOdds));
+}
+
 /** The least-squares non-increasing fit of the values, by pooling adjacent violators. */
 export function isotonicDecreasing(values: readonly number[]): number[] {
   const means: number[] = [];
