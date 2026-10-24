@@ -81,6 +81,39 @@ export interface Plot {
   readonly legend?: readonly Key[];
 }
 
+/** What tells a key apart from the others of its plot, and the marks it stands for. */
+export function keyIdOf(key: {
+  readonly mark: Key['mark'];
+  readonly role: Role;
+  readonly color?: string | undefined;
+}): string {
+  return `${key.mark} ${key.role} ${key.color ?? ''}`;
+}
+
+/** The swatch a layer's marks show as in a key. */
+export function markOf(layer: Layer): Key['mark'] {
+  switch (layer.kind) {
+    case 'line':
+    case 'hline':
+    case 'vline':
+      return 'line';
+    case 'area':
+    case 'band':
+      return 'area';
+    default:
+      return layer.kind;
+  }
+}
+
+/** The key a layer's marks show under: its id. */
+export function keyIdOfLayer(layer: Layer): string {
+  return keyIdOf({
+    mark: markOf(layer),
+    role: layer.role,
+    color: 'color' in layer ? layer.color : undefined,
+  });
+}
+
 /** A range of values. */
 export interface Range {
   readonly min: number;

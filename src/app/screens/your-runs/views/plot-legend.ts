@@ -1,19 +1,28 @@
-import { Component, input } from '@angular/core';
-import type { Key } from './plot';
+import { Component, input, output } from '@angular/core';
+import { Key, keyIdOf } from './plot';
 
-/** The key to the marks of a plot: a swatch drawn like each kind of mark, and what it stands for. */
+/**
+ * The key to the marks of a plot: a swatch drawn like each kind of mark, and what it stands for, each a toggle button
+ * that shows or hides its marks on the plot, muted while they're hidden.
+ */
 @Component({
   selector: 'app-plot-legend',
   template: `
     <ul>
       @for (key of keys(); track $index) {
         <li>
-          <i
-            aria-hidden="true"
-            [class]="key.mark + ' ' + key.role"
-            [style.--swatch]="key.color ?? null"
-          ></i
-          >{{ key.label }}
+          <button
+            type="button"
+            [attr.aria-pressed]="!hidden().has(idOf(key))"
+            (click)="toggled.emit(idOf(key))"
+          >
+            <i
+              aria-hidden="true"
+              [class]="key.mark + ' ' + key.role"
+              [style.--swatch]="key.color ?? null"
+            ></i
+            >{{ key.label }}
+          </button>
         </li>
       }
     </ul>
@@ -28,6 +37,32 @@ import type { Key } from './plot';
       list-style: none;
       font-size: 0.75rem;
       line-height: 1.3;
+    }
+
+    button {
+      padding: 0;
+      border: none;
+      background: none;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+
+      &:focus-visible {
+        outline: 0.1875rem solid var(--focus-ring);
+        outline-offset: 0.125rem;
+        border-radius: 0.25rem;
+      }
+    }
+
+    /* Its marks hidden: muted, the swatch in grey. */
+    button[aria-pressed='false'] {
+      opacity: 0.4;
+
+      & i {
+        filter: grayscale(1);
+      }
     }
 
     /* Like the marks on the plots: lines and dots in the ink, faint or red as theirs are. */
@@ -98,4 +133,19 @@ import type { Key } from './plot';
 })
 export class PlotLegend {
   readonly keys = input.required<readonly Key[]>();
+  /** The keys whose marks are hidden, by id. */
+  readonly hidden = input<ReadonlySet<string>>(new Set());
+  /** The key toggled, by id. */
+  readonly toggled = output<string>();
+
+  protected readonly idOf = keyIdOf;
+}
+
+/** The ids of the keys hidden, with this one toggled. */
+export function toggledIn(hidden: ReadonlySet<string>, id: string): ReadonlySet<string> {
+  const next = new Set(hidden);
+  if (!next.delete(id)) {
+    next.add(id);
+  }
+  return next;
 }

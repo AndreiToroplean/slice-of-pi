@@ -654,4 +654,18 @@ describe('YourRuns', () => {
       Array.from(host.querySelectorAll('.summary .axis span'), (span) => span.textContent),
     ).toEqual(['Place 1', 'Place 16']);
   });
+
+  it('hides the marks of the chart of all runs under a key pressed, in developer mode', async () => {
+    const { host, until } = await setUp(trusted, false, false, undefined, true);
+    const breaks = () => host.querySelectorAll('.summary app-run-chart line.break').length;
+    expect(breaks()).toBeGreaterThan(0);
+
+    const summary = host.querySelector<HTMLElement>('.summary');
+    if (summary === null) {
+      throw new Error('No chart of all runs');
+    }
+    button(summary, 'Usual break').click();
+    await until(() => breaks() === 0);
+    expect(host.querySelector('.summary app-run-chart path.line')?.getAttribute('d')).not.toBe('');
+  });
 });
