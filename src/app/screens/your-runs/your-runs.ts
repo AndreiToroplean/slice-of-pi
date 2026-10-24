@@ -26,8 +26,7 @@ import { FitToGroupingsDialog } from './fit-to-groupings-dialog';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { LongPress } from '../../ui/long-press';
 import { PlacePerspective } from './place-perspective';
-import { ChartGuides } from './chart-guides';
-import { modelViews, timeGuides } from './views/model-views';
+import { modelViews } from './views/model-views';
 import type { Plot } from './views/plot';
 import { PlotChart } from './views/plot-chart';
 import { plural } from '../../ui/plural';
@@ -219,7 +218,6 @@ import { chartTop, digitTimes } from './run-charts';
         [breaks]="aggregateShown() ? aggregateChart().breaks : []"
         [confidence]="aggregateShown() ? aggregateChart().confidence : []"
         [others]="selectedTimes()"
-        [guides]="aggregateShown() ? aggregateChart().guides : []"
         [places]="places()"
         [top]="top()"
         [marker]="developerMode() ? place() : undefined"
@@ -324,7 +322,6 @@ import { chartTop, digitTimes } from './run-charts';
                       [values]="chart.times"
                       [baseline]="chart.baseline"
                       [breaks]="chart.breaks"
-                      [guides]="chart.guides"
                       [places]="places()"
                       [top]="top()"
                       [label]="'Time per digit, ' + chart.title"
@@ -366,7 +363,6 @@ export class YourRuns {
   protected readonly includeUnchecked = this.tweaks.includeUnchecked;
   /** The order the game takes the runs in, and the line it plays from among them, in developer mode. */
   private readonly runOrder = this.tweaks.runOrder;
-  private readonly chartGuides = inject(ChartGuides).shown;
   protected readonly runs = signal<readonly Run[]>([]);
   protected readonly uncheckedRuns = computed(() => this.runs().filter((run) => !run.checked));
   /** The runs the groups are computed from, oldest first. */
@@ -407,7 +403,6 @@ export class YourRuns {
         times: digitTimes(run),
         baseline: found?.baseline ?? [],
         breaks,
-        guides: timeGuides(found?.baseline ?? [], this.steps(), this.guides()),
       };
     }),
   );
@@ -423,7 +418,6 @@ export class YourRuns {
       baseline: stats.speedCurve,
       breaks: stats.usual,
       confidence: stats.confidence,
-      guides: timeGuides(stats.speedCurve, this.steps(), this.guides()),
     };
   });
   protected readonly groups = computed(() =>
@@ -435,10 +429,6 @@ export class YourRuns {
   );
 
   protected readonly plural = plural;
-  /** The settings shown on the charts, in developer mode. */
-  private readonly guides = computed(() =>
-    this.developerMode() ? this.chartGuides() : new Set<string>(),
-  );
   /** In developer mode, whether the chart on top shows all the runs, and which runs it shows besides. */
   protected readonly aggregateShown = signal(true);
   protected readonly selected = signal<ReadonlySet<string>>(new Set());
@@ -482,7 +472,6 @@ export class YourRuns {
           picked: this.pickedRuns(),
           aggregate: this.aggregateShown(),
           places: this.places(),
-          guides: this.guides(),
         });
   });
   protected readonly summaryTitle = computed(() => {

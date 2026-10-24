@@ -11,7 +11,6 @@ import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import { oneIn } from '../../game/grouping/break-models/hyperparameters';
 import { LUNA, LUNA_DEFAULTS } from '../../game/grouping/break-models/luna';
 import { MERCURY, MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
-import { ChartGuides } from './chart-guides';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 
@@ -125,23 +124,6 @@ describe('GroupingSettingsPanel', () => {
     expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent.trim()).toBe(
       'Mixture',
     );
-  });
-
-  it('shows a setting on the charts while its checkbox is checked', async () => {
-    const { host, detect } = await setUp();
-    const checkbox = host.querySelector<HTMLInputElement>(
-      'input[aria-label="Show prior baseline on the charts"]',
-    );
-    const shown = TestBed.inject(ChartGuides).shown;
-
-    checkbox?.click();
-    detect();
-    expect([...shown()]).toEqual(['priorBaseline']);
-    expect(checkbox?.checked).toBe(true);
-
-    checkbox?.click();
-    expect(shown().size).toBe(0);
-    expect(host.querySelector('input[aria-label="Show window on the charts"]')).toBeNull();
   });
 
   it('pins a setting for fitting while its pin is pressed, for the model picked', async () => {

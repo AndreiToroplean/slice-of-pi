@@ -10,8 +10,6 @@ export interface ViewInput {
   readonly aggregate: boolean;
   /** How many places the plots along the places span, as the charts of the times do. */
   readonly places: number;
-  /** The settings to show on the charts, where they have a place. */
-  readonly guides: ReadonlySet<string>;
 }
 
 /**

@@ -43,7 +43,7 @@ describe('the views of a model that judges each run on its own', () => {
   }
 
   function input(model: Steps = mars, picked: number[] = []): ViewInput {
-    return { model, picked, aggregate: true, places: 30, guides: new Set() };
+    return { model, picked, aggregate: true, places: 30 };
   }
 
   function layer(layers: readonly Layer[], kind: Layer['kind'], role?: string): Layer | undefined {
