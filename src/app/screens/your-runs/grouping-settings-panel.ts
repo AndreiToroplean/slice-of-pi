@@ -230,7 +230,7 @@ function keysOf(kind: BreakModelKind): string[] {
       min-height: 0;
       display: flex;
       flex-direction: column;
-      gap: var(--space-2);
+      gap: calc(var(--space-2) / 2);
     }
 
     .bar {
@@ -293,12 +293,16 @@ function keysOf(kind: BreakModelKind): string[] {
       display: none;
     }
 
-    /* The sliders at their own height, a slider or a pair to a row: those that don't fit scroll. */
+    /*
+     * The sliders at their own height, a slider or a pair to a row: those that don't fit scroll, as the runs do, down to
+     * the bottom of the page, under its padding and the navigation bar, the last of them stopping above them.
+     */
     .settings {
       display: grid;
       align-content: start;
-      gap: var(--space-3);
-      padding: 0 var(--space-1) var(--space-2);
+      gap: var(--space-1);
+      margin-bottom: calc(-1 * var(--space-3) - env(safe-area-inset-bottom));
+      padding: 0 var(--space-1) calc(var(--space-3) + env(safe-area-inset-bottom));
       overflow-y: auto;
       overscroll-behavior-y: contain;
     }
