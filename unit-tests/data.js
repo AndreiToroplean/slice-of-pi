@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792618757385,
+  "lastUpdate": 1792854982935,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2000,6 +2000,46 @@ window.BENCHMARK_DATA = {
             "value": 721,
             "unit": "ms",
             "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "cb5cbd678bdf7e3bc2b531c2fce6ecd533d1e85e",
+          "message": "feat: hide or show the marks of each step of the break model by pressing their key, only while Your Runs stays open",
+          "timestamp": "2026-10-24T17:15:51+02:00",
+          "tree_id": "def085ef3e467f79275e906a99449a18d15ba41d",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/cb5cbd678bdf7e3bc2b531c2fce6ecd533d1e85e"
+        },
+        "date": 1792854982523,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 11182,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 22756,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 945,
+            "unit": "ms",
+            "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
           }
         ]
       }
