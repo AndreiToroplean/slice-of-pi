@@ -1,8 +1,9 @@
-import { Component, computed, input, model } from '@angular/core';
+import { Component, computed, input, model, signal } from '@angular/core';
 import type { Steps } from '../../game/grouping/break-models/steps';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { Carousel } from '../../ui/carousel';
 import { placeAnalysis } from './views/place-views';
+import type { Range } from './views/plot';
 import { PlotView } from './views/plot-view';
 
 /** How many of π's digits show on each side of the place. */
@@ -85,7 +86,12 @@ const CONTEXT = 6;
         </div>
       </section>
       @for (plot of analysis().plots; track plot.title; let index = $index) {
-        <app-plot-view class="view" [plot]="plot" [step]="index + 2 + '/' + count()" />
+        <app-plot-view
+          class="view"
+          [plot]="plot"
+          [step]="index + 2 + '/' + count()"
+          [(zoom)]="runZoom"
+        />
       }
       <section class="view">
         <div class="heading">
@@ -303,6 +309,8 @@ export class PlacePerspective {
   /** What each run is called, by its index in the steps' runs. */
   readonly titles = input<readonly string[]>([]);
 
+  /** The window of the runs the steps across them show, zoomed into on any of them: all of them if undefined. */
+  protected readonly runZoom = signal<Range | undefined>(undefined);
   protected readonly last = computed(() => Math.max(1, this.digitCount() - 1));
   protected readonly analysis = computed(() =>
     placeAnalysis({

@@ -631,4 +631,27 @@ describe('YourRuns', () => {
     expect(place()?.querySelector('.verdict')?.textContent.trim()).toBe('Break');
     expect(place()?.querySelectorAll('tbody tr')).toHaveLength(trusted.length);
   });
+
+  it('zooms the charts of the runs into the places zoomed into on the chart of all runs', async () => {
+    const { host, until } = await setUp(trusted);
+    const chart = host.querySelector<HTMLElement>('.summary app-run-chart');
+    if (chart === null) {
+      throw new Error('No chart');
+    }
+    chart.getBoundingClientRect = () => new DOMRect(0, 0, 290, 50);
+    // Halving the 29 places shown, around the first.
+    chart.dispatchEvent(
+      new WheelEvent('wheel', { clientX: 0, deltaY: Math.log(0.5) / 0.002, bubbles: true }),
+    );
+    await until(
+      () => host.querySelector('.runs app-run-chart svg')?.getAttribute('viewBox') !== '0 0 29 100',
+    );
+
+    expect(
+      Array.from(host.querySelectorAll('app-run-chart svg'), (svg) => svg.getAttribute('viewBox')),
+    ).toEqual(Array<string>(trusted.length + 1).fill('0 0 14.5 100'));
+    expect(
+      Array.from(host.querySelectorAll('.summary .axis span'), (span) => span.textContent),
+    ).toEqual(['Place 1', 'Place 16']);
+  });
 });

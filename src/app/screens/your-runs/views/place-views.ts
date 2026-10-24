@@ -79,7 +79,12 @@ function runsHere({ model, place }: PlaceInput): number[] {
 
 /** The x-axis of the plots across the runs: run k from k to k + 1, oldest first. */
 function acrossRuns(model: Steps): Plot['x'] {
-  return { min: 0, max: Math.max(1, model.runs.length), labels: ['Oldest run', 'Newest'] };
+  return {
+    min: 0,
+    max: Math.max(1, model.runs.length),
+    labels: ['Oldest run', 'Newest'],
+    label: (x) => `Run ${String(Math.min(model.runs.length, Math.floor(x) + 1))}`,
+  };
 }
 
 /** A percentage, to the nearest whole one, finer near the ends. */

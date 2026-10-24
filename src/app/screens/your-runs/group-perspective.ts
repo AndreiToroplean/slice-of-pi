@@ -1,8 +1,8 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { Carousel } from '../../ui/carousel';
 import { GroupList, ShownGroup } from './group-list';
 import { MyGroupings } from './my-groupings';
-import type { Plot } from './views/plot';
+import type { Plot, Range } from './views/plot';
 import { PlotView } from './views/plot-view';
 
 /**
@@ -57,7 +57,12 @@ import { PlotView } from './views/plot-view';
         </p>
       </section>
       @for (plot of plots(); track plot.title; let index = $index) {
-        <app-plot-view class="view" [plot]="plot" [step]="index + 3 + '/' + count()" />
+        <app-plot-view
+          class="view"
+          [plot]="plot"
+          [step]="index + 3 + '/' + count()"
+          [(zoom)]="groupZoom"
+        />
       }
     </app-carousel>
   `,
@@ -147,6 +152,8 @@ export class GroupPerspective {
   /** The views along the digits of a group. */
   readonly plots = input<readonly Plot[]>([]);
 
+  /** The window of the digits of a group the steps show, zoomed into on any of them: all of them if undefined. */
+  protected readonly groupZoom = signal<Range | undefined>(undefined);
   protected readonly myGroupings = inject(MyGroupings);
   /** How many steps the carousel has: the two lists of groups, then the plots. */
   protected readonly count = computed(() => this.plots().length + 2);

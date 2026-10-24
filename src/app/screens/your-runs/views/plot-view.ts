@@ -1,24 +1,32 @@
-import { Component, input, output } from '@angular/core';
-import type { Plot } from './plot';
+import { Component, computed, input, model, output } from '@angular/core';
+import type { Plot, Range } from './plot';
 import { PlotChart } from './plot-chart';
 import { PlotLegend } from './plot-legend';
+import { Zoom } from './zoom';
 
 /**
- * One step of the break model as a carousel shows it: its title and where it comes among the steps, its plot, the ends
- * of its x-axis, the key to its marks, and what it shows.
+ * One step of the break model as a carousel shows it: its title and where it comes among the steps, its plot, zoomed in
+ * and out along its x-axis, the ends of the window of it shown, the key to its marks, and what it shows.
  */
 @Component({
   selector: 'app-plot-view',
-  imports: [PlotChart, PlotLegend],
+  imports: [PlotChart, PlotLegend, Zoom],
   template: `
     <div class="heading">
       <h3>{{ plot().title }}</h3>
       <span class="step">{{ step() }}</span>
     </div>
-    <app-plot-chart [plot]="plot()" [marker]="marker()" (picked)="picked.emit($event)" />
+    <app-plot-chart
+      [plot]="plot()"
+      [marker]="marker()"
+      [window]="zoom()"
+      [appZoom]="plot().x"
+      [(zoom)]="zoom"
+      (picked)="picked.emit($event)"
+    />
     <p class="axis" aria-hidden="true">
-      <span>{{ plot().x.labels[0] }}</span
-      ><span>{{ plot().x.labels[1] }}</span>
+      <span>{{ labels()[0] }}</span
+      ><span>{{ labels()[1] }}</span>
     </p>
     @if (plot().legend; as keys) {
       <app-plot-legend [keys]="keys" />
@@ -71,4 +79,15 @@ export class PlotView {
   readonly marker = input<number>();
   /** Where the plot was tapped, in its x units. */
   readonly picked = output<number>();
+  /** The window of its x-axis shown, shared with the steps along the same axis: all of it if undefined. */
+  readonly zoom = model<Range | undefined>(undefined);
+
+  /** The ends of the x-axis shown, as they read. */
+  protected readonly labels = computed(() => {
+    const { x } = this.plot();
+    const zoom = this.zoom();
+    return zoom === undefined || x.label === undefined
+      ? x.labels
+      : ([x.label(zoom.min), x.label(zoom.max)] as const);
+  });
 }

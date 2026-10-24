@@ -15,6 +15,7 @@ import { areaPath, CHART_HEIGHT, chartPath, Series } from './run-charts';
       preserveAspectRatio="none"
       role="img"
       [attr.aria-label]="label()"
+      [class.zoomed]="window() !== undefined"
       (pointerup)="pickAt($event)"
     >
       @for (y of gridlines(); track y) {
@@ -62,6 +63,11 @@ import { areaPath, CHART_HEIGHT, chartPath, Series } from './run-charts';
       width: 100%;
       height: 100%;
       overflow: visible;
+    }
+
+    /* Zoomed in, the places out of the window on either side aren't drawn. */
+    svg.zoomed {
+      overflow: hidden;
     }
 
     .gridline {
@@ -133,15 +139,20 @@ export class RunChart {
   readonly others = input<readonly Series[]>([]);
   /** The place to mark, between the digit at this index and the one before: none if undefined. */
   readonly marker = input<number>();
+  /** The window of the places shown, zoomed in, by index: all of them if undefined. */
+  readonly window = input<{ readonly min: number; readonly max: number }>();
   /** The place tapped: the index of the digit after it. */
   readonly picked = output<number>();
 
   protected readonly height = CHART_HEIGHT;
   /** From place 1 at x = 0 to the last place. */
   protected readonly width = computed(() => Math.max(this.places() - 1, 1));
-  protected readonly viewBox = computed(
-    () => `0 0 ${String(this.width())} ${String(CHART_HEIGHT)}`,
-  );
+  /** The places shown: the window zoomed into, or all of them. */
+  private readonly shown = computed(() => this.window() ?? { min: 0, max: this.width() });
+  protected readonly viewBox = computed(() => {
+    const { min, max } = this.shown();
+    return `${String(min)} 0 ${String(max - min)} ${String(CHART_HEIGHT)}`;
+  });
   protected readonly path = computed(() => chartPath(this.values(), this.top()));
   protected readonly baselinePath = computed(() => chartPath(this.baseline(), this.top()));
   protected readonly otherPaths = computed(() =>
@@ -160,7 +171,10 @@ export class RunChart {
   protected pickAt(event: MouseEvent): void {
     const box = (event.currentTarget as Element).getBoundingClientRect();
     if (box.width > 0) {
-      this.picked.emit(Math.round(((event.clientX - box.left) / box.width) * this.width() + 0.5));
+      const { min, max } = this.shown();
+      this.picked.emit(
+        Math.round(min + ((event.clientX - box.left) / box.width) * (max - min) + 0.5),
+      );
     }
   }
 }
