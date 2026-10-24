@@ -1,55 +1,12 @@
-import type { Values } from '../../game/grouping/break-models/break-model';
-import type { BreakSettings } from '../../game/grouping/break-models/hyperparameters';
+import type { Values } from '../../../game/grouping/break-models/break-model';
+import type { BreakSettings } from '../../../game/grouping/break-models/hyperparameters';
 import {
   breakBoundary,
   Mixture,
   mixtureDensity,
-} from '../../game/grouping/break-models/statistics';
-import { priorMixture, Steps } from '../../game/grouping/break-models/steps';
-
-/** A point of a plot, in its own units. */
-export type Point = readonly [x: number, y: number];
-
-/**
- * What a mark stands for, which sets how it's drawn: what the break model makes of all the runs stands out, the runs
- * picked are thinner, breaks are red, what only helps reading is faint, and the settings shown are dashed.
- */
-export type Role = 'aggregate' | 'run' | 'break' | 'faint' | 'guide';
-
-/** One kind of mark on a plot. */
-export type Layer =
-  | {
-      readonly kind: 'line';
-      readonly points: readonly (Point | undefined)[];
-      readonly role: Role;
-      readonly color?: string;
-    }
-  | { readonly kind: 'dots'; readonly points: readonly Point[]; readonly role: Role }
-  | { readonly kind: 'hline'; readonly y: number; readonly role: Role; readonly color?: string }
-  | { readonly kind: 'vline'; readonly x: number; readonly role: Role; readonly color?: string }
-  | { readonly kind: 'band'; readonly from: number; readonly to: number; readonly role: Role }
-  | {
-      readonly kind: 'bars';
-      readonly bars: readonly {
-        readonly from: number;
-        readonly to: number;
-        readonly height: number;
-      }[];
-      readonly role: Role;
-    };
-
-/** A plot of one step of the break model: what it shows, its ranges, and its marks, the first drawn first. */
-export interface Plot {
-  readonly title: string;
-  readonly caption: string;
-  readonly x: {
-    readonly min: number;
-    readonly max: number;
-    readonly labels: readonly [string, string];
-  };
-  readonly y: { readonly min: number; readonly max: number };
-  readonly layers: readonly Layer[];
-}
+} from '../../../game/grouping/break-models/statistics';
+import { priorMixture, Steps } from '../../../game/grouping/break-models/steps';
+import { alongPlaces, clamp, Layer, Plot, Point, pointsOf } from './plot';
 
 /** What the views are made of: the steps of the model over the runs counted, and what of them to show. */
 export interface ViewInput {
@@ -199,22 +156,6 @@ function clampRange({ min, max }: { readonly min: number; readonly max: number }
   readonly max: number;
 } {
   return { min: Math.max(RESIDUALS.min, min), max: Math.min(RESIDUALS.max, max) };
-}
-
-function alongPlaces(places: number): Plot['x'] {
-  return { min: 0, max: Math.max(places - 1, 1), labels: ['Place 1', `Place ${String(places)}`] };
-}
-
-function clamp(
-  value: number,
-  { min, max }: { readonly min: number; readonly max: number },
-): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-/** The points of values by index, at their places. */
-function pointsOf(values: Values): (Point | undefined)[] {
-  return values.map((value, i) => (value === undefined ? undefined : ([i, value] as const)));
 }
 
 /**

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Plot } from './model-views';
+import { Plot } from './plot';
 import { PlotChart } from './plot-chart';
 
 describe('PlotChart', () => {

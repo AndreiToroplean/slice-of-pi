@@ -3,7 +3,7 @@ import { WRITE_CLIPBOARD } from '../tuning/copy-values';
 import { groupingText, Tweaks } from '../../developer-mode/tweaks';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import { ChartGuides } from './chart-guides';
-import { GUIDE_COLORS } from './model-views';
+import { GUIDE_COLORS } from './views/model-views';
 import type {
   BreakModelKind,
   Hyperparameter,
