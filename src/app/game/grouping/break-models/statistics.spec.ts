@@ -1,6 +1,7 @@
 import { MERCURY_DEFAULTS } from './mercury';
 import {
   betaCdf,
+  betaDensity,
   breakBoundary,
   centeredMedian,
   fitMixture,
@@ -114,5 +115,17 @@ describe('the break boundary', () => {
 
   it('is the normal mean when anything slower is already likely a break', () => {
     expect(breakBoundary(mixture, 0.0001)).toBe(mixture.mean[0]);
+  });
+});
+
+describe('the Beta density', () => {
+  it('is the slope of the Beta distribution function', () => {
+    const [a, b, x, h] = [3, 5, 0.3, 1e-6];
+
+    expect(betaDensity(x, a, b)).toBeCloseTo(
+      (betaCdf(x + h, a, b) - betaCdf(x - h, a, b)) / (2 * h),
+      5,
+    );
+    expect(betaDensity(0.4, 1, 1)).toBeCloseTo(1, 12);
   });
 });

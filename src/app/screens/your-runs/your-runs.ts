@@ -25,8 +25,10 @@ import { CONFIRM } from '../../ui/confirm';
 import { FitToGroupingsDialog } from './fit-to-groupings-dialog';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { LongPress } from '../../ui/long-press';
+import { PlacePerspective } from './place-perspective';
 import { ChartGuides } from './chart-guides';
 import { modelViews, timeGuides } from './views/model-views';
+import type { Plot } from './views/plot';
 import { PlotChart } from './views/plot-chart';
 import { plural } from '../../ui/plural';
 import { RunChart } from './run-chart';
@@ -34,11 +36,13 @@ import { chartTop, digitTimes } from './run-charts';
 
 /**
  * The player's runs, opened from the main menu's overflow menu, on one screen: a chart of them all on top, and under it
- * a chart of each run, scrolling. In developer mode, tabs beside the runs hold sliders for the hyperparameters of the
- * break model, so they can be tuned in view of the chart of them all, and never moved by scrolling, and a dialog fits them
- * to the player's own groups. A long press on a run opens its context menu, to delete it or, in developer
- * mode, play from after it, as if the runs after it had never been played, until undone; one on all runs, in developer
- * mode, to play from before them all, as if none had been played.
+ * a chart of each run, scrolling. In developer mode, the chart on top steps through what the break model makes of the
+ * runs, in two perspectives: along the places, over the runs, or across the runs at the place picked by tapping a chart
+ * of the first. Tabs beside the runs hold sliders for the hyperparameters of the break model, so they can be tuned in
+ * view of the chart of them all, and never moved by scrolling, and a dialog fits them to the player's own groups. A
+ * long press on a run opens its context menu, to delete it or, in developer mode, play from after it, as if the runs
+ * after it had never been played, until undone; one on all runs, in developer mode, to play from before them all, as if
+ * none had been played.
  */
 @Component({
   selector: 'app-your-runs',
@@ -54,6 +58,7 @@ import { chartTop, digitTimes } from './run-charts';
     LongPress,
     NgTemplateOutlet,
     Page,
+    PlacePerspective,
     PlotChart,
     RunChart,
   ],
@@ -71,31 +76,84 @@ import { chartTop, digitTimes } from './run-charts';
       @if (charts().length > 0) {
         <article class="panel summary">
           @if (developerMode()) {
-            <!-- In developer mode, the steps of the break model, one after the other. -->
-            <app-carousel label="The break model, step by step">
-              <section class="view">
-                <div class="heading">
-                  <h3>{{ summaryTitle() }}</h3>
-                  <span class="step">1/{{ views().length + 1 }}</span>
-                </div>
-                <ng-container [ngTemplateOutlet]="timesChart" />
-                <p class="caption">The time per digit, along the places.</p>
-              </section>
-              @for (plot of views(); track plot.title; let index = $index) {
+            <!--
+              In developer mode, the steps of the break model, one after the other: along the places, over the runs,
+              or at the place picked on them, across the runs.
+            -->
+            <div class="perspectives" role="tablist" aria-label="Perspective">
+              @for (each of PERSPECTIVES; track each.id) {
+                <button
+                  type="button"
+                  role="tab"
+                  [id]="'tab-' + each.id"
+                  [attr.aria-controls]="'perspective-' + each.id"
+                  [attr.aria-selected]="perspective() === each.id"
+                  (click)="perspective.set(each.id)"
+                >
+                  {{ each.label }}
+                </button>
+              }
+            </div>
+            <div
+              role="tabpanel"
+              id="perspective-run"
+              aria-labelledby="tab-run"
+              [hidden]="perspective() !== 'run'"
+            >
+              <app-carousel label="The break model along the places, step by step">
                 <section class="view">
                   <div class="heading">
-                    <h3>{{ plot.title }}</h3>
-                    <span class="step">{{ index + 2 }}/{{ views().length + 1 }}</span>
+                    <h3>{{ summaryTitle() }}</h3>
+                    <span class="step">1/{{ views().length + 1 }}</span>
                   </div>
-                  <app-plot-chart [plot]="plot" />
-                  <p class="axis" aria-hidden="true">
-                    <span>{{ plot.x.labels[0] }}</span
-                    ><span>{{ plot.x.labels[1] }}</span>
+                  <ng-container [ngTemplateOutlet]="timesChart" />
+                  <p class="caption">
+                    The time per digit, along the places. Tap a chart to pick a place.
                   </p>
-                  <p class="caption">{{ plot.caption }}</p>
                 </section>
+                @for (plot of views(); track plot.title; let index = $index) {
+                  <section class="view">
+                    <div class="heading">
+                      <h3>{{ plot.title }}</h3>
+                      <span class="step">{{ index + 2 }}/{{ views().length + 1 }}</span>
+                    </div>
+                    <app-plot-chart
+                      [plot]="plot"
+                      [marker]="plot.x.places ? place() : undefined"
+                      (picked)="pickPlaceOn(plot, $event)"
+                    />
+                    <p class="axis" aria-hidden="true">
+                      <span>{{ plot.x.labels[0] }}</span
+                      ><span>{{ plot.x.labels[1] }}</span>
+                    </p>
+                    <p class="caption">{{ plot.caption }}</p>
+                  </section>
+                }
+              </app-carousel>
+            </div>
+            <div
+              role="tabpanel"
+              id="perspective-place"
+              aria-labelledby="tab-place"
+              [hidden]="perspective() !== 'place'"
+            >
+              @if (steps(); as model) {
+                @if (places() > 1) {
+                  <app-place-perspective
+                    [steps]="model"
+                    [place]="place()"
+                    [digitCount]="places()"
+                    [picked]="pickedRuns()"
+                    [titles]="titles()"
+                    (placeChange)="pickedPlace.set($event)"
+                  />
+                } @else {
+                  <p>No places yet: each game you play adds some.</p>
+                }
+              } @else {
+                <p>This break model doesn’t show its steps.</p>
               }
-            </app-carousel>
+            </div>
           } @else {
             <h3>{{ summaryTitle() }}</h3>
             <ng-container [ngTemplateOutlet]="timesChart" />
@@ -167,7 +225,9 @@ import { chartTop, digitTimes } from './run-charts';
         [guides]="aggregateShown() ? aggregateChart().guides : []"
         [places]="places()"
         [top]="top()"
+        [marker]="developerMode() ? place() : undefined"
         label="Time per digit over all runs, recent ones weighing more, with your usual break spots"
+        (picked)="pickPlace($event)"
       />
       <p class="axis" aria-hidden="true">
         <span>Place 1</span><span>Place {{ places() }}</span>
@@ -384,6 +444,29 @@ export class YourRuns {
           .map((chart) => chart.times)
       : [],
   );
+  /** In developer mode, which perspective on the break model the card on top shows. */
+  protected readonly perspective = signal<Perspective>('run');
+  protected readonly PERSPECTIVES = PERSPECTIVES;
+  /** The runs picked, by their index among the runs counted, as the steps have them. */
+  protected readonly pickedRuns = computed(() =>
+    this.counted().flatMap((run, k) => (this.selected().has(run.id) ? [k] : [])),
+  );
+  /** What each run counted is called, as the steps have them. */
+  protected readonly titles = computed(() =>
+    this.counted().map((run) => dateAndTime.format(run.startedAt)),
+  );
+  /**
+   * In developer mode, the place the place perspective shows, and that the plots along the places mark: the
+   * boundary before the digit at this index. Until one is picked, where the first group ends.
+   */
+  protected readonly pickedPlace = signal<number | undefined>(undefined);
+  protected readonly place = computed(() => {
+    const first = this.stats().groups.find((group) => !group.open);
+    return Math.min(
+      Math.max(1, this.places() - 1),
+      this.pickedPlace() ?? (first === undefined ? 1 : first.start + first.size),
+    );
+  });
   /** In developer mode, the steps of the break model after the times, for all the runs and those picked. */
   protected readonly views = computed(() => {
     const steps = this.steps();
@@ -391,7 +474,7 @@ export class YourRuns {
       ? []
       : modelViews({
           model: steps,
-          picked: this.counted().flatMap((run, k) => (this.selected().has(run.id) ? [k] : [])),
+          picked: this.pickedRuns(),
           aggregate: this.aggregateShown(),
           places: this.places(),
           guides: this.guides(),
@@ -461,6 +544,21 @@ export class YourRuns {
       }
       return next;
     });
+  }
+
+  /** Picks the place tapped on the chart of times, in developer mode, for the place perspective. */
+  protected pickPlace(place: number): void {
+    if (!this.developerMode()) {
+      return;
+    }
+    this.pickedPlace.set(place);
+  }
+
+  /** Picks the place tapped on a plot along the places, if it's one. */
+  protected pickPlaceOn(plot: Plot, x: number): void {
+    if (plot.x.places === true) {
+      this.pickPlace(Math.round(x));
+    }
   }
 
   /** Opens the context menu of a run long pressed, where it was pressed. */
@@ -586,6 +684,14 @@ export class YourRuns {
     this.loaded.set(true);
   }
 }
+
+/** The perspectives on the break model: along the places, over the runs, or across the runs, at one place. */
+type Perspective = 'run' | 'place';
+
+const PERSPECTIVES: readonly { readonly id: Perspective; readonly label: string }[] = [
+  { id: 'run', label: 'Run Perspective' },
+  { id: 'place', label: 'Place Perspective' },
+];
 
 /** What's picked for the context menu when it's all runs rather than one: no run's id is empty. */
 const ALL = '';

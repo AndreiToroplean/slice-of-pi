@@ -613,4 +613,22 @@ describe('YourRuns', () => {
       Array.from(host.querySelectorAll('.summary .axis span'), (span) => span.textContent),
     ).toEqual(['Place 1', 'Place 2']);
   });
+
+  it('shows what the break model makes of a place tapped on a chart, in developer mode', async () => {
+    const { host, until } = await setUp(trusted, false, false, undefined, true);
+    const chart = host.querySelector<SVGElement>('.summary app-run-chart svg');
+    if (chart === null) {
+      throw new Error('No chart');
+    }
+    // 30 places across 290 pixels: 10 to a place, the boundary before index 6 at 55.
+    chart.getBoundingClientRect = () => new DOMRect(0, 0, 290, 50);
+    chart.dispatchEvent(new MouseEvent('pointerup', { clientX: 56 }));
+    button(host, 'Place Perspective').click();
+    const place = () => host.querySelector('app-place-perspective');
+    await until(() => place()?.querySelector('h3')?.textContent.includes('Places 6 | 7') === true);
+
+    expect(place()?.closest<HTMLElement>('[role="tabpanel"]')?.hidden).toBe(false);
+    expect(place()?.querySelector('.verdict')?.textContent.trim()).toBe('Break');
+    expect(place()?.querySelectorAll('tbody tr')).toHaveLength(trusted.length);
+  });
 });

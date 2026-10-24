@@ -1,11 +1,11 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import type { Break } from '../../game/grouping/break-models/break-model';
 import { areaPath, CHART_HEIGHT, chartPath, Series } from './run-charts';
 
 /**
  * A chart of the time per digit along the places of π: pauses are peaks. It can add what the break model makes of
  * them: the baseline, the time expected without a break, red bars at the breaks, and an area at the bottom for how
- * confident the verdicts are, and other series to compare with.
+ * confident the verdicts are, and other series to compare with. It can mark a place, and tells which is tapped.
  */
 @Component({
   selector: 'app-run-chart',
@@ -15,6 +15,7 @@ import { areaPath, CHART_HEIGHT, chartPath, Series } from './run-charts';
       preserveAspectRatio="none"
       role="img"
       [attr.aria-label]="label()"
+      (pointerup)="pickAt($event)"
     >
       @for (y of gridlines(); track y) {
         <line class="gridline" x1="0" [attr.x2]="width()" [attr.y1]="y" [attr.y2]="y" />
@@ -42,6 +43,15 @@ import { areaPath, CHART_HEIGHT, chartPath, Series } from './run-charts';
         <path class="baseline" [attr.d]="path" />
       }
       <path class="line" [attr.d]="path()" />
+      @if (marker(); as place) {
+        <line
+          class="marker"
+          [attr.x1]="place - 0.5"
+          [attr.x2]="place - 0.5"
+          y1="0"
+          [attr.y2]="height"
+        />
+      }
     </svg>
   `,
   styles: `
@@ -106,6 +116,15 @@ import { areaPath, CHART_HEIGHT, chartPath, Series } from './run-charts';
       fill: currentColor;
       fill-opacity: 0.2;
     }
+
+    /* The place picked, between two digits, as on the plots of the break model. */
+    .marker {
+      stroke: currentColor;
+      stroke-width: 1.5;
+      stroke-opacity: 0.8;
+      stroke-dasharray: 2 2;
+      vector-effect: non-scaling-stroke;
+    }
   `,
 })
 export class RunChart {
@@ -125,6 +144,10 @@ export class RunChart {
   readonly others = input<readonly Series[]>([]);
   /** The settings shown on the chart, as dashed lines of times, each in its color. */
   readonly guides = input<readonly { readonly series: Series; readonly color: string }[]>([]);
+  /** The place to mark, between the digit at this index and the one before: none if undefined. */
+  readonly marker = input<number>();
+  /** The place tapped: the index of the digit after it. */
+  readonly picked = output<number>();
 
   protected readonly height = CHART_HEIGHT;
   /** From place 1 at x = 0 to the last place. */
@@ -148,4 +171,12 @@ export class RunChart {
       (_, i) => CHART_HEIGHT * (1 - ((i + 1) * 1000) / this.top()),
     ),
   );
+
+  /** Tells which place was tapped: the boundary nearest to where. */
+  protected pickAt(event: MouseEvent): void {
+    const box = (event.currentTarget as Element).getBoundingClientRect();
+    if (box.width > 0) {
+      this.picked.emit(Math.round(((event.clientX - box.left) / box.width) * this.width() + 0.5));
+    }
+  }
 }
