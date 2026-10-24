@@ -3,18 +3,31 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "ng serve",
+      "name": "Debug",
       "type": "chrome",
       "request": "launch",
-      "preLaunchTask": "npm: start",
-      "url": "http://localhost:4200/"
+      "url": "http://localhost:4200",
+      "webRoot": "${workspaceFolder}",
+      "sourceMaps": true,
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/node_modules/**",
+        "${workspaceFolder}/.angular/**"
+      ],
+      "smartStep": true
     },
     {
-      "name": "ng test",
-      "type": "chrome",
+      "name": "Serve",
+      "command": "npm start",
       "request": "launch",
-      "preLaunchTask": "npm: test",
-      "url": "http://localhost:9876/debug.html"
+      "type": "node-terminal",
+      "cwd": "${workspaceFolder}"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Launch",
+      "configurations": ["Serve", "Debug"]
     }
   ]
 }
