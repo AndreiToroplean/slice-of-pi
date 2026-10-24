@@ -7,7 +7,7 @@ import { Season, SEASONS } from '../../game/layers/seasons';
 import { colorDifference } from '../../game/color/color-math';
 import { ColorPicker } from './color-picker';
 import { CopyValues } from './copy-values';
-import { paletteText, SEASON_STARTS, Tweaks } from '../../developer-mode/tweaks';
+import { SEASON_STARTS, Tweaks } from '../../developer-mode/tweaks';
 
 /** The palette's colors, by name, in key order. */
 export const COLOR_NAMES = [
@@ -83,7 +83,7 @@ export const CLOSE = 15;
         [neighbors]="neighbors()"
         (colorChange)="tune($event)"
       />
-      <app-copy-values [text]="copyText()" />
+      <app-copy-values [values]="{ palette: hexes() }" />
     </app-page>
   `,
   styleUrl: './key-colors.css',
@@ -112,7 +112,6 @@ export class KeyColors {
   });
   protected readonly tuned = computed(() => this.hexes().some((color, i) => color !== PALETTE[i]));
   /** The colors as text, to hand back so they go into the code. */
-  protected readonly copyText = computed(() => paletteText(this.hexes()));
   /** The season whose background the grid is shown on. */
   protected readonly background = signal<Season>('spring');
 

@@ -13,7 +13,7 @@
 
 # Tuning
 
-- To tune a game parameter or compare options for it (colors, color spaces, timings, …), add a control for it to a developer mode page, or a new page in the Developer section, instead of building a separate mockup: the owner tries it in the real game on his phone, the tweak applies to the whole game while developer mode is on, and the page's copy button hands the value back to go into the code. See the glossary's developer mode and tweaks (`design/glossary.md`).
+- To tune a game parameter or compare options for it (colors, color spaces, timings, …), add a control for it to a developer mode page, or a new page in the Developer section, instead of building a separate mockup: the owner tries it in the real game on his phone, the tweak applies to the whole game while developer mode is on, and the page's copy button hands the values back to go into the code, as the JSON of a backup file holding them alone (the one format to read). See the glossary's developer mode and tweaks (`design/glossary.md`).
 
 # Quality
 

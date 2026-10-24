@@ -4,7 +4,8 @@ import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs'
 import { installPopovers, uninstallPopovers } from '../../../testing/fake-popovers';
 import { WRITE_CLIPBOARD } from '../tuning/copy-values';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
-import { groupingText, Tweaks } from '../../developer-mode/tweaks';
+import { parseTweaks, Tweaks, TWEAKS } from '../../developer-mode/tweaks';
+import { readBackup } from '../../player-data/backup';
 import { INDEXED_DB, IS_PREVIEW } from '../../player-data/run-store';
 import type {
   BreakModelKind,
@@ -296,14 +297,19 @@ describe('GroupingSettingsPanel', () => {
     expect(tweaks.values().grouping).toBeUndefined();
   });
 
-  it('copies the values of the settings', async () => {
+  it('copies the break model and the values of all its settings, as a backup holding them', async () => {
     const { host, detect } = await setUp();
 
     move(slider(host, 'level'), 0.95);
     detect();
     buttonLabelled(host, 'Copy Hyperparameter Values').click();
     await vi.waitFor(() => {
-      expect(copied).toEqual([groupingText(MERCURY, { ...MERCURY_DEFAULTS, level: 0.95 })]);
+      expect(copied).toHaveLength(1);
+    });
+    const backup = readBackup(copied[0] ?? '');
+    expect('settings' in backup && parseTweaks(backup.settings[TWEAKS])).toEqual({
+      breakModel: MERCURY.id,
+      grouping: { mercury: { ...MERCURY_DEFAULTS, level: 0.95 } },
     });
   });
 
