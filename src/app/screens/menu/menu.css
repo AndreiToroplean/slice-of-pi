@@ -104,12 +104,6 @@ app-dropdown-menu {
   position: absolute;
   top: 0.625rem;
   left: 0.75rem;
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 50%;
-  color: inherit;
 }
 
 .settings svg {

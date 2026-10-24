@@ -13,7 +13,13 @@ import { Candy } from '../../../ui/candy';
   imports: [ButtonList, Candy],
   host: { '(document:keydown.escape)': 'escape($event)' },
   template: `
-    <button type="button" class="frosted pause-button" aria-label="Pause" (click)="pause()">
+    <button
+      type="button"
+      appCandy="clear"
+      class="corner pause-button"
+      aria-label="Pause"
+      (click)="pause()"
+    >
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="6" y="5" width="4" height="14" rx="1.5" />
         <rect x="14" y="5" width="4" height="14" rx="1.5" />

@@ -19,10 +19,11 @@ export class App {
 
   /**
    * A mouse over a candy button gives it the focus, as in a game's menu, where the mouse and the keys pick out the same
-   * button, one at a time (see `Candy`). Other buttons hover as usual.
+   * button, one at a time (see `Candy`). A see-through one, and other buttons, hover as usual.
    */
   protected hover(event: PointerEvent): void {
-    const candy = event.target instanceof Element ? event.target.closest('.candy') : null;
+    const candy =
+      event.target instanceof Element ? event.target.closest('.candy:not(.clear)') : null;
     if (event.pointerType !== 'mouse' || candy === null) {
       return;
     }

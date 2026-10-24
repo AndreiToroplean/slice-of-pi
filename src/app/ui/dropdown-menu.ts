@@ -1,18 +1,19 @@
 import { Component, ElementRef, input, viewChild } from '@angular/core';
 import { ArrowFocus } from './arrow-focus';
+import { Candy } from './candy';
 
 /** Tells menus apart, so that each button opens its own, and each menu opens from its own anchor. */
 let menus = 0;
 
 /**
  * A menu: a frosted dropdown holding what is given to it (links, buttons and toggles, see `.dropdown` in `styles.css`),
- * opened by a small frosted ⋮ button, or, without it, where something was pressed (`openAt`). The browser places it,
+ * opened by a ⋮ button for a screen's corner, or, without it, where something was pressed (`openAt`). The browser places it,
  * closes it on a tap outside or on Escape; choosing one of its buttons closes it too. It opens ready for the keyboard:
  * up and down move between its items, and Enter on a toggle flips it and closes the menu, as on a button.
  */
 @Component({
   selector: 'app-dropdown-menu',
-  imports: [ArrowFocus],
+  imports: [ArrowFocus, Candy],
   // Without its button, only an anchor and the menu, which the browser places: no place of its own where it's put.
   host: {
     '(click)': 'chosen($event)',
@@ -23,7 +24,8 @@ let menus = 0;
     @if (button()) {
       <button
         type="button"
-        class="frosted more"
+        appCandy="clear"
+        class="corner more"
         [attr.aria-label]="label()"
         [attr.popovertarget]="id"
         [style.anchor-name]="anchor"
@@ -53,15 +55,6 @@ let menus = 0;
     </div>
   `,
   styles: `
-    .more {
-      display: grid;
-      place-items: center;
-      width: 2.75rem;
-      height: 2.75rem;
-      padding: 0;
-      border-radius: 50%;
-    }
-
     .more svg {
       width: 1.25rem;
       height: 1.25rem;
