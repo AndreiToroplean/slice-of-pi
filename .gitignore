@@ -49,3 +49,6 @@ Thumbs.db
 
 # What the Playwright MCP server leaves behind
 .playwright-mcp/
+
+# Scratch folders
+_*/
