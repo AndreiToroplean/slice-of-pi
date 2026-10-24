@@ -10,6 +10,10 @@ h2 {
   text-shadow: var(--text-shadow);
 }
 
+app-segmented {
+  font-size: 0.9375rem;
+}
+
 /* A setting, with its button to bring back its default value on the right. */
 .row {
   display: grid;

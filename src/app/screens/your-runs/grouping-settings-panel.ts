@@ -10,6 +10,7 @@ import type {
 } from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import { Candy } from '../../ui/candy';
+import { Segment, Segmented } from '../../ui/segmented';
 
 /** The tab of what is given to the panel. */
 const RUNS_TAB = 'Runs';
@@ -60,23 +61,16 @@ function keysOf(kind: BreakModelKind): string[] {
  */
 @Component({
   selector: 'app-grouping-settings-panel',
-  imports: [Candy, DropdownMenu],
+  imports: [Candy, DropdownMenu, Segmented],
   template: `
     <div class="bar">
-      <div class="tabs" role="tablist" aria-label="Your runs and the grouping settings">
-        @for (name of tabNames(); track name) {
-          <button
-            type="button"
-            role="tab"
-            [id]="'tab-' + name"
-            [attr.aria-controls]="'pane-' + name"
-            [attr.aria-selected]="tab() === name"
-            (click)="show(name, $event)"
-          >
-            {{ name }}
-          </button>
-        }
-      </div>
+      <app-segmented
+        class="tabs"
+        label="Your runs and the grouping settings"
+        panels="pane"
+        [segments]="tabs()"
+        [(value)]="tab"
+      />
       <app-dropdown-menu>
         <button type="button" class="model" disabled>
           Model: {{ kind().label }} Is Selected
@@ -109,7 +103,7 @@ function keysOf(kind: BreakModelKind): string[] {
       class="pane runs-pane"
       role="tabpanel"
       id="pane-Runs"
-      aria-labelledby="tab-Runs"
+      aria-labelledby="pane-tab-Runs"
       [hidden]="tab() !== runsTab"
     >
       <ng-content />
@@ -119,7 +113,7 @@ function keysOf(kind: BreakModelKind): string[] {
         class="pane settings"
         role="tabpanel"
         [id]="'pane-' + settingTab.name"
-        [attr.aria-labelledby]="'tab-' + settingTab.name"
+        [attr.aria-labelledby]="'pane-tab-' + settingTab.name"
         [hidden]="tab() !== settingTab.name"
       >
         @for (row of rowsOf(settingTab.hyperparameters); track row.sliders[0]?.key) {
@@ -241,47 +235,10 @@ function keysOf(kind: BreakModelKind): string[] {
       gap: var(--space-2);
     }
 
-    /* The tabs, on a frosted strip: the one shown is white. */
+    /* The tabs (see \`Segmented\`), filling the bar beside the menu. */
     .tabs {
       flex: 1;
       min-width: 0;
-      display: flex;
-      gap: 0.25rem;
-      padding: 0.1875rem;
-      border-radius: 1rem;
-      background: var(--frost);
-      box-shadow: inset 0 1px 0 var(--frost-highlight);
-      /* Too many to fit, they scroll sideways rather than squeeze their names. */
-      overflow-x: auto;
-      overscroll-behavior-x: contain;
-      scrollbar-width: none;
-    }
-
-    [role='tab'] {
-      /* As wide as its name, sharing what width is left. */
-      flex: 1 0 auto;
-      padding: 0.5rem 0.375rem;
-      border: none;
-      border-radius: 0.8125rem;
-      background: none;
-      color: inherit;
-      font: inherit;
-      font-size: 0.8125rem;
-      font-weight: 500;
-      text-shadow: var(--text-shadow);
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    [role='tab'][aria-selected='true'] {
-      background: var(--candy);
-      color: var(--on-candy);
-      text-shadow: none;
-    }
-
-    [role='tab']:focus-visible {
-      outline: 0.1875rem solid var(--focus-ring);
-      outline-offset: 0.125rem;
     }
 
     .pane {
@@ -433,10 +390,12 @@ export class GroupingSettingsPanel {
   protected readonly otherModels = computed(() =>
     BREAK_MODELS.filter((each) => each !== this.kind()),
   );
-  protected readonly tabNames = computed(() => [
-    RUNS_TAB,
-    ...this.kind().tabs.map(({ name }) => name),
-  ]);
+  protected readonly tabs = computed((): readonly Segment<string>[] =>
+    [RUNS_TAB, ...this.kind().tabs.map(({ name }) => name)].map((name) => ({
+      value: name,
+      label: name,
+    })),
+  );
   /** The tab shown. */
   protected readonly tab = signal(RUNS_TAB);
   /** The setting whose help is open, if any. */
@@ -474,17 +433,6 @@ export class GroupingSettingsPanel {
   });
 
   /** Shows the tab, the whole of it in the row of tabs, which may have scrolled it out of sight. */
-  protected show(name: string, event: Event): void {
-    this.tab.set(name);
-    const button = event.currentTarget as HTMLElement;
-    const row = button.parentElement;
-    if (row === null) {
-      return;
-    }
-    const [shown, all] = [button.getBoundingClientRect(), row.getBoundingClientRect()];
-    row.scrollLeft += Math.min(0, shown.left - all.left) + Math.max(0, shown.right - all.right);
-  }
-
   protected formatted(control: Hyperparameter): string {
     return control.format(this.position(control));
   }
