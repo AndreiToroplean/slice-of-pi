@@ -78,6 +78,33 @@ describe('Pause', () => {
     expect(dialog.querySelector('button')?.hasAttribute('autofocus')).toBe(true);
   });
 
+  it('moves between its buttons with the up and down keys, round from either end', async () => {
+    const { dialog, click } = await setUp();
+    await click('Pause');
+    const focused = (): string | undefined => document.activeElement?.textContent.trim();
+    const press = (key: string): KeyboardEvent => {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+      const active = document.activeElement;
+      (active !== null && dialog.contains(active)
+        ? active
+        : dialog.querySelector('app-button-list')
+      )?.dispatchEvent(event);
+      return event;
+    };
+
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(press('ArrowUp').defaultPrevented).toBe(true);
+    expect(focused()).toBe('End Game');
+    press('ArrowDown');
+    expect(focused()).toBe('Resume');
+    press('ArrowDown');
+    expect(focused()).toBe('Restart');
+    press('ArrowUp');
+    expect(focused()).toBe('Resume');
+    press('ArrowUp');
+    expect(focused()).toBe('End Game');
+  });
+
   for (const label of ['Resume', 'Restart', 'End Game']) {
     it(`closes and resumes on ${label}`, async () => {
       const { pause, dialog, click } = await setUp();

@@ -4,7 +4,8 @@ import { ButtonList } from '../../../ui/button-list';
 
 /**
  * The pause button, and the dialog it opens over the game: resume, restart the game, or end it, back to the main
- * menu. Escape pauses too, and resumes.
+ * menu. Escape pauses too, and resumes; up and down move between the dialog's buttons, and Enter chooses one, as on
+ * any button.
  */
 @Component({
   selector: 'app-pause',
