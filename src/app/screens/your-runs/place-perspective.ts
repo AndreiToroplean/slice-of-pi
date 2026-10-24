@@ -130,6 +130,8 @@ const CONTEXT = 6;
     :host {
       display: grid;
       gap: 0.375rem;
+      /* As narrow as whatever holds it, however wide its carousel's steps side by side. */
+      min-width: 0;
     }
 
     .picker {

@@ -130,6 +130,7 @@ import { chartTop, digitTimes } from './run-charts';
                   </section>
                 }
               </app-carousel>
+              <ng-container [ngTemplateOutlet]="groupList" />
             </div>
             <div
               role="tabpanel"
@@ -157,12 +158,8 @@ import { chartTop, digitTimes } from './run-charts';
           } @else {
             <h3>{{ summaryTitle() }}</h3>
             <ng-container [ngTemplateOutlet]="timesChart" />
+            <ng-container [ngTemplateOutlet]="groupList" />
           }
-          <ul class="groups" aria-label="Your groups" tabindex="0">
-            @for (group of groups(); track group.start) {
-              <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
-            }
-          </ul>
         </article>
       }
       @if (developerMode()) {
@@ -232,6 +229,14 @@ import { chartTop, digitTimes } from './run-charts';
       <p class="axis" aria-hidden="true">
         <span>Place 1</span><span>Place {{ places() }}</span>
       </p>
+    </ng-template>
+    <!-- The groups of all runs. -->
+    <ng-template #groupList>
+      <ul class="groups" aria-label="Your groups" tabindex="0">
+        @for (group of groups(); track group.start) {
+          <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
+        }
+      </ul>
     </ng-template>
     <!-- The runs, scrolling under the chart of them all: the only part of the page that scrolls. -->
     <ng-template #runList>
