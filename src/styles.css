@@ -188,7 +188,8 @@ body {
   padding: 0.75rem;
   border: none;
   border-radius: var(--radius-key);
-  background: var(--candy);
+  /* Its face, and its shine, off it until it's picked out (see below). */
+  background: var(--candy-shine) var(--candy);
   box-shadow:
     0 0.3125rem 0 var(--candy-edge),
     0 0.5rem 1.25rem rgb(40 20 60 / 18%);
@@ -229,12 +230,6 @@ body {
     0 0.25rem 0.75rem rgb(40 20 60 / 18%);
 }
 
-.frosted:focus-visible,
-.candy:focus-visible {
-  outline: 0.1875rem solid var(--focus-ring);
-  outline-offset: 0.25rem;
-}
-
 /* A small candy button, such as in the top bar of a page. */
 .candy.small {
   padding: 0.375rem 0.75rem;
@@ -245,6 +240,77 @@ body {
   &:active {
     translate: 0 0.125rem;
     box-shadow: 0 0.0625rem 0 var(--candy-edge);
+  }
+}
+
+/*
+ * What the keyboard is on is picked out as in a game's menu, rather than ringed. A candy button breathes, growing a
+ * little and back, and its face shines, until pressed (the mouse picks one out too, see `App`); a simpler button
+ * glows. Their outline stays, transparent, for when the system forces its own colors, which show it.
+ */
+:root {
+  --candy-shine: linear-gradient(
+      110deg,
+      transparent 35%,
+      rgb(255 255 255 / 55%) 50%,
+      transparent 65%
+    )
+    150% 0 / 250% 100% no-repeat;
+  --candy-picked: breathe 0.6s var(--ease) infinite alternate, shine 2.4s ease-in-out infinite;
+  --selected-glow: 0 0 0.4rem 0.25rem rgb(255 255 255 / 75%);
+}
+
+:is(.candy, .frosted, .round):focus-visible,
+.candy:has(input:focus-visible) {
+  outline: 0.1875rem solid transparent;
+}
+
+.candy:focus-visible,
+.candy:has(input:focus-visible) {
+  animation: var(--candy-picked);
+}
+
+.candy:active {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .candy:is(:focus-visible, :has(input:focus-visible)) {
+    scale: 1.05;
+    animation: none;
+  }
+}
+
+.frosted:focus-visible {
+  background: var(--frost-pressed);
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    var(--selected-glow);
+}
+
+.round:focus-visible {
+  box-shadow: var(--selected-glow);
+}
+
+@keyframes breathe {
+  from {
+    scale: 1.03;
+  }
+
+  to {
+    scale: 1.07;
+  }
+}
+
+/* A sweep across, then a rest. */
+@keyframes shine {
+  from {
+    background-position: 150% 0;
+  }
+
+  60%,
+  to {
+    background-position: -50% 0;
   }
 }
 
@@ -265,11 +331,6 @@ body {
 
 .round:disabled {
   opacity: 0.4;
-}
-
-.round:focus-visible {
-  outline: 0.1875rem solid var(--focus-ring);
-  outline-offset: 0.125rem;
 }
 
 .round svg {
@@ -582,7 +643,14 @@ html:active-view-transition-type(zoom-out) {
 }
 
 .dropdown a:focus-visible,
-.dropdown button:focus-visible {
-  outline: 0.1875rem solid var(--focus-ring);
+.dropdown button:focus-visible,
+.dropdown .toggle:has(input:focus-visible) {
+  outline: 0.1875rem solid transparent;
   outline-offset: -0.1875rem;
+  background: var(--frost-pressed);
+  box-shadow: inset 0 0 0 1px var(--frost-highlight);
+}
+
+.dropdown .toggle input:focus-visible {
+  outline: 0.1875rem solid transparent;
 }

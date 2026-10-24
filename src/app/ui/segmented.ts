@@ -43,7 +43,7 @@ export interface Segment<T extends string> {
     .segment {
       padding: 0.625rem 0.5rem;
       border-radius: var(--radius-key);
-      background: var(--candy);
+      background: var(--candy-shine) var(--candy);
       box-shadow:
         0 0.3125rem 0 var(--candy-edge),
         0 0.5rem 1.25rem rgb(40 20 60 / 18%);
@@ -70,9 +70,17 @@ export interface Segment<T extends string> {
       cursor: default;
     }
 
+    /* Picked out as a candy button is (see \`.candy\` in \`styles.css\`): breathing and shining. */
     .segment:has(input:focus-visible) {
-      outline: 0.1875rem solid var(--focus-ring);
-      outline-offset: 0.25rem;
+      outline: 0.1875rem solid transparent;
+      animation: var(--candy-picked);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .segment:has(input:focus-visible) {
+        scale: 1.05;
+        animation: none;
+      }
     }
   `,
 })

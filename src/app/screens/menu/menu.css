@@ -32,9 +32,10 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Glowing when picked out, as a simple button does (see `.frosted` in `styles.css`). */
 .icon-button:focus-visible {
-  outline: 0.1875rem solid var(--focus-ring);
-  outline-offset: 0.25rem;
+  outline: 0.1875rem solid transparent;
+  box-shadow: var(--selected-glow);
 }
 
 .icon {
