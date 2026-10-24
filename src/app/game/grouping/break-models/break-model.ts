@@ -86,11 +86,16 @@ export interface Hyperparameter {
   readonly max: number;
   readonly step: number;
   readonly format: (value: number) => string;
+  /**
+   * The name of the pair of sliders it's in, if any, such as a point's size and factor: sliders of the same pair one
+   * after the other are shown side by side, under its name, each with its own label above it.
+   */
+  readonly pair?: string;
   /** What it is, why it works that way, and what moving it does. */
   readonly help: { readonly what: string; readonly why: string; readonly moving: string };
 }
 
-/** The sliders of a tab, in order. */
+/** The sliders of a tab, in order: past four rows, the tab scrolls. */
 export interface HyperparameterTab {
   readonly name: string;
   readonly hyperparameters: readonly Hyperparameter[];

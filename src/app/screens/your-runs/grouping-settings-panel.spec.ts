@@ -6,12 +6,16 @@ import { WRITE_CLIPBOARD } from '../tuning/copy-values';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { groupingText, Tweaks } from '../../developer-mode/tweaks';
 import { INDEXED_DB, IS_PREVIEW } from '../../player-data/run-store';
-import type { BreakModelKind, Settings } from '../../game/grouping/break-models/break-model';
+import type {
+  BreakModelKind,
+  Hyperparameter,
+  Settings,
+} from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import { oneIn } from '../../game/grouping/break-models/hyperparameters';
 import { LUNA, LUNA_DEFAULTS } from '../../game/grouping/break-models/luna';
 import { MERCURY, MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
-import { GroupingSettingsPanel } from './grouping-settings-panel';
+import { GroupingSettingsPanel, nameOf, rowsOf } from './grouping-settings-panel';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 
 describe('GroupingSettingsPanel', () => {
@@ -96,17 +100,57 @@ describe('GroupingSettingsPanel', () => {
     expect(slider(host, 'window').getAttribute('aria-valuetext')).toBe('21 intervals');
   });
 
-  it.each(BREAK_MODELS)(
-    'puts every setting of $label in one tab, four at most to a tab',
-    (kind) => {
-      const keys = kind.tabs.flatMap((tab) => tab.hyperparameters.map(({ key }) => key));
+  describe('the rows of a tab', () => {
+    const slider = (key: string, pair?: string): Hyperparameter => ({
+      key,
+      label: key,
+      min: 0,
+      max: 1,
+      step: 0.1,
+      format: String,
+      help: { what: '', why: '', moving: '' },
+      ...(pair === undefined ? {} : { pair }),
+    });
 
-      expect(keys.sort()).toEqual(Object.keys(kind.defaults).sort());
-      expect(Math.max(...kind.tabs.map((tab) => tab.hyperparameters.length))).toBeLessThanOrEqual(
-        4,
-      );
-    },
-  );
+    it('gives each slider its own row, but a pair one after the other', () => {
+      const rows = rowsOf([
+        slider('a'),
+        slider('Size', 'P1'),
+        slider('Factor', 'P1'),
+        slider('Size', 'P2'),
+        slider('b'),
+      ]);
+
+      expect(rows.map((row) => [row.pair, row.sliders.map(nameOf)])).toEqual([
+        [undefined, ['a']],
+        ['P1', ['P1 size', 'P1 factor']],
+        ['P2', ['P2 size']],
+        [undefined, ['b']],
+      ]);
+    });
+  });
+
+  it.each(BREAK_MODELS)('puts every setting of $label in one tab', (kind) => {
+    const keys = kind.tabs.flatMap((tab) => tab.hyperparameters.map(({ key }) => key));
+
+    expect(keys.sort()).toEqual(Object.keys(kind.defaults).sort());
+  });
+
+  it('scrolls the row of tabs to show the whole of the tab picked', async () => {
+    const { host } = await setUp();
+    const row = host.querySelector<HTMLElement>('.tabs');
+    const tabs = Array.from(host.querySelectorAll<HTMLElement>('[role="tab"]'));
+    const last = tabs.at(-1);
+    if (row === null || last === undefined) {
+      throw new Error('No tabs');
+    }
+    // A row 200 pixels wide, its last tab 30 pixels past its right edge.
+    row.getBoundingClientRect = () => new DOMRect(0, 0, 200, 40);
+    last.getBoundingClientRect = () => new DOMRect(170, 0, 60, 40);
+    last.click();
+
+    expect(row.scrollLeft).toBe(30);
+  });
 
   it('shows one tab at a time, the runs first', async () => {
     const { host, detect } = await setUp();

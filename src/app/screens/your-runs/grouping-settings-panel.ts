@@ -12,6 +12,35 @@ import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 /** The tab of what is given to the panel. */
 const RUNS_TAB = 'Runs';
 
+/** A row of sliders in a tab: one, or the sliders of a pair side by side, under its name. */
+export interface SliderRow {
+  readonly pair?: string;
+  readonly sliders: readonly Hyperparameter[];
+}
+
+/** The rows of a tab's sliders, in order: the sliders of a pair one after the other share a row. */
+export function rowsOf(sliders: readonly Hyperparameter[]): SliderRow[] {
+  const rows: SliderRow[] = [];
+  for (const slider of sliders) {
+    const last = rows.at(-1);
+    if (slider.pair !== undefined && last?.pair === slider.pair) {
+      rows[rows.length - 1] = { pair: slider.pair, sliders: [...last.sliders, slider] };
+    } else {
+      rows.push(
+        slider.pair === undefined
+          ? { sliders: [slider] }
+          : { pair: slider.pair, sliders: [slider] },
+      );
+    }
+  }
+  return rows;
+}
+
+/** What a slider is called on its own: its label, after its pair's name if it's in one. */
+export function nameOf(slider: Hyperparameter): string {
+  return slider.pair === undefined ? slider.label : `${slider.pair} ${slider.label.toLowerCase()}`;
+}
+
 /** The keys of a break model's hyperparameters. */
 function keysOf(kind: BreakModelKind): string[] {
   return kind.tabs.flatMap(({ hyperparameters }) => hyperparameters.map(({ key }) => key));
@@ -19,7 +48,7 @@ function keysOf(kind: BreakModelKind): string[] {
 
 /**
  * Developer mode's tabs on Your Runs: one with what is given to it, the runs, and the others with the sliders for every
- * hyperparameter of the break model picked, a few to a tab, each with a toggle button pinning it, so that fitting the
+ * hyperparameter of the break model picked, a few to a tab, scrolling if they don't fit, a pair of sliders sharing a row, each with a toggle button pinning it, so that fitting the
  * model to the player's groups leaves it where it is (kept with the tweaks, for each model), a button bringing back the game's value and a help button
  * opening a dialog that says what it does, and, where another model has it too, a button copying its value from one of
  * them. Beside the tabs, an overflow menu shows
@@ -40,7 +69,7 @@ function keysOf(kind: BreakModelKind): string[] {
             [id]="'tab-' + name"
             [attr.aria-controls]="'pane-' + name"
             [attr.aria-selected]="tab() === name"
-            (click)="tab.set(name)"
+            (click)="show(name, $event)"
           >
             {{ name }}
           </button>
@@ -91,88 +120,100 @@ function keysOf(kind: BreakModelKind): string[] {
         [attr.aria-labelledby]="'tab-' + settingTab.name"
         [hidden]="tab() !== settingTab.name"
       >
-        @for (control of settingTab.hyperparameters; track control.key) {
-          <div class="setting">
-            <div class="top">
-              <label [for]="'setting-' + control.key">{{ control.label }}</label>
-              <button
-                type="button"
-                class="round pin"
-                [attr.aria-label]="'Pin the ' + control.label.toLowerCase() + ' when fitting'"
-                [attr.aria-pressed]="pinned().has(control.key)"
-                (click)="togglePin(control.key)"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 17v5" />
-                  <path d="M9 4h6l-1 6 3 3v4H7v-4l3-3z" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                class="round"
-                [attr.aria-label]="revertLabel(control)"
-                [disabled]="isDefault(control)"
-                (click)="revert(control)"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M9 14 4 9l5-5" />
-                  <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
-                </svg>
-              </button>
-              @if (copySources().get(control.key); as others) {
-                <button
-                  type="button"
-                  class="round"
-                  [attr.aria-label]="
-                    'Copy the ' + control.label.toLowerCase() + ' from another model'
-                  "
-                  (click)="copyMenu.openAt(under($event))"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="9" y="9" width="11" height="11" rx="2" />
-                    <path d="M15 5V4a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1" />
-                  </svg>
-                </button>
-                <app-dropdown-menu
-                  #copyMenu
-                  [label]="'Copy the ' + control.label.toLowerCase()"
-                  [button]="false"
-                >
-                  @for (source of others; track source.id) {
-                    <button type="button" (click)="copyFrom(source, [control.key])">
-                      From {{ source.label }}
+        @for (row of rowsOf(settingTab.hyperparameters); track row.sliders[0]?.key) {
+          <div
+            class="row"
+            [class.pair]="row.pair !== undefined"
+            [attr.role]="row.pair === undefined ? null : 'group'"
+            [attr.aria-labelledby]="row.pair === undefined ? null : 'pair-' + row.sliders[0]?.key"
+          >
+            @if (row.pair !== undefined) {
+              <span class="pair-name" [id]="'pair-' + row.sliders[0]?.key">{{ row.pair }}</span>
+            }
+            @for (control of row.sliders; track control.key) {
+              <div class="setting">
+                <div class="top">
+                  <label [for]="'setting-' + control.key">{{ control.label }}</label>
+                  <button
+                    type="button"
+                    class="round pin"
+                    [attr.aria-label]="'Pin the ' + name(control).toLowerCase() + ' when fitting'"
+                    [attr.aria-pressed]="pinned().has(control.key)"
+                    (click)="togglePin(control.key)"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 17v5" />
+                      <path d="M9 4h6l-1 6 3 3v4H7v-4l3-3z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="round"
+                    [attr.aria-label]="revertLabel(control)"
+                    [disabled]="isDefault(control)"
+                    (click)="revert(control)"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M9 14 4 9l5-5" />
+                      <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+                    </svg>
+                  </button>
+                  @if (copySources().get(control.key); as others) {
+                    <button
+                      type="button"
+                      class="round"
+                      [attr.aria-label]="
+                        'Copy the ' + name(control).toLowerCase() + ' from another model'
+                      "
+                      (click)="copyMenu.openAt(under($event))"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="9" y="9" width="11" height="11" rx="2" />
+                        <path d="M15 5V4a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1" />
+                      </svg>
                     </button>
+                    <app-dropdown-menu
+                      #copyMenu
+                      [label]="'Copy the ' + name(control).toLowerCase()"
+                      [button]="false"
+                    >
+                      @for (source of others; track source.id) {
+                        <button type="button" (click)="copyFrom(source, [control.key])">
+                          From {{ source.label }}
+                        </button>
+                      }
+                    </app-dropdown-menu>
                   }
-                </app-dropdown-menu>
-              }
-              <button
-                type="button"
-                class="round"
-                aria-haspopup="dialog"
-                [attr.aria-label]="'About ' + control.label"
-                (click)="showHelp(control)"
-              >
-                ?
-              </button>
-            </div>
-            <output [for]="'setting-' + control.key">{{ formatted(control) }}</output>
-            <input
-              type="range"
-              [id]="'setting-' + control.key"
-              [min]="control.min"
-              [max]="control.max"
-              [step]="control.step"
-              [value]="position(control)"
-              [attr.aria-valuetext]="formatted(control)"
-              (input)="set(control, $event)"
-            />
+                  <button
+                    type="button"
+                    class="round"
+                    aria-haspopup="dialog"
+                    [attr.aria-label]="'About ' + name(control)"
+                    (click)="showHelp(control)"
+                  >
+                    ?
+                  </button>
+                </div>
+                <output [for]="'setting-' + control.key">{{ formatted(control) }}</output>
+                <input
+                  type="range"
+                  [id]="'setting-' + control.key"
+                  [min]="control.min"
+                  [max]="control.max"
+                  [step]="control.step"
+                  [value]="position(control)"
+                  [attr.aria-valuetext]="formatted(control)"
+                  (input)="set(control, $event)"
+                />
+              </div>
+            }
           </div>
         }
       </div>
     }
     <dialog #helpDialog class="card" aria-labelledby="help-title" (close)="helped.set(undefined)">
       @if (helped(); as control) {
-        <h2 id="help-title">{{ control.label }}</h2>
+        <h2 id="help-title">{{ name(control) }}</h2>
         <div class="explanation">
           <p><b>What it is.</b> {{ control.help.what }}</p>
           <p><b>Why this way.</b> {{ control.help.why }}</p>
@@ -208,12 +249,16 @@ function keysOf(kind: BreakModelKind): string[] {
       border-radius: 1rem;
       background: var(--frost);
       box-shadow: inset 0 1px 0 var(--frost-highlight);
+      /* Too many to fit, they scroll sideways rather than squeeze their names. */
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
     }
 
     [role='tab'] {
-      flex: 1;
-      min-width: 0;
-      padding: 0.5rem 0.125rem;
+      /* As wide as its name, sharing what width is left. */
+      flex: 1 0 auto;
+      padding: 0.5rem 0.375rem;
       border: none;
       border-radius: 0.8125rem;
       background: none;
@@ -248,11 +293,32 @@ function keysOf(kind: BreakModelKind): string[] {
       display: none;
     }
 
-    /* Four rows sharing the height left, one slider to a row, so that a tab's sliders always fit. */
+    /* The sliders at their own height, a slider or a pair to a row: those that don't fit scroll. */
     .settings {
       display: grid;
-      grid-template-rows: repeat(4, minmax(min-content, 1fr));
-      padding: 0 var(--space-1);
+      align-content: start;
+      gap: var(--space-3);
+      padding: 0 var(--space-1) var(--space-2);
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+    }
+
+    .row {
+      display: grid;
+    }
+
+    /* A pair side by side, under its name. */
+    .row.pair {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: var(--space-3);
+    }
+
+    .pair-name {
+      grid-column: 1 / -1;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      line-height: 1.2;
+      text-shadow: var(--text-shadow);
     }
 
     .setting {
@@ -353,6 +419,8 @@ export class GroupingSettingsPanel {
   readonly told = output<string>();
 
   protected readonly runsTab = RUNS_TAB;
+  protected readonly rowsOf = rowsOf;
+  protected readonly name = nameOf;
   /** The keys of the hyperparameters of the break model picked that fitting it leaves where they are. */
   protected readonly pinned = computed(() => this.tweaks.pinsOf(this.kind()));
   /** The break models to switch to: all but the one picked. */
@@ -402,6 +470,18 @@ export class GroupingSettingsPanel {
     return sources;
   });
 
+  /** Shows the tab, the whole of it in the row of tabs, which may have scrolled it out of sight. */
+  protected show(name: string, event: Event): void {
+    this.tab.set(name);
+    const button = event.currentTarget as HTMLElement;
+    const row = button.parentElement;
+    if (row === null) {
+      return;
+    }
+    const [shown, all] = [button.getBoundingClientRect(), row.getBoundingClientRect()];
+    row.scrollLeft += Math.min(0, shown.left - all.left) + Math.max(0, shown.right - all.right);
+  }
+
   protected formatted(control: Hyperparameter): string {
     return control.format(this.position(control));
   }
@@ -411,7 +491,7 @@ export class GroupingSettingsPanel {
   }
 
   protected revertLabel(control: Hyperparameter): string {
-    return `Back to the game's ${control.label.toLowerCase()}`;
+    return `Back to the game's ${nameOf(control).toLowerCase()}`;
   }
 
   protected isDefault(control: Hyperparameter): boolean {
