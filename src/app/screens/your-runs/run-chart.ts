@@ -55,7 +55,8 @@ import { areaPath, CHART_HEIGHT, chartPath, Series } from './run-charts';
   styles: `
     :host {
       display: block;
-      height: 4rem;
+      /* As tall as what holds it asks, if it does. */
+      height: var(--chart-height, 4rem);
     }
 
     svg {
