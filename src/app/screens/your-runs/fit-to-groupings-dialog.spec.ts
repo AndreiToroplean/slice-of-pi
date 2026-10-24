@@ -8,7 +8,7 @@ import { LUNA } from '../../game/grouping/break-models/luna';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { INDEXED_DB, IS_PREVIEW, RunStore } from '../../player-data/run-store';
 import { FitToGroupingsDialog } from './fit-to-groupings-dialog';
-import { loadMyGroupings, saveMyGroupings } from './my-groupings';
+import { MyGroupings, saveMyGroupings } from './my-groupings';
 
 describe('FitToGroupingsDialog', () => {
   beforeEach(() => {
@@ -77,16 +77,14 @@ describe('FitToGroupingsDialog', () => {
     return field(host, 'button.end-fit') as HTMLButtonElement;
   }
 
-  function type(host: HTMLElement, text: string): void {
-    const textarea = field(host, 'textarea') as HTMLTextAreaElement;
-    textarea.value = text;
-    textarea.dispatchEvent(new Event('input'));
+  /** Types the groupings, as the Group tab of Your Runs takes them. */
+  function type(text: string): void {
+    TestBed.inject(MyGroupings).set(text);
   }
 
   it('opens with the groupings typed last, and how well the model matches them', async () => {
     const { host } = await setUp(groupedBy(3));
 
-    expect((field(host, 'textarea') as HTMLTextAreaElement).value).toBe(groupedBy(3));
     expect(status(host)).toMatch(/^Now: F1 \d\.\d\d\. \d+ of 9 breaks matched, \d+ extra\.$/);
   });
 
@@ -105,26 +103,14 @@ describe('FitToGroupingsDialog', () => {
     );
   });
 
-  it('takes only digits and spaces, and keeps them', async () => {
-    const { host, detect } = await setUp();
-    type(host, '14a15, 926');
-    detect();
-
-    expect((field(host, 'textarea') as HTMLTextAreaElement).value).toBe('1415 926');
-    await vi.waitFor(async () => {
-      expect(await loadMyGroupings(TestBed.inject(RunStore))).toBe('1415 926');
-    });
-  });
-
   it('says where the groupings aren’t π, and doesn’t fit them', async () => {
     const { host, detect } = await setUp();
-    type(host, '1415 927');
+    type('1415 927');
     detect();
 
     expect(status(host)).toBe('At place 7, π goes …15926.');
     expect(field(host, '.status u').textContent).toBe('6');
     expect(fitButton(host).getAttribute('disabled')).not.toBeNull();
-    expect(field(host, 'textarea').getAttribute('aria-invalid')).toBe('true');
   });
 
   it('switches the break model', async () => {
@@ -170,7 +156,7 @@ describe('FitToGroupingsDialog', () => {
     expect(field(host, '.curve .caption').textContent).toMatch(/with all 4\.$/);
     expect(fitButton(host).disabled).toBe(true);
     // Until the groupings change: then they can be fitted again, the last curve still shown.
-    type(host, groupedBy(5));
+    type(groupedBy(5));
     detect();
     expect(fitButton(host).disabled).toBe(false);
     expect(fitButton(host).textContent.trim()).toBe('Fit');

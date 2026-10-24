@@ -26,8 +26,8 @@ const HISTOGRAM_BINS = 32;
 const CURVE_POINTS = 80;
 
 /**
- * The steps of the break model after the times, in the order it works them out, as plots: how it judges the runs, then
- * what it makes of them all, and the groups that come of it.
+ * The steps of the break model after the times, along the places, in the order it works them out, as plots: how it
+ * judges the runs, then what it makes of them all.
  */
 export function modelViews(input: ViewInput): Plot[] {
   const { model } = input;
@@ -41,7 +41,6 @@ export function modelViews(input: ViewInput): Plot[] {
     ...(pool === undefined ? [] : [agreementView(input, pool)]),
     confidenceView(input),
     ...(workings === undefined || pool === undefined ? [] : [nextRunView(input, workings, pool)]),
-    groupSizesView(input),
   ];
 }
 
@@ -331,54 +330,5 @@ export function coverageView(input: ViewInput): Plot {
     layers: aggregate
       ? [{ kind: 'line', points: pointsOf(model.coverage), role: 'aggregate' }]
       : [],
-  };
-}
-
-/** The largest group size the histogram of group sizes tells apart: larger ones count with it. */
-const LARGEST_GROUP = 12;
-
-/** How many digits there are between one break and the next, for the breaks at these indices. */
-function sizesBetween(breaks: readonly number[]): number[] {
-  return breaks.map((place, k) => place - (breaks[k - 1] ?? 0));
-}
-
-/**
- * How big the groups are: those the game plays, and those each run shown breaks into on its own, as shares of their
- * groups, the last bin holding every larger one. Neither counts the group open at the end.
- */
-export function groupSizesView(input: ViewInput): Plot {
-  const { model, aggregate } = input;
-  const played = model.groups.filter((group) => !group.open).map((group) => group.size);
-  const own = runsShown(input).runs.flatMap((k) =>
-    sizesBetween(
-      (model.runs[k]?.breakProbability ?? []).flatMap((_, i) => (ownBreak(model, k, i) ? [i] : [])),
-    ),
-  );
-  const shares = (sizes: readonly number[]): number[] => {
-    const counts = new Array<number>(LARGEST_GROUP).fill(0);
-    for (const size of sizes) {
-      const bin = Math.min(LARGEST_GROUP, Math.max(1, size)) - 1;
-      counts[bin] = (counts[bin] ?? 0) + 1;
-    }
-    return counts.map((count) => count / Math.max(1, sizes.length));
-  };
-  const bars = (values: readonly number[], offset: number) =>
-    values.map((height, bin) => ({ from: bin + 1 + offset, to: bin + 1.5 + offset, height }));
-  const playedShares = aggregate ? shares(played) : [];
-  const ownShares = shares(own);
-  const top = Math.max(0.1, ...playedShares, ...ownShares);
-  return {
-    title: 'Group sizes',
-    caption: `How many digits the groups have, as shares of all of them, ${String(LARGEST_GROUP)} holding larger ones.`,
-    x: { min: 0.5, max: LARGEST_GROUP + 0.5, labels: ['1 digit', `${String(LARGEST_GROUP)}+`] },
-    y: { min: 0, max: top * 1.1, ticks: stepTicks(0, top, niceStep(top)) },
-    legend: [
-      { mark: 'bars', role: 'aggregate', label: 'The game’s groups' },
-      { mark: 'bars', role: 'run', label: 'Each run’s own' },
-    ],
-    layers: [
-      { kind: 'bars', bars: bars(playedShares, -0.5), role: 'aggregate' },
-      { kind: 'bars', bars: bars(ownShares, 0), role: 'run' },
-    ],
   };
 }

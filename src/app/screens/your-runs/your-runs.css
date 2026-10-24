@@ -191,40 +191,6 @@ h3 {
 }
 
 /*
- * The groups of all runs, as words of digits; those past the trust horizon are dotted. However many there are, they take
- * at most 3 rows, and scroll.
- */
-.groups {
-  --row: 1.25rem;
-  --row-gap: 0.25rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--row-gap) 0.5rem;
-  max-height: calc(3 * var(--row) + 2 * var(--row-gap));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  margin: 0.25rem 0 0;
-  padding: 0;
-  list-style: none;
-  font-family: var(--font-digits);
-  font-size: 0.875rem;
-  font-weight: 500;
-  line-height: var(--row);
-  letter-spacing: 0.04em;
-
-  &:focus-visible {
-    outline: 0.1875rem solid var(--focus-ring);
-    outline-offset: 0.125rem;
-  }
-
-  & .unsure {
-    opacity: 0.6;
-    text-decoration: underline dotted;
-    text-underline-offset: 0.2em;
-  }
-}
-
-/*
  * A run's card: what is on it, and in developer mode a handle on its left to drag it to another place. The card is
  * the run's, so that tapping anywhere on it but the handle selects it.
  */
@@ -381,13 +347,22 @@ app-carousel {
   }
 }
 
-/* In developer mode, the perspectives on the break model, as tabs on the card: the one shown is in ink. */
+/* In developer mode, the perspectives on the break model, as tabs on the card after their name: the one shown in ink. */
 .perspectives {
   display: flex;
-  gap: 0.25rem;
-  padding: 0.1875rem;
-  border-radius: 1rem;
-  background: rgb(30 20 60 / 7%);
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+
+  & [role='tablist'] {
+    flex: 1;
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.1875rem;
+    border-radius: 1rem;
+    background: rgb(30 20 60 / 7%);
+  }
 
   & [role='tab'] {
     flex: 1;

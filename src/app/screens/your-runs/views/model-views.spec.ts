@@ -6,7 +6,6 @@ import {
 import { breakBoundary } from '../../../game/grouping/break-models/statistics';
 import {
   confidenceView,
-  groupSizesView,
   mixtureView,
   modelViews,
   probabilityView,
@@ -64,7 +63,6 @@ describe('the views of the break model', () => {
       'Break probability',
       'Coverage',
       'Confidence',
-      'Group sizes',
     ]);
   });
 
@@ -76,7 +74,6 @@ describe('the views of the break model', () => {
       'Break probability',
       'Coverage',
       'Confidence',
-      'Group sizes',
     ]);
     expect(residualView(plain).layers.every((layer) => layer.kind === 'dots')).toBe(true);
   });
@@ -147,18 +144,6 @@ describe('the views of the break model', () => {
       role: 'break',
     });
     expect(confidenceView(input([0], false)).layers.map((layer) => layer.role)).toEqual(['guide']);
-  });
-
-  it("counts how big the groups are, as shares, the game's and those the runs break into on their own", () => {
-    const [played = [], own = []] = groupSizesView(input()).layers.map((layer) =>
-      layer.kind === 'bars' ? layer.bars.map((bar) => bar.height) : [],
-    );
-    const sum = (heights: readonly number[]) => heights.reduce((a, b) => a + b, 0);
-
-    expect(sum(played)).toBeCloseTo(1, 12);
-    expect(sum(own)).toBeCloseTo(1, 12);
-    // A pause before every third digit: groups of 3.
-    expect(played.indexOf(Math.max(...played))).toBe(2);
   });
 
   it('draws the thresholds and the level where they act', () => {

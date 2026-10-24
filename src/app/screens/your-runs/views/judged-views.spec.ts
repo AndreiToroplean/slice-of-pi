@@ -64,7 +64,6 @@ describe('the views of a model that judges each run on its own', () => {
       'Agreement',
       'Confidence',
       'Pause to break',
-      'Group sizes',
     ]);
   });
 

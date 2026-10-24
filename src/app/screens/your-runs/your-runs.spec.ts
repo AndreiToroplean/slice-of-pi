@@ -623,7 +623,7 @@ describe('YourRuns', () => {
     // 30 places across 290 pixels: 10 to a place, the boundary before index 6 at 55.
     chart.getBoundingClientRect = () => new DOMRect(0, 0, 290, 50);
     chart.dispatchEvent(new MouseEvent('pointerup', { clientX: 56 }));
-    button(host, 'Place Perspective').click();
+    button(host, 'Place').click();
     const place = () => host.querySelector('app-place-perspective');
     await until(() => place()?.querySelector('h3')?.textContent.includes('Places 6 | 7') === true);
 
