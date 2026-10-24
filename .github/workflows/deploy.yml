@@ -74,6 +74,29 @@ jobs:
           name: site
           path: dist/slice-of-pi/browser
 
+  # The end-to-end tests, in Chromium, on pull requests: as for the unit tests, main only builds.
+  e2e:
+    needs: plan
+    if: needs.plan.outputs.build == 'true' && needs.plan.outputs.publish != 'main'
+    concurrency:
+      group: e2e-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: test-results
+
   # Records how long the unit tests of each pull request merged into main took, from its last run, on the test-durations
   # branch with github-action-benchmark, and opens an issue when they creep up. See scripts/test-durations.ts.
   test-durations:
