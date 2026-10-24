@@ -24,6 +24,7 @@
 
 # Development
 
+- Stay on the latest stable versions of everything (Angular, TypeScript, tools, libraries), never experimental features: when an update would help, update rather than work around an older version. Node.js is the one to update with care: it also takes updating the cloud sessions' setup script below and the machines that run the project.
 - Node.js 24 (see `.nvmrc`). Cloud sessions get it from the environment's setup script (configured in the environment settings, not in the repo): `source /opt/nvm/nvm.sh && nvm install 24 && ln -sf "$(dirname "$(nvm which 24)")"/{node,npm,npx} /root/.local/bin/`. It puts Node.js 24 ahead of the image's default Node.js on the `PATH`. A SessionStart hook in `.claude/settings.json` then installs the npm dependencies.
 - `npm start` serves the app, `npm run build` builds it, `npm test` runs the unit tests once, `npm run test:coverage` adds a coverage report. Slow tests of things that never change are tagged `manual`: only `npm run test:manual` runs them, never CI. `npm run test:e2e` runs the end-to-end tests in Chromium (installed once with `npx playwright install chromium`), on the server `npm start` serves, or one started for them: run them when a change touches what they cover.
 - `npm run lint` runs ESLint (angular-eslint with the strict type-checked rules, including template accessibility rules). TypeScript runs with extra strict flags (see `tsconfig.json`). Don't loosen either; fix the code instead.
