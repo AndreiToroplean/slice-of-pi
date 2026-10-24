@@ -9,12 +9,13 @@ export interface ShownGroup {
 
 /**
  * The groups of all runs, as words of digits; those past the trust horizon are dotted. However many there are, they take
- * at most `rows` rows, and scroll.
+ * at most `rows` rows, or without any, as much height as what holds it gives them, and scroll.
  */
 @Component({
   selector: 'app-group-list',
+  host: { '[class.fills]': 'rows() === undefined' },
   template: `
-    <ul class="groups" aria-label="Your groups" tabindex="0" [style.--rows]="rows()">
+    <ul class="groups" aria-label="Your groups" tabindex="0" [style.--rows]="rows() ?? null">
       @for (group of groups(); track group.start) {
         <li [class.unsure]="!group.trusted">{{ group.digits }}</li>
       }
@@ -46,6 +47,19 @@ export interface ShownGroup {
       }
     }
 
+    /* As tall as what holds it gives it, never taller for its groups. */
+    :host(.fills) {
+      display: block;
+      contain: size;
+      min-height: 4rem;
+
+      & ul {
+        height: 100%;
+        max-height: none;
+        margin: 0;
+      }
+    }
+
     .unsure {
       opacity: 0.6;
       text-decoration: underline dotted;
@@ -55,6 +69,6 @@ export interface ShownGroup {
 })
 export class GroupList {
   readonly groups = input.required<readonly ShownGroup[]>();
-  /** How many rows show before the groups scroll. */
-  readonly rows = input(3);
+  /** How many rows show before the groups scroll: as many as fit what holds it if none. */
+  readonly rows = input<number | undefined>(3);
 }

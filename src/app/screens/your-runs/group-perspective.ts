@@ -20,7 +20,7 @@ import { PlotView } from './views/plot-view';
           <h3>The game’s groups</h3>
           <span class="step">1/{{ count() }}</span>
         </div>
-        <app-group-list [groups]="groups()" [rows]="5" />
+        <app-group-list [groups]="groups()" [rows]="undefined" />
         <p class="caption">
           The groups the game plays, cut where your runs usually break: dotted past the trust
           horizon.
@@ -33,7 +33,6 @@ import { PlotView } from './views/plot-view';
         </div>
         <textarea
           id="my-groupings"
-          rows="4"
           spellcheck="false"
           autocomplete="off"
           aria-describedby="my-groupings-status"
@@ -88,6 +87,12 @@ import { PlotView } from './views/plot-view';
       scroll-snap-align: start;
     }
 
+    /* A list of groups: it fills the height the plots give the card, between the heading and the caption. */
+    section.view {
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      align-content: stretch;
+    }
+
     .heading {
       display: flex;
       align-items: baseline;
@@ -122,7 +127,10 @@ import { PlotView } from './views/plot-view';
       text-underline-offset: 0.2em;
     }
 
+    /* As tall as the step leaves it, never taller for what's typed in it. */
     textarea {
+      contain: size;
+      min-height: 4rem;
       box-sizing: border-box;
       width: 100%;
       padding: 0.5rem 0.625rem;

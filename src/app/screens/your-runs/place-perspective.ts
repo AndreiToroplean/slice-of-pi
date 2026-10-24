@@ -185,6 +185,12 @@ const CONTEXT = 6;
       scroll-snap-align: start;
     }
 
+    /* A step that isn't a plot: what scrolls in it fills the height the plots give the card. */
+    section.view {
+      grid-template-rows: auto minmax(0, 1fr);
+      align-content: stretch;
+    }
+
     .heading {
       display: flex;
       align-items: baseline;
@@ -209,9 +215,13 @@ const CONTEXT = 6;
       opacity: 0.85;
     }
 
-    /* What doesn't fit the height of a plot scrolls on its own, so that the card keeps its height. */
+    /*
+     * As tall as the step leaves it, never taller for what's in it: what doesn't fit scrolls on its own, so that the
+     * card keeps its height.
+     */
     .scroll {
-      height: 8.5rem;
+      contain: size;
+      min-height: 4rem;
       overflow: auto;
       /* Only up and down: past its edge, a swipe sideways goes on to the carousel. */
       overscroll-behavior-y: contain;

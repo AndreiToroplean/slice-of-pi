@@ -132,9 +132,14 @@ h3 {
   opacity: 0.85;
 }
 
-/* The chart of all runs, on top: a white sheet, like the candy buttons, so it stands out from the runs. */
+/*
+ * The chart of all runs, on top: a white sheet, like the candy buttons, so it stands out from the runs. About 45% as
+ * tall as the page under its top bar (4rem), its charts taking what the rest of it leaves, about 13rem, and never
+ * less than 4rem.
+ */
 .summary {
   flex: none;
+  --chart-height: max(4rem, (100dvh - 4rem) * 0.45 - 13rem);
   background: rgb(255 255 255 / 96%);
   box-shadow: 0 6px 24px rgb(30 20 60 / 22%);
   color: var(--ink);
