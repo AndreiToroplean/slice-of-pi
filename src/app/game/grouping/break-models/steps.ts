@@ -1,6 +1,7 @@
 import type { Break, Group, Settings, Values } from './break-model';
 import type { BreakSettings } from './hyperparameters';
 import { betaCdf, fitMixture, isotonicDecreasing, Mixture } from './statistics';
+import type { Workings } from './workings';
 
 /**
  * The steps of the break models that tell breaks by a baseline and a mixture, as Mercury (`mercury.ts`) does, so that
@@ -65,6 +66,8 @@ export type Steps = {
   /** The recency-weighted average interval of the player's runs at each index, in milliseconds, for display only. */
   readonly averageTime: Values;
   readonly groups: readonly Group[];
+  /** What a model that judges each run on its own worked out on the way, for developer mode to show, if it did. */
+  readonly workings?: Workings;
 } & (
   | {
       readonly settings: BreakSettings;

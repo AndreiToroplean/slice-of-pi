@@ -1,6 +1,6 @@
 import type { BreakModel, BreakModelKind, Settings } from './break-model';
-import type { Judged } from './terra';
 import { HYPERPARAMETERS } from './hyperparameters';
+import { logistic, logit } from './statistics';
 import { groupEnds, modelFromSteps } from './model-from-steps';
 import {
   breakSums,
@@ -14,8 +14,10 @@ import {
   usualOf,
 } from './steps';
 import {
+  Judged,
   judge,
   JudgedRun,
+  judgedWorkings,
   paceOf,
   PaceSums,
   paceSums,
@@ -113,8 +115,7 @@ export function marsOver(
   finished: readonly JudgedRun[],
   settings: MarsSettings,
 ): (current?: readonly number[]) => Steps {
-  const decays = (count: number): number[] =>
-    Array.from({ length: count }, (_, k) => settings.recencyDecay ** (count - 1 - k));
+  const decays = (count: number): number[] => recencyOf(count, settings);
   let withCurrent: Pool | undefined;
   return (current) => {
     if (current === undefined) {
@@ -131,6 +132,44 @@ export function marsOver(
       settings,
     );
     return stepsOf(pooled(withCurrent, [judge(current, settings)], [1], [1], settings), settings);
+  };
+}
+
+/** The recency of each of `count` runs, oldest first, the newest counting 1. */
+function recencyOf(count: number, settings: MarsSettings): number[] {
+  return Array.from({ length: count }, (_, k) => settings.recencyDecay ** (count - 1 - k));
+}
+
+/**
+ * {@link mars} over the judged finished runs alone, with what it works out on the way (`workings.ts`), for developer
+ * mode to show.
+ */
+export function marsSteps(finished: readonly JudgedRun[], settings: MarsSettings): Steps {
+  const recency = recencyOf(finished.length, settings);
+  const pool = pooled(undefined, finished, recency, recency, settings);
+  const prior = logit(settings.breakShare);
+  const threshold = logit(settings.breakThreshold);
+  const workings = judgedWorkings(finished, recency, (at) => trustOfPlace(at, settings), settings);
+  return {
+    ...stepsOf(pool, settings),
+    workings: {
+      ...workings,
+      pool: {
+        prior,
+        threshold,
+        logOdds: byIndex(pool.logOdds),
+        agreement: usualOf(pool.breaks).usual,
+        // The next run counts 1, and the finished runs the current decay times what they count here: its evidence
+        // makes up the rest, straight in z.
+        nextRunZ: byIndex(
+          pool.logOdds.map(
+            (logOdds) =>
+              workings.evenZ +
+              (threshold - prior - settings.currentDecay * (logOdds - prior)) / settings.breakShift,
+          ),
+        ),
+      },
+    },
   };
 }
 
@@ -220,15 +259,6 @@ function trustOfPlace(at: Judged, settings: MarsSettings): number {
     (at.neighbors + PRIOR_NEIGHBORS);
   const trust = Math.min(1, Math.sqrt(variance) / settings.fullTrustUnevenness);
   return 1 - settings.trustInfluence * (1 - trust);
-}
-
-function logit(probability: number): number {
-  return Math.log(probability / (1 - probability));
-}
-
-/** The probability of log-odds, without overflow however far they are from 0. */
-function logistic(logOdds: number): number {
-  return logOdds >= 0 ? 1 / (1 + Math.exp(-logOdds)) : Math.exp(logOdds) / (1 + Math.exp(logOdds));
 }
 
 /**
@@ -345,9 +375,8 @@ export const MARS: BreakModelKind = {
   create: (tuned) => marsModel(withDefaults(tuned)),
   steps: (tuned, finished) => {
     const settings = withDefaults(tuned);
-    return mars(
+    return marsSteps(
       finished.map((times) => judge(times, settings)),
-      undefined,
       settings,
     );
   },

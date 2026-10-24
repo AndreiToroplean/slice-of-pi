@@ -1,4 +1,4 @@
-import { judge, terra, TERRA, TERRA_DEFAULTS } from './terra';
+import { judge, terra, TERRA, TERRA_DEFAULTS, trustOfPlace } from './terra';
 
 describe('Terra', () => {
   /**
@@ -29,6 +29,19 @@ describe('Terra', () => {
     expect(pauses).toEqual(by3(30));
     expect(places[10]?.pace).toBeGreaterThan(180);
     expect(places[10]?.pace).toBeLessThan(700);
+  });
+
+  it('shows how it judged each run, weighing it by its recency and its trust', () => {
+    const runs = [timesOf(30, by3(30)), timesOf(30, [])];
+    const workings = TERRA.steps?.({}, runs).workings;
+    const judged = judge(timesOf(30, []), TERRA_DEFAULTS);
+
+    expect(workings?.runs.map((run) => run.recency)).toEqual([TERRA_DEFAULTS.recencyDecay, 1]);
+    expect(workings?.runs[1]?.z.slice(1)).toEqual(judged.places.map((at) => at.z));
+    expect(workings?.runs[1]?.trust.slice(1)).toEqual(
+      judged.places.map((at) => trustOfPlace(at, TERRA_DEFAULTS)),
+    );
+    expect(workings?.pool).toBeUndefined();
   });
 
   it('finds where the runs usually break, and groups them there', () => {

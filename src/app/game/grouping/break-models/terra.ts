@@ -1,8 +1,9 @@
 import type { BreakModel, BreakModelKind, Hyperparameter, Settings, Values } from './break-model';
 import { BreakSettings, HYPERPARAMETERS, oneIn } from './hyperparameters';
 import { groupEnds, modelFromSteps } from './model-from-steps';
-import { neighborsOf } from './statistics';
+import { logit, neighborsOf } from './statistics';
 import { byIndex, groupsOf, logIntervals, RunSteps, Steps, trustOf, usualBreaks } from './steps';
+import type { Workings } from './workings';
 
 /**
  * Terra: Venus's aim, a model whose hyperparameters mean the same whether the player has played one run or a hundred.
@@ -141,6 +142,44 @@ export function judge(
     };
   });
   return { digits: times.length, logs, places };
+}
+
+/**
+ * The workings of the runs judged (`workings.ts`), each weighing its recency, given in order, times its trust at each
+ * place. A lone run breaks where its evidence takes the break share to the break threshold.
+ */
+export function judgedWorkings(
+  runs: readonly JudgedRun[],
+  recency: readonly number[],
+  trust: (at: Judged) => number,
+  settings: Pick<
+    TerraSettings,
+    'spreadFloor' | 'breakShift' | 'breakShare' | 'breakThreshold' | 'fullTrustUnevenness'
+  >,
+): Workings {
+  const evenZ = settings.breakShift / 2;
+  return {
+    runs: runs.map((run, k) => {
+      // Without neighbors, a place isn't judged: it has none of these.
+      const judged = (value: (at: Judged) => number): Values =>
+        byIndex(run.places.map((at) => (at.neighbors === 0 ? undefined : value(at))));
+      return {
+        logInterval: byIndex(Array.from(run.logs)),
+        pace: judged((at) => Math.log(at.pace ?? 1)),
+        unevenness: judged((at) => at.unevenness),
+        spread: judged((at) => Math.max(at.unevenness, settings.spreadFloor)),
+        z: judged((at) => at.z),
+        evidence: judged((at) => at.evidence),
+        trust: byIndex(run.places.map(trust)),
+        recency: recency[k] ?? 0,
+      };
+    }),
+    evenZ,
+    breakZ:
+      evenZ + (logit(settings.breakThreshold) - logit(settings.breakShare)) / settings.breakShift,
+    spreadFloor: settings.spreadFloor,
+    fullTrustUnevenness: settings.fullTrustUnevenness,
+  };
 }
 
 /**
@@ -399,11 +438,12 @@ export const TERRA: BreakModelKind = {
   create: (tuned) => terraModel(withDefaults(tuned)),
   steps: (tuned, finished) => {
     const settings = withDefaults(tuned);
-    return terra(
-      finished.map((times) => judge(times, settings)),
-      undefined,
-      settings,
-    );
+    const judged = finished.map((times) => judge(times, settings));
+    const recency = judged.map((_, k) => settings.recencyDecay ** (judged.length - 1 - k));
+    return {
+      ...terra(judged, undefined, settings),
+      workings: judgedWorkings(judged, recency, (at) => trustOfPlace(at, settings), settings),
+    };
   },
 };
 
