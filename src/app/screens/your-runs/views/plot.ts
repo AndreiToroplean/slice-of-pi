@@ -26,15 +26,30 @@ export type Layer =
   | { readonly kind: 'hline'; readonly y: number; readonly role: Role; readonly color?: string }
   | { readonly kind: 'vline'; readonly x: number; readonly role: Role; readonly color?: string }
   | { readonly kind: 'band'; readonly from: number; readonly to: number; readonly role: Role }
+  /** An area between two lines, such as a range around a value at each place; broken where either has no point. */
+  | {
+      readonly kind: 'area';
+      readonly upper: readonly (Point | undefined)[];
+      readonly lower: readonly (Point | undefined)[];
+      readonly role: Role;
+    }
+  /** Bars from their base, the bottom of the plot if none, to their height. */
   | {
       readonly kind: 'bars';
       readonly bars: readonly {
         readonly from: number;
         readonly to: number;
         readonly height: number;
+        readonly base?: number;
       }[];
       readonly role: Role;
     };
+
+/** A value marked on the y-axis, with a faint line across the plot. */
+export interface Tick {
+  readonly value: number;
+  readonly label: string;
+}
 
 /** A plot of one step of the break model: what it shows, its ranges, and its marks, the first drawn first. */
 export interface Plot {
@@ -44,8 +59,10 @@ export interface Plot {
     readonly min: number;
     readonly max: number;
     readonly labels: readonly [string, string];
+    /** Whether x is the index of a place, as along the charts of the times, so that a place can be picked on it. */
+    readonly places?: boolean;
   };
-  readonly y: { readonly min: number; readonly max: number };
+  readonly y: { readonly min: number; readonly max: number; readonly ticks?: readonly Tick[] };
   readonly layers: readonly Layer[];
 }
 
@@ -57,7 +74,12 @@ export interface Range {
 
 /** The x-axis of a plot along the places, as the charts of the times have it. */
 export function alongPlaces(places: number): Plot['x'] {
-  return { min: 0, max: Math.max(places - 1, 1), labels: ['Place 1', `Place ${String(places)}`] };
+  return {
+    min: 0,
+    max: Math.max(places - 1, 1),
+    labels: ['Place 1', `Place ${String(places)}`],
+    places: true,
+  };
 }
 
 export function clamp(value: number, { min, max }: Range): number {
