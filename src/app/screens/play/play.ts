@@ -23,7 +23,7 @@ import { groupRuns, Run } from '../../player-data/run';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
-import { KeypadKey } from '../../game/layers/keypad-layout';
+import { KeypadTouch } from '../../game/layers/keypad-layout';
 import { SeasonHeader } from './season-header/season-header';
 import { seasonAt } from '../../game/layers/seasons';
 import { Tweaks } from '../../developer-mode/tweaks';
@@ -70,7 +70,7 @@ import { TIMER } from './timer';
       [layout]="keypadLayout()"
       [colors]="keyColors()"
       [showAreas]="showTouchAreas()"
-      (keyPressed)="press($event)"
+      (touched)="press($event)"
     >
       @let wait = breakWait();
       @if (tweaks.countdown() && wait !== undefined) {
@@ -184,8 +184,8 @@ export class Play {
     });
   }
 
-  protected press(key: KeypadKey): void {
-    if (this.paused()) {
+  protected press({ key }: KeypadTouch): void {
+    if (this.paused() || key === null) {
       return;
     }
     // Keys are typed into the game, not into what has the focus, such as the typed digits once clicked or the pause

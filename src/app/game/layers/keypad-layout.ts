@@ -71,36 +71,61 @@ export interface KeypadGaps {
 }
 
 /**
- * The key under a point `(x, y)` of a keypad in a layout whose keys occupy `keys`, `gaps` apart, and whose touches
- * `area`, around them: null if there is none (outside the area, or in an empty cell). Each key's cell reaches halfway
- * to the next key, so the gaps between keys and their rounded corners count as part of the nearest key, and the keys on
- * the edges reach out over the rest of the area, as far as it goes: those at its sides to its sides, those on top up to
- * its top, and those at the bottom down to its bottom.
+ * A point on the keypad, in steps from one key to the next, from the center of 5, the middle key in every layout: `x`
+ * to the right, `y` down. The center of each key is at whole steps, such as 3's at (1, 1) on a calculator's keypad; a
+ * point off the keys, in a gap or past the keys on the edges, is between them or beyond.
  */
-export function keyAt(
-  layout: KeypadLayout,
-  keys: Rect,
-  gaps: KeypadGaps,
-  area: Rect,
-  x: number,
-  y: number,
-): KeypadKey | null {
-  if (x < area.left || x >= area.left + area.width || y < area.top || y >= area.top + area.height) {
-    return null;
-  }
-  // Equal cells, each a key and half a gap on either side of it.
-  const column = cell(
-    ((x - keys.left + gaps.column / 2) / (keys.width + gaps.column)) * COLUMNS,
-    COLUMNS,
-  );
-  const row = cell(((y - keys.top + gaps.row / 2) / (keys.height + gaps.row)) * ROWS, ROWS);
+export interface KeypadPoint {
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
+ * A touch on the keypad (or a mouse press), where it was released, typing a key or nothing (`null`) when it missed them;
+ * or a key typed without touching the keypad, on a keyboard or by assistive technology, which was nowhere on it, but
+ * stands at the center of its key (see {@link touchPoint}).
+ */
+export type KeypadTouch =
+  (KeypadPoint & { readonly key: KeypadKey | null }) | { readonly key: KeypadKey };
+
+/** Where a touch was on the keypad, in a layout: a key typed without touching it, at the center of its key. */
+export function touchPoint(layout: KeypadLayout, touch: KeypadTouch): KeypadPoint {
+  return 'x' in touch ? { x: touch.x, y: touch.y } : keyCenter(layout, touch.key);
+}
+
+/**
+ * The point on the keypad of a point `(x, y)` on the screen, its keys occupying `keys`, `gaps` apart. Each key's cell
+ * reaches halfway to the next keys: a step is a key and a gap.
+ */
+export function pointAt(keys: Rect, gaps: KeypadGaps, x: number, y: number): KeypadPoint {
+  // In cells from the keys' top left corner, half a gap beyond them, less the cells to the center of 5: one and a half.
+  return {
+    x: ((x - keys.left + gaps.column / 2) / (keys.width + gaps.column)) * COLUMNS - 1.5,
+    y: ((y - keys.top + gaps.row / 2) / (keys.height + gaps.row)) * ROWS - 1.5,
+  };
+}
+
+/** The center of a key in a layout. */
+export function keyCenter(layout: KeypadLayout, key: KeypadKey): KeypadPoint {
+  const position = KEY_POSITIONS[layout].find((position) => position.key === key);
+  return { x: (position?.column ?? 0) - 1, y: (position?.row ?? 0) - 1 };
+}
+
+/**
+ * The key at a point on the keypad in a layout, or null in an empty cell. Each key's cell reaches halfway to the next
+ * keys, so the gaps between keys and their rounded corners count as part of the nearest key, and the keys on the edges
+ * reach out as far as the point goes: those at the sides sideways, those on top up, and those at the bottom down.
+ */
+export function keyAt(layout: KeypadLayout, point: KeypadPoint): KeypadKey | null {
+  const column = cell(point.x + 1, COLUMNS);
+  const row = cell(point.y + 1, ROWS);
   return (
     KEY_POSITIONS[layout].find((position) => position.row === row && position.column === column)
       ?.key ?? null
   );
 }
 
-/** The cell at a position counted in cells, those before the first and past the last counting as the nearest. */
+/** The cell at a position counted in cells from the first one's center, those beyond the ends counting as the nearest. */
 function cell(position: number, count: number): number {
-  return Math.min(Math.max(Math.floor(position), 0), count - 1);
+  return Math.min(Math.max(Math.round(position), 0), count - 1);
 }
