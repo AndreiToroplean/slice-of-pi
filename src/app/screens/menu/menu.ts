@@ -23,7 +23,7 @@ import { ButtonList } from '../../ui/button-list';
  * The main menu, where the app opens: the game's icon and name, a button to play and one above it to the player's runs,
  * with more in an overflow menu in a corner, and the settings behind a gear in the other. It shows once its icon and fonts have arrived, over the background alone
  * until then. Tab, or left and right, go from one group of buttons to the next, from the left to the right, and up and
- * down between its main buttons; with a mouse, Play has the focus from the start, for Enter to play.
+ * down between its main buttons; Play has the focus from the start, picked out, for Enter to play.
  */
 @Component({
   selector: 'app-menu',
@@ -124,14 +124,11 @@ export class Menu {
   constructor() {
     const fonts = this.document.fonts;
     afterNextRender(() => void this.assets.waitForFonts(fonts));
-    // Once shown, as it can't take the focus before. Not on touch screens, where it would only show its focus ring.
+    // Once shown, as it can't take the focus before. Picked out even after a tap, on touch screens too, so that it
+    // breathes and shines.
     afterRenderEffect(() => {
-      if (
-        this.assets.ready() &&
-        typeof matchMedia === 'function' &&
-        matchMedia('(hover: hover)').matches
-      ) {
-        this.play().nativeElement.focus();
+      if (this.assets.ready()) {
+        this.play().nativeElement.focus({ focusVisible: true });
       }
     });
 

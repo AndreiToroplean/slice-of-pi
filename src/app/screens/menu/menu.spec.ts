@@ -99,14 +99,7 @@ describe('Menu', () => {
   });
 
   describe('from the keyboard', () => {
-    afterEach(() => {
-      vi.unstubAllGlobals();
-    });
-
-    async function shown(hover: boolean): Promise<HTMLElement> {
-      vi.stubGlobal('matchMedia', (query: string) => ({
-        matches: hover && query === '(hover: hover)',
-      }));
+    async function shown(): Promise<HTMLElement> {
       const fixture = TestBed.createComponent(Menu);
       await fixture.whenStable();
       const host = fixture.nativeElement as HTMLElement;
@@ -125,15 +118,15 @@ describe('Menu', () => {
       document.activeElement?.getAttribute('aria-label') ??
       document.activeElement?.textContent.trim();
 
-    it('gives Play the focus once shown, with a mouse, for Enter to play', async () => {
-      const host = await shown(true);
+    it('gives Play the focus once shown, for Enter to play', async () => {
+      const host = await shown();
 
       expect(document.activeElement).toBe(link(host, 'Play'));
     });
 
-    it('leaves the focus alone on touch screens, until up or down moves it onto Play', async () => {
-      const host = await shown(false);
-      expect(document.activeElement).toBe(document.body);
+    it('moves the focus back onto Play with up or down once nothing has it, as after a tap', async () => {
+      const host = await shown();
+      (document.activeElement as HTMLElement).blur();
 
       expect(press('ArrowUp').defaultPrevented).toBe(true);
 
@@ -141,7 +134,7 @@ describe('Menu', () => {
     });
 
     it('moves up and down its main buttons only, round from either end', async () => {
-      const host = await shown(true);
+      const host = await shown();
 
       press('ArrowUp');
       expect(focused()).toBe('Your Runs');
@@ -156,7 +149,7 @@ describe('Menu', () => {
     });
 
     it('goes from one group of buttons to the next with left and right, as with Tab', async () => {
-      await shown(true);
+      await shown();
 
       press('ArrowLeft');
       expect(focused()).toBe('Slice of Pi');
