@@ -8,6 +8,7 @@ import { Tweaks } from '../../developer-mode/tweaks';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import { seasonAt } from '../../game/layers/seasons';
 import { MenuAssets } from './menu-assets';
+import { ButtonList } from '../../ui/button-list';
 
 /**
  * The main menu, where the app opens: the game's icon and name, a button to play and one above it to the player's runs,
@@ -16,7 +17,7 @@ import { MenuAssets } from './menu-assets';
  */
 @Component({
   selector: 'app-menu',
-  imports: [NgOptimizedImage, RouterLink, DeveloperTaps, DropdownMenu],
+  imports: [NgOptimizedImage, RouterLink, ButtonList, DeveloperTaps, DropdownMenu],
   host: { class: 'screen', '[class.loading]': '!assets.ready()' },
   template: `
     <a class="frosted settings" routerLink="/settings" aria-label="Settings">
@@ -82,10 +83,10 @@ import { MenuAssets } from './menu-assets';
     <p class="developer-message" role="status" [class.shown]="taps.shown()">
       {{ taps.message() }}
     </p>
-    <div class="actions">
+    <app-button-list class="actions">
       <a class="candy" routerLink="/runs">Your Runs</a>
       <a class="candy primary" routerLink="/play">Play</a>
-    </div>
+    </app-button-list>
   `,
   styleUrl: './menu.css',
 })
