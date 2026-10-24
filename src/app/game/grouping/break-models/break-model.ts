@@ -47,10 +47,10 @@ export interface Gameplay {
   /** How the group starting at index `start` is played. */
   groupAt(current: readonly number[], start: number): GroupPlan;
   /**
-   * Whether the group being typed is finished before the next digit, the last of `current`, timed as if typed now.
-   * `trusted` is whether its plan was.
+   * Whether the group being typed, starting at index `start`, is finished before the next digit, the last of
+   * `current`, timed as if typed now. `trusted` is whether its plan was.
    */
-  groupEnds(current: readonly number[], trusted: boolean): boolean;
+  groupEnds(current: readonly number[], start: number, trusted: boolean): boolean;
 }
 
 /** What the model makes of the player's finished runs, for them to see. */

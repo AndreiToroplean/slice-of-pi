@@ -5,9 +5,11 @@ import { breaksOf, Steps } from './steps';
 
 /**
  * Works out the steps over the finished runs it was given and, if given, the run in progress, which is then the newest.
- * `init` is the last mixture fitted, if any, to start the fit from.
+ * `init` is the last mixture fitted, if any, to start the fit from. `start`, with a run in progress, is the index where
+ * its group being typed starts, which hasn't finished before its last digit: the groups before it are played, so a
+ * model may take them as they are rather than as it would cut them.
  */
-export type Fit = (current?: readonly number[], init?: Mixture) => Steps;
+export type Fit = (current?: readonly number[], init?: Mixture, start?: number) => Steps;
 
 /** Whether the group being typed is finished before the digit at index `next`, as {@link groupEnds} decides. */
 export type Ends = (steps: Steps, next: number, trusted: boolean) => boolean;
@@ -36,14 +38,15 @@ export function modelFromSteps(
 function gameplayOf(fit: Fit, ends: Ends): Gameplay {
   const horizon = fit().horizon;
   let mixture: Mixture | undefined;
-  const withCurrent = (current: readonly number[]): Steps => {
-    const steps = fit(current, mixture);
+  const withCurrent = (current: readonly number[], start: number): Steps => {
+    const steps = fit(current, mixture, start);
     mixture = steps.mixture;
     return steps;
   };
   return {
-    groupAt: (current, start) => groupAt(withCurrent(current), start, horizon),
-    groupEnds: (current, trusted) => ends(withCurrent(current), current.length - 1, trusted),
+    groupAt: (current, start) => groupAt(withCurrent(current, start), start, horizon),
+    groupEnds: (current, start, trusted) =>
+      ends(withCurrent(current, start), current.length - 1, trusted),
   };
 }
 

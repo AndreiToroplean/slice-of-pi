@@ -266,7 +266,8 @@ export class Play {
       return;
     }
     const trusted = this.plan().trusted;
-    const wait = waitToEnd((waited) => this.endsAfter(waited, trusted));
+    const start = this.digits().length - this.grouping().current.length;
+    const wait = waitToEnd((waited) => this.endsAfter(waited, start, trusted));
     const left = wait - this.recorder.waited();
     if (left <= 0) {
       this.finishGroup(flyNow);
@@ -287,13 +288,13 @@ export class Play {
   }
 
   /**
-   * Whether the group being typed, the player's own if `trusted`, ends before the next digit, were it typed `wait`
-   * milliseconds after the last one.
+   * Whether the group being typed, starting at index `start`, the player's own if `trusted`, ends before the next
+   * digit, were it typed `wait` milliseconds after the last one.
    */
-  private endsAfter(wait: number, trusted: boolean): boolean {
+  private endsAfter(wait: number, start: number, trusted: boolean): boolean {
     const times = this.recorder.run()?.times ?? [];
     const last = times.at(-1);
-    return last !== undefined && this.gameplay().groupEnds([...times, last + wait], trusted);
+    return last !== undefined && this.gameplay().groupEnds([...times, last + wait], start, trusted);
   }
 
   /** Turns the group being typed into a word, its slots flying into it if `fly`. */
