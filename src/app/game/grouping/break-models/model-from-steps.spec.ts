@@ -64,31 +64,31 @@ describe('groupAt', () => {
 
 describe('groupEnds', () => {
   it('finishes where the player usually breaks, within the trust horizon', () => {
-    expect(gameplay(3).groupEnds(timesOf(4, []), true)).toBe(true);
-    expect(gameplay(3).groupEnds(timesOf(3, []), true)).toBe(false);
+    expect(gameplay(3).groupEnds(timesOf(4, []), 0, true)).toBe(true);
+    expect(gameplay(3).groupEnds(timesOf(3, []), 0, true)).toBe(false);
   });
 
   it('finishes where this run breaks long enough to outweigh the earlier runs, within the trust horizon', () => {
     // A break before index 2, where the earlier runs never break.
     const breaking = timesOf(3, [2]);
 
-    expect(gameplay(1).groupEnds(breaking, true)).toBe(true);
-    expect(gameplay(3).groupEnds(breaking, true)).toBe(false);
+    expect(gameplay(1).groupEnds(breaking, 0, true)).toBe(true);
+    expect(gameplay(3).groupEnds(breaking, 0, true)).toBe(false);
   });
 
   it('finishes where this run breaks, past the trust horizon', () => {
     const found = gameplay(3);
 
-    expect(found.groupEnds(timesOf(36, [35]), false)).toBe(true);
-    expect(found.groupEnds(timesOf(37, [35]), false)).toBe(false);
-    expect(found.groupEnds(timesOf(34, [35]), false)).toBe(false);
+    expect(found.groupEnds(timesOf(36, [35]), 27, false)).toBe(true);
+    expect(found.groupEnds(timesOf(37, [35]), 35, false)).toBe(false);
+    expect(found.groupEnds(timesOf(34, [35]), 27, false)).toBe(false);
   });
 
   it("finishes a new player's group where they break, judged by the synthetic runs", () => {
     const found = gameplay(0, 30, MERCURY_DEFAULTS);
 
-    expect(found.groupEnds(timesOf(4, [3]), false)).toBe(true);
-    expect(found.groupEnds(timesOf(3, []), false)).toBe(false);
+    expect(found.groupEnds(timesOf(4, [3]), 0, false)).toBe(true);
+    expect(found.groupEnds(timesOf(3, []), 0, false)).toBe(false);
   });
 });
 
@@ -109,7 +109,7 @@ describe('the thresholds', () => {
     }
     const { current, p } = borderline;
     const at = (breakThreshold: number): boolean =>
-      gameplay(0, 30, { ...MERCURY_DEFAULTS, breakThreshold }).groupEnds(current, false);
+      gameplay(0, 30, { ...MERCURY_DEFAULTS, breakThreshold }).groupEnds(current, 0, false);
 
     expect(at(0.5)).toBe(p > 0.5);
     expect(at(0.2)).toBe(true);

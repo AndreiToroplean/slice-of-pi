@@ -34,8 +34,10 @@ describe('Mars', () => {
     const play = MARS.create(settings).play(earlier);
     const times = timesOf(typed, by3(30));
     const last = times.at(-1) ?? 0;
+    // The group being typed starts at the last break typed.
+    const start = Math.max(0, ...by3(30).filter((place) => place < typed));
     let wait = 0;
-    while (!play.groupEnds([...times, last + wait], true)) {
+    while (!play.groupEnds([...times, last + wait], start, true)) {
       wait += 10;
     }
     return wait;
@@ -120,8 +122,8 @@ describe('Mars', () => {
   it("tells a new player's breaks from their first run", () => {
     const play = MARS.create({}).play([]);
 
-    expect(play.groupEnds(timesOf(8, [7], 2000), false)).toBe(true);
-    expect(play.groupEnds(timesOf(8, []), false)).toBe(false);
+    expect(play.groupEnds(timesOf(8, [7], 2000), 0, false)).toBe(true);
+    expect(play.groupEnds(timesOf(8, []), 0, false)).toBe(false);
   });
 
   it('lets a pause end a group from the start of a run, its few neighbors there pooled with the prior unevenness', () => {

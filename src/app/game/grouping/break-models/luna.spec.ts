@@ -53,8 +53,8 @@ describe('Luna', () => {
     const play = LUNA.create({}).play(grouped);
 
     expect(play.groupAt([], 3)).toEqual({ size: 3, trusted: true });
-    expect(play.groupEnds(timesOf(4, []), true)).toBe(true);
-    expect(play.groupEnds(timesOf(3, []), true)).toBe(false);
+    expect(play.groupEnds(timesOf(4, []), 0, true)).toBe(true);
+    expect(play.groupEnds(timesOf(3, []), 0, true)).toBe(false);
   });
 
   it('keeps trusting the places after one the runs are split on', () => {
@@ -74,8 +74,8 @@ describe('Luna', () => {
   it('ends a group where this run pauses, past the trust horizon', () => {
     const play = LUNA.create({}).play([]);
 
-    expect(play.groupEnds(timesOf(4, [3], 2000), false)).toBe(true);
-    expect(play.groupEnds(timesOf(4, []), false)).toBe(false);
+    expect(play.groupEnds(timesOf(4, [3], 2000), 0, false)).toBe(true);
+    expect(play.groupEnds(timesOf(4, []), 0, false)).toBe(false);
   });
 
   it('starts every group as 5 slots that grow for a new player', () => {
