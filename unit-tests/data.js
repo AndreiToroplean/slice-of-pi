@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792854982935,
+  "lastUpdate": 1792861378707,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2040,6 +2040,46 @@ window.BENCHMARK_DATA = {
             "value": 945,
             "unit": "ms",
             "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "c7f68fd01fe4b3c038a7647f45141110f45304b9",
+          "message": "fix: keep the fit dialog and the run menu out of the layout of Your Runs, so that they leave no gaps at the bottom of the page",
+          "timestamp": "2026-10-24T19:02:34+02:00",
+          "tree_id": "da1600959199cc486a23842f6f5d87a8937a0050",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/c7f68fd01fe4b3c038a7647f45141110f45304b9"
+        },
+        "date": 1792861377809,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 8257,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 16928,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1030,
+            "unit": "ms",
+            "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
           }
         ]
       }
