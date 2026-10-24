@@ -280,6 +280,13 @@ export function betaCdf(x: number, a: number, b: number): number {
     : 1 - (front * betaFraction(1 - x, b, a)) / b;
 }
 
+/** The density of the Beta(a, b) distribution at x, for x strictly between 0 and 1. */
+export function betaDensity(x: number, a: number, b: number): number {
+  return Math.exp(
+    logGamma(a + b) - logGamma(a) - logGamma(b) + (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x),
+  );
+}
+
 /** The continued fraction of the incomplete beta function, by the modified Lentz method. */
 function betaFraction(x: number, a: number, b: number): number {
   const tiny = 1e-300;
