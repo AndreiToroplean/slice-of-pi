@@ -309,6 +309,11 @@ button.aggregate {
   }
 }
 
+/* In developer mode, the settings closer under the card than the page's gap, to leave the sliders more room. */
+.summary + app-grouping-settings-panel {
+  margin-top: calc(var(--space-2) - var(--space-3));
+}
+
 button.aggregate:not(.selected) {
   opacity: 0.7;
 }
