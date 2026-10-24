@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { Layer, Plot, Point } from './model-views';
+import { Layer, Plot, Point } from './plot';
 
 /** The size of a plot, in the units of its `viewBox`: it's stretched to its box, its lines keeping their width. */
 const WIDTH = 1000;

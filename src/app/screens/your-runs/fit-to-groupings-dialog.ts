@@ -2,8 +2,8 @@ import { Component, computed, ElementRef, inject, input, signal, viewChild } fro
 import { Tweaks } from '../../developer-mode/tweaks';
 import { RunStore } from '../../player-data/run-store';
 import { DropdownMenu } from '../../ui/dropdown-menu';
-import type { Plot } from './model-views';
-import { PlotChart } from './plot-chart';
+import type { Plot } from './views/plot';
+import { PlotChart } from './views/plot-chart';
 import type { BreakModelKind, Settings } from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import {

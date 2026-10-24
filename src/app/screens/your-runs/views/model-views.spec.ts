@@ -1,9 +1,12 @@
-import type { BreakSettings } from '../../game/grouping/break-models/hyperparameters';
-import { finishedRuns, mercury, MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
-import { breakBoundary } from '../../game/grouping/break-models/statistics';
+import type { BreakSettings } from '../../../game/grouping/break-models/hyperparameters';
+import {
+  finishedRuns,
+  mercury,
+  MERCURY_DEFAULTS,
+} from '../../../game/grouping/break-models/mercury';
+import { breakBoundary } from '../../../game/grouping/break-models/statistics';
 import {
   confidenceView,
-  Layer,
   mixtureView,
   modelViews,
   probabilityView,
@@ -11,6 +14,7 @@ import {
   timeGuides,
   ViewInput,
 } from './model-views';
+import type { Layer } from './plot';
 
 describe('the views of the break model', () => {
   const settings = MERCURY_DEFAULTS;
