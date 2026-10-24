@@ -39,7 +39,8 @@
   pointer-events: none;
 }
 
-:host(:active) {
+:host(:active),
+:host(.pressed) {
   translate: 0 0.25rem;
   box-shadow:
     0 0.0625rem 0 var(--candy-edge),
@@ -60,10 +61,23 @@
   text-shadow: var(--text-shadow);
 }
 
-:host(.clear:active) {
+:host(.clear:active),
+:host(.clear.pressed) {
   box-shadow:
     inset 0 1px 0 var(--frost-highlight),
     0 0.0625rem 0 var(--candy-edge);
+}
+
+/* With a press color, its edge shows it, and pressing fills its face with it, all at once. */
+:host(.colored) {
+  --candy-edge: var(--press-color);
+}
+
+:host(.colored:active),
+:host(.colored.pressed) {
+  background: var(--press-color);
+  color: #ffffff;
+  text-shadow: none;
 }
 
 /* A small candy button, such as in the top bar of a page. */
@@ -89,7 +103,8 @@
   animation: var(--candy-picked);
 }
 
-:host(:active) {
+:host(:active),
+:host(.pressed) {
   animation: none;
 }
 
