@@ -12,7 +12,7 @@
   --text-shadow-large: 0 2px 10px rgb(0 0 0 / 18%);
   --focus-ring: #ffffff;
 
-  /* Candy buttons (`.candy`): a face, the text on it, and a darker edge below it. */
+  /* Candy buttons (`Candy`): a face, the text on it, and a darker edge below it. */
   --candy: #ffffff;
   --on-candy: var(--ink);
   --candy-edge: #d9cfe0;
@@ -182,71 +182,10 @@ body {
   box-shadow: inset 0 1px 0 var(--frost-highlight);
 }
 
-/* A big, colorful button with a thick edge, that sinks when pressed: white, `.primary` or `.danger`. */
-.candy {
-  display: block;
-  padding: 0.75rem;
-  border: none;
-  border-radius: var(--radius-key);
-  /* Its face, and its shine, off it until it's picked out (see below). */
-  background: var(--candy-shine) var(--candy);
-  box-shadow:
-    0 0.3125rem 0 var(--candy-edge),
-    0 0.5rem 1.25rem rgb(40 20 60 / 18%);
-  color: var(--on-candy);
-  text-align: center;
-  text-decoration: none;
-  font-family: var(--font-digits);
-  font-size: 1.25rem;
-  font-weight: 600;
-  -webkit-tap-highlight-color: transparent;
-  cursor: pointer;
-  transition:
-    translate 0.08s,
-    box-shadow 0.08s;
-}
-
-.candy.primary {
-  --candy: var(--candy-primary);
-  --candy-edge: var(--candy-primary-edge);
-}
-
-.candy.danger {
-  --candy: var(--candy-danger);
-  --on-candy: var(--on-candy-danger);
-  --candy-edge: var(--candy-danger-edge);
-}
-
-.candy:disabled {
-  opacity: 0.6;
-  cursor: default;
-  pointer-events: none;
-}
-
-.candy:active {
-  translate: 0 0.25rem;
-  box-shadow:
-    0 0.0625rem 0 var(--candy-edge),
-    0 0.25rem 0.75rem rgb(40 20 60 / 18%);
-}
-
-/* A small candy button, such as in the top bar of a page. */
-.candy.small {
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.875rem;
-  box-shadow: 0 0.1875rem 0 var(--candy-edge);
-  font-size: 0.875rem;
-
-  &:active {
-    translate: 0 0.125rem;
-    box-shadow: 0 0.0625rem 0 var(--candy-edge);
-  }
-}
-
 /*
  * What the keyboard is on is picked out as in a game's menu, rather than ringed. A candy button breathes, growing a
- * little and back, and its face shines, until pressed (the mouse picks one out too, see `App`); a simpler button
- * glows. Their outline stays, transparent, for when the system forces its own colors, which show it.
+ * little and back, and its face shines, until pressed (the mouse picks one out too, see `App` and `Candy`); a simpler
+ * button glows. Their outline stays, transparent, for when the system forces its own colors, which show it.
  */
 :root {
   --candy-shine: linear-gradient(
@@ -260,25 +199,8 @@ body {
   --selected-glow: 0 0 0.4rem 0.25rem rgb(255 255 255 / 75%);
 }
 
-:is(.candy, .frosted, .round):focus-visible,
-.candy:has(input:focus-visible) {
+:is(.frosted, .round):focus-visible {
   outline: 0.1875rem solid transparent;
-}
-
-.candy:focus-visible,
-.candy:has(input:focus-visible) {
-  animation: var(--candy-picked);
-}
-
-.candy:active {
-  animation: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .candy:is(:focus-visible, :has(input:focus-visible)) {
-    scale: 1.05;
-    animation: none;
-  }
 }
 
 .frosted:focus-visible {

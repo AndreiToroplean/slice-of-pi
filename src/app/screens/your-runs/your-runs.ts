@@ -38,6 +38,7 @@ import { Zoom } from './views/zoom';
 import { plural } from '../../ui/plural';
 import { RunChart } from './run-chart';
 import { chartTop, digitTimes } from './run-charts';
+import { Candy } from '../../ui/candy';
 
 /**
  * The player's runs, opened from the main menu's overflow menu, on one screen: a chart of them all on top, and under it
@@ -52,6 +53,7 @@ import { chartTop, digitTimes } from './run-charts';
 @Component({
   selector: 'app-your-runs',
   imports: [
+    Candy,
     Carousel,
     CdkDrag,
     CdkDragHandle,
@@ -76,7 +78,8 @@ import { chartTop, digitTimes } from './run-charts';
       <button
         pageAction
         type="button"
-        class="candy danger small"
+        appCandy="danger"
+        class="small"
         [disabled]="runs().length === 0"
         (click)="deleteAll()"
       >

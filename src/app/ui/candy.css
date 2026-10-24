@@ -1,0 +1,82 @@
+/* A big, colorful button with a thick edge, that sinks when pressed. */
+:host {
+  display: block;
+  padding: 0.75rem;
+  border: none;
+  border-radius: var(--radius-key);
+  /* Its face, and its shine, off it until it's picked out (see below). */
+  background: var(--candy-shine) var(--candy);
+  box-shadow:
+    0 0.3125rem 0 var(--candy-edge),
+    0 0.5rem 1.25rem rgb(40 20 60 / 18%);
+  color: var(--on-candy);
+  text-align: center;
+  text-decoration: none;
+  font-family: var(--font-digits);
+  font-size: 1.25rem;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition:
+    translate 0.08s,
+    box-shadow 0.08s;
+}
+
+:host(.primary) {
+  --candy: var(--candy-primary);
+  --candy-edge: var(--candy-primary-edge);
+}
+
+:host(.danger) {
+  --candy: var(--candy-danger);
+  --on-candy: var(--on-candy-danger);
+  --candy-edge: var(--candy-danger-edge);
+}
+
+:host(:disabled) {
+  opacity: 0.6;
+  cursor: default;
+  pointer-events: none;
+}
+
+:host(:active) {
+  translate: 0 0.25rem;
+  box-shadow:
+    0 0.0625rem 0 var(--candy-edge),
+    0 0.25rem 0.75rem rgb(40 20 60 / 18%);
+}
+
+/* A small candy button, such as in the top bar of a page. */
+:host(.small) {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.875rem;
+  box-shadow: 0 0.1875rem 0 var(--candy-edge);
+  font-size: 0.875rem;
+}
+
+:host(.small:active) {
+  translate: 0 0.125rem;
+  box-shadow: 0 0.0625rem 0 var(--candy-edge);
+}
+
+/*
+ * Picked out, it breathes and its face shines, until pressed (see `--candy-picked` in `styles.css`). Its outline stays,
+ * transparent, for when the system forces its own colors, which show it.
+ */
+:host(:focus-visible),
+:host(:has(input:focus-visible)) {
+  outline: 0.1875rem solid transparent;
+  animation: var(--candy-picked);
+}
+
+:host(:active) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host(:focus-visible),
+  :host(:has(input:focus-visible)) {
+    scale: 1.05;
+    animation: none;
+  }
+}

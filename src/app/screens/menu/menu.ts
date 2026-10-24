@@ -18,6 +18,7 @@ import { DropdownMenu } from '../../ui/dropdown-menu';
 import { seasonAt } from '../../game/layers/seasons';
 import { MenuAssets } from './menu-assets';
 import { ButtonList } from '../../ui/button-list';
+import { Candy } from '../../ui/candy';
 
 /**
  * The main menu, where the app opens: the game's icon and name, a button to play and one above it to the player's runs,
@@ -27,7 +28,7 @@ import { ButtonList } from '../../ui/button-list';
  */
 @Component({
   selector: 'app-menu',
-  imports: [NgOptimizedImage, RouterLink, ButtonList, DeveloperTaps, DropdownMenu],
+  imports: [NgOptimizedImage, RouterLink, ButtonList, Candy, DeveloperTaps, DropdownMenu],
   host: {
     class: 'screen',
     '[class.loading]': '!assets.ready()',
@@ -87,8 +88,8 @@ import { ButtonList } from '../../ui/button-list';
       {{ taps.message() }}
     </p>
     <app-button-list class="actions">
-      <a class="candy" routerLink="/runs">Your Runs</a>
-      <a #play class="candy primary" routerLink="/play">Play</a>
+      <a appCandy routerLink="/runs">Your Runs</a>
+      <a #play appCandy="primary" routerLink="/play">Play</a>
     </app-button-list>
     <!-- After the middle of the menu, for Tab to go through it from the left to the right. -->
     <app-dropdown-menu>
@@ -119,7 +120,9 @@ export class Menu {
   protected readonly assets = inject(MenuAssets);
   private readonly document = inject(DOCUMENT);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-  private readonly play = viewChild.required<ElementRef<HTMLElement>>('play');
+  private readonly play = viewChild.required<string, ElementRef<HTMLElement>>('play', {
+    read: ElementRef,
+  });
 
   constructor() {
     const fonts = this.document.fonts;

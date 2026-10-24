@@ -9,6 +9,7 @@ import type {
   Settings,
 } from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
+import { Candy } from '../../ui/candy';
 
 /** The tab of what is given to the panel. */
 const RUNS_TAB = 'Runs';
@@ -59,7 +60,7 @@ function keysOf(kind: BreakModelKind): string[] {
  */
 @Component({
   selector: 'app-grouping-settings-panel',
-  imports: [DropdownMenu],
+  imports: [Candy, DropdownMenu],
   template: `
     <div class="bar">
       <div class="tabs" role="tablist" aria-label="Your runs and the grouping settings">
@@ -220,7 +221,7 @@ function keysOf(kind: BreakModelKind): string[] {
           <p><b>Why this way.</b> {{ control.help.why }}</p>
           <p><b>Moving it.</b> {{ control.help.moving }}</p>
         </div>
-        <button type="button" class="candy" autofocus (click)="closeHelp()">Close</button>
+        <button type="button" appCandy autofocus (click)="closeHelp()">Close</button>
       }
     </dialog>
   `,

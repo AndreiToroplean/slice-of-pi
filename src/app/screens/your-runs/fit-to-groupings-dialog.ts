@@ -14,6 +14,7 @@ import {
   scoreGroups,
 } from '../../game/grouping/break-models/fit-to-groupings';
 import { MyGroupings } from './my-groupings';
+import { Candy } from '../../ui/candy';
 
 /** How long the search runs before letting the page draw, in milliseconds. */
 const FRAME = 30;
@@ -30,7 +31,7 @@ const FRAME = 30;
  */
 @Component({
   selector: 'app-fit-to-groupings-dialog',
-  imports: [DropdownMenu, PlotChart],
+  imports: [Candy, DropdownMenu, PlotChart],
   template: `
     <!-- The dialog itself takes the focus as it opens, so that no field shows a focus ring or opens the keyboard. -->
     <dialog #dialog class="card" aria-labelledby="fit-title" autofocus (close)="stop()">
@@ -98,10 +99,11 @@ const FRAME = 30;
         </section>
       }
       <div class="buttons">
-        <button type="button" class="candy" (click)="close()">Close</button>
+        <button type="button" appCandy (click)="close()">Close</button>
         <button
           type="button"
-          class="candy end-fit"
+          appCandy
+          class="end-fit"
           [disabled]="!ready() || locked() || fitted() === 'end'"
           (click)="void fit(false)"
         >
@@ -109,7 +111,8 @@ const FRAME = 30;
         </button>
         <button
           type="button"
-          class="candy primary curve-fit"
+          appCandy="primary"
+          class="curve-fit"
           [disabled]="!ready() || locked() || fitted() === 'curve'"
           (click)="void fit(true)"
         >

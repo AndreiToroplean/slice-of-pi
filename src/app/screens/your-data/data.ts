@@ -9,6 +9,7 @@ import { Run } from '../../player-data/run';
 import { RUN_CLOCK, RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { plural } from '../../ui/plural';
+import { Candy } from '../../ui/candy';
 
 /** Hands a file to the player, as a download. */
 export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void>('SAVE_FILE', {
@@ -31,7 +32,7 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
  */
 @Component({
   selector: 'app-data',
-  imports: [ButtonList, Page],
+  imports: [ButtonList, Candy, Page],
   template: `
     <app-page title="Your Data">
       <section class="panel" aria-labelledby="backup-title">
@@ -56,8 +57,8 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
           <p>It also keeps what you tuned in developer mode.</p>
         }
         <app-button-list class="buttons">
-          <button type="button" class="candy" (click)="save()">Save a Backup</button>
-          <label class="candy">
+          <button type="button" appCandy (click)="save()">Save a Backup</button>
+          <label appCandy>
             Restore a Backup
             <input
               type="file"
