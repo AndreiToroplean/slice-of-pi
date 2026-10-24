@@ -179,7 +179,7 @@ export function paceView(input: ViewInput, workings: Workings): Plot {
   return {
     title: 'Pace',
     caption:
-      'Each interval, on a log scale, and the pace of the intervals around it in its run, give or take their spread: a break stands out of the band.',
+      'Each interval, on a log scale, against the pace around it in its run, give or take its spread (the band): breaks stand out.',
     x: alongPlaces(input.places),
     y: { ...range, ticks: intervalTicks() },
     layers: [
@@ -201,7 +201,7 @@ export function unevennessView(input: ViewInput, workings: Workings): Plot {
   return {
     title: 'Unevenness',
     caption:
-      'How uneven each run is around each place: the spread of the log-intervals around it. Under the floor (faint), its z is counted in the floor; from full trust (solid) on, it counts fully.',
+      'How uneven each run is around each place: its z is counted in at least the floor (faint), and from full trust (solid) on, it counts fully.',
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
     layers: [
@@ -221,7 +221,7 @@ export function zView(input: ViewInput, workings: Workings): Plot {
   ]);
   return {
     title: 'z',
-    caption: `How many spreads each interval is above its pace. Its evidence for a break is 0 at ${format(workings.evenZ)} (faint), and a lone run breaks over ${format(workings.breakZ)} (red).`,
+    caption: `How many spreads each interval is above its pace: evidence for a break from ${format(workings.evenZ)} (faint), and a lone run breaks over ${format(workings.breakZ)} (red).`,
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
     layers: [
@@ -265,7 +265,7 @@ export function evidenceView(input: ViewInput, workings: Workings): Plot {
   return {
     title: 'Evidence',
     caption:
-      'What each run adds to the log-odds of a break at each place: its evidence times its recency and trust. Red for a break, the rest against.',
+      'What each run adds to the log-odds of a break at each place: its evidence times its recency and trust, red for a break.',
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
     layers: [
@@ -302,7 +302,7 @@ export function forAndAgainstView(input: ViewInput, workings: Workings, pool: Po
   return {
     title: 'For and against',
     caption:
-      'The runs’ evidence at each place added up: for a break (red), against it (below 0), and their sum, which takes the prior to the log-odds.',
+      'The runs’ evidence at each place added up: for a break (red), against (below 0), and their sum, from the prior to the log-odds.',
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
     layers: input.aggregate
@@ -348,7 +348,7 @@ export function logOddsView(input: ViewInput, pool: PoolWorkings): Plot {
   });
   return {
     title: 'Log-odds',
-    caption: `The log-odds of a break at each place: the prior (faint) plus every run’s evidence. Over the threshold, ${format(pool.threshold)} (red), it’s a break. Cut off ${String(LOG_ODDS_REACH)} away.`,
+    caption: `The log-odds of a break at each place: the prior (faint) plus the runs’ evidence. Over ${format(pool.threshold)} (red), it’s a break. Cut off ${String(LOG_ODDS_REACH)} away.`,
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, 5) },
     layers: input.aggregate
@@ -373,7 +373,7 @@ export function agreementView(input: ViewInput, pool: PoolWorkings): Plot {
   const { breakThreshold } = input.model.settings;
   return {
     title: 'Agreement',
-    caption: `The weighted share of the runs that break at each place on their own: the confidence is how surely it’s on the verdict’s side of ${format(breakThreshold)} (red).`,
+    caption: `The weighted share of the runs that break at each place on their own: the confidence is how surely it’s over or under ${format(breakThreshold)} (red).`,
     x: alongPlaces(input.places),
     y: { min: 0, max: 1, ticks: stepTicks(0, 1, 0.5) },
     layers: input.aggregate
@@ -391,7 +391,7 @@ export function nextRunView(input: ViewInput, workings: Workings, pool: PoolWork
   const range = padded([0, workings.breakZ, ...values], { min: -8, max: 30 });
   return {
     title: 'Pause to break',
-    caption: `How many spreads above its pace the next run must pause at each place to end its group there, fully trusted: ${format(workings.breakZ)} (red) with no runs before; below 0, it ends there even typing on fast.`,
+    caption: `How many spreads above its pace the next run must pause to end its group at each place: ${format(workings.breakZ)} (red) with no runs before, under 0 at once.`,
     x: alongPlaces(input.places),
     y: { ...range, ticks: stepTicks(range.min, range.max, niceStep(range.max - range.min)) },
     layers: input.aggregate
