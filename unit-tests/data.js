@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792866867903,
+  "lastUpdate": 1792880035204,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2118,6 +2118,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1355,
+            "unit": "ms",
+            "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "50369941f07076c4495a75c2818fc28d18d1ee16",
+          "message": "feat: breathe candy buttons by as much on every side, however wide, their text in step with them, and a little less",
+          "timestamp": "2026-10-25T00:13:27+02:00",
+          "tree_id": "befebd6b9ea831f803bc08599b942c3064eb893f",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/50369941f07076c4495a75c2818fc28d18d1ee16"
+        },
+        "date": 1792880034832,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 12182,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 25857,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1519,
             "unit": "ms",
             "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
           }
