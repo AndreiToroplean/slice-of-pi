@@ -62,21 +62,45 @@ export const KEY_POSITIONS: Readonly<Record<KeypadLayout, readonly KeyPosition[]
 const ROWS = 4;
 const COLUMNS = 3;
 
+type Rect = Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>;
+
+/** The gaps between the keys of a keypad, between its columns and between its rows. */
+export interface KeypadGaps {
+  readonly column: number;
+  readonly row: number;
+}
+
 /**
- * The key under a point `(x, y)` of a keypad in a layout occupying `rect`, or null if there is none (outside the keypad, or an empty
- * cell). The keypad is split into equal rectangular cells, so the gaps between keys, their rounded corners and the
- * keypad's padding all count as part of the nearest key.
+ * The key under a point `(x, y)` of a keypad in a layout whose keys occupy `keys`, `gaps` apart, and whose touches
+ * `area`, around them: null if there is none (outside the area, or in an empty cell). Each key's cell reaches halfway
+ * to the next key, so the gaps between keys and their rounded corners count as part of the nearest key, and the keys on
+ * the edges reach out over the rest of the area, as far as it goes: those at its sides to its sides, those on top up to
+ * its top, and those at the bottom down to its bottom.
  */
 export function keyAt(
   layout: KeypadLayout,
-  rect: Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>,
+  keys: Rect,
+  gaps: KeypadGaps,
+  area: Rect,
   x: number,
   y: number,
 ): KeypadKey | null {
-  const column = Math.floor(((x - rect.left) / rect.width) * COLUMNS);
-  const row = Math.floor(((y - rect.top) / rect.height) * ROWS);
+  if (x < area.left || x >= area.left + area.width || y < area.top || y >= area.top + area.height) {
+    return null;
+  }
+  // Equal cells, each a key and half a gap on either side of it.
+  const column = cell(
+    ((x - keys.left + gaps.column / 2) / (keys.width + gaps.column)) * COLUMNS,
+    COLUMNS,
+  );
+  const row = cell(((y - keys.top + gaps.row / 2) / (keys.height + gaps.row)) * ROWS, ROWS);
   return (
     KEY_POSITIONS[layout].find((position) => position.row === row && position.column === column)
       ?.key ?? null
   );
+}
+
+/** The cell at a position counted in cells, those before the first and past the last counting as the nearest. */
+function cell(position: number, count: number): number {
+  return Math.min(Math.max(Math.floor(position), 0), count - 1);
 }

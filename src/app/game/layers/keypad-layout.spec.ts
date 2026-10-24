@@ -39,40 +39,66 @@ describe('KEY_POSITIONS', () => {
 });
 
 describe('keyAt', () => {
-  // A 300 × 400 keypad at (10, 20): 100 × 100 cells.
-  const rect = { left: 10, top: 20, width: 300, height: 400 };
+  // A 300 × 400 keypad at (10, 20): 100 × 100 cells, touched 30 beyond it on its sides, 20 above and 40 below.
+  const keys = { left: 10, top: 20, width: 300, height: 400 };
+  const area = { left: -20, top: 0, width: 360, height: 460 };
+  const at = (x: number, y: number, layout: KeypadLayout = 'calculator'): string | null =>
+    keyAt(layout, keys, { column: 0, row: 0 }, area, x, y);
 
   it('finds the key whose cell contains the point', () => {
-    expect(keyAt('calculator', rect, 60, 70)).toBe('7');
-    expect(keyAt('calculator', rect, 160, 170)).toBe('5');
-    expect(keyAt('calculator', rect, 260, 270)).toBe('3');
-    expect(keyAt('calculator', rect, 160, 370)).toBe('0');
-    expect(keyAt('calculator', rect, 260, 370)).toBe('backspace');
+    expect(at(60, 70)).toBe('7');
+    expect(at(160, 170)).toBe('5');
+    expect(at(260, 270)).toBe('3');
+    expect(at(160, 370)).toBe('0');
+    expect(at(260, 370)).toBe('backspace');
   });
 
   it('splits the space between keys equally, up to the cell borders', () => {
-    expect(keyAt('calculator', rect, 109.9, 70)).toBe('7');
-    expect(keyAt('calculator', rect, 110, 70)).toBe('8');
-    expect(keyAt('calculator', rect, 60, 119.9)).toBe('7');
-    expect(keyAt('calculator', rect, 60, 120)).toBe('4');
+    expect(at(109.9, 70)).toBe('7');
+    expect(at(110, 70)).toBe('8');
+    expect(at(60, 119.9)).toBe('7');
+    expect(at(60, 120)).toBe('4');
+  });
+
+  it('splits the gaps between keys in their middle', () => {
+    // Keys 80 × 70, 30 apart across and 40 down: 7 ends at 90 across and 90 down, 8 starts at 120 and 4 at 130.
+    const atGaps = (x: number, y: number): string | null =>
+      keyAt('calculator', keys, { column: 30, row: 40 }, area, x, y);
+
+    expect(atGaps(104.9, 50)).toBe('7');
+    expect(atGaps(105, 50)).toBe('8');
+    expect(atGaps(50, 109.9)).toBe('7');
+    expect(atGaps(50, 110)).toBe('4');
+    expect(atGaps(339.9, 459.9)).toBe('backspace');
   });
 
   it('finds the keys where the layout puts them', () => {
-    expect(keyAt('telephone', rect, 60, 70)).toBe('1');
-    expect(keyAt('telephone', rect, 260, 270)).toBe('9');
-    expect(keyAt('telephone', rect, 160, 370)).toBe('0');
+    expect(at(60, 70, 'telephone')).toBe('1');
+    expect(at(260, 270, 'telephone')).toBe('9');
+    expect(at(160, 370, 'telephone')).toBe('0');
   });
 
   it('counts the corners of a cell, where a rounded key draws nothing, as the key', () => {
-    expect(keyAt('calculator', rect, 10, 20)).toBe('7');
-    expect(keyAt('calculator', rect, 309.9, 419.9)).toBe('backspace');
+    expect(at(10, 20)).toBe('7');
+    expect(at(309.9, 419.9)).toBe('backspace');
   });
 
-  it('finds no key in the empty cell or outside the keypad', () => {
-    expect(keyAt('calculator', rect, 60, 370)).toBeNull();
-    expect(keyAt('calculator', rect, 9, 70)).toBeNull();
-    expect(keyAt('calculator', rect, 310, 70)).toBeNull();
-    expect(keyAt('calculator', rect, 60, 19)).toBeNull();
-    expect(keyAt('calculator', rect, 160, 420)).toBeNull();
+  it('lets the keys on the edges reach out to the edges of the area', () => {
+    expect(at(-20, 170)).toBe('4');
+    expect(at(339.9, 170)).toBe('6');
+    expect(at(160, 0)).toBe('8');
+    expect(at(160, 459.9)).toBe('0');
+    expect(at(339.9, 459.9)).toBe('backspace');
+    expect(at(-20, 0)).toBe('7');
+  });
+
+  it('finds no key in the empty cell, nor below or beside it, nor outside the area', () => {
+    expect(at(60, 370)).toBeNull();
+    expect(at(60, 450)).toBeNull();
+    expect(at(-10, 370)).toBeNull();
+    expect(at(-21, 70)).toBeNull();
+    expect(at(340, 70)).toBeNull();
+    expect(at(60, -1)).toBeNull();
+    expect(at(160, 460)).toBeNull();
   });
 });

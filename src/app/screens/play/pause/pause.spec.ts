@@ -1,12 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { installDialogs, uninstallDialogs } from '../../../../testing/fake-dialogs';
+import { DeveloperMode } from '../../../developer-mode/developer-mode';
+import { INDEXED_DB } from '../../../player-data/run-store';
 import { Pause } from './pause';
 
 describe('Pause', () => {
   beforeEach(() => {
     installDialogs();
-    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), { provide: INDEXED_DB, useValue: undefined }],
+    });
   });
 
   afterEach(() => {
@@ -76,6 +80,23 @@ describe('Pause', () => {
       'End Game',
     ]);
     expect(dialog.querySelector('button')?.hasAttribute('autofocus')).toBe(true);
+  });
+
+  it('shows and hides the touch areas, in developer mode only', async () => {
+    const { host, pause } = await setUp();
+    const toggle = (): HTMLInputElement | null =>
+      host.querySelector<HTMLInputElement>('label.toggle input[type="checkbox"]');
+    expect(toggle()).toBeNull();
+
+    await TestBed.inject(DeveloperMode).set(true);
+    TestBed.tick();
+    expect(toggle()?.closest('label')?.textContent.trim()).toBe('Show Touch Areas');
+    expect(toggle()?.checked).toBe(false);
+
+    toggle()?.click();
+    expect(pause.showTouchAreas()).toBe(true);
+    toggle()?.click();
+    expect(pause.showTouchAreas()).toBe(false);
   });
 
   it('moves between its buttons with the up and down keys, round from either end', async () => {

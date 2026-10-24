@@ -1,4 +1,5 @@
-import { Component, ElementRef, model, output, viewChild } from '@angular/core';
+import { Component, ElementRef, inject, model, output, viewChild } from '@angular/core';
+import { DeveloperMode } from '../../../developer-mode/developer-mode';
 import { injectBackToMenu } from '../../../ui/back-to-menu';
 import { ButtonList } from '../../../ui/button-list';
 import { Candy } from '../../../ui/candy';
@@ -6,7 +7,7 @@ import { Candy } from '../../../ui/candy';
 /**
  * The pause button, and the dialog it opens over the game: resume, restart the game, or end it, back to the main
  * menu. Escape pauses too, and resumes; up and down move between the dialog's buttons, and Enter chooses one, as on
- * any button.
+ * any button. In developer mode, it can also show the keypad's touch areas.
  */
 @Component({
   selector: 'app-pause',
@@ -32,6 +33,16 @@ import { Candy } from '../../../ui/candy';
         <button type="button" appCandy (click)="restart.emit(); resume()">Restart</button>
         <button type="button" appCandy="danger" (click)="void endGame()">End Game</button>
       </app-button-list>
+      @if (developerMode.enabled()) {
+        <label class="toggle">
+          <input
+            type="checkbox"
+            [checked]="showTouchAreas()"
+            (change)="setShowTouchAreas($event)"
+          />
+          Show Touch Areas
+        </label>
+      }
     </dialog>
   `,
   styleUrl: './pause.css',
@@ -41,6 +52,10 @@ export class Pause {
   readonly paused = model(false);
   /** The player chose to restart the game. */
   readonly restart = output();
+  /** Whether the keypad shows its touch areas, in developer mode. */
+  readonly showTouchAreas = model(false);
+
+  protected readonly developerMode = inject(DeveloperMode);
 
   private readonly backToMenu = injectBackToMenu();
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
@@ -57,6 +72,10 @@ export class Pause {
       event.preventDefault();
       this.pause();
     }
+  }
+
+  protected setShowTouchAreas(event: Event): void {
+    this.showTouchAreas.set((event.target as HTMLInputElement).checked);
   }
 
   protected resume(): void {
