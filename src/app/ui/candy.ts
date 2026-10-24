@@ -34,7 +34,7 @@ export const SHORTEST_PRESS = 150;
     '(document:pointerup)': 'letGo()',
     '(document:pointercancel)': 'letGo()',
   },
-  template: '<ng-content />',
+  template: '<span class="content"><ng-content /></span>',
   styleUrl: './candy.css',
 })
 export class Candy {
