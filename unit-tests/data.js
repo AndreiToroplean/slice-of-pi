@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792894173121,
+  "lastUpdate": 1792919250631,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2358,6 +2358,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1180,
+            "unit": "ms",
+            "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "43684a1aba8c46d0f23b91af305422ed8435792e",
+          "message": "feat: record each touch where it started rather than where it was released\n\n- With the slide grace, where a touch was released no longer tells which key it typed: where the player aimed, as the touch started, is the meaningful place.\n- Touch logs move to format 5; format 4 logs lose their places, which were release points, and with them the touches typing nothing.\n- Each touch is still timed as it's released.\n- Drops the draft roadmap's idea of recording both points.\n\nClaude-Session: https://claude.ai/code/session_014BaJnMVcp2NeALjJwXuMLz",
+          "timestamp": "2026-10-25T10:07:09+01:00",
+          "tree_id": "147be95e8482cdbeb0a002aa663e7ffb8dd79e38",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/43684a1aba8c46d0f23b91af305422ed8435792e"
+        },
+        "date": 1792919249983,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 10272,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 22029,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1134,
             "unit": "ms",
             "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
           }
