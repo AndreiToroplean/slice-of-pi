@@ -123,13 +123,13 @@ describe('Settings', () => {
     const fixture = TestBed.createComponent(Settings);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
-    expect(button(host, 'Reset All')?.disabled).toBe(true);
+    expect(button(host, 'Reset Settings')?.disabled).toBe(true);
 
     await tweaks.setCountdown(false);
     await tweaks.setChecking(false);
     await setting.set('telephone');
     await fixture.whenStable();
-    button(host, 'Reset All')?.click();
+    button(host, 'Reset Settings')?.click();
 
     expect(tweaks.countdown()).toBe(true);
     expect(tweaks.checking()).toBe(true);
