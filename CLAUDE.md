@@ -7,6 +7,7 @@
 - Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages and pull request titles, e.g. `feat: add a backspace key` or `docs: describe the seasons layer`.
 - Keep commit and pull request titles to 100 characters at most, everything included. What more there is to say, such as the reasons for a change, goes in the commit's description as a list of `-` bullets, each one worth saying: leave out what isn't.
 - Commit and push every change as soon as it's made; the owner reviews on GitHub. Amending and force-pushing to fix things afterwards is fine.
+- An action on a whole page or screen, such as a button in a page's top bar, is a candy button (`appCandy`), red (`danger`) when it erases or resets. Small plain buttons only ever act on the one setting or slider they sit by.
 - When a pull request changes what players see or hear, ask for a preview: right after opening it, put the line `Preview: https://andreitoroplean.github.io/slice-of-pi/pr-<number>/`, with its number, at the very top of its description, so the link is the first thing in it. Leave it out of other pull requests (CI, docs, refactors).
 
 # Skills

@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Background } from '../../ui/background';
 import { COLOR_SPACE_NAMES, COLOR_SPACES, ColorSpace } from '../../game/color/color-spaces';
 import { DropdownMenu } from '../../ui/dropdown-menu';
+import { Candy } from '../../ui/candy';
 import { Page } from '../../ui/page';
 import { SEASON_NAMES, SeasonHeader } from '../play/season-header/season-header';
 import {
@@ -31,10 +32,17 @@ const ENDS = [
  */
 @Component({
   selector: 'app-season-colors',
-  imports: [ColorPicker, CopyValues, DropdownMenu, Page, SeasonHeader],
+  imports: [Candy, ColorPicker, CopyValues, DropdownMenu, Page, SeasonHeader],
   template: `
     <app-page heading="Season Colors">
-      <button pageAction type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
+      <button
+        pageAction
+        type="button"
+        appCandy="danger"
+        class="small"
+        [disabled]="!tuned()"
+        (click)="reset()"
+      >
         Back to Default Settings
       </button>
       <app-season-header [view]="view()" />
