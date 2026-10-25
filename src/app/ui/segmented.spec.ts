@@ -127,6 +127,24 @@ describe('Segmented', () => {
     expect(sizes.scrollLeft).toBe(30);
   });
 
+  it('slides its pill under the one chosen, fitting it', async () => {
+    const { sizes, component, stable } = await setUp();
+    const pill = sizes.querySelector<HTMLElement>('.chosen-pill');
+    buttons(sizes).forEach((button, i) => {
+      Object.defineProperties(button, {
+        offsetLeft: { value: 3 + 70 * i },
+        offsetWidth: { value: 60 + 5 * i },
+      });
+    });
+
+    component.size.set('large');
+    await stable();
+
+    expect(pill?.style.translate).toBe('143px');
+    expect(pill?.style.width).toBe('70px');
+    expect(pill?.style.transition).toBe('');
+  });
+
   it('makes tabs, given the panels they show, each labelling its panel', async () => {
     const { views, component, stable } = await setUp();
 
