@@ -1,0 +1,217 @@
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { Background } from '../../ui/background';
+import { INDEXED_DB } from '../../player-data/run-store';
+import {
+  backgroundsFrom,
+  SEASON_BACKGROUNDS,
+  SEASON_COLOR_SPACE,
+  seasonAt,
+} from '../../game/layers/seasons';
+import { DeveloperMode } from '../../developer-mode/developer-mode';
+import { hexToHsl, hslToHex } from '../../game/color/color-spaces';
+import { averageHsl } from '../../game/color/color-math';
+import { SeasonColors } from './season-colors';
+import { installPopovers, uninstallPopovers } from '../../../testing/fake-popovers';
+import { SEASON_STARTS, Tweaks } from '../../developer-mode/tweaks';
+
+describe('SeasonColors', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), { provide: INDEXED_DB, useValue: undefined }],
+    });
+  });
+
+  async function setUp(): Promise<{ host: HTMLElement; stable: () => Promise<void> }> {
+    const fixture = TestBed.createComponent(SeasonColors);
+    await fixture.whenStable();
+    return { host: fixture.nativeElement as HTMLElement, stable: () => fixture.whenStable() };
+  }
+
+  function swatch(host: HTMLElement, label: string): HTMLButtonElement {
+    const element = host.querySelector<HTMLButtonElement>(`button.swatch[title="${label}"]`);
+    if (element === null) {
+      throw new Error(`No swatch ${label}`);
+    }
+    return element;
+  }
+
+  function reset(host: HTMLElement): HTMLButtonElement {
+    const found = Array.from(host.querySelectorAll('button')).find((button) =>
+      button.textContent.includes('Reset All'),
+    );
+    if (found === undefined) {
+      throw new Error('No reset button');
+    }
+    return found;
+  }
+
+  function slider(host: HTMLElement): HTMLInputElement {
+    const element = host.querySelector<HTMLInputElement>('label.place input[type="range"]');
+    if (element === null) {
+      throw new Error('No slider');
+    }
+    return element;
+  }
+
+  async function set(
+    element: HTMLInputElement,
+    value: string,
+    stable: () => Promise<void>,
+  ): Promise<void> {
+    element.value = value;
+    element.dispatchEvent(new Event('input'));
+    await stable();
+  }
+
+  it('has a top and a bottom color for each season, starting with the top of spring in the picker', async () => {
+    const { host } = await setUp();
+
+    expect(host.querySelectorAll('button.swatch')).toHaveLength(8);
+    expect(swatch(host, 'Winter bottom').style.background).toBe('rgb(70, 89, 143)');
+    expect(swatch(host, 'Spring top').getAttribute('aria-pressed')).toBe('true');
+    expect(host.querySelector('app-color-picker .name')?.textContent).toBe('Spring top');
+    expect(host.querySelector('app-color-picker .hex')?.textContent).toBe(SEASON_STARTS.spring[0]);
+  });
+
+  it('moves the background through the year as typing digits does', async () => {
+    const { host, stable } = await setUp();
+    const background = TestBed.inject(Background).colors;
+    expect(background()).toEqual(seasonAt(0).background);
+    const range = slider(host);
+    expect([range.min, range.max]).toEqual(['-25', '125']);
+    expect(
+      Array.from(host.querySelectorAll('label.place .marks span'), (mark) => mark.textContent),
+    ).toEqual(['0', '100']);
+
+    await set(range, '60', stable);
+
+    expect(background()).toEqual(seasonAt(60).background);
+    expect(host.querySelector('app-season-header .name')?.textContent.trim()).toBe('Autumn');
+
+    await set(range, '-10', stable);
+
+    expect(background()).toEqual(seasonAt(90).background);
+    expect(host.querySelector('app-season-header .place')?.textContent.trim()).toBe(
+      'Year 0 · digit 90 of 100',
+    );
+  });
+
+  it('tunes the selected color, keeping it, and shows it in the background, then brings back the game’s', async () => {
+    const { host, stable } = await setUp();
+    const background = TestBed.inject(Background).colors;
+    await set(slider(host), '30', stable);
+    swatch(host, 'Summer bottom').click();
+    await stable();
+    expect(host.querySelector('app-color-picker .name')?.textContent).toBe('Summer bottom');
+
+    const lightness = host.querySelector<HTMLInputElement>(
+      'input[aria-label="Summer bottom lightness"]',
+    );
+    if (lightness === null) {
+      throw new Error('No lightness slider');
+    }
+    await set(lightness, '0', stable);
+
+    const tuned = { ...SEASON_STARTS, summer: [SEASON_STARTS.summer[0], '#000000'] as const };
+    expect(TestBed.inject(Tweaks).values().seasons).toEqual(tuned);
+    expect(background()).toEqual(seasonAt(30, backgroundsFrom(tuned)).background);
+
+    reset(host).click();
+    await stable();
+
+    expect(TestBed.inject(Tweaks).values()).toEqual({});
+    expect(background()).toEqual(seasonAt(30).background);
+    expect(host.querySelector('app-color-picker .hex')?.textContent).toBe(SEASON_STARTS.summer[1]);
+  });
+
+  it('turns the seasons over as many places as selected, and brings back the game’s on reset', async () => {
+    await TestBed.inject(DeveloperMode).set(true);
+    const { host, stable } = await setUp();
+    const background = TestBed.inject(Background).colors;
+    await set(slider(host), '22', stable);
+    const turn = host.querySelector<HTMLInputElement>('label.turn input');
+    if (turn === null) {
+      throw new Error('No turn slider');
+    }
+    const label = (): string | undefined => turn.parentElement?.textContent.trim();
+    expect([turn.min, turn.max, turn.value]).toEqual(['1', '25', '5']);
+    expect(label()).toBe('Each season turns into the next over its last 5 digits');
+
+    await set(turn, '1', stable);
+
+    expect(TestBed.inject(Tweaks).values()).toEqual({ seasonTurn: 1 });
+    expect(background()).toEqual(
+      seasonAt(22, SEASON_BACKGROUNDS, SEASON_COLOR_SPACE, 1).background,
+    );
+    expect(label()).toBe('Each season turns into the next at once');
+    await set(turn, '25', stable);
+    expect(label()).toBe('Each season turns into the next all season long');
+
+    reset(host).click();
+    await stable();
+
+    expect(TestBed.inject(Tweaks).values()).toEqual({});
+    expect(background()).toEqual(seasonAt(22).background);
+  });
+
+  it('blends the colors in the color space picked from its menu, and brings back the game’s on reset', async () => {
+    installPopovers();
+    onTestFinished(uninstallPopovers);
+    await TestBed.inject(DeveloperMode).set(true);
+    const { host, stable } = await setUp();
+    const background = TestBed.inject(Background).colors;
+    await set(slider(host), '72', stable);
+    const picked = (): string | undefined =>
+      host.querySelector('.space .picker')?.textContent.trim();
+    const spaces = (): HTMLButtonElement[] =>
+      Array.from(host.querySelectorAll<HTMLButtonElement>('.space .dropdown button'));
+    expect(picked()).toBe('OKLCH (The Game’s)');
+    expect(spaces().map((button) => button.textContent.trim())).toEqual([
+      'sRGB',
+      'OKLab',
+      'HSL',
+      'OKLCH (The Game’s) Is Selected',
+    ]);
+
+    host.querySelector<HTMLButtonElement>('.space .picker')?.click();
+    expect(host.querySelector('.space .dropdown')?.hasAttribute('data-popover-open')).toBe(true);
+    spaces()[0]?.click();
+    await stable();
+
+    expect(picked()).toBe('sRGB');
+    expect(TestBed.inject(Tweaks).values()).toEqual({ colorSpace: 'srgb' });
+    expect(background()).toEqual(seasonAt(72, SEASON_BACKGROUNDS, 'srgb').background);
+
+    reset(host).click();
+    await stable();
+
+    expect(TestBed.inject(Tweaks).values()).toEqual({});
+    expect(background()).toEqual(seasonAt(72).background);
+    expect(picked()).toBe('OKLCH (The Game’s)');
+  });
+
+  it('averages the selected color between the same end of the seasons on either side', async () => {
+    const { host, stable } = await setUp();
+    swatch(host, 'Autumn top').click();
+    await stable();
+
+    host.querySelector<HTMLButtonElement>('button.average')?.click();
+    await stable();
+
+    const expected = hslToHex(
+      averageHsl(hexToHsl(SEASON_STARTS.summer[0]), hexToHsl(SEASON_STARTS.winter[0])),
+    );
+    expect(TestBed.inject(Tweaks).values().seasons?.autumn[0]).toBe(expected);
+  });
+
+  it('starts on the colors tuned before', async () => {
+    const tuned = { ...SEASON_STARTS, spring: ['#000000', '#ffffff'] as const };
+    await TestBed.inject(Tweaks).setSeasons(tuned);
+
+    const { host } = await setUp();
+
+    expect(host.querySelector('app-color-picker .hex')?.textContent).toBe('#000000');
+    expect(TestBed.inject(Background).colors()).toEqual(['#000000', '#ffffff']);
+  });
+});

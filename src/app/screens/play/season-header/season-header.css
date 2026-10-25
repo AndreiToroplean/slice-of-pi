@@ -1,0 +1,57 @@
+/* Its text scales with its height (see `layout.ts`). */
+:host {
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  gap: 0.1875em;
+  padding-bottom: 0.375em;
+  box-sizing: border-box;
+  font-size: calc(var(--header-height) / 5);
+  text-shadow: var(--text-shadow-large);
+}
+
+p {
+  margin: 0;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 1.5em;
+  font-weight: 500;
+}
+
+.name svg {
+  width: 0.917em;
+  height: 0.917em;
+  filter: drop-shadow(0 1px 4px rgb(0 0 0 / 18%));
+}
+
+.place {
+  font-size: 0.75em;
+  opacity: 0.92;
+  font-variant-numeric: tabular-nums;
+}
+
+.year {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.25em;
+  width: 10.5em;
+  margin-top: 0.4375em;
+}
+
+.year span {
+  height: 0.25em;
+  border-radius: 0.25em;
+  background: rgb(255 255 255 / 32%);
+  overflow: hidden;
+}
+
+.year i {
+  display: block;
+  height: 100%;
+  border-radius: 0.25em;
+  background: #fff;
+}

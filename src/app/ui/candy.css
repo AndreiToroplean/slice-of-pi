@@ -1,0 +1,151 @@
+/* A big, colorful button with a thick edge, that sinks when pressed. */
+:host {
+  /* How thick its edge is, and the shadow it drops. */
+  --candy-depth: 0.3125rem;
+  --candy-drop: 0 0.5rem 1.25rem rgb(40 20 60 / 18%);
+  /* Room around what it says. */
+  --candy-padding-block: 0.75rem;
+  --candy-padding-inline: 0.75rem;
+  /*
+   * Breathing, it grows by as much on every side, however wide it is (see `breathe` in `styles.css`): its padding, by
+   * a sixteenth of a rem per breath, over a negative margin as wide, so that nothing around it moves; its face, shine
+   * and edge with it.
+   */
+  --grown: calc(var(--candy-breath) * 0.0625rem);
+  display: block;
+  margin: calc(-1 * var(--grown));
+  padding: calc(var(--candy-padding-block) + var(--grown))
+    calc(var(--candy-padding-inline) + var(--grown));
+  border: none;
+  border-radius: var(--radius-key);
+  /* Its face, and its shine, off it until it's picked out (see below). */
+  background: var(--candy-shine) var(--candy);
+  box-shadow:
+    0 var(--candy-depth) 0 var(--candy-edge),
+    var(--candy-drop);
+  color: var(--on-candy);
+  text-align: center;
+  text-decoration: none;
+  font-family: var(--font-digits);
+  font-size: 1.25rem;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition:
+    translate 0.08s,
+    box-shadow 0.08s;
+}
+
+:host(.primary) {
+  --candy: var(--candy-primary);
+  --candy-edge: var(--candy-primary-edge);
+}
+
+:host(.danger) {
+  --candy: var(--candy-danger);
+  --on-candy: var(--on-candy-danger);
+  --candy-edge: var(--candy-danger-edge);
+}
+
+:host(:disabled) {
+  opacity: 0.6;
+  cursor: default;
+  pointer-events: none;
+}
+
+:host(:active:not(.controlled)),
+:host(.pressed) {
+  translate: 0 0.25rem;
+  box-shadow:
+    0 0.0625rem 0 var(--candy-edge),
+    0 0.25rem 0.75rem rgb(40 20 60 / 18%);
+}
+
+/* See-through: a frosted face, the background showing through it, blurred, on a frosted edge. */
+:host(.clear) {
+  --candy: var(--frost);
+  --on-candy: var(--on-background);
+  --candy-edge: var(--frost-edge);
+  background: var(--candy);
+  -webkit-backdrop-filter: blur(var(--frost-blur));
+  backdrop-filter: blur(var(--frost-blur));
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 0.3125rem 0 var(--candy-edge);
+  text-shadow: var(--text-shadow);
+}
+
+:host(.clear:active:not(.controlled)),
+:host(.clear.pressed) {
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 0.0625rem 0 var(--candy-edge);
+}
+
+/* With a press color, its edge shows it, and pressing fills its face with it, all at once. */
+:host(.colored) {
+  --candy-edge: var(--press-color);
+}
+
+:host(.colored:active:not(.controlled)),
+:host(.colored.pressed) {
+  background: var(--press-color);
+  color: #ffffff;
+  text-shadow: none;
+}
+
+/*
+ * Picked out, it breathes and its face shines, until pressed (see `--candy-picked` in `styles.css`). Its outline stays,
+ * transparent, for when the system forces its own colors, which show it.
+ */
+:host(:focus-visible),
+:host(:has(input:focus-visible)) {
+  outline: 0.1875rem solid transparent;
+  animation: var(--candy-picked);
+}
+
+:host(:active:not(.controlled)),
+:host(.pressed) {
+  animation: none;
+}
+
+/*
+ * What it says grows with its face, by two-thirds as much. A see-through one lays out what it holds as if bare. It takes
+ * no touches of its own: they go to the button, since a browser takes over a touch on text once the finger moves,
+ * cancelling it, as on a key slid off.
+ */
+.content {
+  display: inline-block;
+  scale: calc(1 + var(--candy-breath) * 0.0133);
+  pointer-events: none;
+}
+
+:host(.clear) .content {
+  display: contents;
+}
+
+/* Without motion, it stays grown. */
+@media (prefers-reduced-motion: reduce) {
+  :host(:focus-visible),
+  :host(:has(input:focus-visible)) {
+    --candy-breath: 2;
+  }
+}
+
+/*
+ * A see-through one glows instead: brightest in its middle, a little low, across half of it, and fading from there
+ * to a dim halo past its edge, a little below it.
+ */
+:host(.clear:focus-visible) {
+  animation: none;
+  background: radial-gradient(
+      farthest-side at 50% 60%,
+      rgb(255 255 255 / 30%) 50%,
+      rgb(255 255 255 / 9%)
+    )
+    var(--frost);
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 0.3125rem 0 var(--candy-edge),
+    0 0.5rem 0.75rem 0.375rem rgb(255 255 255 / 14%);
+}

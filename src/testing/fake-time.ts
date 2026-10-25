@@ -1,0 +1,58 @@
+import { Provider } from '@angular/core';
+import { TIMER } from '../app/screens/play/timer';
+import { RUN_CLOCK } from '../app/player-data/run-recorder';
+
+/** A clock that only moves when told to, for the run recorder and the timers of the play screen. */
+export class FakeTime {
+  /** The time, in milliseconds. */
+  now = 0;
+  private ids = 0;
+  private pending: { at: number; period: number; callback: () => void }[] = [];
+
+  readonly providers: Provider[] = [
+    {
+      provide: RUN_CLOCK,
+      useValue: {
+        now: () => this.now,
+        epoch: () => 1_760_000_000_000 + this.now,
+        newId: () => `run-${String(++this.ids)}`,
+      },
+    },
+    {
+      provide: TIMER,
+      useValue: {
+        after: (delay: number, callback: () => void) => this.schedule(delay, Infinity, callback),
+        every: (period: number, callback: () => void) => this.schedule(period, period, callback),
+      },
+    },
+  ];
+
+  /**
+   * Calls `callback` `delay` milliseconds from now, then every `period`, if ever again; the function returned stops it.
+   */
+  private schedule(delay: number, period: number, callback: () => void): () => void {
+    const timer = { at: this.now + delay, period, callback };
+    this.pending.push(timer);
+    return () => {
+      this.pending = this.pending.filter((other) => other !== timer);
+    };
+  }
+
+  /** Moves the time on, calling back the timers each time they're due by then, in order. */
+  advance(milliseconds: number): void {
+    const end = this.now + milliseconds;
+    for (;;) {
+      const next = this.pending
+        .filter((timer) => timer.at <= end)
+        .sort((a, b) => a.at - b.at)
+        .at(0);
+      if (next === undefined) {
+        break;
+      }
+      this.now = next.at;
+      next.at += next.period;
+      next.callback();
+    }
+    this.now = end;
+  }
+}

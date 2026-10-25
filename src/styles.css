@@ -1,0 +1,639 @@
+/* Design tokens. The play screen sits on the season background (see `seasons.ts`), so its text and keys are white. */
+:root {
+  color-scheme: light;
+
+  /* Behind the game, before it shows. */
+  --surround: #efe6da;
+  /* Text on the season background. */
+  --on-background: #ffffff;
+  /* Dark text, for surfaces drawn over the background. */
+  --ink: #2a1f3d;
+  --text-shadow: 0 1px 6px rgb(0 0 0 / 15%);
+  --text-shadow-large: 0 2px 10px rgb(0 0 0 / 18%);
+  --focus-ring: #ffffff;
+
+  /* Candy buttons (`Candy`): a face, the text on it, and a darker edge below it. */
+  --candy: #ffffff;
+  --on-candy: var(--ink);
+  --candy-edge: #d9cfe0;
+  --candy-primary: #ffc35a;
+  --candy-primary-edge: #e3962b;
+  --candy-danger: #d63b41;
+  --on-candy-danger: #ffffff;
+  --candy-danger-edge: #a1262c;
+
+  /* Frosted surfaces over the background, such as keys. */
+  --frost: rgb(255 255 255 / 26%);
+  --frost-pressed: rgb(255 255 255 / 45%);
+  --frost-highlight: rgb(255 255 255 / 45%);
+  --frost-blur: 10px;
+  /* The edge of a see-through candy button. */
+  --frost-edge: rgb(40 20 60 / 22%);
+  /* Empty slots in the typing area. */
+  --frost-slot: rgb(255 255 255 / 20%);
+
+  /*
+   * A typed digit's slot or tile. Each typed place sets its own color from the palette (`place-colors.ts`), with white
+   * digits.
+   */
+  --place-color: var(--lead);
+  --on-place-color: var(--ink);
+  /* Digits on palette colors. */
+  --on-palette: #ffffff;
+  /* The "π=3." lead, which has no place colors: white tiles, interlaced with a little greyer ones. */
+  --lead: #ffffff;
+  --lead-shade: #e4e0ea;
+  /*
+   * A mistake's slot: red digit and outline on almost white, so it reads apart from the key colors, red included, which
+   * fill their slots.
+   */
+  --mistake: #d81b36;
+  --mistake-fill: rgb(255 255 255 / 88%);
+
+  /* The breaks between groups on the charts of the player's data. */
+  --chart-break: #e8344e;
+
+  /* Motion: one easing, one duration for dialogs and one for going between screens. */
+  --ease: cubic-bezier(0.7, 0, 0.3, 1);
+  --duration-dialog: 0.1s;
+  --duration-screen: 0.175s;
+
+  --font-ui: 'Lexend', system-ui, sans-serif;
+  --font-digits: 'Fredoka', system-ui, sans-serif;
+
+  --radius-key: 1.25rem;
+  --space-1: 0.375rem;
+  --space-2: 0.5625rem;
+  --space-3: 1.125rem;
+
+  background: var(--surround);
+  color: var(--on-background);
+  font-family: var(--font-ui);
+  font-size-adjust: from-font;
+}
+
+html,
+body {
+  margin: 0;
+  /* No pull-to-refresh or scroll bounce while typing fast. */
+  overscroll-behavior: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * The season background behind the screens (see `background.ts`), from its `--background-top` and `--background-bottom`
+ * colors, blended in its `--background-space`. `Background` eases the colors from one to the next, digit by digit.
+ */
+.season-background {
+  position: relative;
+  /* The background and everything on it. */
+  isolation: isolate;
+  background: linear-gradient(
+    172deg in var(--background-space, oklch),
+    var(--background-top),
+    var(--background-bottom)
+  );
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Text fields on it can still be selected in, and pasted into from their long-press menu. */
+.season-background :is(textarea, input:not([type]), input[type='text']) {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Shade the top and bottom of the background a little, behind a screen's header and its controls. */
+.season-background::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgb(40 20 60 / 16%),
+    transparent 30%,
+    transparent 55%,
+    rgb(30 20 60 / 18%)
+  );
+}
+
+/* A frosted button over the background, like the keys: the background shows through, blurred. */
+.frosted {
+  border: none;
+  background: var(--frost);
+  -webkit-backdrop-filter: blur(var(--frost-blur));
+  backdrop-filter: blur(var(--frost-blur));
+  box-shadow: inset 0 1px 0 var(--frost-highlight);
+  color: var(--on-background);
+  text-shadow: var(--text-shadow);
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition:
+    scale 0.08s,
+    background-color 0.15s;
+}
+
+.frosted:active {
+  scale: 0.96;
+  background: var(--frost-pressed);
+}
+
+/* A button in a screen's corner, such as the pause button: a square candy button, for an icon. */
+.candy.corner {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border-radius: 0.875rem;
+}
+
+/* A small frosted pill, such as a button in the top bar of a page. */
+.pill {
+  max-width: 10rem;
+  min-height: 2.75rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 1.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-wrap: balance;
+
+  &:disabled {
+    opacity: 0.6;
+    scale: none;
+    cursor: default;
+  }
+}
+
+/* A pill picking one of a few choices from a menu, such as a break model: the choice, with a caret. */
+.pill.picker {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pill.picker svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A frosted card for each part of a page. */
+.panel {
+  display: grid;
+  gap: 0.75rem;
+  padding: var(--space-3);
+  border-radius: 1.5rem;
+  background: var(--frost);
+  -webkit-backdrop-filter: blur(var(--frost-blur));
+  backdrop-filter: blur(var(--frost-blur));
+  box-shadow: inset 0 1px 0 var(--frost-highlight);
+}
+
+/*
+ * What the keyboard is on is picked out as in a game's menu, rather than ringed. A candy button breathes, growing a
+ * little and back, and its face shines, until pressed (the mouse picks one out too, see `App` and `Candy`); a simpler
+ * button glows. Their outline stays, transparent, for when the system forces its own colors, which show it.
+ */
+:root {
+  --candy-shine: linear-gradient(
+      110deg,
+      transparent 35%,
+      rgb(255 255 255 / 55%) 50%,
+      transparent 65%
+    )
+    150% 0 / 250% 100% no-repeat;
+  --candy-picked: breathe 0.6s var(--ease) infinite alternate, shine 2.4s ease-in-out infinite;
+  --selected-glow: 0 0 0.4rem 0.25rem rgb(255 255 255 / 75%);
+}
+
+:is(.frosted, .round):focus-visible {
+  outline: 0.1875rem solid transparent;
+}
+
+.frosted:focus-visible {
+  background: var(--frost-pressed);
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    var(--selected-glow);
+}
+
+.round:focus-visible {
+  box-shadow: var(--selected-glow);
+}
+
+/*
+ * How far a candy button has breathed out, from 0, at rest, to 3: its face and what it says grow from it (see `Candy`).
+ * One value for both, so that they keep in step.
+ */
+@property --candy-breath {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@keyframes breathe {
+  from {
+    --candy-breath: 1;
+  }
+
+  to {
+    --candy-breath: 3;
+  }
+}
+
+/* A sweep across, then a rest. */
+@keyframes shine {
+  from {
+    background-position: 150% 0;
+  }
+
+  60%,
+  to {
+    background-position: -50% 0;
+  }
+}
+
+/* A small round button next to a setting, such as to bring back its default value. */
+.round {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--frost-pressed);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+}
+
+.round:disabled {
+  opacity: 0.4;
+}
+
+.round svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A dialog as a frosted card over the dimmed, blurred screen (`<dialog class="card">`), with its title in an `h2`. */
+dialog.card {
+  width: min(100% - 3rem, 18rem);
+  box-sizing: border-box;
+  padding: var(--space-3);
+  border: none;
+  border-radius: 1.75rem;
+  background: var(--frost);
+  -webkit-backdrop-filter: blur(var(--frost-blur));
+  backdrop-filter: blur(var(--frost-blur));
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 12px 40px rgb(30 20 60 / 30%);
+  color: var(--on-background);
+  gap: 0.875rem;
+  /* Opening, the card fades in and grows over the game as it dims and blurs; closing does the same backwards. */
+  opacity: 0;
+  scale: 0.85;
+  transition:
+    opacity var(--duration-dialog) var(--ease),
+    scale var(--duration-dialog) var(--ease),
+    overlay var(--duration-dialog) allow-discrete,
+    display var(--duration-dialog) allow-discrete;
+}
+
+dialog.card[open] {
+  display: grid;
+  opacity: 1;
+  scale: 1;
+
+  @starting-style {
+    opacity: 0;
+    scale: 0.85;
+  }
+}
+
+dialog.card::backdrop {
+  background: rgb(30 20 60 / 0%);
+  -webkit-backdrop-filter: blur(0);
+  backdrop-filter: blur(0);
+  transition:
+    background-color var(--duration-dialog) var(--ease),
+    backdrop-filter var(--duration-dialog) var(--ease),
+    -webkit-backdrop-filter var(--duration-dialog) var(--ease),
+    overlay var(--duration-dialog) allow-discrete,
+    display var(--duration-dialog) allow-discrete;
+}
+
+dialog.card[open]::backdrop {
+  background: rgb(30 20 60 / 30%);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+@starting-style {
+  dialog.card[open]::backdrop {
+    background: rgb(30 20 60 / 0%);
+    -webkit-backdrop-filter: blur(0);
+    backdrop-filter: blur(0);
+  }
+}
+
+.card h2 {
+  margin: 0 0 var(--space-1);
+  text-align: center;
+  font-family: var(--font-digits);
+  font-size: 1.75rem;
+  font-weight: 600;
+  text-shadow: var(--text-shadow-large);
+}
+
+/*
+ * Going between the main menu and the game (see `app.config.ts`), the screens cross-fade while zooming: in when a game
+ * starts, out when it ends. The background stays in place, only easing its colors.
+ */
+.screen {
+  view-transition-name: screen;
+}
+
+::view-transition-image-pair(screen) {
+  overflow: hidden;
+}
+
+::view-transition-old(screen),
+::view-transition-new(screen) {
+  animation-duration: var(--duration-screen);
+  animation-timing-function: var(--ease);
+}
+
+html:active-view-transition-type(zoom-in) {
+  &::view-transition-old(screen) {
+    animation-name: zoom-in-out;
+  }
+
+  &::view-transition-new(screen) {
+    animation-name: zoom-in-in;
+  }
+}
+
+html:active-view-transition-type(zoom-out) {
+  &::view-transition-old(screen) {
+    animation-name: zoom-out-out;
+  }
+
+  &::view-transition-new(screen) {
+    animation-name: zoom-out-in;
+  }
+}
+
+@keyframes zoom-in-out {
+  to {
+    opacity: 0;
+    scale: 1.25;
+  }
+}
+
+@keyframes zoom-in-in {
+  from {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
+@keyframes zoom-out-out {
+  to {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
+@keyframes zoom-out-in {
+  from {
+    opacity: 0;
+    scale: 1.25;
+  }
+}
+
+/* A filled slot flying into its word (see `flight.ts`), over the whole play screen. */
+.flying-slot {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  pointer-events: none;
+  font-family: var(--font-digits);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/*
+ * A menu (`DropdownMenu`): a frosted dropdown under what it opens from, that fades in and grows from its corner. It
+ * stays within the column of the screen and the window: where there's more room above it than under it, it opens
+ * above, and it scrolls when it is still too tall. It's as wide as what it says, up to the column, rather than squeezed
+ * into the room on the side it would open to, so that it opens to the other side where that one is too narrow.
+ */
+.dropdown {
+  position: fixed;
+  inset: auto;
+  position-area: block-end span-inline-start;
+  position-try-fallbacks: flip-block;
+  position-try-order: most-block-size;
+  margin: 0.375rem 0 var(--space-3) calc(var(--space-3) + var(--margin));
+  width: max-content;
+  min-width: 10rem;
+  max-width: calc(var(--column) - 2 * var(--space-3));
+  max-height: calc(100% - 0.375rem - var(--space-3));
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-1);
+  border: none;
+  border-radius: 1.125rem;
+  /*
+   * Over the season background at 80% opacity, drawn again under it as if it showed through, so that its white text
+   * reads over light things like the chart of all runs. The gradient spans the window, as the background does, and
+   * `DropdownMenu` sets where the menu is in it, in `--window-x` and `--window-y`.
+   */
+  background:
+    linear-gradient(var(--frost), var(--frost)),
+    linear-gradient(
+        172deg in var(--background-space, oklch),
+        color-mix(in oklab, var(--background-top) 80%, transparent),
+        color-mix(in oklab, var(--background-bottom) 80%, transparent)
+      )
+      calc(-1 * var(--window-x, 0px)) calc(-1 * var(--window-y, 0px)) / 100vw 100dvh;
+  -webkit-backdrop-filter: blur(var(--frost-blur));
+  backdrop-filter: blur(var(--frost-blur));
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 8px 28px rgb(30 20 60 / 25%);
+  color: var(--on-background);
+  transform-origin: top right;
+  opacity: 0;
+  scale: 0.85;
+  transition:
+    opacity var(--duration-dialog) var(--ease),
+    scale var(--duration-dialog) var(--ease),
+    overlay var(--duration-dialog) allow-discrete,
+    display var(--duration-dialog) allow-discrete;
+}
+
+/*
+ * Opened where something was pressed, or by a button elsewhere, it opens under that point or button and to its right,
+ * or, where there's more room, over it or to its left.
+ */
+.dropdown.at-point {
+  position-area: block-end span-inline-end;
+  position-try-fallbacks:
+    flip-block,
+    flip-inline,
+    flip-block flip-inline;
+  margin-inline: 0 calc(var(--space-3) + var(--margin));
+  transform-origin: top left;
+}
+
+/* Its corner pointing at what it opens from is square, wherever it opens, and it grows from it. */
+.dropdown[data-corner='top-left'] {
+  border-top-left-radius: 0;
+  transform-origin: top left;
+}
+
+.dropdown[data-corner='top-right'] {
+  border-top-right-radius: 0;
+  transform-origin: top right;
+}
+
+.dropdown[data-corner='bottom-left'] {
+  border-bottom-left-radius: 0;
+  transform-origin: bottom left;
+}
+
+.dropdown[data-corner='bottom-right'] {
+  border-bottom-right-radius: 0;
+  transform-origin: bottom right;
+}
+
+/* Where the browser can't place it by what it opens from, in the middle of the window. */
+@supports not (position-area: block-end) {
+  .dropdown,
+  .dropdown.at-point {
+    inset: 0;
+    margin: auto;
+    max-height: calc(100% - 2 * var(--space-3));
+    transform-origin: center;
+  }
+}
+
+.dropdown:popover-open {
+  opacity: 1;
+  scale: 1;
+
+  @starting-style {
+    opacity: 0;
+    scale: 0.85;
+  }
+}
+
+.dropdown a,
+.dropdown button,
+.dropdown .toggle {
+  display: block;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+  text-shadow: var(--text-shadow);
+  font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dropdown .toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.dropdown .toggle input {
+  order: 1;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  accent-color: var(--candy);
+}
+
+.dropdown button {
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdown button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* A line between the items of a dropdown. */
+.dropdown hr {
+  margin: var(--space-1) 0.5rem;
+  border: none;
+  border-top: 1px solid var(--frost-highlight);
+}
+
+.dropdown a:active,
+.dropdown button:not(:disabled):active,
+.dropdown .toggle:active {
+  background: var(--frost-pressed);
+}
+
+.dropdown a:focus-visible,
+.dropdown button:focus-visible,
+.dropdown .toggle:has(input:focus-visible) {
+  outline: 0.1875rem solid transparent;
+  outline-offset: -0.1875rem;
+  background: var(--frost-pressed);
+  box-shadow: inset 0 0 0 1px var(--frost-highlight);
+}
+
+.dropdown .toggle input:focus-visible {
+  outline: 0.1875rem solid transparent;
+}

@@ -1,0 +1,62 @@
+/*
+ * The header, typed digits, slots and keypad, each in its place in the layout (see `layout.ts`), in `--unit`, a
+ * hundredth of the screen's height above the navigation bar, or of the screen's when replaying, over the bar replaying
+ * it. Slots fly over all of them.
+ */
+:host {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  isolation: isolate;
+  container-type: size;
+  --unit: calc((100cqh - env(safe-area-inset-bottom)) / 100);
+  --edge-bottom: calc(1.375rem + env(safe-area-inset-bottom));
+}
+
+:host(.replaying) {
+  --unit: 1cqh;
+  --edge-bottom: var(--space-2);
+}
+
+app-season-header {
+  position: absolute;
+  inset-inline: var(--margin);
+  top: var(--header-top);
+  height: var(--header-height);
+}
+
+/* The typed digits, from the header down to the slots, which push them up as they take more rows. */
+.middle {
+  position: absolute;
+  inset-inline: var(--margin);
+  top: calc(var(--header-top) + var(--header-height));
+  bottom: var(--slots-bottom);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+app-typed-digits {
+  flex: 1;
+}
+
+/* As wide as the keypad. */
+.slots {
+  align-self: center;
+  width: var(--keypad-width);
+}
+
+/*
+ * The keys, on the bottom margin, centered in the column, and their touches reaching out from them as far as they can
+ * (see `Keypad`): out to the column's sides, down to the bottom of the screen, and up a third of a key.
+ */
+.keypad {
+  --key-height: calc((var(--keypad-height) - 3 * var(--gap)) / 4);
+  --reach-top: calc(var(--key-height) / 3);
+  --reach-sides: calc((var(--column) - var(--keypad-width)) / 2);
+  --reach-bottom: var(--edge-bottom);
+  position: absolute;
+  inset-inline: var(--margin);
+  bottom: 0;
+  height: var(--keypad-height);
+}

@@ -1,0 +1,81 @@
+:host {
+  display: contents;
+}
+
+/* Fitting the screen, without scrolling. */
+app-page {
+  overflow: hidden;
+  gap: var(--space-2);
+}
+
+.seasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+
+  & button {
+    padding: 0.375rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+  }
+
+  & button[aria-checked='true'] {
+    background: var(--frost-pressed);
+    font-weight: 600;
+  }
+}
+
+/* Every pair of colors, the first's by row and the second's by column, taking the height the rest of the page leaves. */
+.grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  grid-template-rows: repeat(10, minmax(0, 1fr));
+  gap: 0.1875rem;
+  font-family: var(--font-digits);
+  font-weight: 600;
+  font-size: 0.6875rem;
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  background: var(--place-color);
+  color: var(--on-palette);
+  text-shadow: none;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  cursor: pointer;
+
+  &.close {
+    outline: 2px solid var(--on-background);
+    outline-offset: 1px;
+  }
+}
+
+/* The key colors to select, as tiles; the selected one ringed. */
+.head {
+  padding: 0;
+  border: none;
+  border-radius: 0.3125rem;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &[aria-pressed='true'] {
+    outline: 0.1875rem solid var(--on-background);
+    outline-offset: 1px;
+  }
+
+  &:focus-visible {
+    outline: 0.1875rem solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}

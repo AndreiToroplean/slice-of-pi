@@ -1,0 +1,92 @@
+/*
+ * The play screen, over the bar replaying it, filling the window as the play screen does, and the back button in the
+ * top left corner, where pages have theirs.
+ */
+:host {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.back {
+  position: absolute;
+  top: 0.625rem;
+  left: 0.75rem;
+  z-index: 1;
+}
+
+.back svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Play or pause, a touch back or on, the timeline, and the speed, in a row. */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) calc(var(--space-3) + var(--margin))
+    calc(var(--space-2) + env(safe-area-inset-bottom));
+  background: rgb(255 255 255 / 30%);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 -1px 0 var(--frost-highlight);
+}
+
+.control {
+  --candy-depth: 0.1875rem;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: 0.75rem;
+
+  & svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    fill: currentColor;
+  }
+}
+
+.timeline {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+/* The speed picked, which opens the menu of speeds. */
+.speed {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.125rem;
+  font-family: var(--font-digits);
+  font-size: 0.875rem;
+  font-weight: 600;
+
+  & svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}
+
+.missing {
+  margin: auto;
+  font-weight: 500;
+  text-shadow: var(--text-shadow);
+}

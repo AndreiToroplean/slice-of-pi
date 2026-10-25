@@ -1,0 +1,25 @@
+# Slice of Pi 🥧
+
+A mobile-first browser game for learning and memorizing the digits of π.
+
+Type the digits from memory, one after another, and see how far you can go.
+
+The goal is simple: build the best π memorization game on mobile.
+
+## Development
+
+Requires Node.js 24 (see `.nvmrc`).
+
+```sh
+npm ci                 # install dependencies
+npm start              # serve at http://localhost:4200
+npm run format         # format with Prettier
+npm run lint           # lint with ESLint
+npm test               # run unit tests (Vitest)
+npm run test:coverage  # unit tests with coverage report
+npm run test:e2e       # end-to-end tests (Playwright, in Chromium)
+npm run build          # production build into dist/
+npm run check          # format check, lint and tests, before every commit
+```
+
+Every pull request runs the checks (see `.github/workflows/deploy.yml`). `main` is deployed to GitHub Pages, and a pull request can ask for a preview of its own.

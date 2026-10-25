@@ -1,0 +1,4 @@
+/* A candy button as wide as the page, at its bottom. */
+:host {
+  display: grid;
+}
