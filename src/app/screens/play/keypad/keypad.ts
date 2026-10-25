@@ -396,6 +396,11 @@ export class Keypad {
     );
   }
 
+  /** Where a point on the screen is on the keypad, such as that of a touch elsewhere on the screen. */
+  pointOf(event: PointerEvent): KeypadPoint {
+    return this.touchAt(event).point;
+  }
+
   /** Where a touch is on the keypad, and the key there: none outside the keypad, where touches reach no key. */
   private touchAt(event: PointerEvent): {
     readonly key: KeypadKey | null;

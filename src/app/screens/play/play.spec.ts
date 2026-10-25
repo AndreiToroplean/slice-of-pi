@@ -715,6 +715,23 @@ describe('Play', () => {
     });
   });
 
+  it('records touches elsewhere on the screen as typing nothing, but not those on the pause button', async () => {
+    const record = vi.spyOn(TestBed.inject(RunRecorder), 'record');
+    const { host, stable } = await setUp();
+    const touch = (target: Element | null, pointerId: number): void => {
+      const init = { pointerId, button: 0, bubbles: true, clientX: 10, clientY: 10 };
+      target?.dispatchEvent(new PointerEvent('pointerdown', init));
+      target?.dispatchEvent(new PointerEvent('pointerup', init));
+    };
+
+    touch(host.querySelector('app-slots'), 1);
+    touch(host.querySelector('app-typed-digits'), 2);
+    touch(host.querySelector('[aria-label="Pause"]'), 3);
+    await stable();
+
+    expect(record.mock.calls.map(([touched]) => touched.key)).toEqual([null, null]);
+  });
+
   it('records every key pressed in the run', async () => {
     const record = vi.spyOn(TestBed.inject(RunRecorder), 'record');
     const { type } = await setUp();
