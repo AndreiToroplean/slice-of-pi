@@ -130,13 +130,6 @@ describe('routes', () => {
     expect(component).toBe(YourRuns);
   });
 
-  it("lazily loads the player's data", async () => {
-    const data = routes.find((route) => route.path === 'data');
-    const component = await data?.loadComponent?.();
-    const { Data } = await import('./screens/your-data/data');
-    expect(component).toBe(Data);
-  });
-
   it("lazily loads what stands in for a preview that isn't published", async () => {
     const preview = routes.find((route) => route.matcher !== undefined);
     const component = await preview?.loadComponent?.();

@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { IDBFactory } from 'fake-indexeddb';
 import { CONFIRM } from '../app/ui/confirm';
-import { SAVE_FILE } from '../app/screens/your-data/data';
+import { SAVE_FILE } from '../app/screens/settings/your-data';
 import { DeveloperMode } from '../app/developer-mode/developer-mode';
 import { TouchLog } from '../app/player-data/touch-log';
 import { RUN_CLOCK } from '../app/player-data/run-recorder';

@@ -161,11 +161,10 @@ describe('Menu', () => {
       press('ArrowRight');
       expect(focused()).toBe('Play');
       press('ArrowUp');
-      press('ArrowRight');
-      expect(focused()).toBe('More');
       expect(press('ArrowRight').defaultPrevented).toBe(false);
-      press('ArrowLeft');
       expect(focused()).toBe('Your Runs');
+      press('ArrowLeft');
+      expect(focused()).toBe('Slice of Pi');
     });
   });
 
@@ -181,15 +180,18 @@ describe('Menu', () => {
       return host.querySelector('.dropdown [role="group"]');
     }
 
-    it('has no developer section until developer mode is on', async () => {
+    it('has an overflow menu of developer pages, only once developer mode is on', async () => {
       const fixture = TestBed.createComponent(Menu);
       await fixture.whenStable();
       const host = fixture.nativeElement as HTMLElement;
+      const overflow = (): Element | null => host.querySelector('button[title="Developer Pages"]');
+      expect(overflow()).toBeNull();
       expect(developerSection(host)).toBeNull();
 
       await TestBed.inject(DeveloperMode).set(true);
       await fixture.whenStable();
 
+      expect(overflow()).not.toBeNull();
       expect(developerSection(host)?.querySelector('h2')?.textContent).toBe('Developer');
       expect(
         Array.from(developerSection(host)?.querySelectorAll('a') ?? [], (link) => [
@@ -200,23 +202,6 @@ describe('Menu', () => {
         ['Key Colors', '/developer/key-colors'],
         ['Season Colors', '/developer/season-colors'],
       ]);
-    });
-
-    it('turns checking the digits off and on', async () => {
-      await TestBed.inject(DeveloperMode).set(true);
-      const host = await setUp();
-      const toggle = developerSection(host)?.querySelector<HTMLInputElement>(
-        'label.toggle input[type="checkbox"]',
-      );
-      const tweaks = TestBed.inject(Tweaks);
-      expect(toggle?.closest('label')?.textContent.trim()).toBe('Check Digits');
-      expect(toggle?.checked).toBe(true);
-
-      toggle?.click();
-      expect(tweaks.checking()).toBe(false);
-
-      toggle?.click();
-      expect(tweaks.checking()).toBe(true);
     });
 
     it('starts on the tuned background of a new game', async () => {

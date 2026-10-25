@@ -48,4 +48,4 @@ The keys get sounds, yet another memory layer ([`vision.md` §5.5](vision.md#55-
 
 ## 8. Your Data
 
-Improve the Your Data page. It comes after the other pages: it's less of a priority.
+Improve the Your Data card, in the settings. It comes after the other pages: it's less of a priority.

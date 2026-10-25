@@ -21,10 +21,6 @@ export const routes: Routes = [
     loadComponent: () => import('./screens/replay/replay').then((m) => m.Replay),
   },
   {
-    path: 'data',
-    loadComponent: () => import('./screens/your-data/data').then((m) => m.Data),
-  },
-  {
     path: 'settings',
     loadComponent: () => import('./screens/settings/settings').then((m) => m.Settings),
   },

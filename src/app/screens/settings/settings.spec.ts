@@ -1,3 +1,4 @@
+import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
@@ -35,6 +36,30 @@ describe('Settings', () => {
 
     countdown(host)?.click();
     expect(tweaks.countdown()).toBe(true);
+  });
+
+  it('turns checking the digits off and on, in developer mode, and brings it back', async () => {
+    await TestBed.inject(DeveloperMode).set(true);
+    const host = await setUp();
+    const tweaks = TestBed.inject(Tweaks);
+    const checking = Array.from(
+      host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+    ).find((input) => input.closest('label')?.textContent.includes('Check Digits'));
+    expect(checking?.checked).toBe(true);
+    expect(button(host, 'Back to the default digit checking')?.disabled).toBe(true);
+
+    checking?.click();
+    expect(tweaks.checking()).toBe(false);
+
+    await TestBed.inject(ApplicationRef).whenStable();
+    button(host, 'Back to the default digit checking')?.click();
+    expect(tweaks.checking()).toBe(true);
+  });
+
+  it("shows the player's data", async () => {
+    const host = await setUp();
+
+    expect(host.querySelector('app-your-data h2')?.textContent).toBe('Your Data');
   });
 
   it('picks the keypad layout', async () => {
@@ -93,11 +118,13 @@ describe('Settings', () => {
     expect(button(host, 'Reset All')?.disabled).toBe(true);
 
     await tweaks.setCountdown(false);
+    await tweaks.setChecking(false);
     await setting.set('telephone');
     await fixture.whenStable();
     button(host, 'Reset All')?.click();
 
     expect(tweaks.countdown()).toBe(true);
+    expect(tweaks.checking()).toBe(true);
     expect(setting.layout()).toBe('calculator');
   });
 

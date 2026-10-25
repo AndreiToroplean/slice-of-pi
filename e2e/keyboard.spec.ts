@@ -28,22 +28,27 @@ test('plays from the keyboard: Enter on the main menu, Escape to pause, up and d
 
 test('opens a page from the overflow menu, and goes back on Escape', async ({ page }) => {
   await page.goto('/');
-  const more = page.getByRole('button', { name: 'More' });
-  await expect(page.getByRole('link', { name: 'Play' })).toBeFocused();
+  // Developer mode, which has the overflow menu, turned on by tapping the game's icon ten times.
+  const icon = page.getByRole('button', { name: 'Slice of Pi' });
+  for (let tap = 0; tap < 10; tap++) {
+    await icon.click();
+  }
+  const more = page.getByRole('button', { name: 'Developer Pages' });
+  await page.getByRole('link', { name: 'Play' }).focus();
   await page.keyboard.press('ArrowRight');
   await expect(more).toBeFocused();
 
   await page.keyboard.press('Enter');
-  const yourData = page.getByRole('link', { name: 'Your Data' });
-  await expect(yourData).toBeFocused();
+  const keyColors = page.getByRole('link', { name: 'Key Colors' });
+  await expect(keyColors).toBeFocused();
   await page.keyboard.press('Escape');
-  await expect(yourData).toBeHidden();
+  await expect(keyColors).toBeHidden();
   await expect(more).toBeFocused();
 
   await page.keyboard.press('Enter');
-  await expect(yourData).toBeFocused();
+  await expect(keyColors).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL('/data');
+  await expect(page).toHaveURL('/developer/key-colors');
   await page.keyboard.press('Escape');
   await expect(page).toHaveURL('/');
 });
