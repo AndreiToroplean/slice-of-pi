@@ -39,7 +39,6 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
         <button
           type="button"
           appCandy="danger"
-          class="small"
           aria-haspopup="dialog"
           (click)="resetDialog.showModal()"
         >

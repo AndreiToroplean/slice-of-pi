@@ -22,7 +22,6 @@ import { YourData } from './your-data';
         pageAction
         type="button"
         appCandy="danger"
-        class="small"
         [disabled]="allDefault()"
         (click)="resetAll()"
       >

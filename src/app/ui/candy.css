@@ -94,21 +94,6 @@
   text-shadow: none;
 }
 
-/* A small candy button, such as in the top bar of a page. */
-:host(.small) {
-  --candy-depth: 0.1875rem;
-  --candy-drop: 0 0 transparent;
-  --candy-padding-block: 0.375rem;
-  --candy-padding-inline: 0.75rem;
-  border-radius: 0.875rem;
-  font-size: 0.875rem;
-}
-
-:host(.small:active:not(.controlled)) {
-  translate: 0 0.125rem;
-  box-shadow: 0 0.0625rem 0 var(--candy-edge);
-}
-
 /*
  * Picked out, it breathes and its face shines, until pressed (see `--candy-picked` in `styles.css`). Its outline stays,
  * transparent, for when the system forces its own colors, which show it.

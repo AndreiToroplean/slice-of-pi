@@ -82,7 +82,6 @@ import { Segment, Segmented } from '../../ui/segmented';
         pageAction
         type="button"
         appCandy="danger"
-        class="small"
         [disabled]="runs().length === 0"
         (click)="deleteAll()"
       >

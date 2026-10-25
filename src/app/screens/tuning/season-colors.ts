@@ -35,15 +35,8 @@ const ENDS = [
   imports: [Candy, ColorPicker, CopyValues, DropdownMenu, Page, SeasonHeader],
   template: `
     <app-page heading="Season Colors">
-      <button
-        pageAction
-        type="button"
-        appCandy="danger"
-        class="small"
-        [disabled]="!tuned()"
-        (click)="reset()"
-      >
-        Back to Default Settings
+      <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
+        Reset All
       </button>
       <app-season-header [view]="view()" />
       <div class="seasons">

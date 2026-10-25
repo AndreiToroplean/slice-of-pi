@@ -37,15 +37,8 @@ export const CLOSE = 15;
   imports: [Candy, ColorPicker, CopyValues, Page],
   template: `
     <app-page heading="Key Colors">
-      <button
-        pageAction
-        type="button"
-        appCandy="danger"
-        class="small"
-        [disabled]="!tuned()"
-        (click)="reset()"
-      >
-        Back to Default Settings
+      <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
+        Reset All
       </button>
       <div class="seasons" role="radiogroup" aria-label="Background">
         @for (season of seasons; track season) {

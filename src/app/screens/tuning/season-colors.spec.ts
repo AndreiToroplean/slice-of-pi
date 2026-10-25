@@ -38,7 +38,7 @@ describe('SeasonColors', () => {
 
   function reset(host: HTMLElement): HTMLButtonElement {
     const found = Array.from(host.querySelectorAll('button')).find((button) =>
-      button.textContent.includes('Back to Default Settings'),
+      button.textContent.includes('Reset All'),
     );
     if (found === undefined) {
       throw new Error('No reset button');
