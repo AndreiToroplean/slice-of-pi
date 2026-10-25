@@ -1,10 +1,11 @@
-import { computed, inject, InjectionToken, Service, signal } from '@angular/core';
+import { inject, InjectionToken, Service } from '@angular/core';
 import { Tweaks } from '../developer-mode/tweaks';
 import { KeypadTouch } from '../game/layers/keypad-layout';
 import { KeypadLayoutSetting } from './keypad-layout-setting';
+import { LiveRun, RunSession } from './live-run';
 import { replay } from './run';
 import { RunStore } from './run-store';
-import { addTouch, newTouchLog, TouchLog } from './touch-log';
+import { newTouchLog, TouchLog } from './touch-log';
 
 /** Where the recorder reads the time, and gets ids for new runs. */
 export interface RunClock {
@@ -32,71 +33,48 @@ export const RUN_CLOCK = new InjectionToken<RunClock>('RUN_CLOCK', {
  * in a checked run are mistakes, left out.
  *
  * A run starts with the first digit typed and ends when the game restarts or ends: touches before it aren't kept.
- * Deleting every digit deletes the run, as if it had never started, and the next digit starts a new one. A run started
- * without checking the digits, in developer mode, is marked unchecked, and each run records the keypad layout it's
- * played on.
+ * Deleting every digit deletes the run, as if it had never started, and the next digit starts a new one (see
+ * {@link LiveRun}). A run started without checking the digits, in developer mode, is marked unchecked, and each run
+ * records the keypad layout it's played on.
  */
 @Service()
-export class RunRecorder {
+export class RunRecorder implements RunSession {
   private readonly store = inject(RunStore);
   private readonly clock = inject(RUN_CLOCK);
   private readonly tweaks = inject(Tweaks);
   private readonly keypadLayout = inject(KeypadLayoutSetting);
 
-  /** The touch log of the run being played, from its first digit. */
-  private readonly log = signal<TouchLog | undefined>(undefined);
-  private readonly replayed = computed(() => {
-    const log = this.log();
-    return log === undefined ? undefined : replay(log);
-  });
-  /** The run being played, as recorded so far; `undefined` until its first digit is kept. */
-  readonly run = computed(() => {
-    const run = this.replayed()?.run;
-    return run?.digits === '' ? undefined : run;
-  });
-  /** When the current run's first digit was typed, on the precise clock. */
-  private start = 0;
-
-  /** The latest touch log of each run not saved yet. */
-  private readonly unsaved = new Map<string, TouchLog>();
-  private writing: Promise<void> | undefined;
-
-  /** Records a touch on the keypad, or a key typed, whatever it typed. */
-  record(touch: KeypadTouch): void {
-    const now = this.clock.now();
-    let log = this.log();
-    if (log === undefined) {
-      if (touch.key === null || touch.key === 'backspace') {
-        return;
-      }
-      log = newTouchLog(
+  private readonly live = new LiveRun(
+    () => this.clock.now(),
+    () => {
+      void this.store.persist();
+      return newTouchLog(
         this.clock.newId(),
         this.clock.epoch(),
         this.tweaks.checking(),
         this.keypadLayout.layout(),
       );
-      this.start = now;
-      void this.store.persist();
+    },
+  );
+  readonly run = this.live.run;
+
+  /** The latest touch log of each run not saved yet. */
+  private readonly unsaved = new Map<string, TouchLog>();
+  private writing: Promise<void> | undefined;
+
+  record(touch: KeypadTouch): void {
+    const log = this.live.add(touch);
+    if (log !== undefined) {
+      this.queue(log);
     }
-    log = addTouch(log, touch, now - this.start);
-    this.log.set(log);
-    if (touch.key === 'backspace' && this.run() === undefined) {
-      this.log.set(undefined);
-    }
-    this.queue(log);
   }
 
-  /** How long it's been since the last digit of the current run, in milliseconds, on the run's clock. */
   waited(): number {
-    const replayed = this.replayed();
-    return (
-      this.clock.now() - this.start - (replayed?.rewound ?? 0) - (replayed?.run.times.at(-1) ?? 0)
-    );
+    return this.live.waited();
   }
 
-  /** Ends the current run, as kept so far: the next digit starts a new run. */
   end(): void {
-    this.log.set(undefined);
+    this.live.end();
   }
 
   /** Resolves once every key recorded so far is saved. */
