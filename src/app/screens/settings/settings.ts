@@ -25,7 +25,7 @@ import { YourData } from './your-data';
         [disabled]="allDefault()"
         (click)="resetAll()"
       >
-        Reset All
+        Reset Settings
       </button>
       <app-your-data />
       <section class="panel" aria-labelledby="keypad-title">
