@@ -16,7 +16,7 @@ import { Segment, Segmented } from '../../ui/segmented';
 /** The tab of what is given to the panel. */
 const RUNS_TAB = 'Runs';
 
-/** A row of sliders in a tab: one, or the sliders of a pair side by side, under its name. */
+/** A row of sliders in a tab: one, or the sliders of a pair side by side. */
 export interface SliderRow {
   readonly pair?: string;
   readonly sliders: readonly Hyperparameter[];
@@ -118,19 +118,11 @@ function keysOf(kind: BreakModelKind): string[] {
         [hidden]="tab() !== settingTab.name"
       >
         @for (row of rowsOf(settingTab.hyperparameters); track row.sliders[0]?.key) {
-          <div
-            class="row"
-            [class.pair]="row.pair !== undefined"
-            [attr.role]="row.pair === undefined ? null : 'group'"
-            [attr.aria-labelledby]="row.pair === undefined ? null : 'pair-' + row.sliders[0]?.key"
-          >
-            @if (row.pair !== undefined) {
-              <span class="pair-name" [id]="'pair-' + row.sliders[0]?.key">{{ row.pair }}</span>
-            }
+          <div class="row" [class.pair]="row.pair !== undefined">
             @for (control of row.sliders; track control.key) {
               <div class="setting">
                 <div class="top">
-                  <label [for]="'setting-' + control.key">{{ control.label }}</label>
+                  <label [for]="'setting-' + control.key">{{ name(control) }}</label>
                   <button
                     type="button"
                     class="round pin"
@@ -275,18 +267,10 @@ function keysOf(kind: BreakModelKind): string[] {
       display: grid;
     }
 
-    /* A pair side by side, under its name. */
+    /* A pair side by side, each named after it, on one row of labels. */
     .row.pair {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       column-gap: var(--space-3);
-    }
-
-    .pair-name {
-      grid-column: 1 / -1;
-      font-size: 0.8125rem;
-      font-weight: 600;
-      line-height: 1.2;
-      text-shadow: var(--text-shadow);
     }
 
     .setting {
