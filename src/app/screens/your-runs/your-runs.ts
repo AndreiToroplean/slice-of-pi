@@ -180,14 +180,15 @@ import { Segment, Segmented } from '../../ui/segmented';
       @if (developerMode()) {
         <app-grouping-settings-panel (told)="message.set($event)">
           <ng-container [ngTemplateOutlet]="runList" />
-          <label menuItem class="toggle unchecked">
-            <input
-              type="checkbox"
-              [checked]="includeUnchecked()"
-              (change)="setIncludeUnchecked($event)"
-            />
-            Count Unchecked Runs
-          </label>
+          <button
+            modelAction
+            type="button"
+            appCandy
+            aria-haspopup="dialog"
+            (click)="void fitDialog.open()"
+          >
+            Fit to My Groupings
+          </button>
           <button
             menuItem
             type="button"
@@ -196,10 +197,15 @@ import { Segment, Segmented } from '../../ui/segmented';
           >
             Reorder Runs Chronologically
           </button>
-          <button menuItem type="button" aria-haspopup="dialog" (click)="void fitDialog.open()">
-            Fit to My Groupings
-          </button>
           <hr menuItem />
+          <label menuItem class="toggle unchecked">
+            <input
+              type="checkbox"
+              [checked]="includeUnchecked()"
+              (change)="setIncludeUnchecked($event)"
+            />
+            Count Unchecked Runs
+          </label>
           <button
             menuItem
             type="button"
