@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792952306556,
+  "lastUpdate": 1792952655984,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2478,6 +2478,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1015,
+            "unit": "ms",
+            "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "628dbf1c277bd3837a1cef2146455d2e690d8959",
+          "message": "fix: slide a row of typed digits in or out as its word changes, not with the next digit\n\n- The typed digits only noticed their words growing or shrinking when a digit was typed, but a group finishes, and a word comes back into the slots, between digits: the row that started or ended then pushed the words at once, and the next digit then slid them a whole row as if it had just happened.\n- A word brought back into the slots by backspace, then finished again a moment later, showed as the tape jumping a row down and back up.\n\nCo-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01JYsntaQNAYtXQkmBW5qxfq",
+          "timestamp": "2026-10-25T19:23:50+01:00",
+          "tree_id": "250ffe559cf50114d0398b35f63577043e0f4e27",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/628dbf1c277bd3837a1cef2146455d2e690d8959"
+        },
+        "date": 1792952655125,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 13220,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 29003,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 997,
             "unit": "ms",
             "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
           }
