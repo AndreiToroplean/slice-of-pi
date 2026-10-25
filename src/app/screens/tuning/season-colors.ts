@@ -74,7 +74,7 @@ const ENDS = [
           class="frosted pill picker"
           aria-haspopup="true"
           aria-labelledby="space-label space-name"
-          (click)="spaceMenu.openAt(under($event))"
+          [attr.popovertarget]="spaceMenu.id"
         >
           <span id="space-name">{{ spaceLabel(colorSpace()) }}</span>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
@@ -229,12 +229,6 @@ export class SeasonColors {
   /** A color space's name, saying which is the game's. */
   protected spaceLabel(space: ColorSpace): string {
     return `${this.spaceNames[space]}${space === this.gameSpace ? ' (The Game’s)' : ''}`;
-  }
-
-  /** Where the menu of color spaces opens: from under the middle of its button, in window coordinates. */
-  protected under(event: Event): { readonly x: number; readonly y: number } {
-    const button = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    return { x: button.left + button.width / 2, y: button.bottom };
   }
 
   /** Blends the colors in this color space. */

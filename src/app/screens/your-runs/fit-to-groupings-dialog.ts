@@ -52,7 +52,7 @@ const FRAME = 30;
           aria-haspopup="true"
           aria-labelledby="fit-model fit-model-name"
           [disabled]="locked()"
-          (click)="modelMenu.openAt(under($event))"
+          [attr.popovertarget]="modelMenu.id"
         >
           <span id="fit-model-name">{{ kind().label }}</span>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
@@ -397,12 +397,6 @@ export class FitToGroupingsDialog {
 
   protected pick(kind: BreakModelKind): void {
     void this.tweaks.setBreakModel(kind);
-  }
-
-  /** Where the menu of models opens: under the button pressed, in window coordinates. */
-  protected under(event: Event): { readonly x: number; readonly y: number } {
-    const button = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    return { x: button.left + button.width / 2, y: button.bottom };
   }
 
   /**

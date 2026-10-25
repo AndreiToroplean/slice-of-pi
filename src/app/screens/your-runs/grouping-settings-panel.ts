@@ -152,7 +152,7 @@ function keysOf(kind: BreakModelKind): string[] {
                       type="button"
                       class="round"
                       [title]="'Copy the ' + name(control).toLowerCase() + ' from another model'"
-                      (click)="copyMenu.openAt(under($event))"
+                      [attr.popovertarget]="copyMenu.id"
                     >
                       <svg viewBox="0 0 24 24" aria-hidden="true">
                         <rect x="9" y="9" width="11" height="11" rx="2" />
@@ -467,12 +467,6 @@ export class GroupingSettingsPanel {
       return value === undefined ? [] : [[key, value] as const];
     });
     this.applyAll(Object.fromEntries(copied));
-  }
-
-  /** Where a menu opens under the button pressed, in window coordinates. */
-  protected under(event: Event): { readonly x: number; readonly y: number } {
-    const button = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    return { x: button.left + button.width / 2, y: button.bottom };
   }
 
   private applyAll(values: Settings): void {

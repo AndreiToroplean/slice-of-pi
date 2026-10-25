@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, ElementRef, input, viewChild } from '@angular/core';
+import { Component, DOCUMENT, ElementRef, inject, input, viewChild } from '@angular/core';
 import { ArrowFocus } from './arrow-focus';
 import { Candy } from './candy';
 
@@ -8,11 +8,12 @@ let menus = 0;
 
 /**
  * A menu: a frosted dropdown holding what is given to it (links, buttons and toggles, see `.dropdown` in `styles.css`),
- * opened by a ⋮ button for a screen's corner, or a plain one, as at the end of a strip of tabs, which closes it too, or,
- * without it, where something was pressed (`openAt`). The browser places it, and closes it on a tap outside or on
- * Escape; choosing one of its buttons closes it too. It grows from, and shrinks back to, its corner pointing at where it
- * opened from. It opens ready for the keyboard:
- * up and down move between its items, and Enter on a toggle flips it and closes the menu, as on a button.
+ * opened by a ⋮ button of its own, for a screen's corner or, plain, at the end of a strip of tabs, or without it, from a
+ * button elsewhere, which only needs to be its `popovertarget`, or where something was pressed (`openAt`). A button
+ * opening it closes it too. The browser places it by the button or the point pressed, and closes it on a tap outside or
+ * on Escape; choosing one of its buttons closes it too. It grows from, and shrinks back to, its corner pointing at where
+ * it opened from. It opens ready for the keyboard: up and down move between its items, and Enter on a toggle flips it
+ * and closes the menu, as on a button.
  */
 @Component({
   selector: 'app-dropdown-menu',
@@ -60,7 +61,8 @@ let menus = 0;
       role="group"
       [id]="id"
       [attr.aria-label]="label()"
-      [style.position-anchor]="anchor"
+      [style.position-anchor]="button() ? anchor : null"
+      (beforetoggle)="beforeToggle($event)"
       (toggle)="toggled($event)"
     >
       <ng-content />
@@ -123,13 +125,20 @@ export class DropdownMenu {
   /** Whether its button is plain, as within a strip of tabs, rather than a candy button for a screen's corner. */
   readonly plain = input(false);
 
-  protected readonly id = `menu-${String(++menus)}`;
-  /** What the dropdown opens from: its button, or the point where it was opened. */
+  /**
+   * For a button elsewhere to open it, as its `popovertarget`: the browser then anchors the menu to it, as it does to
+   * whatever opens a popover.
+   */
+  readonly id = `menu-${String(++menus)}`;
+  /** What the dropdown opens from, when not a button elsewhere: its own button, or the point where it was opened. */
   protected readonly anchor = `--${this.id}`;
   private readonly point = viewChild<ElementRef<HTMLElement>>('point');
   private readonly more = viewChild<string, ElementRef<HTMLElement>>('more', { read: ElementRef });
   private readonly dropdown = viewChild.required<ElementRef<HTMLElement>>('dropdown');
   private readonly items = viewChild.required(ArrowFocus);
+  private readonly document = inject(DOCUMENT);
+  /** Whether it was last opened at a point, rather than by a button elsewhere. */
+  private atPoint = false;
 
   /** Opens the menu from a point, in window coordinates. */
   openAt(at: { readonly x: number; readonly y: number }): void {
@@ -143,7 +152,10 @@ export class DropdownMenu {
     const origin = point.getBoundingClientRect();
     point.style.left = `${String(at.x - origin.left)}px`;
     point.style.top = `${String(at.y - origin.top)}px`;
-    this.dropdown().nativeElement.showPopover();
+    const dropdown = this.dropdown().nativeElement;
+    dropdown.style.setProperty('position-anchor', this.anchor);
+    this.atPoint = true;
+    dropdown.showPopover();
     // Laid out as it opens, so that it grows from the right corner from the start.
     this.noteCorner();
   }
@@ -160,17 +172,33 @@ export class DropdownMenu {
     if ((event as ToggleEvent).newState === 'open') {
       this.noteCorner();
       this.items().focusFirst();
+    } else {
+      this.atPoint = false;
+    }
+  }
+
+  /** Opened by a button elsewhere, anchored to it rather than to the point it was last opened at. */
+  protected beforeToggle(event: Event): void {
+    if ((event as ToggleEvent).newState === 'open' && !this.atPoint && !this.button()) {
+      this.dropdown().nativeElement.style.removeProperty('position-anchor');
     }
   }
 
   /** Notes which of its corners points at what it opened from: square, and where it grows from and shrinks to. */
   private noteCorner(): void {
     const dropdown = this.dropdown().nativeElement;
-    const anchor = (this.more() ?? this.point())?.nativeElement.getBoundingClientRect();
+    const anchor = (
+      this.more()?.nativeElement ??
+      (this.atPoint
+        ? this.point()?.nativeElement
+        : this.document.querySelector(`[popovertarget="${this.id}"]`))
+    )?.getBoundingClientRect();
     if (anchor !== undefined) {
       const box = dropdown.getBoundingClientRect();
-      const above = box.top + box.height / 2 < anchor.top + anchor.height / 2;
-      const left = box.left + box.width / 2 < anchor.left + anchor.width / 2;
+      // Over it if past its top edge; the corner on the side nearer the middle of it, wherever the menu fitted.
+      const above = box.top < anchor.top;
+      const middle = anchor.left + anchor.width / 2;
+      const left = Math.abs(box.right - middle) < Math.abs(box.left - middle);
       dropdown.dataset['corner'] = `${above ? 'bottom' : 'top'}-${left ? 'right' : 'left'}`;
     }
   }

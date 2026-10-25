@@ -136,7 +136,7 @@ export const TAIL = 1500;
           class="frosted pill speed"
           aria-haspopup="true"
           [attr.aria-label]="'Speed ' + speedLabel()"
-          (click)="speedMenu.openAt(above($event))"
+          [attr.popovertarget]="speedMenu.id"
         >
           {{ speedLabel() }}
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6" /></svg>
@@ -267,12 +267,6 @@ export class Replay {
     } else {
       this.seek(time);
     }
-  }
-
-  /** Where the menu of speeds opens: from the top of the button pressed, in window coordinates, over it if it fits. */
-  protected above(event: Event): { readonly x: number; readonly y: number } {
-    const button = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    return { x: button.left + button.width / 2, y: button.top };
   }
 
   /** Back to the player's runs, unless the Escape closes something open, as the browser does with it. */
