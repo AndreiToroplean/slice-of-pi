@@ -1,0 +1,642 @@
+<title>Lake Play Screen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Lexend:wght@400;500&display=swap">
+<style>
+/* Layout: a compact toolbar on top, then the phone screen, laid out in percentages of its height; the editor overlay sits on it until locked. One committed night look. */
+:root {
+  color-scheme: dark;
+  --chrome: #1d1626; --chrome-2: #2e2440; --on-chrome: #f5efff; --on-chrome-dim: #b9adcf; --accent: #ffc35a;
+  --ink: #2a1f3d;
+  --night-1: #0d1030; --night-2: #262d61; --star: #fff6d8;
+  --candy-shadow: rgb(40 20 60 / 18%);
+  --font-ui: 'Lexend', system-ui, sans-serif;
+  --font-digits: 'Fredoka', system-ui, sans-serif;
+  --edit: #ffd84d;
+}
+html, body { height: 100%; }
+body { margin: 0; display: flex; flex-direction: column; background: var(--chrome); color: var(--on-chrome); font-family: var(--font-ui); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+
+/* ---------- Toolbar ---------- */
+.toolbar { flex: none; display: grid; gap: 0.35rem; padding: 0.4rem max(16px, env(safe-area-inset-right, 0px)) 0.45rem max(16px, env(safe-area-inset-left, 0px)); font-size: 0.75rem; }
+.row { display: flex; gap: 0.35rem; align-items: center; min-width: 0; }
+.tb { border: 0; border-radius: 0.6rem; padding: 0.38rem 0.6rem; background: var(--chrome-2); color: var(--on-chrome); font-weight: 500; font-size: 0.75rem; white-space: nowrap; }
+.tb.on { background: var(--accent); color: var(--ink); }
+.seg { display: flex; flex: 1; gap: 0.15rem; padding: 0.15rem; border-radius: 0.7rem; background: var(--chrome-2); min-width: 0; }
+.seg button { flex: 1; border: 0; border-radius: 0.55rem; padding: 0.28rem 0; background: none; color: var(--on-chrome-dim); font-size: 0.7rem; min-width: 0; }
+.seg button[aria-pressed="true"] { background: var(--on-chrome); color: var(--chrome); }
+.row label { color: var(--on-chrome-dim); white-space: nowrap; }
+.row input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.num { min-width: 2.6rem; text-align: right; font-variant-numeric: tabular-nums; color: var(--on-chrome-dim); }
+.copied { position: fixed; left: 50%; bottom: 1rem; translate: -50% 0; padding: 0.5rem 0.9rem; border-radius: 0.7rem; background: var(--accent); color: var(--ink); font-size: 0.85rem; z-index: 30; }
+.fallback { position: fixed; inset: auto 1rem 1rem; z-index: 30; display: grid; gap: 0.4rem; padding: 0.6rem; border-radius: 0.8rem; background: var(--chrome-2); }
+.fallback textarea { width: 100%; box-sizing: border-box; height: 8rem; font: 0.7rem ui-monospace, monospace; background: var(--chrome); color: var(--on-chrome); border: 0; border-radius: 0.5rem; padding: 0.4rem; }
+
+/* ---------- Phone ---------- */
+.stage { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; background: #120d19; }
+.phone { position: relative; height: 100%; overflow: hidden; isolation: isolate; background: var(--night-1); color: #fff; }
+.land { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+.ui { position: absolute; z-index: 1; box-sizing: border-box; }
+
+/* Season header, in the sky */
+.hdr { display: grid; justify-items: center; align-content: center; gap: 0.15em; text-shadow: 0 2px 10px rgb(0 0 0 / 30%); }
+.hdr p { margin: 0; }
+.hdr .name { display: flex; align-items: center; gap: 0.4em; font-size: 1.35em; font-weight: 500; }
+.hdr .name svg { width: 1.05em; height: 1.05em; }
+.hdr .place { font-size: 0.6em; opacity: 0.85; font-variant-numeric: tabular-nums; }
+.hdr .year { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.25em; width: 8.5em; margin-top: 0.35em; }
+.hdr .year span { height: 0.25em; border-radius: 0.15em; background: rgb(255 255 255 / 28%); overflow: hidden; }
+.hdr .year i { display: block; height: 100%; background: #fff; }
+
+/* Candy buttons, as in the game: a face, and a darker edge it sinks into when pressed */
+.candy {
+  --face: #fff; --edge: #d9cfe0; --depth: 0.3125rem;
+  border: 0; padding: 0; border-radius: var(--r, 1.25rem); background: var(--face); color: var(--on, var(--ink));
+  box-shadow: 0 var(--depth) 0 var(--edge), 0 calc(var(--depth) * 1.6) 1.25rem var(--candy-shadow);
+  font-family: var(--font-digits); font-weight: 600; display: grid; place-items: center;
+  transition: translate 0.08s, box-shadow 0.08s;
+}
+.candy.down { translate: 0 calc(var(--depth) * 0.8); box-shadow: 0 calc(var(--depth) * 0.2) 0 var(--edge), 0 calc(var(--depth) * 0.8) 0.75rem var(--candy-shadow); }
+.pause svg { width: 42%; height: 42%; fill: currentColor; }
+
+.keys { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); touch-action: manipulation; }
+.key.digit { --face: var(--kc); --edge: color-mix(in oklab, var(--kc), black 28%); --on: #fff; text-shadow: 0 1px 2px rgb(0 0 0 / 20%); }
+.key.empty { visibility: hidden; }
+.key svg { width: 1.2em; height: 1.2em; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+.slots { display: flex; justify-content: center; align-items: stretch; font-family: var(--font-digits); font-weight: 600; }
+.slot { border-radius: 0.25em; display: grid; place-items: center; background: rgb(255 255 255 / 14%); box-shadow: inset 0 0 0 0.06em rgb(255 255 255 / 40%); }
+.slot.next { box-shadow: inset 0 0 0 0.09em #fff; }
+.slot.filled { background: var(--c); color: #fff; box-shadow: inset 0 -0.1em 0 rgb(0 0 0 / 16%); animation: pop 0.2s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes pop { from { transform: scale(0.7); } }
+
+.tape { display: flex; align-items: center; gap: 0.45em; overflow-x: auto; scrollbar-width: none; font-family: var(--font-digits); font-weight: 600; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
+.tape::-webkit-scrollbar { display: none; }
+.lead { flex: none; display: flex; align-items: baseline; gap: 0.12em; color: var(--ink); font-size: 1.45em; line-height: 1; }
+.lead i { width: 0.2em; height: 0.2em; border-radius: 0.05em; background: currentColor; display: inline-block; }
+.word { flex: none; display: inline-flex; border-radius: 0.3em; overflow: hidden; box-shadow: 0 0.12em 0 rgb(0 0 0 / 18%); }
+.tile { width: 1.24em; height: 1.6em; line-height: 1.6em; text-align: center; background: var(--c); color: #fff; }
+
+/* ---------- Editor overlay ---------- */
+.editor { position: absolute; inset: 0; z-index: 5; }
+.phone.locked .editor { display: none; }
+.box { position: absolute; box-sizing: border-box; border: 1.5px dashed var(--edit); border-radius: 0.4rem; background: rgb(255 216 77 / 8%); touch-action: none; cursor: move; }
+.box .tag, .mark .tag { position: absolute; left: 0.25rem; top: 0.2rem; padding: 0.05rem 0.3rem; border-radius: 0.3rem; background: var(--edit); color: var(--ink); font: 500 0.62rem var(--font-ui); white-space: nowrap; pointer-events: none; }
+.handle { position: absolute; right: -0.7rem; bottom: -0.7rem; width: 1.4rem; height: 1.4rem; border-radius: 0.4rem; background: var(--edit); box-shadow: 0 1px 4px rgb(0 0 0 / 40%); cursor: nwse-resize; touch-action: none; }
+.handle::after { content: ''; position: absolute; inset: 0.35rem; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); }
+.mark { position: absolute; left: 0; right: 0; height: 0; border-top: 1.5px dashed #7ff0ff; touch-action: none; cursor: ns-resize; }
+.mark::before { content: ''; position: absolute; inset: -0.7rem 0; }
+.mark .tag { left: auto; right: 0.4rem; top: -0.75rem; background: #7ff0ff; padding: 0.15rem 0.4rem; }
+
+/* Editor: every editable thing shows its box; tapping one focuses it and brings out its own controls */
+.inspector { min-height: 1.75rem; }
+.inspector .what { color: var(--edit); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.inspector .hint { color: var(--on-chrome-dim); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.editor { touch-action: none; }
+.box { pointer-events: none; border: 1px dashed rgb(255 216 77 / 55%); background: none; }
+.box.sel { border: 1.5px solid var(--edit); background: rgb(255 216 77 / 8%); }
+.box.ghost { border-color: rgb(127 240 255 / 70%); }
+.box.ghost .tag { background: #7ff0ff; }
+.box:not(.sel) .tag { opacity: 0.75; }
+.handle { pointer-events: auto; }
+.point { position: absolute; width: 1.15rem; height: 1.15rem; margin: -0.575rem 0 0 -0.575rem; border-radius: 0.35rem; background: var(--edit); border: 2px solid var(--ink); box-sizing: border-box; touch-action: none; cursor: grab; }
+.point.end { background: #7ff0ff; }
+.point.picked { outline: 3px solid #fff; }
+.curve-line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+</style>
+
+<div class="toolbar">
+  <div class="row">
+    <button class="tb" id="lock" aria-pressed="false">Lock to Play</button>
+    <button class="tb" id="copy">Copy Values</button>
+    <button class="tb" id="reset">Reset</button>
+    <div class="seg" id="group" aria-label="Group size">
+      <button data-g="-1" aria-label="Fewer slots">−</button><span class="num" id="group-n" style="text-align:center;align-self:center">5</span><button data-g="1" aria-label="More slots">+</button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="seg" id="seasons" aria-label="Season">
+      <button data-s="0">Spring</button><button data-s="1">Summer</button><button data-s="2">Autumn</button><button data-s="3">Winter</button>
+    </div>
+  </div>
+  <div class="row inspector" id="inspector"></div>
+  <div class="row">
+    <label for="width">Width</label>
+    <input type="range" id="width" min="280" max="900" step="1">
+    <span class="num" id="width-n"></span>
+  </div>
+</div>
+
+<main class="stage" id="stage">
+  <div class="phone" id="phone">
+    <svg class="land" id="land" aria-hidden="true"></svg>
+    <header class="ui hdr" id="hdr">
+      <p class="name" id="season-name"></p>
+      <p class="place" id="place"></p>
+      <div class="year" id="year"></div>
+    </header>
+    <button class="ui candy pause" id="pause" aria-label="Pause"><svg viewBox="0 0 24 24"><rect x="6" y="4.5" width="4.2" height="15" rx="1.2"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.2"/></svg></button>
+    <div class="ui tape" id="tape" aria-label="Typed digits"></div>
+    <div class="ui slots" id="slots" aria-label="Group being typed"></div>
+    <div class="ui keys" id="keys"></div>
+    <div class="editor" id="editor"></div>
+  </div>
+</main>
+
+
+<script>
+const PALETTE = ['#e3402f', '#fd7225', '#f4ba0d', '#a9c926', '#3cba60', '#07bed4', '#3371fa', '#8225d7', '#bf56c1', '#ff82d1'];
+const PI = '14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196';
+const SEASONS = [
+  { name: 'Spring', glow: '#ffb3d1', hill: '#5fbf86', hillBack: '#3f8f6c', sand: '#f1dcb4', crown: '#ff9fc4', icon: '<circle cx="12" cy="6" r="3.6"/><circle cx="17.7" cy="10.2" r="3.6"/><circle cx="15.5" cy="17" r="3.6"/><circle cx="8.5" cy="17" r="3.6"/><circle cx="6.3" cy="10.2" r="3.6"/><circle cx="12" cy="12" r="2.6" fill="#ffd36b"/>' },
+  { name: 'Summer', glow: '#ffc35a', hill: '#3f9e5a', hillBack: '#2f7448', sand: '#f3d49b', crown: '#2f7d47', icon: '<circle cx="12" cy="12" r="4.6"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 1.8v2.8M12 19.4v2.8M1.8 12h2.8M19.4 12h2.8M4.8 4.8l2 2M17.2 17.2l2 2M4.8 19.2l2-2M17.2 6.8l2-2"/>' },
+  { name: 'Autumn', glow: '#ee8a45', hill: '#b8663a', hillBack: '#8a4a33', sand: '#e2c08f', crown: '#e0782f', icon: '<path d="M20 3C10 3 4 8 4 15c0 2 .6 3.7 1.6 5 1-4 4-8 9-10-4 3-6.6 6.4-7.7 10.4C8.4 21.4 9.8 22 11.5 22 18 22 21 15 20 3z"/>' },
+  { name: 'Winter', glow: '#9bb4dc', hill: '#dfe7f2', hillBack: '#aebbd2', sand: '#e9eef6', crown: '#f4f7fb', icon: '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M12 2l-2.5 2.5M12 2l2.5 2.5M12 22l-2.5-2.5M12 22l2.5-2.5"/>' },
+];
+
+const LAYOUT = [['7', '8', '9'], ['4', '5', '6'], ['1', '2', '3'], [null, '0', 'back']];
+
+/*
+ * The layout. Vertical positions and heights are percentages of the screen's height, measured from its bottom; sizes of
+ * things that keep their shape (w of centered boxes, s, gaps, the corner insets) are percentages of the height too.
+ * Horizontal positions (x) and the constellation area's width are percentages of the screen's width.
+ * The keypad, the slots and the season header are always centered horizontally.
+ */
+function defaults() {
+  const xs = [0, 16.7, 33.3, 50, 66.7, 83.3, 100];
+  const beach = 46.5, crest = 56.3;
+  const front = (t) => beach + (crest - beach) * Math.max(0, Math.min(1, 0.92 * (0.5 + 0.32 * Math.cos(2 * Math.PI * (t - 0.18)) + 0.18 * Math.cos(4 * Math.PI * (t - 0.8)))));
+  const back = (t) => beach + (crest - beach) * Math.max(0, Math.min(1, 0.72 + 0.28 * Math.cos(2 * Math.PI * (t - 0.62))));
+  return {
+    lake: 44.2,
+    beach: [{ x: 0, y: 46.9 }, { x: 25, y: 46.2 }, { x: 50, y: 46.7 }, { x: 75, y: 46.1 }, { x: 100, y: 46.8 }],
+    hills: [xs.map((x) => ({ x, y: r(back(x / 100)) })), xs.map((x) => ({ x, y: r(front(x / 100)) }))],
+    trees: [{ hill: 1, x: 13.5, s: 11.4 }, { hill: 1, x: 85.2, s: 8.8 }],
+    keys: { bottom: 0.7, w: 49, h: 34.6, gap: 1.4 },
+    slots: { bottom: 36.3, w: 66.7, h: 7, gap: 0.8 },
+    tape: { bottom: 45.2, h: 4.4 },
+    header: { bottom: 87, w: 32, h: 10 },
+    corner: { top: 4, side: 3.4, s: 5.5 },
+    stars: { x: 36, bottom: 61.5, w: 48, h: 20 },
+  };
+}
+function r(v) { return Math.round(v * 10) / 10; }
+
+const STORE = 'lake-layout-2';
+let state = load() ?? defaults();
+let digits = PI.slice(0, 41);
+let groupSize = 5;
+let locked = false;
+let selected = null;
+let pickedPoint = null;
+let drag = null;
+
+function load() { try { const s = JSON.parse(localStorage.getItem(STORE)); return s && s.hills ? { ...defaults(), ...s } : null; } catch { return null; } }
+function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch {} }
+
+/** Place colors as the game gives them: key d starts on palette color d and steps on each time d comes up. */
+function colorsOf(ds) { const seen = Array(10).fill(0); return [...ds].map((ch) => PALETTE[(+ch + seen[+ch]++) % 10]); }
+function keyColorsAfter(ds) { const seen = Array(10).fill(0); for (const ch of ds) seen[+ch]++; return seen.map((n, d) => PALETTE[(d + n) % 10]); }
+function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+const $ = (id) => document.getElementById(id);
+const phone = $('phone'), stage = $('stage'), editor = $('editor');
+let W = 0, H = 0;
+const fromBottom = (p) => H - (p * H) / 100;
+const ofH = (p) => (p * H) / 100;
+const ofW = (p) => (p * W) / 100;
+
+/* ---------- Curves: smooth lines through control points (Catmull-Rom), sampled for drawing and for heights ---------- */
+function sample(points) {
+  const P = points.map((p) => [ofW(p.x), fromBottom(p.y)]);
+  const out = [];
+  for (let i = 0; i < P.length - 1; i++) {
+    const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
+    for (let k = 0; k < 16; k++) {
+      const t = k / 16, t2 = t * t, t3 = t2 * t;
+      out.push([0, 1].map((j) => 0.5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t3)));
+    }
+  }
+  out.push(P[P.length - 1]);
+  return out;
+}
+/** The curve's height, in pixels from the top, at a pixel x. */
+function yAt(samples, x) {
+  for (let i = 0; i < samples.length - 1; i++) {
+    const [x1, y1] = samples[i], [x2, y2] = samples[i + 1];
+    if (x >= Math.min(x1, x2) && x <= Math.max(x1, x2)) return x2 === x1 ? y1 : y1 + ((x - x1) / (x2 - x1)) * (y2 - y1);
+  }
+  return x < samples[0][0] ? samples[0][1] : samples[samples.length - 1][1];
+}
+const line = (samples) => samples.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
+
+/* ---------- Rendering ---------- */
+function centered(b) { const w = Math.min(ofH(b.w), W - 32); return { left: (W - w) / 2, top: fromBottom(b.bottom + b.h), width: w, height: ofH(b.h) }; }
+function cornerRect() { const c = state.corner, s = ofH(c.s); return { left: W - ofH(c.side) - s, top: ofH(c.top), width: s, height: s }; }
+function place(el, q) { Object.assign(el.style, { left: q.left + 'px', top: q.top + 'px', width: q.width + 'px', height: q.height + 'px' }); }
+let curves = {};
+
+function render() {
+  W = phone.clientWidth; H = phone.clientHeight;
+  if (!W || !H) return;
+  curves = { beach: sample(state.beach) };
+  state.hills.forEach((h, i) => { curves['hill' + i] = sample(h); });
+  const n = digits.length;
+  const s = SEASONS[Math.floor((n % 100) / 25)];
+  for (const b of document.querySelectorAll('#seasons button')) b.setAttribute('aria-pressed', SEASONS[+b.dataset.s] === s);
+
+  const hr = centered(state.header); place($('hdr'), hr);
+  $('hdr').style.fontSize = hr.height / 4.2 + 'px';
+  $('season-name').innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${s.icon}</svg><span>${s.name}</span>`;
+  $('place').textContent = `Year ${Math.floor(n / 100) + 1} · digit ${n % 100} of 100`;
+  $('year').innerHTML = [0, 1, 2, 3].map((i) => `<span><i style="width:${Math.max(0, Math.min(1, ((n % 100) - i * 25) / 25)) * 100}%"></i></span>`).join('');
+
+  const cr = cornerRect(); place($('pause'), cr);
+  $('pause').style.setProperty('--r', cr.width * 0.3 + 'px');
+  $('pause').style.setProperty('--depth', cr.width * 0.09 + 'px');
+
+  const colors = colorsOf(digits);
+  const done = n - (n % groupSize);
+  const tape = $('tape');
+  place(tape, { left: 0, top: fromBottom(state.tape.bottom + state.tape.h), width: W, height: ofH(state.tape.h) });
+  tape.style.fontSize = ofH(state.tape.h) / 1.75 + 'px';
+  let words = '';
+  for (let i = 0; i < done; i += groupSize) words += '<span class="word">' + [...digits.slice(i, i + groupSize)].map((d, k) => `<span class="tile" style="--c:${colors[i + k]}">${d}</span>`).join('') + '</span>';
+  tape.innerHTML = `<span class="lead">3<i></i></span>${words}`;
+  tape.scrollLeft = tape.scrollWidth;
+
+  const sr = centered(state.slots); place($('slots'), sr);
+  const gap = ofH(state.slots.gap);
+  const slotW = Math.min(sr.height * 0.76, (sr.width - gap * (groupSize - 1)) / groupSize);
+  const current = digits.slice(done);
+  $('slots').style.gap = gap + 'px';
+  $('slots').style.fontSize = Math.min(sr.height * 0.62, slotW * 0.85) + 'px';
+  $('slots').innerHTML = Array.from({ length: groupSize }, (_, i) => {
+    const style = `width:${slotW}px;border-radius:${slotW * 0.28}px`;
+    return i < current.length ? `<span class="slot filled" style="${style};--c:${colors[done + i]}">${current[i]}</span>` : `<span class="slot${i === current.length ? ' next' : ''}" style="${style}"></span>`;
+  }).join('');
+
+  const kr = centered(state.keys); place($('keys'), kr);
+  const kg = ofH(state.keys.gap), keysEl = $('keys');
+  keysEl.style.gap = kg + 'px';
+  const keyH = (kr.height - 3 * kg) / 4;
+  keysEl.style.paddingBottom = keyH * 0.09 + 'px';
+  keysEl.style.fontSize = keyH * 0.48 + 'px';
+  const kc = keyColorsAfter(digits);
+  for (const key of keysEl.children) {
+    key.style.setProperty('--r', Math.min(keyH * 0.32, 20) + 'px');
+    key.style.setProperty('--depth', keyH * 0.085 + 'px');
+    if (key.dataset.d) key.style.setProperty('--kc', kc[+key.dataset.d]);
+  }
+
+  drawLand(s, done >= groupSize ? digits.slice(done - groupSize, done) : '14159');
+  drawEditor();
+}
+
+function drawLand(s, group) {
+  const svg = $('land');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const lakeY = fromBottom(state.lake), glow = s.glow;
+  let o = `<defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="${lakeY}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="var(--night-1)"/><stop offset="0.55" stop-color="var(--night-2)"/><stop offset="0.85" stop-color="color-mix(in oklch, ${glow} 45%, var(--night-2))"/><stop offset="1" stop-color="${glow}"/></linearGradient>
+    <linearGradient id="lake" x1="0" y1="${lakeY}" x2="0" y2="${H}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="color-mix(in oklch, ${glow} 55%, var(--night-2))"/><stop offset="0.3" stop-color="color-mix(in oklch, ${glow} 20%, var(--night-2))"/><stop offset="0.7" stop-color="var(--night-2)"/><stop offset="1" stop-color="var(--night-1)"/></linearGradient>
+  </defs>`;
+  o += `<rect width="${W}" height="${lakeY + 2}" fill="url(#sky)"/>`;
+  const rand = rng(31415);
+  for (let i = 0; i < 110; i++) {
+    const x = rand() * W, y = rand() * lakeY, rad = 0.5 + rand() * 1.1;
+    o += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(2)}" fill="var(--star)" opacity="${((0.3 + rand() * 0.65) * Math.max(0, 1 - y / lakeY)).toFixed(2)}"/>`;
+  }
+  // A constellation inside its area: the game makes them; here, the last group's path across the keypad.
+  const a = state.stars, ax = ofW(a.x), aw = ofW(a.w), ay = fromBottom(a.bottom + a.h), ah = ofH(a.h);
+  const pos = {};
+  LAYOUT.forEach((row, rr) => row.forEach((d, c) => { if (d && d !== 'back') pos[d] = [c, rr]; }));
+  const size = Math.min(aw * 0.8, ah * 0.8 * (3 / 4) * 1.3), cx = ax + aw / 2, cy = ay + ah / 2, tilt = -0.25;
+  const pts = [...group].map((d) => { const [c, rr] = pos[d]; const x = ((c - 1) * size) / 2, y = ((rr - 1.5) * size) / 3; return [cx + x * Math.cos(tilt) - y * Math.sin(tilt), cy + x * Math.sin(tilt) + y * Math.cos(tilt)]; });
+  o += `<polyline points="${pts.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="var(--star)" stroke-opacity="0.55" stroke-width="1.4" stroke-linejoin="round"/>`;
+  for (const [x, y] of pts) o += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="var(--star)" opacity="0.16"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="var(--star)"/>`;
+
+  // Hills, back to front, each with its own trees
+  state.hills.forEach((_, i) => {
+    const smp = curves['hill' + i];
+    const front = i === state.hills.length - 1;
+    const color = front ? s.hill : s.hillBack;
+    const dim = front ? 25 : 35 + (state.hills.length - 2 - i) * 8;
+    o += `<path d="${line(smp)} L${W} ${lakeY} L0 ${lakeY} Z" fill="color-mix(in oklab, ${color}, var(--night-1) ${dim}%)"/>`;
+    for (const tree of state.trees) if (tree.hill === i) o += treeSvg(tree, s);
+  });
+  // The beach, with a gently uneven top and a wet line at the water
+  o += `<path d="${line(curves.beach)} L${W} ${lakeY} L0 ${lakeY} Z" fill="color-mix(in oklab, ${s.sand}, var(--night-1) 18%)"/>`;
+  o += `<rect y="${lakeY - 3}" width="${W}" height="3" fill="color-mix(in oklab, ${s.sand}, var(--night-1) 40%)"/>`;
+  // The lake: the sky's colors, mirrored, with stretched ripples and faint star reflections
+  o += `<rect y="${lakeY}" width="${W}" height="${H - lakeY}" fill="url(#lake)"/>`;
+  const r2 = rng(2718);
+  for (let i = 0; i < 40; i++) o += `<circle cx="${(r2() * W).toFixed(1)}" cy="${(lakeY + r2() * (H - lakeY)).toFixed(1)}" r="${(0.4 + r2() * 0.7).toFixed(2)}" fill="var(--star)" opacity="${(0.12 + r2() * 0.25).toFixed(2)}"/>`;
+  const r3 = rng(1618);
+  for (let i = 0; i < 16; i++) {
+    const t = r3(), y = lakeY + 6 + t * t * (H - lakeY - 10), w = (0.06 + r3() * 0.14) * W * (0.6 + t), x = r3() * (W - w);
+    o += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${(1.2 + t * 1.6).toFixed(1)}" rx="1.5" fill="${i % 3 ? 'var(--star)' : glow}" opacity="${(0.1 + r3() * 0.16).toFixed(2)}"/>`;
+  }
+  svg.innerHTML = o;
+}
+
+function treeBase(tree) { return yAt(curves['hill' + tree.hill], ofW(tree.x)) + 2; }
+/** A small tree on its hill: a trunk and a rounded crown, bare in winter. */
+function treeSvg(tree, s) {
+  const x = ofW(tree.x), base = treeBase(tree), size = ofH(tree.s);
+  const trunkW = size * 0.14, trunkH = size * 0.45;
+  const crown = `color-mix(in oklab, ${s.crown}, var(--night-1) 22%)`, trunk = 'color-mix(in oklab, #6b4a3a, var(--night-1) 25%)';
+  let g = `<rect x="${(x - trunkW / 2).toFixed(1)}" y="${(base - trunkH).toFixed(1)}" width="${trunkW.toFixed(1)}" height="${trunkH.toFixed(1)}" rx="${(trunkW / 3).toFixed(1)}" fill="${trunk}"/>`;
+  if (s.name === 'Winter') {
+    g += `<path d="M${x} ${base - trunkH * 0.7} l${-size * 0.22} ${-size * 0.3} M${x} ${base - trunkH * 0.95} l${size * 0.2} ${-size * 0.32}" stroke="${trunk}" stroke-width="${(trunkW * 0.55).toFixed(1)}" stroke-linecap="round"/>`;
+    g += `<rect x="${(x - size * 0.32).toFixed(1)}" y="${(base - size * 1.02).toFixed(1)}" width="${(size * 0.64).toFixed(1)}" height="${(size * 0.18).toFixed(1)}" rx="${(size * 0.09).toFixed(1)}" fill="${crown}"/>`;
+  } else {
+    g += `<rect x="${(x - size * 0.38).toFixed(1)}" y="${(base - size).toFixed(1)}" width="${(size * 0.76).toFixed(1)}" height="${(size * 0.66).toFixed(1)}" rx="${(size * 0.3).toFixed(1)}" fill="${crown}"/>`;
+  }
+  return g;
+}
+
+/* ---------- Editor ---------- */
+function items() {
+  const list = [
+    { id: 'corner', label: 'Corner buttons', kind: 'corner' },
+    { id: 'header', label: 'Season header', kind: 'centered' },
+    ...state.trees.map((_, i) => ({ id: 'tree' + i, label: 'Tree', kind: 'tree', index: i })),
+    { id: 'slots', label: 'Slots', kind: 'centered' },
+    { id: 'keys', label: 'Keypad', kind: 'centered' },
+    { id: 'tape', label: 'Tape', kind: 'band' },
+    { id: 'stars', label: 'Constellation area', kind: 'area' },
+    { id: 'lake', label: 'Lake', kind: 'lake' },
+    ...state.hills.map((_, i) => ({ id: 'hill' + i, label: i === state.hills.length - 1 ? 'Front hill' : 'Back hill', kind: 'curve', index: i })).reverse(),
+    { id: 'beach', label: 'Beach', kind: 'curve' },
+  ];
+  return list;
+}
+function pointsOf(item) { return item.id === 'beach' ? state.beach : state.hills[item.index]; }
+function rectOf(item) {
+  if (item.kind === 'centered') return centered(state[item.id]);
+  if (item.kind === 'band') return { left: 4, top: fromBottom(state.tape.bottom + state.tape.h), width: W - 8, height: ofH(state.tape.h) };
+  if (item.kind === 'corner') return cornerRect();
+  if (item.kind === 'area') { const a = state.stars; return { left: ofW(a.x), top: fromBottom(a.bottom + a.h), width: ofW(a.w), height: ofH(a.h) }; }
+  if (item.kind === 'tree') { const t = state.trees[item.index], s = ofH(t.s), base = treeBase(t); return { left: ofW(t.x) - s * 0.45, top: base - s * 1.05, width: s * 0.9, height: s * 1.05 }; }
+  if (item.kind === 'lake') { const y = fromBottom(state.lake); return { left: 2, top: y - 7, width: W - 4, height: 14 }; }
+  const smp = curves[item.id], ys = smp.map((p) => p[1]);
+  return { left: 2, top: Math.min(...ys) - 6, width: W - 4, height: Math.max(...ys) - Math.min(...ys) + 12 };
+}
+const find = (id) => items().find((it) => it.id === id);
+
+/** Everything under a point, topmost first. */
+function hitsAt(x, y) {
+  return items().filter((it) => {
+    if (it.kind === 'curve') {
+      const cy = yAt(curves[it.id], x);
+      return it.id === 'beach' ? Math.abs(y - cy) < 16 : y > cy - 14 && y < yAt(curves.beach, x) - 6;
+    }
+    const q = rectOf(it);
+    return x >= q.left - 4 && x <= q.left + q.width + 4 && y >= q.top - 4 && y <= q.top + q.height + 4;
+  });
+}
+
+function drawEditor() {
+  editor.innerHTML = '';
+  if (locked) return;
+  const sel = selected && find(selected);
+  if (selected && !sel) selected = null;
+  for (const it of items()) {
+    if (it.kind === 'curve' && it.id !== selected) continue;
+    const q = rectOf(it);
+    const box = document.createElement('div');
+    box.className = 'box' + (it.id === selected ? ' sel' : '');
+    place(box, q);
+    const tagStyle = it.kind === 'lake' ? ' style="left:auto;right:0.25rem"' : it.kind === 'corner' ? ' style="left:auto;right:0;top:calc(100% + 0.3rem)"' : '';
+    box.innerHTML = `<span class="tag"${tagStyle}>${it.label}</span>`;
+    if (it.id === selected && !['curve', 'lake'].includes(it.kind)) box.innerHTML += `<span class="handle" data-role="resize"></span>`;
+    editor.append(box);
+  }
+  if (sel?.kind === 'corner') {
+    const q = cornerRect(), ghost = document.createElement('div');
+    ghost.className = 'box ghost';
+    place(ghost, { ...q, left: W - q.left - q.width });
+    ghost.innerHTML = '<span class="tag">Left corners follow</span>';
+    editor.append(ghost);
+  }
+  if (sel?.kind === 'curve') {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'curve-line');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = `<path d="${line(curves[sel.id])}" fill="none" stroke="#ffd84d" stroke-width="2" stroke-dasharray="6 4"/>`;
+    editor.append(svg);
+    pointsOf(sel).forEach((p, i, all) => {
+      const el = document.createElement('div');
+      el.className = 'point' + (i === 0 || i === all.length - 1 ? ' end' : '') + (i === pickedPoint ? ' picked' : '');
+      el.dataset.role = 'point'; el.dataset.index = i;
+      el.style.left = ofW(p.x) + 'px'; el.style.top = fromBottom(p.y) + 'px';
+      editor.append(el);
+    });
+  }
+  drawInspector(sel);
+}
+
+function drawInspector(sel) {
+  const ins = $('inspector');
+  if (locked) { ins.innerHTML = '<span class="hint">Locked: type on the keypad.</span>'; return; }
+  if (!sel) { ins.innerHTML = '<span class="hint">Tap a thing to edit it; tap again for what lies under it.</span>'; return; }
+  let html = `<span class="what">${sel.label}</span>`;
+  if (sel.kind === 'curve') {
+    html += '<button class="tb" data-act="add-point">Add Point</button>';
+    if (pickedPoint !== null && pickedPoint > 0 && pickedPoint < pointsOf(sel).length - 1) html += '<button class="tb" data-act="remove-point">Remove Point</button>';
+    if (sel.id !== 'beach') html += '<button class="tb" data-act="add-tree">Add Tree</button>';
+  }
+  if (sel.kind === 'tree') html += '<button class="tb" data-act="remove-tree">Remove Tree</button>';
+  html += '<button class="tb" data-act="done">Done</button>';
+  ins.innerHTML = html;
+}
+
+$('inspector').addEventListener('click', (e) => {
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (!act) return;
+  const sel = find(selected);
+  if (act === 'done') { selected = null; pickedPoint = null; }
+  if (act === 'add-point') {
+    const pts = pointsOf(sel);
+    let at = 1, widest = 0;
+    for (let i = 1; i < pts.length; i++) if (pts[i].x - pts[i - 1].x > widest) { widest = pts[i].x - pts[i - 1].x; at = i; }
+    const x = (pts[at - 1].x + pts[at].x) / 2;
+    const y = ((H - yAt(curves[sel.id], ofW(x))) / H) * 100;
+    pts.splice(at, 0, { x: r(x), y: r(y) });
+    pickedPoint = at;
+  }
+  if (act === 'remove-point') { pointsOf(sel).splice(pickedPoint, 1); pickedPoint = null; }
+  if (act === 'add-tree') {
+    const taken = state.trees.filter((t) => t.hill === sel.index).map((t) => t.x);
+    const x = [50, 30, 70, 20, 80, 40, 60].find((c) => taken.every((t) => Math.abs(t - c) > 8)) ?? 50;
+    state.trees.push({ hill: sel.index, x, s: 7 });
+    selected = 'tree' + (state.trees.length - 1);
+  }
+  if (act === 'remove-tree') { state.trees.splice(sel.index, 1); selected = null; }
+  save(); render();
+});
+
+editor.addEventListener('pointerdown', (ev) => {
+  const box = editor.getBoundingClientRect();
+  const x = ev.clientX - box.left, y = ev.clientY - box.top;
+  const role = ev.target.dataset?.role;
+  let mode = 'move', hits = [];
+  if (role === 'point') { mode = 'point'; pickedPoint = +ev.target.dataset.index; }
+  else if (role === 'resize') mode = 'resize';
+  else {
+    hits = hitsAt(x, y);
+    if (!hits.length) { selected = null; pickedPoint = null; render(); return; }
+    // Keep what's selected if it's under the finger, so it can be dragged; a tap without moving goes one layer down.
+    if (!hits.some((it) => it.id === selected)) { selected = hits[0].id; pickedPoint = null; hits = []; }
+  }
+  ev.preventDefault();
+  editor.setPointerCapture(ev.pointerId);
+  drag = { mode, item: find(selected), start: structuredClone(state), x0: ev.clientX, y0: ev.clientY, top: box.top, point: pickedPoint, hits, moved: false };
+  render();
+});
+editor.addEventListener('pointermove', (ev) => {
+  if (!drag) return;
+  const dx = ev.clientX - drag.x0, dy = ev.clientY - drag.y0;
+  if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+  drag.moved = true;
+  apply(drag, dx, dy, ev.clientY - drag.top);
+  render();
+});
+editor.addEventListener('pointerup', () => {
+  if (!drag) return;
+  if (!drag.moved && drag.hits.length > 1) {
+    const i = drag.hits.findIndex((it) => it.id === selected);
+    selected = drag.hits[(i + 1) % drag.hits.length].id;
+    pickedPoint = null;
+    render();
+  }
+  drag = null;
+  save();
+});
+editor.addEventListener('pointercancel', () => { drag = null; save(); });
+
+function apply(d, dx, dy, py) {
+  const it = d.item, pw = (dx / W) * 100, ph = (dy / H) * 100, sx = (dx / H) * 100;
+  if (d.mode === 'point') {
+    const pts = pointsOf(it), p0 = (it.id === 'beach' ? d.start.beach : d.start.hills[it.index])[d.point], p = pts[d.point];
+    p.y = r(p0.y - ph);
+    if (d.point > 0 && d.point < pts.length - 1) p.x = r(Math.max(pts[d.point - 1].x + 2, Math.min(pts[d.point + 1].x - 2, p0.x + pw)));
+    return;
+  }
+  if (it.kind === 'centered') {
+    const b = state[it.id], b0 = d.start[it.id];
+    if (d.mode === 'resize') { b.w = r(Math.max(4, b0.w + 2 * sx)); b.h = r(Math.max(2, b0.h + ph)); b.bottom = r(b0.bottom - ph); }
+    else b.bottom = r(b0.bottom - ph);
+  } else if (it.kind === 'band') {
+    const b = state.tape, b0 = d.start.tape;
+    if (d.mode === 'resize') b.h = r(Math.max(1, b0.h + ph));
+    b.bottom = r(b0.bottom - ph);
+  } else if (it.kind === 'corner') {
+    const c = state.corner, c0 = d.start.corner;
+    if (d.mode === 'resize') { c.s = r(Math.max(3, c0.s + sx)); c.side = r(Math.max(0, c0.side - sx)); }
+    else { c.top = r(Math.max(0, c0.top + ph)); c.side = r(Math.max(0, c0.side - sx)); }
+  } else if (it.kind === 'area') {
+    const a = state.stars, a0 = d.start.stars;
+    if (d.mode === 'resize') { a.w = r(Math.max(5, a0.w + pw)); a.h = r(Math.max(3, a0.h + ph)); a.bottom = r(a0.bottom - ph); }
+    else { a.x = r(a0.x + pw); a.bottom = r(a0.bottom - ph); }
+  } else if (it.kind === 'tree') {
+    const t = state.trees[it.index], t0 = d.start.trees[it.index];
+    if (d.mode === 'resize') t.s = r(Math.max(2, t0.s + sx));
+    else {
+      t.x = r(Math.max(0, Math.min(100, t0.x + pw)));
+      // It stands on whichever hill's slope is nearest the finger.
+      let best = t.hill, bestD = Infinity;
+      state.hills.forEach((_, i) => { const dd = Math.abs(yAt(curves['hill' + i], ofW(t.x)) - py); if (dd < bestD) { bestD = dd; best = i; } });
+      t.hill = best;
+    }
+  } else if (it.kind === 'lake') {
+    state.lake = r(d.start.lake - ph);
+  } else if (it.kind === 'curve') {
+    const pts = pointsOf(it), p0s = it.id === 'beach' ? d.start.beach : d.start.hills[it.index];
+    pts.forEach((p, i) => { p.y = r(p0s[i].y - ph); });
+  }
+}
+
+/* ---------- Keypad ---------- */
+const keysEl = $('keys');
+for (const row of LAYOUT) for (const d of row) {
+  const b = document.createElement('button');
+  if (!d) { b.className = 'candy key empty'; b.tabIndex = -1; b.setAttribute('aria-hidden', 'true'); }
+  else if (d === 'back') { b.className = 'candy key back'; b.setAttribute('aria-label', 'Backspace'); b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="m17 9-6 6M11 9l6 6"/></svg>'; }
+  else { b.className = 'candy key digit'; b.dataset.d = d; b.textContent = d; }
+  keysEl.append(b);
+}
+function press(key) {
+  if (!key || key.classList.contains('empty')) return;
+  key.classList.add('down');
+  digits = key.classList.contains('back') ? digits.slice(0, -1) : digits + key.dataset.d;
+  render();
+}
+const release = (key) => key?.classList.remove('down');
+keysEl.addEventListener('pointerdown', (e) => {
+  const k = e.target.closest('.key');
+  press(k);
+  const up = () => { release(k); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); };
+  addEventListener('pointerup', up); addEventListener('pointercancel', up);
+});
+addEventListener('keydown', (e) => {
+  if (e.repeat || e.target.matches?.('input, textarea')) return;
+  const k = e.key === 'Backspace' ? keysEl.querySelector('.back') : keysEl.querySelector(`.key[data-d="${e.key}"]`);
+  if (k) { press(k); setTimeout(() => release(k), 110); }
+});
+
+/* ---------- Toolbar ---------- */
+const lockBtn = $('lock');
+function setLocked(on) {
+  locked = on;
+  phone.classList.toggle('locked', on);
+  lockBtn.classList.toggle('on', on);
+  lockBtn.setAttribute('aria-pressed', on);
+  lockBtn.textContent = on ? 'Unlock to Edit' : 'Lock to Play';
+  render();
+}
+lockBtn.addEventListener('click', () => setLocked(!locked));
+$('reset').addEventListener('click', () => { state = defaults(); selected = null; pickedPoint = null; save(); render(); });
+$('copy').addEventListener('click', () => {
+  const text = JSON.stringify({ ...state, groupSize });
+  const ok = () => { const t = document.createElement('div'); t.className = 'copied'; t.textContent = 'Copied the values'; document.body.append(t); setTimeout(() => t.remove(), 1400); };
+  const fallback = () => {
+    document.querySelector('.fallback')?.remove();
+    const f = document.createElement('div'); f.className = 'fallback';
+    f.innerHTML = '<textarea id="values" readonly></textarea><button class="tb">Close</button>';
+    f.querySelector('textarea').value = text; document.body.append(f);
+    f.querySelector('textarea').select(); f.querySelector('button').onclick = () => f.remove();
+  };
+  try { navigator.clipboard.writeText(text).then(ok, fallback); } catch { fallback(); }
+});
+$('group').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  groupSize = Math.max(1, Math.min(10, groupSize + +b.dataset.g));
+  $('group-n').textContent = groupSize;
+  render();
+});
+$('seasons').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  digits = PI.slice(0, Math.floor(digits.length / 100) * 100 + +b.dataset.s * 25 + 16);
+  render();
+});
+const width = $('width');
+function fitWidth() {
+  const max = stage.clientWidth;
+  width.max = Math.max(280, max);
+  if (!width.dataset.touched) width.value = Math.min(max, 480);
+  phone.style.width = Math.min(+width.value, max) + 'px';
+  $('width-n').textContent = Math.round(phone.clientWidth) + 'px';
+  render();
+}
+width.addEventListener('input', () => { width.dataset.touched = '1'; fitWidth(); });
+addEventListener('resize', fitWidth);
+document.fonts?.ready.then(render);
+fitWidth();
+</script>
+</body>
+</html>
