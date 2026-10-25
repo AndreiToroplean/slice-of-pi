@@ -212,7 +212,7 @@ export class SeasonColors {
       ...starts,
       [season]: end === 0 ? [color, starts[season][1]] : [starts[season][0], color],
     }));
-    void this.tweaks.setSeasons(this.colorsTuned() ? this.starts() : undefined);
+    void this.tweaks.setSeasons(this.starts());
   }
 
   /** Blends the colors in the color space selected. */
@@ -220,14 +220,14 @@ export class SeasonColors {
     if (event.target instanceof HTMLSelectElement) {
       const { value } = event.target;
       const space = COLOR_SPACES.find((name) => name === value) ?? SEASON_COLOR_SPACE;
-      void this.tweaks.setColorSpace(space === SEASON_COLOR_SPACE ? undefined : space);
+      void this.tweaks.setColorSpace(space);
     }
   }
 
   protected turnOver(event: Event): void {
     if (event.target instanceof HTMLInputElement) {
       const turn = Number(event.target.value);
-      void this.tweaks.setSeasonTurn(turn === SEASON_TURN ? undefined : turn);
+      void this.tweaks.setSeasonTurn(turn);
     }
   }
 

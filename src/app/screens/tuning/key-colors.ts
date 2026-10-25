@@ -132,7 +132,7 @@ export class KeyColors {
   protected tune(color: string): void {
     this.edited = true;
     this.hexes.update((colors) => colors.map((old, i) => (i === this.selected() ? color : old)));
-    void this.tweaks.setPalette(this.tuned() ? this.hexes() : undefined);
+    void this.tweaks.setPalette(this.hexes());
   }
 
   protected reset(): void {
