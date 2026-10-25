@@ -52,7 +52,7 @@ describe('Settings', () => {
 
   function button(host: HTMLElement, label: string): HTMLButtonElement | undefined {
     return Array.from(host.querySelectorAll('button')).find(
-      (each) => each.getAttribute('aria-label') === label || each.textContent.trim() === label,
+      (each) => each.title === label || each.textContent.trim() === label,
     );
   }
 

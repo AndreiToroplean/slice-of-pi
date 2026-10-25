@@ -301,7 +301,7 @@ import { Segment, Segmented } from '../../ui/segmented';
                       class="handle"
                       cdkDragHandle
                       [attr.data-run]="chart.id"
-                      [attr.aria-label]="'Move the run of ' + chart.title + ', with the arrow keys'"
+                      [title]="'Move the run of ' + chart.title + ', with the arrow keys'"
                       (keydown)="step(chart.id, index, $event)"
                     >
                       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -350,7 +350,7 @@ import { Segment, Segmented } from '../../ui/segmented';
                   <button
                     type="button"
                     class="undo"
-                    aria-label="Play from after all the runs again"
+                    title="Play from after all the runs again"
                     (click)="undoPlayFrom()"
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true">

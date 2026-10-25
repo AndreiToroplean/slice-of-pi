@@ -18,10 +18,10 @@ import { Component, ElementRef, input, viewChild } from '@angular/core';
     >
       <ng-content />
     </div>
-    <button type="button" class="arrow previous" aria-label="Previous" (click)="go(-1)">
+    <button type="button" class="arrow previous" title="Previous" (click)="go(-1)">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>
     </button>
-    <button type="button" class="arrow next" aria-label="Next" (click)="go(1)">
+    <button type="button" class="arrow next" title="Next" (click)="go(1)">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
     </button>
   `,

@@ -33,7 +33,7 @@ describe('Pause', () => {
     }
     const click = async (label: string): Promise<void> => {
       Array.from(host.querySelectorAll('button'))
-        .find((button) => button.textContent.trim() === label || button.ariaLabel === label)
+        .find((button) => button.textContent.trim() === label || button.title === label)
         ?.click();
       await fixture.whenStable();
     };
@@ -44,9 +44,10 @@ describe('Pause', () => {
     return { host, pause: fixture.componentInstance, dialog, click, replayable };
   }
 
-  it('pauses with a labelled button, opening a dialog named after its heading', async () => {
-    const { pause, dialog, click } = await setUp();
+  it('pauses with a labelled button, saying so on hover, opening a dialog named after its heading', async () => {
+    const { host, pause, dialog, click } = await setUp();
     expect(dialog.open).toBe(false);
+    expect(host.querySelector('button[title="Pause"]')).not.toBeNull();
 
     await click('Pause');
 
@@ -144,7 +145,7 @@ describe('Pause', () => {
   it('offers to replay the run, saying so on hover too, disabled until there is one', async () => {
     const { dialog, replayable } = await setUp();
     const replayButton = (): HTMLButtonElement | null =>
-      dialog.querySelector('button[aria-label="Replay This Run"]');
+      dialog.querySelector('button[title="Replay This Run"]');
     expect(replayButton()?.title).toBe('Replay This Run');
     expect(replayButton()?.disabled).toBe(true);
 

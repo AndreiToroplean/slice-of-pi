@@ -35,7 +35,7 @@ describe('PlacePerspective', () => {
       host,
       heading: () => host.querySelector('h3')?.textContent.replace(/\s+/g, ' ').trim(),
       press: (label: string) => {
-        host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)?.click();
+        host.querySelector<HTMLButtonElement>(`button[title="${label}"]`)?.click();
         fixture.detectChanges();
       },
     };

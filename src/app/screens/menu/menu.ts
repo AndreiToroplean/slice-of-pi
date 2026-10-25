@@ -38,7 +38,7 @@ import { Candy } from '../../ui/candy';
     '(document:keydown.arrowright)': 'side($event, 1)',
   },
   template: `
-    <a appCandy="clear" class="corner settings" routerLink="/settings" aria-label="Settings">
+    <a appCandy="clear" class="corner settings" routerLink="/settings" title="Settings">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="3" />
         <path

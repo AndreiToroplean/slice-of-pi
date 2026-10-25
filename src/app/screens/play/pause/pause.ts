@@ -21,7 +21,7 @@ import { LightDismiss } from '../../../ui/light-dismiss';
       type="button"
       appCandy="clear"
       class="corner pause-button"
-      aria-label="Pause"
+      title="Pause"
       (click)="pause()"
     >
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -43,7 +43,6 @@ import { LightDismiss } from '../../../ui/light-dismiss';
           appCandy="clear"
           class="corner replay-button"
           [disabled]="!replayable()"
-          aria-label="Replay This Run"
           title="Replay This Run"
           (click)="askToReplay()"
         >

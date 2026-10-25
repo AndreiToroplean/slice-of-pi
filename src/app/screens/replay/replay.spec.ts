@@ -73,7 +73,9 @@ describe('Replay', () => {
   }
 
   function control(host: HTMLElement, label: string): HTMLButtonElement {
-    const found = host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+    const found = host.querySelector<HTMLButtonElement>(
+      `button:is([title="${label}"], [aria-label="${label}"])`,
+    );
     if (found === null) {
       throw new Error(`No ${label} button`);
     }
@@ -136,7 +138,7 @@ describe('Replay', () => {
 
     expect(shown(host)).toMatchObject({ summary: 'No digits typed yet.', slots: '', marks: 0 });
     expect(host.querySelector('app-pause')).toBeNull();
-    expect(host.querySelector('.back')?.getAttribute('aria-label')).toBe('Back');
+    expect(host.querySelector('.back')?.getAttribute('title')).toBe('Back');
     expect(timeline(host).max).toBe(String(800 + PAUSE + TAIL));
   });
 

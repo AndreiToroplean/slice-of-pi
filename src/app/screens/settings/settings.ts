@@ -39,7 +39,7 @@ import { Candy } from '../../ui/candy';
           <button
             type="button"
             class="round"
-            aria-label="Back to the default keypad layout"
+            title="Back to the default keypad layout"
             [disabled]="layoutDefault()"
             (click)="resetLayout()"
           >
@@ -68,7 +68,7 @@ import { Candy } from '../../ui/candy';
             <button
               type="button"
               class="round"
-              aria-label="Back to the default countdown"
+              title="Back to the default countdown"
               [disabled]="countdownDefault()"
               (click)="resetCountdown()"
             >

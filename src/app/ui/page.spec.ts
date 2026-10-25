@@ -30,11 +30,12 @@ describe('Page', () => {
     return event;
   }
 
-  it('shows the title, and goes back to the main menu', async () => {
+  it('shows the title, and goes back to the main menu, saying so on hover', async () => {
     const { harness, host } = await setUp();
+    const back = host?.querySelector<HTMLButtonElement>('button[title="Back"]');
 
     expect(host?.querySelector('h1')?.textContent).toBe('A page');
-    host?.querySelector<HTMLButtonElement>('button[aria-label="Back"]')?.click();
+    back?.click();
     await harness.fixture.whenStable();
 
     expect(TestBed.inject(Router).url).toBe('/');

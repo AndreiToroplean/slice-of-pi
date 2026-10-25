@@ -28,7 +28,7 @@ describe('SeasonColors', () => {
   }
 
   function swatch(host: HTMLElement, label: string): HTMLButtonElement {
-    const element = host.querySelector<HTMLButtonElement>(`button.swatch[aria-label="${label}"]`);
+    const element = host.querySelector<HTMLButtonElement>(`button.swatch[title="${label}"]`);
     if (element === null) {
       throw new Error(`No swatch ${label}`);
     }

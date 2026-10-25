@@ -52,7 +52,7 @@ const ENDS = [
                 type="button"
                 [class]="'swatch ' + end.label"
                 [style.background]="starts()[season][end.index]"
-                [attr.aria-label]="names[season] + ' ' + end.label"
+                [title]="names[season] + ' ' + end.label"
                 [attr.aria-pressed]="isSelected(season, end.index)"
                 (click)="selected.set({ season, end: end.index })"
               ></button>

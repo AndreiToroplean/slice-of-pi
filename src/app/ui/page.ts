@@ -13,7 +13,7 @@ import { Candy } from './candy';
   host: { class: 'screen', '(document:keydown.escape)': 'escape($event)' },
   template: `
     <header class="top-bar">
-      <button type="button" appCandy="clear" class="corner back" aria-label="Back" (click)="back()">
+      <button type="button" appCandy="clear" class="corner back" title="Back" (click)="back()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
       </button>
       <h1>{{ title() }}</h1>

@@ -134,7 +134,7 @@ function keysOf(kind: BreakModelKind): string[] {
                   <button
                     type="button"
                     class="round pin"
-                    [attr.aria-label]="'Pin the ' + name(control).toLowerCase() + ' when fitting'"
+                    [title]="'Pin the ' + name(control).toLowerCase() + ' when fitting'"
                     [attr.aria-pressed]="pinned().has(control.key)"
                     (click)="togglePin(control.key)"
                   >
@@ -146,7 +146,7 @@ function keysOf(kind: BreakModelKind): string[] {
                   <button
                     type="button"
                     class="round"
-                    [attr.aria-label]="revertLabel(control)"
+                    [title]="revertLabel(control)"
                     [disabled]="isDefault(control)"
                     (click)="revert(control)"
                   >
@@ -159,9 +159,7 @@ function keysOf(kind: BreakModelKind): string[] {
                     <button
                       type="button"
                       class="round"
-                      [attr.aria-label]="
-                        'Copy the ' + name(control).toLowerCase() + ' from another model'
-                      "
+                      [title]="'Copy the ' + name(control).toLowerCase() + ' from another model'"
                       (click)="copyMenu.openAt(under($event))"
                     >
                       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -185,7 +183,7 @@ function keysOf(kind: BreakModelKind): string[] {
                     type="button"
                     class="round"
                     aria-haspopup="dialog"
-                    [attr.aria-label]="'About ' + name(control)"
+                    [title]="'About ' + name(control)"
                     (click)="showHelp(control)"
                   >
                     ?
