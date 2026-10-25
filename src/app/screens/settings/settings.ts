@@ -6,15 +6,16 @@ import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { Page } from '../../ui/page';
 import { Segment, Segmented } from '../../ui/segmented';
 import { Candy } from '../../ui/candy';
+import { YourData } from './your-data';
 
 /**
- * The game's settings, opened from the main menu's gear: the keypad's layout, and in developer mode, whether to count
- * down to the end of each group. Each setting has a button to bring back its default value, and the top bar one to
- * bring them all back.
+ * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout, and in developer mode,
+ * whether to count down to the end of each group and whether to check the digits typed. Each setting has a button to
+ * bring back its default value, and the top bar one to bring them all back.
  */
 @Component({
   selector: 'app-settings',
-  imports: [Candy, Page, Segmented],
+  imports: [Candy, Page, Segmented, YourData],
   template: `
     <app-page title="Settings">
       <button
@@ -27,6 +28,7 @@ import { Candy } from '../../ui/candy';
       >
         Reset All
       </button>
+      <app-your-data />
       <section class="panel" aria-labelledby="keypad-title">
         <h2 id="keypad-title">Keypad</h2>
         <div class="row">
@@ -78,6 +80,27 @@ import { Candy } from '../../ui/candy';
               </svg>
             </button>
           </div>
+          <div class="row">
+            <label class="setting">
+              <span>
+                Check Digits
+                <small>A wrong digit is a mistake; off, any digit goes, to try things out.</small>
+              </span>
+              <input type="checkbox" [checked]="tweaks.checking()" (change)="setChecking($event)" />
+            </label>
+            <button
+              type="button"
+              class="round"
+              title="Back to the default digit checking"
+              [disabled]="tweaks.checking()"
+              (click)="resetChecking()"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 14 4 9l5-5" />
+                <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+              </svg>
+            </button>
+          </div>
         </section>
       }
     </app-page>
@@ -100,11 +123,17 @@ export class Settings {
   protected readonly countdownDefault = computed(
     () => !this.developerMode.enabled() || this.tweaks.countdown(),
   );
-  /** Whether every setting shown has its default value. */
-  protected readonly allDefault = computed(() => this.layoutDefault() && this.countdownDefault());
+  /** Whether every setting shown has its default value; the digits are always checked outside developer mode. */
+  protected readonly allDefault = computed(
+    () => this.layoutDefault() && this.countdownDefault() && this.tweaks.checking(),
+  );
 
   protected setCountdown(event: Event): void {
     void this.tweaks.setCountdown((event.target as HTMLInputElement).checked);
+  }
+
+  protected setChecking(event: Event): void {
+    void this.tweaks.setChecking((event.target as HTMLInputElement).checked);
   }
 
   protected resetLayout(): void {
@@ -115,11 +144,16 @@ export class Settings {
     void this.tweaks.setCountdown(true);
   }
 
+  protected resetChecking(): void {
+    void this.tweaks.setChecking(true);
+  }
+
   /** Brings back the default value of every setting shown. */
   protected resetAll(): void {
     this.resetLayout();
     if (this.developerMode.enabled()) {
       this.resetCountdown();
+      this.resetChecking();
     }
   }
 }

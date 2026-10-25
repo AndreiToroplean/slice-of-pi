@@ -1,5 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
 import { BACKUP_KIND, readBackup, writeBackup } from '../../player-data/backup';
 import { newTouchLog, TouchLog, TOUCH_LOG_FORMAT } from '../../player-data/touch-log';
 import { typeKey } from '../../../testing/touch-logs';
@@ -13,9 +12,9 @@ import {
 import { Tweaks, TWEAKS, TWEAKS_FORMAT } from '../../developer-mode/tweaks';
 import { MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
 import { button, message, OpenPage, openPage, text } from '../../../testing/player-data-pages';
-import { Data } from './data';
+import { YourData } from './your-data';
 
-describe('Data', () => {
+describe('YourData', () => {
   const first = typeKey(typeKey(newTouchLog('a', 1_000), '1', 0), '4', 250);
   const second = typeKey(newTouchLog('b', 2_000), '1', 0);
   let saved: { name: string; text: string }[];
@@ -32,14 +31,18 @@ describe('Data', () => {
     developer = false,
   ): Promise<OpenPage> {
     // The page reads the runs as it opens.
-    return openPage(Data, (host) => host.querySelector('section p')?.textContent.trim() !== '', {
-      runs,
-      persisted,
-      preview,
-      mainFormat,
-      developer,
-      saveFile: (name, text) => saved.push({ name, text }),
-    });
+    return openPage(
+      YourData,
+      (host) => host.querySelector('section p')?.textContent.trim() !== '',
+      {
+        runs,
+        persisted,
+        preview,
+        mainFormat,
+        developer,
+        saveFile: (name, text) => saved.push({ name, text }),
+      },
+    );
   }
 
   async function choose(
@@ -189,15 +192,6 @@ describe('Data', () => {
     expect(host.querySelector('input[type="file"]')).not.toBeNull();
   });
 
-  it('goes back to the main menu', async () => {
-    const { host } = await setUp();
-    const router = TestBed.inject(Router);
-    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
-
-    host.querySelector<HTMLButtonElement>('button.back')?.click();
-
-    expect(navigate).toHaveBeenCalledWith('/', { replaceUrl: true });
-  });
   describe('unchecked runs', () => {
     const unchecked = { ...second, checked: false };
 

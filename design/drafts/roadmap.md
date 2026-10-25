@@ -35,7 +35,3 @@ Everything in this folder is a draft: what's in progress and what may come next,
 3. **Colors.** Per-season color editors on the play screen, replacing the season colors page.
 
 To check with the owner: dropping the "π=3." lead for a "3" with a separator dot (from the handoff).
-
-## Your Data in Settings
-
-Your Data stops being its own page: it becomes a card at the top of Settings. Settings might get a new name.

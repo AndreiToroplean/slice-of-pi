@@ -2,7 +2,6 @@ import { Component, computed, inject, InjectionToken, signal } from '@angular/co
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { ButtonList } from '../../ui/button-list';
-import { Page } from '../../ui/page';
 import { backupFileName, readBackup, writeBackup } from '../../player-data/backup';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { Run } from '../../player-data/run';
@@ -27,54 +26,51 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
 });
 
 /**
- * The player's data, opened from the main menu's overflow menu: how many runs are kept and how safe they are, with a
- * backup file to save and restore, which also keeps what was tuned in developer mode.
+ * The player's data, a card at the top of the settings: how many runs are kept and how safe they are, with a backup
+ * file to save and restore, which also keeps what was tuned in developer mode.
  */
 @Component({
-  selector: 'app-data',
-  imports: [ButtonList, Candy, Page],
+  selector: 'app-your-data',
+  imports: [ButtonList, Candy],
   template: `
-    <app-page title="Your Data">
-      <section class="panel" aria-labelledby="backup-title">
-        <h2 id="backup-title">Backup</h2>
-        <p>{{ count() }}</p>
-        @if (separatePreview()) {
-          <p>
-            This preview of the game stores runs in a different format from the main game, so it
-            keeps them apart: it has a copy of the main game's runs, and the runs played here stay
-            here.
-          </p>
-        }
+    <section class="panel" aria-labelledby="data-title">
+      <h2 id="data-title">Your Data</h2>
+      <p>{{ count() }}</p>
+      @if (separatePreview()) {
         <p>
-          @if (persisted()) {
-            Your browser keeps them until this site's data is cleared.
-          } @else {
-            Your browser may delete them when your device runs low on space.
-          }
-          A backup file keeps them safe even then.
+          This preview of the game stores runs in a different format from the main game, so it keeps
+          them apart: it has a copy of the main game's runs, and the runs played here stay here.
         </p>
-        @if (tuned()) {
-          <p>It also keeps what you tuned in developer mode.</p>
+      }
+      <p>
+        @if (persisted()) {
+          Your browser keeps them until this site's data is cleared.
+        } @else {
+          Your browser may delete them when your device runs low on space.
         }
-        <app-button-list class="buttons">
-          <button type="button" appCandy (click)="save()">Save a Backup</button>
-          <label appCandy>
-            Restore a Backup
-            <input
-              type="file"
-              accept=".json,application/json"
-              class="visually-hidden"
-              (change)="restore($event)"
-            />
-          </label>
-        </app-button-list>
-        <p class="message" role="status">{{ message() }}</p>
-      </section>
-    </app-page>
+        A backup file keeps them safe even then.
+      </p>
+      @if (tuned()) {
+        <p>It also keeps what you tuned in developer mode.</p>
+      }
+      <app-button-list class="buttons">
+        <button type="button" appCandy (click)="save()">Save a Backup</button>
+        <label appCandy>
+          Restore a Backup
+          <input
+            type="file"
+            accept=".json,application/json"
+            class="visually-hidden"
+            (change)="restore($event)"
+          />
+        </label>
+      </app-button-list>
+      <p class="message" role="status">{{ message() }}</p>
+    </section>
   `,
-  styleUrl: './data.css',
+  styleUrl: './your-data.css',
 })
-export class Data {
+export class YourData {
   /** Whether the runs have been read. */
   private readonly loaded = signal(false);
   protected readonly persisted = signal(false);

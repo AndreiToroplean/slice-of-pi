@@ -22,8 +22,8 @@ import { Candy } from '../../ui/candy';
 
 /**
  * The main menu, where the app opens: the game's icon and name, a button to play and one above it to the player's runs,
- * with more in an overflow menu in a corner, and the settings behind a gear in the other. It shows once its icon and fonts have arrived, over the background alone
- * until then. Tab, or left and right, go from one group of buttons to the next, from the left to the right, and up and
+ * the settings behind a gear in a corner, and in developer mode, its pages in an overflow menu in the other. It shows
+ * once its icon and fonts have arrived, over the background alone until then. Tab, or left and right, go from one group of buttons to the next, from the left to the right, and up and
  * down between its main buttons; Play has the focus from the start, picked out, for Enter to play.
  */
 @Component({
@@ -92,20 +92,15 @@ import { Candy } from '../../ui/candy';
       <a #play appCandy="primary" routerLink="/play">Play</a>
     </app-button-list>
     <!-- After the middle of the menu, for Tab to go through it from the left to the right. -->
-    <app-dropdown-menu>
-      <a routerLink="/data">Your Data</a>
-      @if (developerMode.enabled()) {
+    @if (developerMode.enabled()) {
+      <app-dropdown-menu label="Developer Pages">
         <div class="section" role="group" aria-labelledby="developer-title">
           <h2 id="developer-title">Developer</h2>
           <a routerLink="/developer/key-colors">Key Colors</a>
           <a routerLink="/developer/season-colors">Season Colors</a>
-          <label class="toggle">
-            <input type="checkbox" [checked]="tweaks.checking()" (change)="setChecking($event)" />
-            Check Digits
-          </label>
         </div>
-      }
-    </app-dropdown-menu>
+      </app-dropdown-menu>
+    }
   `,
   styleUrl: './menu.css',
 })
@@ -115,8 +110,8 @@ export class Menu {
   protected readonly lines = [['Slice', 'of'], ['Pi']];
   protected readonly developerMode = inject(DeveloperMode);
 
-  /** The values tuned in developer mode, checking the digits among them. */
-  protected readonly tweaks = inject(Tweaks);
+  /** The values tuned in developer mode, the seasons' colors among them. */
+  private readonly tweaks = inject(Tweaks);
   protected readonly assets = inject(MenuAssets);
   private readonly document = inject(DOCUMENT);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
@@ -169,10 +164,5 @@ export class Menu {
     } else {
       this.startOnPlay(event);
     }
-  }
-
-  /** Turns checking the digits on or off, from developer mode. */
-  protected setChecking(event: Event): void {
-    void this.tweaks.setChecking((event.target as HTMLInputElement).checked);
   }
 }
