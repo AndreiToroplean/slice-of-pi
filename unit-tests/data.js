@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792919250631,
+  "lastUpdate": 1792920786228,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2400,6 +2400,46 @@ window.BENCHMARK_DATA = {
             "value": 1134,
             "unit": "ms",
             "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "7130d68740264657192c25bb59b60718d77f98f1",
+          "message": "perf: check only the files changed since the last check, and leave the build to pull requests\n\n- Prettier and ESLint keep a cache in node_modules/.cache: the check took 28 s when nothing had changed in a cloud session, 15 s now; linting goes from 18 s to 2 s.\n- ESLint's type-aware rules can still break in a file left as it was by a change to another: pull requests lint everything, uncached, and catch it.\n- The tests already compile the app ahead of time, templates included; the production build adds the size budgets, which pull requests still check.\n\nClaude-Session: https://claude.ai/code/session_01Vq6H2PkRdox9sNv2pQUosn",
+          "timestamp": "2026-10-25T10:32:36+01:00",
+          "tree_id": "0d8fc91bba740db25d1d2eb1fce647badce7184c",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/7130d68740264657192c25bb59b60718d77f98f1"
+        },
+        "date": 1792920785338,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 15700,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 33722,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1090,
+            "unit": "ms",
+            "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
           }
         ]
       }
