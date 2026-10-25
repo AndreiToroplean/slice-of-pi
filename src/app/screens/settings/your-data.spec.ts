@@ -3,7 +3,12 @@ import { BACKUP_KIND, readBackup, writeBackup } from '../../player-data/backup';
 import { newTouchLog, TouchLog, TOUCH_LOG_FORMAT } from '../../player-data/touch-log';
 import { typeKey } from '../../../testing/touch-logs';
 import { RunStore } from '../../player-data/run-store';
-import { DEVELOPER_MODE, DEVELOPER_MODE_FORMAT } from '../../developer-mode/developer-mode';
+import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
+import {
+  DEVELOPER_MODE,
+  DEVELOPER_MODE_FORMAT,
+  DeveloperMode,
+} from '../../developer-mode/developer-mode';
 import {
   KEYPAD_LAYOUT,
   KEYPAD_LAYOUT_FORMAT,
@@ -62,39 +67,20 @@ describe('YourData', () => {
     await until(() => message(host) !== '');
   }
 
-  it('says there are no runs yet', async () => {
-    const { host } = await setUp();
-
-    expect(text(host)).toContain('No runs kept yet.');
-  });
-
-  it('counts the runs kept', async () => {
-    const { host } = await setUp([first, second]);
-
-    expect(text(host)).toContain('2 runs kept on this device.');
-  });
-
-  it('says when the browser may delete the runs', async () => {
+  it('says when the browser may delete the data, and that a backup keeps it safe', async () => {
     const { host } = await setUp([first]);
 
-    expect(text(host)).toContain('1 run kept on this device.');
-    expect(text(host)).toContain('may delete them when your device runs low on space');
+    expect(text(host)).toContain(
+      'Your runs and settings stay on this device, though your browser may delete them when it runs low on space. A backup file keeps them safe even then.',
+    );
   });
 
-  it('says when the browser keeps the runs', async () => {
+  it('says when the browser keeps the data', async () => {
     const { host } = await setUp([first], true);
 
-    expect(text(host)).toContain("keeps them until this site's data is cleared");
-  });
-
-  it('says when a backup also keeps what was tuned in developer mode', async () => {
-    const { host, until } = await setUp();
-    expect(text(host)).not.toContain('developer mode');
-
-    await TestBed.inject(Tweaks).setChecking(false);
-    await until(() => text(host).includes('developer mode'));
-
-    expect(text(host)).toContain('It also keeps what you tuned in developer mode.');
+    expect(text(host)).toContain(
+      "Your runs and settings stay on this device until this site's data is cleared.",
+    );
   });
 
   it('saves a backup of every run and setting, named after the date', async () => {
@@ -109,7 +95,7 @@ describe('YourData', () => {
       skipped: 0,
       settings: { [DEVELOPER_MODE]: { format: DEVELOPER_MODE_FORMAT, enabled: true } },
     });
-    expect(message(host)).toBe('Saved 2 runs in the backup.');
+    expect(message(host)).toBe('Saved a backup of your data.');
   });
 
   it('restores the runs of a backup that are not kept yet', async () => {
@@ -117,8 +103,7 @@ describe('YourData', () => {
 
     await choose(host, until, writeBackup([first, second], {}, 0));
 
-    expect(message(host)).toBe('Added 1 run from the backup.');
-    expect(text(host)).toContain('2 runs kept on this device.');
+    expect(message(host)).toBe('Restored your data from the backup.');
     expect(await TestBed.inject(RunStore).touchLogs()).toEqual([first, second]);
   });
 
@@ -140,19 +125,9 @@ describe('YourData', () => {
       ),
     );
 
-    expect(message(host)).toBe(
-      'Every run in this backup is already here. Its settings replace yours.',
-    );
+    expect(message(host)).toBe('Restored your data from the backup.');
     expect(TestBed.inject(Tweaks).grouping()).toEqual(grouping);
     expect(TestBed.inject(KeypadLayoutSetting).layout()).toBe('telephone');
-  });
-
-  it('says when every run of a backup is already kept', async () => {
-    const { host, until } = await setUp([first]);
-
-    await choose(host, until, writeBackup([first], {}, 0));
-
-    expect(message(host)).toBe('Every run in this backup is already here.');
   });
 
   it('says how many runs of a backup could not be read', async () => {
@@ -164,7 +139,9 @@ describe('YourData', () => {
       JSON.stringify({ kind: BACKUP_KIND, format: 1, runs: [first, 'run', {}] }),
     );
 
-    expect(message(host)).toBe('Added 1 run from the backup. 2 runs in it could not be read.');
+    expect(message(host)).toBe(
+      'Restored your data from the backup. 2 runs in it could not be read.',
+    );
   });
 
   it('turns down a file that is not a backup', async () => {
@@ -176,11 +153,53 @@ describe('YourData', () => {
     expect(await TestBed.inject(RunStore).touchLogs()).toEqual([]);
   });
 
-  it('says when a preview keeps its runs apart from the main game', async () => {
+  describe('starting over', () => {
+    beforeEach(() => {
+      installDialogs();
+    });
+
+    afterEach(() => {
+      uninstallDialogs();
+    });
+
+    it('asks first, warning that the data is erased for good, and erases nothing on Back', async () => {
+      const { host } = await setUp([first], false, false, undefined, true);
+      const dialog = host.querySelector('dialog');
+      const warning = dialog?.getAttribute('aria-describedby') ?? '';
+
+      button(host, 'Start Over').click();
+
+      expect(dialog?.open).toBe(true);
+      expect(host.querySelector('#reset-title')?.textContent).toBe('Start Over?');
+      expect(host.querySelector(`#${warning}`)?.textContent).toContain('for good');
+      button(host, 'Back').click();
+      expect(dialog?.open).toBe(false);
+      expect(await TestBed.inject(RunStore).touchLogs()).toEqual([first]);
+      expect(TestBed.inject(DeveloperMode).enabled()).toBe(true);
+    });
+
+    it('erases every run and setting once confirmed, and applies that', async () => {
+      const { host, until } = await setUp([first, second], false, false, undefined, true);
+      await TestBed.inject(KeypadLayoutSetting).set('telephone');
+
+      button(host, 'Start Over').click();
+      button(host, 'Erase Everything').click();
+      await until(() => message(host) !== '');
+
+      expect(host.querySelector('dialog')?.open).toBe(false);
+      expect(message(host)).toBe('Erased your data: you start over.');
+      expect(await TestBed.inject(RunStore).touchLogs()).toEqual([]);
+      expect(await TestBed.inject(RunStore).settings()).toEqual({});
+      expect(TestBed.inject(DeveloperMode).enabled()).toBe(false);
+      expect(TestBed.inject(KeypadLayoutSetting).layout()).toBe('calculator');
+    });
+  });
+
+  it('says when a preview keeps its data apart from the main game', async () => {
     const { host } = await setUp([], false, true, TOUCH_LOG_FORMAT + 1);
 
     expect(text(host)).toContain(
-      "This preview of the game stores runs in a different format from the main game, so it keeps them apart: it has a copy of the main game's runs, and the runs played here stay here.",
+      "This preview of the game keeps its data apart from the main game: it has a copy of the main game's, and what you do here stays here.",
     );
     expect(host.querySelector('input[type="file"]')).not.toBeNull();
   });
@@ -190,21 +209,5 @@ describe('YourData', () => {
 
     expect(text(host)).not.toContain('preview');
     expect(host.querySelector('input[type="file"]')).not.toBeNull();
-  });
-
-  describe('unchecked runs', () => {
-    const unchecked = { ...second, checked: false };
-
-    it('leaves the unchecked runs out of the count outside developer mode', async () => {
-      const { host } = await setUp([first, unchecked]);
-
-      expect(text(host)).toContain('1 run kept on this device.');
-    });
-
-    it('counts the unchecked runs kept in developer mode', async () => {
-      const { host } = await setUp([first, unchecked], false, false, undefined, true);
-
-      expect(text(host)).toContain('2 runs kept on this device.');
-    });
   });
 });

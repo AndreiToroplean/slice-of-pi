@@ -164,6 +164,17 @@ describe('RunStore', () => {
     expect(await storedRecords()).toEqual([]);
   });
 
+  it('deletes every run and every setting, to start over', async () => {
+    const store = storeWith();
+    await store.save(first);
+    await store.saveSetting('a setting', { value: 1 });
+
+    await store.deleteEverything();
+
+    expect(await storedRecords()).toEqual([]);
+    expect(await store.settings()).toEqual({});
+  });
+
   it('keeps the runs for the next visit', async () => {
     await storeWith().save(first);
     TestBed.resetTestingModule();

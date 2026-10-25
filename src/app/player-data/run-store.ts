@@ -120,6 +120,18 @@ export class RunStore {
     await completion(transaction);
   }
 
+  /** Deletes every run and every setting, to start over. */
+  async deleteEverything(): Promise<void> {
+    const database = await this.openForWriting();
+    if (database === undefined) {
+      return;
+    }
+    const transaction = database.transaction([RUNS, SETTINGS], 'readwrite');
+    transaction.objectStore(RUNS).clear();
+    transaction.objectStore(SETTINGS).clear();
+    await completion(transaction);
+  }
+
   /**
    * Adds the touch logs of runs not stored yet, such as those of a backup, leaving the runs already stored as they are.
    */
