@@ -1,5 +1,6 @@
 import { DebugElement, getDebugNode } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { Digit } from '../../game/pi/digit';
 import { newTouchLog, TouchLog } from '../../player-data/touch-log';
 import { typeKey } from '../../../testing/touch-logs';
@@ -375,7 +376,7 @@ describe('YourRuns', () => {
 
       openMenu(host, 1);
 
-      expect(menuItems(host)).toEqual(['Delete Run']);
+      expect(menuItems(host)).toEqual(['Watch Replay', 'Delete Run']);
     });
   });
 
@@ -429,6 +430,16 @@ describe('YourRuns', () => {
   });
 
   describe("a run's context menu", () => {
+    it("opens the run's replay", async () => {
+      const { host } = await setUp([first, second]);
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+      openMenu(host, 1);
+      button(host, 'Watch Replay').click();
+
+      expect(navigate).toHaveBeenCalledWith(['/runs', 'b', 'replay']);
+    });
+
     it('deletes the run once the player confirms', async () => {
       const { host, until } = await setUp([first, second]);
 
@@ -460,7 +471,7 @@ describe('YourRuns', () => {
 
       openMenu(host, 0);
 
-      expect(menuItems(host)).toEqual(['Delete Run', '—', 'Play from Here']);
+      expect(menuItems(host)).toEqual(['Watch Replay', 'Delete Run', '—', 'Play from Here']);
     });
 
     it('opens from the keyboard too', async () => {

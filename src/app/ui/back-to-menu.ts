@@ -9,14 +9,22 @@ import { Router } from '@angular/router';
  * screen's place.
  */
 export function injectBackToMenu(): () => void {
+  return injectBackTo('/');
+}
+
+/**
+ * Gives a function that goes back to the screen at `url` from one opened from it, such as a run's replay from the
+ * player's runs: back in the history when it was opened from there, and otherwise that screen takes its place.
+ */
+export function injectBackTo(url: string): () => void {
   const router = inject(Router);
   const location = inject(Location);
   return () => {
     const previous = router.lastSuccessfulNavigation()?.previousNavigation;
-    if (previous?.finalUrl?.toString() === '/') {
+    if (previous?.finalUrl?.toString() === url) {
       location.back();
     } else {
-      void router.navigateByUrl('/', { replaceUrl: true });
+      void router.navigateByUrl(url, { replaceUrl: true });
     }
   };
 }

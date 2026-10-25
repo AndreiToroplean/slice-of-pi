@@ -24,3 +24,8 @@
   --reach-bottom: calc(1.375rem + env(safe-area-inset-bottom));
   margin-top: calc(var(--space-1) - var(--reach-top));
 }
+
+/* Replaying a run, over the bar replaying it, which keeps clear of the bottom of the screen: the keys take no touches. */
+:host(.replaying) .keypad {
+  --reach-bottom: var(--space-2);
+}

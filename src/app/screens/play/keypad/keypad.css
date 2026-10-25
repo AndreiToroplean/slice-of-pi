@@ -8,6 +8,9 @@
   --reach-top: 0px;
   --reach-sides: 0px;
   --reach-bottom: 0px;
+  /* Each key's cell, a key and half a gap on either side of it, in the keypad's padding box. */
+  --cell-width: calc((100% - 2 * var(--reach-sides) + var(--gap)) / 3);
+  --cell-height: calc((100% - var(--reach-top) - var(--reach-bottom) + var(--gap)) / 4);
   position: relative;
   display: block;
   padding: var(--reach-top) var(--reach-sides) var(--reach-bottom);
@@ -49,9 +52,6 @@
  * out to the keypad's, tinted with the key's color.
  */
 .areas {
-  /* Each cell a key and half a gap on either side of it. */
-  --cell-width: calc((100% - 2 * var(--reach-sides) + var(--gap)) / 3);
-  --cell-height: calc((100% - var(--reach-top) - var(--reach-bottom) + var(--gap)) / 4);
   --side-width: calc(var(--reach-sides) - var(--gap) / 2 + var(--cell-width));
   position: absolute;
   inset: 0;
@@ -66,4 +66,33 @@
 .area {
   border: 1px dashed rgb(255 255 255 / 80%);
   background: color-mix(in oklab, var(--key-color, #ffffff) 35%, transparent);
+}
+
+/*
+ * Where touches replayed were, over the keys: a dot for each, centered on its point, in steps between keys from the
+ * center of 5 (see `KeypadPoint`), fading away. A touch typing nothing is a ring.
+ */
+.marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.mark {
+  position: absolute;
+  left: calc(var(--reach-sides) - var(--gap) / 2 + (var(--x) + 1.5) * var(--cell-width));
+  top: calc(var(--reach-top) - var(--gap) / 2 + (var(--y) + 1.5) * var(--cell-height));
+  width: 0.75rem;
+  height: 0.75rem;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 0.125rem rgb(40 20 60 / 55%);
+
+  &.missed {
+    background: none;
+    box-shadow:
+      inset 0 0 0 0.125rem #ffffff,
+      0 0 0 0.125rem rgb(40 20 60 / 55%);
+  }
 }

@@ -29,6 +29,16 @@ export const REPEAT_INTERVAL = 70;
 /** How long a digit key stays filled with its color at least, however short the press, in ms. */
 export const SPLASH_DURATION = 150;
 
+/** A touch shown on the keypad, as a mark where it was, fading away. */
+export interface KeypadMark extends KeypadPoint {
+  /** Tells it from the other marks. */
+  readonly id: number;
+  /** Whether it typed a key, rather than nothing. */
+  readonly typed: boolean;
+  /** How far it has faded away, from 0, just touched, to 1, gone. */
+  readonly faded: number;
+}
+
 /** A touch (or mouse press) in progress on the keypad. */
 interface Press {
   /** The key it landed on, if any. */
@@ -71,6 +81,9 @@ interface Press {
  * What it's given goes in its grid with the keys, placing itself, such as in the empty corner left of 0.
  *
  * In developer mode, it can show the area of each key, where touches type it.
+ *
+ * Replaying a run, it takes no touches nor keys of its own: it shows the key of each touch replayed pressed, filled with
+ * the color its digit took then, as long as it's told to, and marks where the touches were.
  */
 @Component({
   selector: 'app-keypad',
@@ -115,6 +128,19 @@ interface Press {
       }
       <ng-content />
     </div>
+    @if (marks().length > 0) {
+      <div class="marks" aria-hidden="true">
+        @for (mark of marks(); track mark.id) {
+          <span
+            class="mark"
+            [class.missed]="!mark.typed"
+            [style.--x]="mark.x"
+            [style.--y]="mark.y"
+            [style.opacity]="1 - mark.faded"
+          ></span>
+        }
+      </div>
+    }
     @if (showAreas()) {
       <div class="areas" aria-hidden="true">
         @for (position of keys(); track position.key) {
@@ -138,6 +164,12 @@ export class Keypad {
   readonly layout = input<KeypadLayout>(DEFAULT_KEYPAD_LAYOUT);
   /** Whether to show the area of each key, where touches type it. */
   readonly showAreas = input(false);
+  /** Whether it takes no touches nor keys, as while a run is replayed. */
+  readonly disabled = input(false);
+  /** A key to show pressed, whatever presses it, as the key of a touch replayed. */
+  readonly shown = input<KeypadKey>();
+  /** Touches to mark where they were, as those replayed. */
+  readonly marks = input<readonly KeypadMark[]>([]);
   /** A touch on the keypad, or a key typed: what it typed, if anything, and where it was. */
   readonly touched = output<KeypadTouch>();
 
@@ -170,7 +202,20 @@ export class Keypad {
   }
 
   private isPressed(key: KeypadKey): boolean {
-    return this.heldKeys().includes(key) || this.touchedKeys().includes(key);
+    return (
+      this.heldKeys().includes(key) || this.touchedKeys().includes(key) || this.shown() === key
+    );
+  }
+
+  /**
+   * Notes the color a key's digit takes when typed now, which it's filled with while shown pressed, as for a touch
+   * replayed.
+   */
+  noteColor(key: KeypadKey | null): void {
+    if (key !== null && key !== 'backspace') {
+      const color = this.colors()[key];
+      this.splashColors.update((colors) => ({ ...colors, [key]: color }));
+    }
   }
 
   /** Whether a key shows pressed: while pressed, and, for a digit key, for a moment after. */
@@ -190,7 +235,7 @@ export class Keypad {
   }
 
   protected onPointerDown(event: PointerEvent): void {
-    if (event.button !== 0) {
+    if (event.button !== 0 || this.disabled()) {
       return;
     }
     const { key, point } = this.touchAt(event);
@@ -274,14 +319,14 @@ export class Keypad {
 
   /** Activation of a focused button from the keyboard or assistive technology; touches and clicks are handled above. */
   protected onClick(event: MouseEvent, key: KeypadKey): void {
-    if (event.detail === 0) {
+    if (event.detail === 0 && !this.disabled()) {
       this.type(key);
     }
   }
 
   protected onKeydown(event: KeyboardEvent): void {
     const key = keyFor(event);
-    if (key === null) {
+    if (key === null || this.disabled()) {
       return;
     }
     event.preventDefault();
@@ -323,8 +368,7 @@ export class Keypad {
     if (key === 'backspace') {
       return;
     }
-    const color = this.colors()[key];
-    this.splashColors.update((colors) => ({ ...colors, [key]: color }));
+    this.noteColor(key);
     this.splashing.update((keys) => (keys.includes(key) ? keys : [...keys, key]));
     clearTimeout(this.splashTimers.get(key));
     this.splashTimers.set(
