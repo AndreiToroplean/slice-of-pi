@@ -913,6 +913,26 @@ describe('Play', () => {
       return item;
     }
 
+    it('stops the clock while paused: no group ends meanwhile, nor does the pause count between digits', async () => {
+      const { host, type, stable } = await setUp();
+      await typeAll(type, '141');
+
+      pauseItem(host, 'Pause').click();
+      time.advance(10 * PAUSE);
+      await stable();
+      expect(words(host)).toEqual([]);
+
+      pauseItem(host, 'Resume').click();
+      await stable();
+      expect(words(host)).toEqual([]);
+      await type('5');
+      expect(TestBed.inject(RunRecorder).run()?.times.at(-1)).toBe(250 + 150 + 250);
+
+      time.advance(PAUSE);
+      await stable();
+      expect(words(host)).toEqual(['1415']);
+    });
+
     it("ignores keys typed on a keyboard until it's resumed", async () => {
       const { host, type, stable } = await setUp();
       await type('1');

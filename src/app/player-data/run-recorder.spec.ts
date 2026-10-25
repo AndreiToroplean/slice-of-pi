@@ -158,6 +158,20 @@ describe('RunRecorder', () => {
     expect(recorder.waited()).toBe(300);
   });
 
+  it('counts no time while paused, between digits nor waiting', () => {
+    const recorder = TestBed.inject(RunRecorder);
+
+    press(recorder, '1', 300);
+    recorder.pause();
+    time += 10_000;
+    expect(recorder.waited()).toBe(300);
+    recorder.resume();
+    press(recorder, '4');
+
+    expect(recorder.run()?.times).toEqual([0, 300]);
+    expect(recorder.waited()).toBe(200);
+  });
+
   it('shows no run once every digit is deleted', () => {
     const recorder = TestBed.inject(RunRecorder);
 
