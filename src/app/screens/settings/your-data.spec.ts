@@ -153,7 +153,7 @@ describe('YourData', () => {
     expect(await TestBed.inject(RunStore).touchLogs()).toEqual([]);
   });
 
-  describe('starting over', () => {
+  describe('deleting all the data', () => {
     beforeEach(() => {
       installDialogs();
     });
@@ -167,10 +167,10 @@ describe('YourData', () => {
       const dialog = host.querySelector('dialog');
       const warning = dialog?.getAttribute('aria-describedby') ?? '';
 
-      button(host, 'Start Over').click();
+      button(host, 'Delete All Your Data').click();
 
       expect(dialog?.open).toBe(true);
-      expect(host.querySelector('#reset-title')?.textContent).toBe('Start Over?');
+      expect(host.querySelector('#delete-title')?.textContent).toBe('Start Over?');
       expect(host.querySelector(`#${warning}`)?.textContent).toContain('for good');
       button(host, 'Back').click();
       expect(dialog?.open).toBe(false);
@@ -178,16 +178,17 @@ describe('YourData', () => {
       expect(TestBed.inject(DeveloperMode).enabled()).toBe(true);
     });
 
-    it('erases every run and setting once confirmed, and applies that', async () => {
+    it('deletes every run and setting once confirmed, and applies that', async () => {
       const { host, until } = await setUp([first, second], false, false, undefined, true);
       await TestBed.inject(KeypadLayoutSetting).set('telephone');
 
-      button(host, 'Start Over').click();
-      button(host, 'Erase Everything').click();
+      button(host, 'Delete All Your Data').click();
+      const dialog = host.querySelector('dialog');
+      button(dialog ?? host, 'Delete All Your Data').click();
       await until(() => message(host) !== '');
 
-      expect(host.querySelector('dialog')?.open).toBe(false);
-      expect(message(host)).toBe('Erased your data: you start over.');
+      expect(dialog?.open).toBe(false);
+      expect(message(host)).toBe('Deleted all your data.');
       expect(await TestBed.inject(RunStore).touchLogs()).toEqual([]);
       expect(await TestBed.inject(RunStore).settings()).toEqual({});
       expect(TestBed.inject(DeveloperMode).enabled()).toBe(false);

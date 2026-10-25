@@ -164,7 +164,7 @@ describe('RunStore', () => {
     expect(await storedRecords()).toEqual([]);
   });
 
-  it('deletes every run and every setting, to start over', async () => {
+  it('deletes every run and every setting: all the player’s data', async () => {
     const store = storeWith();
     await store.save(first);
     await store.saveSetting('a setting', { value: 1 });

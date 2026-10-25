@@ -27,24 +27,14 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
 
 /**
  * The player's data, a card at the top of the settings: how safe it is on this device, with a backup file to save and
- * restore, and a button to start over, erasing it all once the player has confirmed it.
+ * restore, and a button deleting it all once the player has confirmed it.
  */
 @Component({
   selector: 'app-your-data',
   imports: [ButtonList, Candy, LightDismiss],
   template: `
     <section class="panel" aria-labelledby="data-title">
-      <div class="heading">
-        <h2 id="data-title">Your Data</h2>
-        <button
-          type="button"
-          appCandy="danger"
-          aria-haspopup="dialog"
-          (click)="resetDialog.showModal()"
-        >
-          Start Over
-        </button>
-      </div>
+      <h2 id="data-title">Your Data</h2>
       @if (loaded()) {
         @if (separatePreview()) {
           <p>
@@ -73,24 +63,34 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
             (change)="restore($event)"
           />
         </label>
+        <button
+          type="button"
+          appCandy="danger"
+          aria-haspopup="dialog"
+          (click)="deleteDialog.showModal()"
+        >
+          Delete All Your Data
+        </button>
       </app-button-list>
       <p class="message" role="status">{{ message() }}</p>
     </section>
     <dialog
-      #resetDialog
+      #deleteDialog
       class="card"
       closedby="any"
-      aria-labelledby="reset-title"
-      aria-describedby="reset-warning"
+      aria-labelledby="delete-title"
+      aria-describedby="delete-warning"
     >
-      <h2 id="reset-title">Start Over?</h2>
-      <p id="reset-warning">
+      <h2 id="delete-title">Start Over?</h2>
+      <p id="delete-warning">
         This erases your runs and settings on this device for good. Only a backup file can bring
         them back.
       </p>
       <app-button-list>
-        <button type="button" appCandy autofocus (click)="resetDialog.close()">Back</button>
-        <button type="button" appCandy="danger" (click)="void reset()">Erase Everything</button>
+        <button type="button" appCandy autofocus (click)="deleteDialog.close()">Back</button>
+        <button type="button" appCandy="danger" (click)="void deleteAll()">
+          Delete All Your Data
+        </button>
       </app-button-list>
     </dialog>
   `,
@@ -103,7 +103,7 @@ export class YourData {
   /** Whether this is a preview keeping its data apart from the main game's (see {@link RunStore}). */
   protected readonly separatePreview = signal(false);
   protected readonly message = signal('');
-  private readonly resetDialog = viewChild.required<ElementRef<HTMLDialogElement>>('resetDialog');
+  private readonly deleteDialog = viewChild.required<ElementRef<HTMLDialogElement>>('deleteDialog');
 
   private readonly developer = inject(DeveloperMode);
   private readonly tweaks = inject(Tweaks);
@@ -145,13 +145,13 @@ export class YourData {
     this.message.set(`Restored your data from the backup.${unreadable}`);
   }
 
-  /** Erases every run and setting, once confirmed. */
-  protected async reset(): Promise<void> {
-    this.resetDialog().nativeElement.close();
+  /** Deletes every run and setting, once confirmed. */
+  protected async deleteAll(): Promise<void> {
+    this.deleteDialog().nativeElement.close();
     await this.recorder.saved();
     await this.store.deleteEverything();
     await this.reload();
-    this.message.set('Erased your data: you start over.');
+    this.message.set('Deleted all your data.');
   }
 
   /** Applies the data as it now stands. */
