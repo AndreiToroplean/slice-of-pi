@@ -31,6 +31,7 @@ import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LAYOUT } from '../../ui/layout';
 import { Play } from './play';
+import { Keypad } from './keypad/keypad';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 
 /** A pause clearly longer than the time between digits, in milliseconds. */
@@ -739,6 +740,23 @@ describe('Play', () => {
     await stable();
 
     expect(record.mock.calls.map(([touched]) => touched.key)).toEqual([null, null]);
+  });
+
+  it('records a touch elsewhere on the screen where it started', async () => {
+    const record = vi.spyOn(TestBed.inject(RunRecorder), 'record');
+    // jsdom has no layout: each point on the screen stands for the same point on the keypad.
+    vi.spyOn(Keypad.prototype, 'pointOf').mockImplementation(({ clientX, clientY }) => ({
+      x: clientX,
+      y: clientY,
+    }));
+    const { host, stable } = await setUp();
+    const slots = host.querySelector('app-slots');
+    const init = { pointerId: 1, button: 0, bubbles: true };
+    slots?.dispatchEvent(new PointerEvent('pointerdown', { ...init, clientX: -1, clientY: -3 }));
+    slots?.dispatchEvent(new PointerEvent('pointerup', { ...init, clientX: 1, clientY: -2 }));
+    await stable();
+
+    expect(record.mock.calls.map(([touched]) => touched)).toEqual([{ key: null, x: -1, y: -3 }]);
   });
 
   it('records every key pressed in the run', async () => {

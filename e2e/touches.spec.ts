@@ -39,7 +39,7 @@ async function touchAlong(touches: CDPSession, path: readonly Point[]): Promise<
   await touches.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
 
-test('records a touch slid too far off its key, and one elsewhere, as typing nothing, where they lifted', async ({
+test('records a touch slid too far off its key, and one elsewhere, as typing nothing, where they started', async ({
   page,
 }) => {
   await page.goto('/play');
@@ -67,7 +67,7 @@ test('records a touch slid too far off its key, and one elsewhere, as typing not
   await touchAlong(touches, [{ x: (await center('5')).x, y: slots.y + slots.height / 2 }]);
   await touchAlong(touches, [await center('4')]);
 
-  // Where each touch lifted, to a hundredth of a step (-0 as 0), and what it typed.
+  // Where each touch started, to a hundredth of a step (-0 as 0), and what it typed.
   await expect
     .poll(async () =>
       (await recordedTouches(page)).map((touch) => {
@@ -77,7 +77,7 @@ test('records a touch slid too far off its key, and one elsewhere, as typing not
     )
     .toEqual([
       ['1', -1, 1],
-      [null, 1, 0],
+      [null, -1, 0],
       [null, 0, expect.any(Number) as number],
       ['4', -1, 0],
     ]);

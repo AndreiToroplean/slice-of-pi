@@ -50,6 +50,8 @@ interface Press {
   far: boolean;
   /** Whether the key has already repeated, in which case releasing it does not type it once more. */
   repeated: boolean;
+  /** Where it started, which is where it's reported. */
+  readonly start: KeypadPoint;
   /** Where it is. */
   point: KeypadPoint;
   /** Pending repeat, for backspace only. */
@@ -72,9 +74,9 @@ interface Press {
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
  * repeats it.
  *
- * Every touch is reported as it's released, typing a key or not (`null`), with where it was released (see
- * {@link KeypadPoint}); a mouse press, as the mouse is released. Each repeat of backspace held down is reported where the
- * finger is, and releasing it after it repeated, nothing. A touch the browser cancels isn't reported. Keys typed on a
+ * Every touch is reported as it's released, typing a key or not (`null`), with where it started, the spot the player
+ * aimed at (see {@link KeypadPoint}); a mouse press, as the mouse is released. Each repeat of backspace held down is
+ * reported likewise, and releasing it after it repeated, nothing. A touch the browser cancels isn't reported. Keys typed on a
  * physical keyboard, or by assistive technology, are reported without a place on the keypad.
  * The keys are see-through candy buttons. Keys being pressed, by touch or keyboard, are shown pressed (a touch's key only
  * while releasing it would type it), a digit key for at least `SPLASH_DURATION`. Each digit key shows its color on its
@@ -251,6 +253,7 @@ export class Keypad {
       key,
       far: false,
       repeated: false,
+      start: point,
       point,
       timer:
         key === 'backspace'
@@ -284,7 +287,7 @@ export class Keypad {
     this.checkDistance(press);
     this.dropPress(event.pointerId);
     if (!press.repeated) {
-      this.touched.emit({ key: press.far ? null : press.key, ...press.point });
+      this.touched.emit({ key: press.far ? null : press.key, ...press.start });
     }
   }
 
@@ -369,7 +372,7 @@ export class Keypad {
     }, REPEAT_INTERVAL);
     if (!press.far) {
       press.repeated = true;
-      this.touched.emit({ key: press.key, ...press.point });
+      this.touched.emit({ key: press.key, ...press.start });
     }
   }
 

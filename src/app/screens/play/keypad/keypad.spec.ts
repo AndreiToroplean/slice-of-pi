@@ -415,10 +415,11 @@ describe('Keypad', () => {
   });
 
   describe('reporting touches', () => {
-    it('reports where each touch is released, in steps between keys from the center of 5', () => {
+    it('reports where each touch started, in steps between keys from the center of 5, wherever it is released', () => {
       tap('7');
-      pointer('pointerdown', CENTERS['5']);
-      pointer('pointerup', [175, 125]);
+      pointer('pointerdown', [175, 125]);
+      pointer('pointermove', CENTERS['6']);
+      pointer('pointerup', CENTERS['5']);
       tap('0');
 
       expect(touches).toEqual([
@@ -439,16 +440,16 @@ describe('Keypad', () => {
 
       expect(touches).toEqual([
         { key: null, x: -1, y: 2 },
-        { key: null, x: 0, y: 2 },
-        { key: null, x: 1, y: -2.7 },
+        { key: null, x: 0, y: 0 },
+        { key: null, x: 1, y: -1 },
       ]);
     });
 
-    it('reports a touch that slid off its key but not too far where it is released, typing its key', () => {
+    it('reports a touch that slid off its key but not too far where it started, typing its key', () => {
       down('5');
       pointer('pointerup', CENTERS['6']);
 
-      expect(touches).toEqual([{ key: '5', x: 1, y: 0 }]);
+      expect(touches).toEqual([{ key: '5', x: 0, y: 0 }]);
     });
 
     it('reports nothing of a touch the browser cancels', () => {
@@ -458,9 +459,9 @@ describe('Keypad', () => {
       expect(touches).toEqual([]);
     });
 
-    it('reports each repeat of backspace where the finger is, and nothing as it lifts after', () => {
-      down('backspace');
-      pointer('pointermove', [237.5, 337.5]);
+    it('reports each repeat of backspace where the touch started, and nothing as it lifts after', () => {
+      pointer('pointerdown', [237.5, 337.5]);
+      pointer('pointermove', CENTERS.backspace);
       vi.advanceTimersByTime(REPEAT_DELAY + REPEAT_INTERVAL);
       up('backspace');
 

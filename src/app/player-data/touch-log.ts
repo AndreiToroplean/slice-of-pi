@@ -14,11 +14,11 @@ import { migrate, Migration, SavedRecord } from './migration';
  * than it knows (written by a pull request preview sharing the site's storage) leaves it alone rather than misreading
  * it. It carries on from the runs' format, which touch logs replaced.
  */
-export const TOUCH_LOG_FORMAT = 4;
+export const TOUCH_LOG_FORMAT = 5;
 
 /**
- * A touch on the keypad, or a key typed without touching it, in a touch log: what it typed, if anything, where it was,
- * for a touch, and when (see {@link KeypadTouch}).
+ * A touch on the keypad, or a key typed without touching it, in a touch log: what it typed, if anything, where it
+ * started, for a touch, and when (see {@link KeypadTouch}).
  */
 export type Touch = KeypadTouch & {
   /** When it was released, or the key typed, in whole milliseconds since the log's first digit. */
@@ -72,8 +72,8 @@ export function newTouchLog(
 }
 
 /**
- * The touch log with one more touch, `time` milliseconds after its first digit, in whole milliseconds, and where it was,
- * for a touch, to a thousandth of a step.
+ * The touch log with one more touch, `time` milliseconds after its first digit, in whole milliseconds, and where it
+ * started, for a touch, to a thousandth of a step.
  */
 export function addTouch(log: TouchLog, touch: KeypadTouch, time: number): TouchLog {
   const thousandths = (value: number): number => Math.round(value * 1000) / 1000;
@@ -130,7 +130,28 @@ export const TOUCH_LOG_MIGRATIONS: readonly Migration[] = [
   // Format 3 runs only kept the digits kept and their times: each becomes a key typed, with no place on the keypad,
   // and the places of the digits deleted are left out.
   touchesOfRun,
+  // Format 4 touch logs placed each touch where it was released, rather than where it started: the places are dropped,
+  // and with them the touches typing nothing, which had nothing else to them.
+  withoutPlaces,
 ];
+
+/** A format 4 touch log without the places of its touches: each a key typed, those typing nothing left out. */
+function withoutPlaces(record: SavedRecord): SavedRecord {
+  const { touches } = record;
+  if (!Array.isArray(touches)) {
+    return record;
+  }
+  return {
+    ...record,
+    touches: touches.flatMap((touch: unknown) => {
+      if (typeof touch !== 'object' || touch === null) {
+        return [touch];
+      }
+      const { key, time } = touch as Record<string, unknown>;
+      return key === null ? [] : [{ key, time }];
+    }),
+  };
+}
 
 /** A format 3 run as a touch log: each of its digits a key typed at its time. */
 function touchesOfRun(record: SavedRecord): SavedRecord {
