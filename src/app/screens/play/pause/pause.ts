@@ -3,17 +3,18 @@ import { DeveloperMode } from '../../../developer-mode/developer-mode';
 import { injectBackToMenu } from '../../../ui/back-to-menu';
 import { ButtonList } from '../../../ui/button-list';
 import { Candy } from '../../../ui/candy';
+import { LightDismiss } from '../../../ui/light-dismiss';
 
 /**
  * The pause button, and the dialog it opens over the game: resume, restart the game, or end it, back to the main menu;
  * a button in the dialog's corner also stops the game and replays the run, once there's one and the player has
  * confirmed it, warned that the game can't be resumed then. Escape pauses too, and resumes, or goes back from the
- * confirmation; up and down move between a dialog's buttons, and Enter chooses one, as on any button. In developer mode,
- * it can also show the keypad's touch areas.
+ * confirmation, as does a click outside the dialog; up and down move between a dialog's buttons, and Enter chooses one,
+ * as on any button. In developer mode, it can also show the keypad's touch areas.
  */
 @Component({
   selector: 'app-pause',
-  imports: [ButtonList, Candy],
+  imports: [ButtonList, Candy, LightDismiss],
   host: { '(document:keydown.escape)': 'escape($event)' },
   template: `
     <button
@@ -28,7 +29,13 @@ import { Candy } from '../../../ui/candy';
         <rect x="14" y="5" width="4" height="14" rx="1.5" />
       </svg>
     </button>
-    <dialog #dialog class="card" aria-labelledby="pause-title" (close)="paused.set(false)">
+    <dialog
+      #dialog
+      class="card"
+      closedby="any"
+      aria-labelledby="pause-title"
+      (close)="paused.set(false)"
+    >
       <div class="heading">
         <h2 id="pause-title">Paused</h2>
         <button
@@ -65,6 +72,7 @@ import { Candy } from '../../../ui/candy';
     <dialog
       #replayDialog
       class="card"
+      closedby="any"
       aria-labelledby="replay-title"
       aria-describedby="replay-warning"
     >

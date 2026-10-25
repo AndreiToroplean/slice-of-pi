@@ -15,6 +15,7 @@ import {
 } from '../../game/grouping/break-models/fit-to-groupings';
 import { MyGroupings } from './my-groupings';
 import { Candy } from '../../ui/candy';
+import { LightDismiss } from '../../ui/light-dismiss';
 
 /** How long the search runs before letting the page draw, in milliseconds. */
 const FRAME = 30;
@@ -31,10 +32,17 @@ const FRAME = 30;
  */
 @Component({
   selector: 'app-fit-to-groupings-dialog',
-  imports: [Candy, DropdownMenu, PlotChart],
+  imports: [Candy, LightDismiss, DropdownMenu, PlotChart],
   template: `
     <!-- The dialog itself takes the focus as it opens, so that no field shows a focus ring or opens the keyboard. -->
-    <dialog #dialog class="card" aria-labelledby="fit-title" autofocus (close)="stop()">
+    <dialog
+      #dialog
+      class="card"
+      closedby="any"
+      aria-labelledby="fit-title"
+      autofocus
+      (close)="stop()"
+    >
       <h2 id="fit-title">Fit to My Groupings</h2>
       <div class="field">
         <span id="fit-model">Break model</span>

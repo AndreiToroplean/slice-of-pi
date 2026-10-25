@@ -10,6 +10,7 @@ import type {
 } from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import { Candy } from '../../ui/candy';
+import { LightDismiss } from '../../ui/light-dismiss';
 import { Segment, Segmented } from '../../ui/segmented';
 
 /** The tab of what is given to the panel. */
@@ -61,7 +62,7 @@ function keysOf(kind: BreakModelKind): string[] {
  */
 @Component({
   selector: 'app-grouping-settings-panel',
-  imports: [Candy, DropdownMenu, Segmented],
+  imports: [Candy, LightDismiss, DropdownMenu, Segmented],
   template: `
     <div class="bar">
       <app-segmented
@@ -207,7 +208,13 @@ function keysOf(kind: BreakModelKind): string[] {
         }
       </div>
     }
-    <dialog #helpDialog class="card" aria-labelledby="help-title" (close)="helped.set(undefined)">
+    <dialog
+      #helpDialog
+      class="card"
+      closedby="any"
+      aria-labelledby="help-title"
+      (close)="helped.set(undefined)"
+    >
       @if (helped(); as control) {
         <h2 id="help-title">{{ name(control) }}</h2>
         <div class="explanation">
