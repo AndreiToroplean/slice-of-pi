@@ -124,10 +124,15 @@
   animation: none;
 }
 
-/* What it says grows with its face, by two-thirds as much. A see-through one lays out what it holds as if bare. */
+/*
+ * What it says grows with its face, by two-thirds as much. A see-through one lays out what it holds as if bare. It takes
+ * no touches of its own: they go to the button, since a browser takes over a touch on text once the finger moves,
+ * cancelling it, as on a key slid off.
+ */
 .content {
   display: inline-block;
   scale: calc(1 + var(--candy-breath) * 0.0133);
+  pointer-events: none;
 }
 
 :host(.clear) .content {
