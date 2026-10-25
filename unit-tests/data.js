@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792891885369,
+  "lastUpdate": 1792894173121,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2318,6 +2318,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1289,
+            "unit": "ms",
+            "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "8738b65469258903a5140caedc3944ff88d0bb06",
+          "message": "ci: publish a work-in-progress build every Monday, and the past weeks with a backfill\n\n- Every Monday at 04:00 UTC (5 a.m. in Paris in winter, 6 a.m. in summer), main as it stands goes to wip/<date>/, unless main had no commits in the 7 days before; `wip/` links every week's build.\n- Running the workflow by hand with backfill builds each past week's commit with its own dependencies.\n- Each build keeps its own IndexedDB databases: the game takes any path but pr-<number>/ for the main game, so an older build would otherwise treat the player's runs as its own.\n- Publishing main keeps wip/.\n\nClaude-Session: https://claude.ai/code/session_01Rjar8DMDTXNLXrJD3d5gQs",
+          "timestamp": "2026-10-25T03:09:10+01:00",
+          "tree_id": "f0b4d0e2e53e493b30fcc17e5aaac81cdf0938b9",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/8738b65469258903a5140caedc3944ff88d0bb06"
+        },
+        "date": 1792894172560,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 10051,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 21836,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1180,
             "unit": "ms",
             "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
           }
