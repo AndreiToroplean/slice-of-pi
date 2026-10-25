@@ -81,7 +81,7 @@ export interface KeypadPoint {
 }
 
 /**
- * A touch on the keypad (or a mouse press), where it was released, typing a key or nothing (`null`) when it missed them;
+ * A touch on the keypad (or a mouse press), where it started, typing a key or nothing (`null`) when it missed them;
  * or a key typed without touching the keypad, on a keyboard or by assistive technology, which was nowhere on it, but
  * stands at the center of its key (see {@link touchPoint}).
  */

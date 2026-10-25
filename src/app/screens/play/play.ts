@@ -28,7 +28,7 @@ import { RUN_CLOCK, RunRecorder } from '../../player-data/run-recorder';
 import { LiveRun, RunSession } from '../../player-data/live-run';
 import { newTouchLog, TouchLog } from '../../player-data/touch-log';
 import { RunStore } from '../../player-data/run-store';
-import { KeypadKey, KeypadTouch } from '../../game/layers/keypad-layout';
+import { KeypadKey, KeypadPoint, KeypadTouch } from '../../game/layers/keypad-layout';
 import { SeasonHeader } from './season-header/season-header';
 import { seasonAt } from '../../game/layers/seasons';
 import { Tweaks } from '../../developer-mode/tweaks';
@@ -215,8 +215,8 @@ export class Play {
   private readonly timer = inject(TIMER);
   private readonly typedDigits = viewChild.required(TypedDigits);
   private readonly keypad = viewChild.required(Keypad);
-  /** Touches in progress elsewhere than on the keypad, the pause button and its dialog, by pointer. */
-  protected readonly touchesElsewhere = new Set<number>();
+  /** Touches in progress elsewhere than on the keypad, the pause button and its dialog, by pointer: where they started. */
+  protected readonly touchesElsewhere = new Map<number, KeypadPoint>();
   /** Slots flying into their word. */
   private flights: Animation[] = [];
   /** Stops waiting for the player's pause to end the group. */
@@ -292,14 +292,16 @@ export class Play {
       event.target instanceof Element &&
       event.target.closest('app-keypad, app-pause') === null
     ) {
-      this.touchesElsewhere.add(event.pointerId);
+      this.touchesElsewhere.set(event.pointerId, this.keypad().pointOf(event));
     }
   }
 
-  /** Records a touch elsewhere than on the keypad as it's released, typing nothing, where it was from the keypad. */
+  /** Records a touch elsewhere than on the keypad as it's released, typing nothing, where it started from the keypad. */
   protected touchUp(event: PointerEvent): void {
-    if (this.touchesElsewhere.delete(event.pointerId)) {
-      this.press({ key: null, ...this.keypad().pointOf(event) });
+    const start = this.touchesElsewhere.get(event.pointerId);
+    if (start !== undefined) {
+      this.touchesElsewhere.delete(event.pointerId);
+      this.press({ key: null, ...start });
     }
   }
 

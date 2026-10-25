@@ -59,6 +59,23 @@ describe('touch log', () => {
       expect(parseTouchLog(extra)).toEqual(log);
     });
 
+    it('migrates a touch log of format 4, placing touches where they were released, to one without places', () => {
+      const older = {
+        ...log,
+        format: 4,
+        touches: [
+          { key: '1', x: -1, y: 1, time: 0 },
+          { key: null, x: 0.4, y: 0.6, time: 120 },
+          { key: '4', time: 212 },
+        ],
+      };
+
+      expect(parseTouchLog(older)?.touches).toEqual([
+        { key: '1', time: 0 },
+        { key: '4', time: 212 },
+      ]);
+    });
+
     describe('runs from before touch logs', () => {
       const run = {
         format: 3,
