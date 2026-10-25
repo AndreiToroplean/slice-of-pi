@@ -96,6 +96,21 @@ describe('DropdownMenu', () => {
     expect(dropdown.style.getPropertyValue('--window-y')).toBe('369px');
   });
 
+  it('squares its corner pointing at its button', () => {
+    const { dropdown, host } = open();
+    const button = host.querySelector<HTMLElement>('button.more');
+    if (button === null) {
+      throw new Error('No button');
+    }
+    // Under the button, and to its left, as the button is in the screen's top right corner.
+    vi.spyOn(button, 'getBoundingClientRect').mockReturnValue(new DOMRect(300, 10, 44, 44));
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue(new DOMRect(184, 60, 160, 200));
+
+    dropdown.dispatchEvent(Object.assign(new Event('toggle'), { newState: 'open' }));
+
+    expect(dropdown.dataset['corner']).toBe('top-right');
+  });
+
   it('stays open as a toggle in it changes', () => {
     const { dropdown } = open();
 
@@ -166,6 +181,21 @@ describe('DropdownMenu opened where something was pressed', () => {
     host.menu().openAt({ x: 340, y: 150 });
 
     expect(point.getBoundingClientRect()).toMatchObject({ left: 340, top: 150 });
+  });
+
+  it('squares its corner pointing at where it was opened, wherever it fits', () => {
+    const point = dropdown.parentElement?.querySelector<HTMLElement>('.point');
+    if (point === undefined || point === null) {
+      throw new Error('No point');
+    }
+    vi.spyOn(point, 'getBoundingClientRect').mockReturnValue(new DOMRect(200, 500));
+    // Over the point, as there's no room under it, and to its right.
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue(new DOMRect(200, 300, 160, 200));
+
+    host.menu().openAt({ x: 200, y: 500 });
+    dropdown.dispatchEvent(Object.assign(new Event('toggle'), { newState: 'open' }));
+
+    expect(dropdown.dataset['corner']).toBe('bottom-left');
   });
 
   it('closes and does what a button says once chosen', () => {
