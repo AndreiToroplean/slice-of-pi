@@ -120,7 +120,7 @@ export class RunStore {
     await completion(transaction);
   }
 
-  /** Deletes every run and every setting, to start over. */
+  /** Deletes every run and every setting: all the player's data. */
   async deleteEverything(): Promise<void> {
     const database = await this.openForWriting();
     if (database === undefined) {
