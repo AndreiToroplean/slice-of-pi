@@ -11,6 +11,8 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { Router } from '@angular/router';
+import type { ReplayedGame } from '../replay/replay';
 import { Background } from '../../ui/background';
 import { BreakCountdown } from './break-countdown';
 import { waitToEnd } from '../../game/grouping/wait-to-end';
@@ -44,8 +46,8 @@ import { TIMER } from './timer';
  * as mistakes in their slots, and never finish the group, until backspace deletes them.
  * Backspace deletes the last digit, reopening the last word when the slots are empty, and brings the last word back when
  * it empties them, for the player to carry on, until they break there again. Developer mode counts down, left of 0, to
- * when the group being typed ends, unless its settings hide that. Pausing offers to restart the game
- * or end it, back to the main menu. Every touch on the keypad, and every key typed, is recorded, with where and when, in
+ * when the group being typed ends, unless its settings hide that. Pausing offers to restart the game, stop it and
+ * replay its run, or end it, back to the main menu. Every touch on the keypad, and every key typed, is recorded, with where and when, in
  * the run's touch log; restarting or ending the game ends the run.
  *
  * It also replays a run, given its touch log: the player can't type, nor pause, and nothing is recorded. Whatever
@@ -93,7 +95,13 @@ import { TIMER } from './timer';
       }
     </app-keypad>
     @if (replay() === undefined) {
-      <app-pause [(paused)]="paused" [(showTouchAreas)]="showTouchAreas" (restart)="restart()" />
+      <app-pause
+        [(paused)]="paused"
+        [(showTouchAreas)]="showTouchAreas"
+        [replayable]="recorder.run() !== undefined"
+        (restart)="restart()"
+        (replay)="void replayRun()"
+      />
     }
   `,
   styleUrl: './play.css',
@@ -124,7 +132,8 @@ export class Play {
   /** Whether the keypad shows its touch areas, as developer mode lets the player choose when paused. */
   protected readonly showTouchAreas = signal(false);
 
-  private readonly recorder = inject(RunRecorder);
+  protected readonly recorder = inject(RunRecorder);
+  private readonly router = inject(Router);
   private readonly clock = inject(RUN_CLOCK);
   /** The run replayed so far, if replaying one. */
   private replayed: LiveRun | undefined;
@@ -312,6 +321,23 @@ export class Play {
     if (ended !== undefined) {
       this.earlierRuns.update((runs) => [...runs, ended]);
     }
+  }
+
+  /**
+   * Stops the game and replays its run, once saved, in place of the game: there's no going on with it after that, and
+   * going back from the replay leads to the main menu, as ending the game does.
+   */
+  protected async replayRun(): Promise<void> {
+    const id = this.recorder.run()?.id;
+    if (id === undefined) {
+      return;
+    }
+    const state: ReplayedGame = {
+      menuBehind:
+        this.router.lastSuccessfulNavigation()?.previousNavigation?.finalUrl?.toString() === '/',
+    };
+    await this.recorder.saved();
+    await this.router.navigate(['/runs', id, 'replay'], { replaceUrl: true, state });
   }
 
   /** Back to the start, as if nothing had been typed, ending the run, such as to replay a run from its start. */

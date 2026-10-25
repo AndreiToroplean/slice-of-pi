@@ -959,6 +959,36 @@ describe('Play', () => {
       }
     });
 
+    it('stops the game and replays its run in its place, once saved', async () => {
+      TestBed.overrideProvider(INDEXED_DB, { useValue: new IDBFactory() });
+      const harness = await RouterTestingHarness.create('/play');
+      const host = harness.routeNativeElement;
+      if (host === null) {
+        throw new Error('No play screen');
+      }
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      pauseItem(host, 'Pause').click();
+      await harness.fixture.whenStable();
+      expect(host.textContent).not.toContain('Stop and Replay This Run');
+      pauseItem(host, 'Resume').click();
+
+      time.advance(150);
+      host.querySelector<HTMLButtonElement>('button[data-key="1"]')?.click();
+      await harness.fixture.whenStable();
+      pauseItem(host, 'Pause').click();
+      await harness.fixture.whenStable();
+      pauseItem(host, 'Stop and Replay This Run').click();
+      await new Promise((resolve) => setTimeout(resolve));
+      await TestBed.inject(RunRecorder).saved();
+      await harness.fixture.whenStable();
+
+      expect(navigate).toHaveBeenCalledWith(['/runs', 'run-1', 'replay'], {
+        replaceUrl: true,
+        state: { menuBehind: false },
+      });
+      expect((await TestBed.inject(RunStore).runs()).map((run) => run.id)).toEqual(['run-1']);
+    });
+
     /** Ends the game, letting it navigate once the dialog has closed. */
     async function endGame(harness: RouterTestingHarness): Promise<void> {
       const host = harness.routeNativeElement;
