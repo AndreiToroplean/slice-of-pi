@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792889957341,
+  "lastUpdate": 1792891885369,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2278,6 +2278,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1474,
+            "unit": "ms",
+            "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "d556048ff42fae2bfd680f902f3aaf87c27f2daf",
+          "message": "feat: make the slots one size, a row of 10 spanning the keypad's width\n\n- Slots no longer switch to smaller ones past 6: their size and gaps never change, as tall as the layout makes them.",
+          "timestamp": "2026-10-25T02:31:03+01:00",
+          "tree_id": "f082ed5135028b43925693d0f4df0ed64356f9b8",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/d556048ff42fae2bfd680f902f3aaf87c27f2daf"
+        },
+        "date": 1792891884587,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14509,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 31940,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1289,
             "unit": "ms",
             "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
           }
