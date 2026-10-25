@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792952655984,
+  "lastUpdate": 1792965744961,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2520,6 +2520,46 @@ window.BENCHMARK_DATA = {
             "value": 997,
             "unit": "ms",
             "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "0e5a103e18c709c269de4e51909fe11c06c1d529",
+          "message": "feat: turn Start Over into Delete All Your Data, under the backups\n\n- It deletes the player's data: the button and the one confirming it say so, and so does what it tells once done, while the confirmation still asks whether to start over\n\n- Under the buttons saving and restoring a backup, as one of the card's actions, rather than beside its title",
+          "timestamp": "2026-10-25T23:02:03+01:00",
+          "tree_id": "081f329c6a3f28e98beb26ae09bed396ebc1a72b",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/0e5a103e18c709c269de4e51909fe11c06c1d529"
+        },
+        "date": 1792965744359,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14307,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 31399,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1098,
+            "unit": "ms",
+            "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
           }
         ]
       }
