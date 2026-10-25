@@ -61,7 +61,7 @@ describe('Settings', () => {
     const fixture = TestBed.createComponent(Settings);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
-    const revert = button(host, "Back to the game's keypad layout");
+    const revert = button(host, 'Back to the default keypad layout');
     expect(revert?.disabled).toBe(true);
 
     await setting.set('telephone');
@@ -78,7 +78,7 @@ describe('Settings', () => {
     await tweaks.setCountdown(false);
     const host = await setUp();
 
-    button(host, "Back to the game's countdown")?.click();
+    button(host, 'Back to the default countdown')?.click();
 
     expect(tweaks.countdown()).toBe(true);
   });

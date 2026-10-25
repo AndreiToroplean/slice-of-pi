@@ -224,7 +224,7 @@ describe('GroupingSettingsPanel', () => {
   it('brings back the game’s value of one setting, keeping the others', async () => {
     const { host, detect } = await setUp();
     const revert = (): HTMLButtonElement | null =>
-      host.querySelector<HTMLButtonElement>('button[aria-label="Back to the game\'s window"]');
+      host.querySelector<HTMLButtonElement>('button[aria-label="Back to the default window"]');
 
     expect(revert()?.disabled).toBe(true);
     move(slider(host, 'window'), 11);
@@ -258,7 +258,7 @@ describe('GroupingSettingsPanel', () => {
 
   it('brings back the game’s settings', async () => {
     const { host, detect } = await setUp();
-    const reset = buttonLabelled(host, "Back to the Game's Settings");
+    const reset = buttonLabelled(host, 'Back to Default Settings');
 
     expect(reset.disabled).toBe(true);
     move(slider(host, 'window'), 11);

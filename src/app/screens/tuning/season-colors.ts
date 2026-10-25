@@ -34,7 +34,7 @@ const ENDS = [
   template: `
     <app-page title="Season Colors">
       <button pageAction type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
-        Back to the Game's Colors
+        Back to Default Settings
       </button>
       <app-season-header [view]="view()" />
       <div class="seasons">
