@@ -28,6 +28,7 @@ export const SHORTEST_PRESS = 150;
     '[class.unfocusable]': '!focusable()',
     '[attr.tabindex]': 'focusable() ? null : -1',
     '[class.pressed]': 'pressed() ?? held()',
+    '[class.controlled]': 'pressed() !== undefined',
     '[class.colored]': 'pressColor() !== undefined',
     '[style.--press-color]': 'pressColor()',
     '(pointerdown)': 'hold()',
@@ -48,7 +49,8 @@ export class Candy {
   readonly pressColor = input<string>();
   /**
    * Whether it shows pressed, when what presses it is handled elsewhere, such as keys typed from the keyboard.
-   * Otherwise, it shows pressed while pressed.
+   * Otherwise, it shows pressed while pressed. Told, it shows only that, even while the browser holds it active, as
+   * with a mouse dragged off it.
    */
   readonly pressed = input<boolean>();
 
