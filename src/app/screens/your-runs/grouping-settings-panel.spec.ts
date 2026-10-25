@@ -7,11 +7,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { parseTweaks, Tweaks, TWEAKS } from '../../developer-mode/tweaks';
 import { readBackup } from '../../player-data/backup';
 import { INDEXED_DB, IS_PREVIEW } from '../../player-data/run-store';
-import type {
-  BreakModelKind,
-  Hyperparameter,
-  Settings,
-} from '../../game/grouping/break-models/break-model';
+import type { Hyperparameter, Settings } from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import { oneIn } from '../../game/grouping/break-models/hyperparameters';
 import { LUNA, LUNA_DEFAULTS } from '../../game/grouping/break-models/luna';
@@ -31,9 +27,12 @@ describe('GroupingSettingsPanel', () => {
   });
 
   let copied: string[];
+  /** What the panel told, such as the values being imported. */
+  let told: string[];
 
   async function setUp(): Promise<{ host: HTMLElement; detect: () => void }> {
     copied = [];
+    told = [];
     TestBed.configureTestingModule({
       providers: [
         PLAY_WITH_MERCURY,
@@ -51,6 +50,7 @@ describe('GroupingSettingsPanel', () => {
     await TestBed.inject(DeveloperMode).set(true);
     await TestBed.inject(Tweaks).loaded;
     const fixture = TestBed.createComponent(GroupingSettingsPanel);
+    fixture.componentInstance.told.subscribe((message) => told.push(message));
     fixture.detectChanges();
     return {
       host: fixture.nativeElement as HTMLElement,
@@ -320,34 +320,31 @@ describe('GroupingSettingsPanel', () => {
     });
   });
 
-  it('shows the break model picked, and switches to another one', async () => {
+  it('picks the break model on a tab of its own, its own tabs after it', async () => {
     const { host, detect } = await setUp();
-    const switches = (): HTMLButtonElement[] =>
-      Array.from(host.querySelectorAll('button')).filter((button) =>
-        button.textContent.trim().startsWith('Model:'),
-      );
-    const labels = (): string[] =>
-      switches().map((button) => button.firstChild?.textContent?.trim() ?? '');
-    /** The switches' labels with this model picked: it first, then the others, in their order. */
-    const expected = (picked: BreakModelKind): string[] => [
-      `Model: ${picked.label} Is Selected`,
-      ...BREAK_MODELS.filter((kind) => kind !== picked).map(
-        (kind) => `Model: Switch to ${kind.label}`,
-      ),
-    ];
-    expect(labels()).toEqual(expected(MERCURY));
-    expect(switches()[0]?.disabled).toBe(true);
+    const pane = (): HTMLElement => host.querySelector<HTMLElement>('#pane-Model') ?? host;
+    const tabs = (): string[] =>
+      Array.from(host.querySelectorAll('[role="tab"]'), (tab) => tab.textContent.trim());
+    buttonLabelled(host, 'Model').click();
+    detect();
+    expect(pane().hidden).toBe(false);
+    expect(pane().querySelector('#model-name')?.textContent).toBe(MERCURY.label);
+    const models = Array.from(pane().querySelectorAll<HTMLButtonElement>('.dropdown .model'));
+    expect(models.map((button) => button.firstChild?.textContent?.trim())).toEqual(
+      BREAK_MODELS.map((kind) => (kind === MERCURY ? `${kind.label} Is Selected` : kind.label)),
+    );
 
-    switches()[BREAK_MODELS.indexOf(LUNA)]?.click();
+    models[BREAK_MODELS.indexOf(LUNA)]?.click();
     await vi.waitFor(() => {
       expect(TestBed.inject(Tweaks).breakModelKind()).toBe(LUNA);
     });
     detect();
 
-    expect(labels()).toEqual(expected(LUNA));
+    expect(pane().querySelector('#model-name')?.textContent).toBe(LUNA.label);
+    expect(tabs()).toEqual(['Runs', 'Model', ...LUNA.tabs.map(({ name }) => name)]);
   });
 
-  describe('copying from another model', () => {
+  describe('importing from another model', () => {
     /** Tunes Mercury's window and recency decay, then picks Luna, which has them too. */
     async function onLuna(): Promise<{ host: HTMLElement; detect: () => void }> {
       const panel = await setUp();
@@ -358,11 +355,23 @@ describe('GroupingSettingsPanel', () => {
       return panel;
     }
 
-    it('copies all the hyperparameters another model shares with the one picked', async () => {
+    it('imports all the hyperparameters another model shares with the one picked, from its picker', async () => {
       const { host } = await onLuna();
       move(slider(host, 'pauseMargin'), 1.5);
+      const pane = host.querySelector<HTMLElement>('#pane-Model') ?? host;
+      const picker = pane.querySelector<HTMLButtonElement>(
+        '[aria-labelledby="import-label import-name"]',
+      );
+      const menu = pane.querySelector<HTMLElement>(
+        `#${picker?.getAttribute('popovertarget') ?? ''}`,
+      );
+      picker?.click();
+      expect(menu?.hasAttribute('data-popover-open')).toBe(true);
+      expect(
+        Array.from(menu?.querySelectorAll('button') ?? [], (b) => b.textContent.trim()),
+      ).toContain('Venus');
 
-      buttonLabelled(host, 'Copy Shared Hyperparameters From Mercury').click();
+      buttonLabelled(menu ?? pane, 'Mercury').click();
 
       expect(settings()).toEqual({
         ...LUNA_DEFAULTS,
@@ -370,21 +379,24 @@ describe('GroupingSettingsPanel', () => {
         recencyDecay: 0.8,
         pauseMargin: 1.5,
       });
-      expect(buttonLabelled(host, 'Copy Shared Hyperparameters From Venus')).toBeDefined();
+      expect(told).toEqual(['Imported the shared hyperparameters from Mercury.']);
     });
 
-    it('copies one hyperparameter from the model picked in its menu', async () => {
+    it('imports one hyperparameter from the model picked in its menu', async () => {
       const { host, detect } = await onLuna();
-      const copy = host.querySelector<HTMLButtonElement>(
-        '[title="Copy the window from another model"]',
+      const importOne = host.querySelector<HTMLButtonElement>(
+        '[title="Import the window from another model"]',
       );
-      copy?.click();
+      importOne?.click();
       detect();
+      const menu = host.querySelector<HTMLElement>(
+        `#${importOne?.getAttribute('popovertarget') ?? ''}`,
+      );
 
-      buttonLabelled(host, 'From Mercury').click();
+      buttonLabelled(menu ?? host, 'From Mercury').click();
 
       expect(settings()).toEqual({ ...LUNA_DEFAULTS, window: 11 });
-      expect(host.querySelector('[title="Copy the pause margin from another model"]')).toBe(null);
+      expect(host.querySelector('[title="Import the pause margin from another model"]')).toBe(null);
     });
   });
 });

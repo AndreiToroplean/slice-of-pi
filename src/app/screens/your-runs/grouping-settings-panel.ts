@@ -15,6 +15,8 @@ import { Segment, Segmented } from '../../ui/segmented';
 
 /** The tab of what is given to the panel. */
 const RUNS_TAB = 'Runs';
+/** The tab picking the break model, whose own tabs come after it. */
+const MODEL_TAB = 'Model';
 
 /** A row of sliders in a tab: one, or the sliders of a pair side by side. */
 export interface SliderRow {
@@ -51,13 +53,14 @@ function keysOf(kind: BreakModelKind): string[] {
 }
 
 /**
- * Developer mode's tabs on Your Runs: one with what is given to it, the runs, and the others with the sliders for every
- * hyperparameter of the break model picked, a few to a tab, scrolling if they don't fit, a pair of sliders sharing a row, each with a toggle button pinning it, so that fitting the
- * model to the player's groups leaves it where it is (kept with the tweaks, for each model), a button bringing back the game's value and a help button
- * opening a dialog that says what it does, and, where another model has it too, a button copying its value from one of
- * them. At the end of the tabs' strip, a plain ⋮ opens an overflow menu, which shows
- * the break model picked and switches it, copies the values of the hyperparameters it shares with another model, and
- * has buttons to copy the settings' values so they go into the code and to bring back the game's settings, then what
+ * Developer mode's tabs on Your Runs: one with what is given to it, the runs; one picking the break model, and importing
+ * the values of the hyperparameters it shares with another model, both from pickers, then what is given to it marked
+ * `modelAction`; and the break model's own, with the sliders for each of its hyperparameters, a few to a tab,
+ * scrolling if they don't fit, a pair of sliders sharing a row. Each slider has a toggle button pinning it, so that
+ * fitting the model to the player's groups leaves it where it is (kept with the tweaks, for each model), a button
+ * bringing back the game's value, a help button opening a dialog that says what it does, and, where another model has
+ * it too, a button importing its value from one of them. At the end of the tabs' strip, a plain ⋮ opens an overflow menu
+ * with buttons to copy the settings' values so they go into the code and to bring back the game's settings, then what
  * is given to it marked `menuItem`.
  */
 @Component({
@@ -73,25 +76,6 @@ function keysOf(kind: BreakModelKind): string[] {
         [(value)]="tab"
       />
       <app-dropdown-menu [plain]="true">
-        <button type="button" class="model" disabled>
-          Model: {{ kind().label }} Is Selected
-          <small>{{ kind().description }}</small>
-        </button>
-        @for (each of otherModels(); track each.id) {
-          <button type="button" class="model" (click)="pick(each)">
-            Model: Switch to {{ each.label }}
-            <small>{{ each.description }}</small>
-          </button>
-        }
-        @if (sources().length > 0) {
-          <hr />
-          @for (source of sources(); track source.id) {
-            <button type="button" (click)="copyFrom(source)">
-              Copy Shared Hyperparameters From {{ source.label }}
-            </button>
-          }
-        }
-        <hr />
         <button type="button" (click)="void copy()">Copy Hyperparameter Values</button>
         <button type="button" [disabled]="!tuned()" (click)="reset()">
           Back to Default Settings
@@ -108,6 +92,60 @@ function keysOf(kind: BreakModelKind): string[] {
       [hidden]="tab() !== runsTab"
     >
       <ng-content />
+    </div>
+    <div
+      class="pane model-pane"
+      role="tabpanel"
+      id="pane-Model"
+      aria-labelledby="pane-tab-Model"
+      [hidden]="tab() !== modelTab"
+    >
+      <div class="field">
+        <span id="model-label">Break model</span>
+        <button
+          type="button"
+          class="frosted pill picker"
+          aria-haspopup="true"
+          aria-labelledby="model-label model-name"
+          [attr.popovertarget]="modelMenu.id"
+        >
+          <span id="model-name">{{ kind().label }}</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+        <app-dropdown-menu #modelMenu label="Break model" [button]="false">
+          @for (each of models; track each.id) {
+            <button type="button" class="model" [disabled]="each === kind()" (click)="pick(each)">
+              {{ each.label }}{{ each === kind() ? ' Is Selected' : '' }}
+              <small>{{ each.description }}</small>
+            </button>
+          }
+        </app-dropdown-menu>
+      </div>
+      @if (sources().length > 0) {
+        <div class="field">
+          <span id="import-label">Import shared hyperparameters from</span>
+          <button
+            type="button"
+            class="frosted pill picker"
+            aria-haspopup="true"
+            aria-labelledby="import-label import-name"
+            [attr.popovertarget]="importMenu.id"
+          >
+            <span id="import-name">Choose a Model</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+          </button>
+          <app-dropdown-menu
+            #importMenu
+            label="Import shared hyperparameters from"
+            [button]="false"
+          >
+            @for (source of sources(); track source.id) {
+              <button type="button" (click)="importAll(source)">{{ source.label }}</button>
+            }
+          </app-dropdown-menu>
+        </div>
+      }
+      <ng-content select="[modelAction]" />
     </div>
     @for (settingTab of kind().tabs; track settingTab.name) {
       <div
@@ -147,25 +185,26 @@ function keysOf(kind: BreakModelKind): string[] {
                       <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
                     </svg>
                   </button>
-                  @if (copySources().get(control.key); as others) {
+                  @if (importSources().get(control.key); as others) {
                     <button
                       type="button"
                       class="round"
-                      [title]="'Copy the ' + name(control).toLowerCase() + ' from another model'"
-                      [attr.popovertarget]="copyMenu.id"
+                      [title]="'Import the ' + name(control).toLowerCase() + ' from another model'"
+                      [attr.popovertarget]="importMenu.id"
                     >
                       <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <rect x="9" y="9" width="11" height="11" rx="2" />
-                        <path d="M15 5V4a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1" />
+                        <path d="M12 4v11" />
+                        <path d="m7 10 5 5 5-5" />
+                        <path d="M5 20h14" />
                       </svg>
                     </button>
                     <app-dropdown-menu
-                      #copyMenu
-                      [label]="'Copy the ' + name(control).toLowerCase()"
+                      #importMenu
+                      [label]="'Import the ' + name(control).toLowerCase()"
                       [button]="false"
                     >
                       @for (source of others; track source.id) {
-                        <button type="button" (click)="copyFrom(source, [control.key])">
+                        <button type="button" (click)="importFrom(source, [control.key])">
                           From {{ source.label }}
                         </button>
                       }
@@ -324,6 +363,25 @@ function keysOf(kind: BreakModelKind): string[] {
       display: grid;
     }
 
+    /* The break model picked, what it does, and what copies or fits its values. */
+    .model-pane {
+      display: grid;
+      align-content: start;
+      gap: var(--space-3);
+      padding: var(--space-2) var(--space-1);
+    }
+
+    .field {
+      display: grid;
+      gap: 0.375rem;
+      font-weight: 500;
+      text-shadow: var(--text-shadow);
+    }
+
+    .field .picker {
+      justify-self: start;
+    }
+
     /* The one picked, readable but set apart. */
     .model:disabled {
       opacity: 0.75;
@@ -372,16 +430,14 @@ export class GroupingSettingsPanel {
   readonly told = output<string>();
 
   protected readonly runsTab = RUNS_TAB;
+  protected readonly modelTab = MODEL_TAB;
+  protected readonly models = BREAK_MODELS;
   protected readonly rowsOf = rowsOf;
   protected readonly name = nameOf;
   /** The keys of the hyperparameters of the break model picked that fitting it leaves where they are. */
   protected readonly pinned = computed(() => this.tweaks.pinsOf(this.kind()));
-  /** The break models to switch to: all but the one picked. */
-  protected readonly otherModels = computed(() =>
-    BREAK_MODELS.filter((each) => each !== this.kind()),
-  );
   protected readonly tabs = computed((): readonly Segment<string>[] =>
-    [RUNS_TAB, ...this.kind().tabs.map(({ name }) => name)].map((name) => ({
+    [RUNS_TAB, MODEL_TAB, ...this.kind().tabs.map(({ name }) => name)].map((name) => ({
       value: name,
       label: name,
     })),
@@ -409,10 +465,10 @@ export class GroupingSettingsPanel {
       return source === this.kind() || keys.length === 0 ? [] : [{ source, keys }];
     });
   });
-  /** The other break models that share hyperparameters with the one picked, to copy their values from. */
+  /** The other break models that share hyperparameters with the one picked, to import their values from. */
   protected readonly sources = computed(() => this.shared().map(({ source }) => source));
-  /** For each hyperparameter another model has too, the models to copy its value from. */
-  protected readonly copySources = computed(() => {
+  /** For each hyperparameter another model has too, the models to import its value from. */
+  protected readonly importSources = computed(() => {
     const sources = new Map<string, BreakModelKind[]>();
     for (const { source, keys } of this.shared()) {
       for (const key of keys) {
@@ -456,11 +512,17 @@ export class GroupingSettingsPanel {
     this.applyAll({ [control.key]: value });
   }
 
+  /** Imports the values of all the hyperparameters another model shares with the one picked, and says so. */
+  protected importAll(source: BreakModelKind): void {
+    this.importFrom(source);
+    this.told.emit(`Imported the shared hyperparameters from ${source.label}.`);
+  }
+
   /**
-   * Copies the values of the hyperparameters with these keys from another model, tuned or not, or of all those it shares
-   * with the one picked.
+   * Imports the values of the hyperparameters with these keys from another model, tuned or not, or of all those it
+   * shares with the one picked.
    */
-  protected copyFrom(source: BreakModelKind, keys?: readonly string[]): void {
+  protected importFrom(source: BreakModelKind, keys?: readonly string[]): void {
     const values = { ...source.defaults, ...this.tweaks.values().grouping?.[source.id] };
     const copied = (keys ?? keysOf(this.kind())).flatMap((key) => {
       const value = values[key];
