@@ -14,6 +14,7 @@ import { VENUS } from '../game/grouping/break-models/venus';
 import { DeveloperMode } from './developer-mode';
 import { parseTweaks, SEASON_STARTS, Tweaks, TWEAKS, TWEAKS_FORMAT, tweaksBackup } from './tweaks';
 import { readBackup } from '../player-data/backup';
+import { LAYOUT } from '../ui/layout';
 import { PLAY_WITH_MERCURY } from '../../testing/game-break-model';
 
 describe('Tweaks', () => {
@@ -191,6 +192,21 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({ runOrder });
 
     await TestBed.inject(Tweaks).setRunOrder(undefined);
+    expect((await load()).values()).toEqual({});
+  });
+
+  it('moves things on the screens only while developer mode is on, and keeps them there until undone', async () => {
+    const tweaks = await load();
+    const layout = { ...LAYOUT, keypad: { height: 40, width: 90 } };
+    expect(tweaks.layout()).toEqual(LAYOUT);
+
+    await tweaks.setLayout(layout);
+    expect(tweaks.layout()).toEqual(LAYOUT);
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.layout()).toEqual(layout);
+    expect((await load()).values()).toEqual({ layout });
+
+    await TestBed.inject(Tweaks).setLayout(undefined);
     expect((await load()).values()).toEqual({});
   });
 

@@ -29,6 +29,7 @@ import { backgroundsFrom, seasonAt } from '../../game/layers/seasons';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
+import { LAYOUT } from '../../ui/layout';
 import { Play } from './play';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 
@@ -170,6 +171,14 @@ describe('Play', () => {
         key.textContent.trim(),
       ).slice(0, 3),
     ).toEqual(['1', '2', '3']);
+  });
+
+  it('lays the screen out as tuned in developer mode', async () => {
+    await TestBed.inject(Tweaks).setLayout({ ...LAYOUT, keypad: { height: 40, width: 90 } });
+    await TestBed.inject(DeveloperMode).set(true);
+    const { host } = await setUp();
+
+    expect(host.style.getPropertyValue('--keypad-height')).toBe('calc(40 * var(--unit))');
   });
 
   it('starts with the "π=3." lead, no words and 5 empty slots', async () => {

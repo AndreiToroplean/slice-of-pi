@@ -1,22 +1,24 @@
-/* One row grows up to 10 slots, then a new row starts below it. */
+/*
+ * One row grows up to 10 slots, then a new row starts below it. The slots scale with their height (see `layout.ts`),
+ * smaller ones three quarters as tall.
+ */
 :host {
   display: grid;
   grid-template-columns: repeat(var(--columns), auto);
   gap: 0.375rem 0.25rem;
   justify-content: center;
   align-content: center;
-  min-height: 3.625rem;
   font-family: var(--font-digits);
   font-weight: 600;
 }
 
 .slot {
-  width: 2.625rem;
-  height: 3.5rem;
-  border-radius: var(--radius-slot);
+  width: calc(var(--slots-height) * 0.75);
+  height: var(--slots-height);
+  border-radius: calc(var(--slots-height) * 0.25);
   display: grid;
   place-items: center;
-  font-size: 2.125rem;
+  font-size: calc(var(--slots-height) * 0.6);
   background: var(--frost-slot);
   box-shadow: inset 0 0 0 1.5px var(--frost-highlight);
   -webkit-backdrop-filter: blur(8px);
@@ -24,10 +26,10 @@
 }
 
 :host(.dense) .slot {
-  width: 1.6875rem;
-  height: 2.625rem;
-  border-radius: var(--radius-slot-dense);
-  font-size: 1.5rem;
+  width: calc(var(--slots-height) * 0.48);
+  height: calc(var(--slots-height) * 0.75);
+  border-radius: calc(var(--slots-height) * 0.16);
+  font-size: calc(var(--slots-height) * 0.43);
 }
 
 .slot.next {

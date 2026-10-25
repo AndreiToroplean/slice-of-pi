@@ -23,6 +23,7 @@ import {
   GAME_BREAK_MODEL,
 } from '../game/grouping/break-models/break-models';
 import { DeveloperMode } from './developer-mode';
+import { Layout, LAYOUT, parseLayout } from '../ui/layout';
 
 /** The name of the tweaks setting in the store. */
 export const TWEAKS = 'tweaks';
@@ -62,6 +63,8 @@ export interface TweakValues {
   readonly includeUnchecked?: true;
   /** The order the game takes the runs in, and the line it plays from among them (see {@link RunOrder}). */
   readonly runOrder?: RunOrder;
+  /** Where things sit on the screens, for {@link LAYOUT}. */
+  readonly layout?: Layout;
 }
 
 /** The game's own starting colors of each season. */
@@ -142,6 +145,11 @@ export class Tweaks {
   /** The order the game takes the runs in, and the line it plays from among them, unless it's the order they were played in. */
   readonly runOrder = computed(() =>
     this.developerMode.enabled() ? this.tweaks().runOrder : undefined,
+  );
+
+  /** Where things sit on the screens. */
+  readonly layout = computed(
+    (): Layout => (this.developerMode.enabled() ? this.tweaks().layout : undefined) ?? LAYOUT,
   );
 
   constructor() {
@@ -238,6 +246,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), runOrder }));
   }
 
+  /** Moves things on the screens; `undefined` brings back the game's layout. */
+  setLayout(layout: Layout | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), layout }));
+  }
+
   private async save(next: TweakValues): Promise<void> {
     this.changed = true;
     this.tweaks.set(next);
@@ -271,6 +284,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     countdown,
     includeUnchecked,
     runOrder,
+    layout,
   } = migrate(stored, TWEAKS_MIGRATIONS);
   if (format !== TWEAKS_FORMAT) {
     return {};
@@ -287,6 +301,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     countdown: countdown === false ? countdown : undefined,
     includeUnchecked: includeUnchecked === true ? includeUnchecked : undefined,
     runOrder: runOrderOf(runOrder),
+    layout: parseLayout(layout),
   });
 }
 
@@ -303,6 +318,7 @@ function tweakValues({
   countdown,
   includeUnchecked,
   runOrder,
+  layout,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -318,6 +334,7 @@ function tweakValues({
     ...(countdown === undefined ? {} : { countdown }),
     ...(includeUnchecked === undefined ? {} : { includeUnchecked }),
     ...(runOrder === undefined ? {} : { runOrder }),
+    ...(layout === undefined ? {} : { layout }),
   };
 }
 
