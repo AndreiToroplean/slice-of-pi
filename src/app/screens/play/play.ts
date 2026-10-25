@@ -7,6 +7,7 @@ import {
   ElementRef,
   inject,
   Injector,
+  input,
   signal,
   viewChild,
 } from '@angular/core';
@@ -15,15 +16,17 @@ import { BreakCountdown } from './break-countdown';
 import { waitToEnd } from '../../game/grouping/wait-to-end';
 import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from './flight/flight';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
-import { Keypad } from './keypad/keypad';
+import { Keypad, KeypadMark } from './keypad/keypad';
 import { keyColors, placeColors } from '../../game/layers/place-colors';
 import { Pause } from './pause/pause';
 import { isPiDecimal } from '../../game/pi/pi';
 import { groupRuns, Run } from '../../player-data/run';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
-import { RunRecorder } from '../../player-data/run-recorder';
+import { RUN_CLOCK, RunRecorder } from '../../player-data/run-recorder';
+import { LiveRun, RunSession } from '../../player-data/live-run';
+import { newTouchLog, TouchLog } from '../../player-data/touch-log';
 import { RunStore } from '../../player-data/run-store';
-import { KeypadTouch } from '../../game/layers/keypad-layout';
+import { KeypadKey, KeypadTouch } from '../../game/layers/keypad-layout';
 import { SeasonHeader } from './season-header/season-header';
 import { seasonAt } from '../../game/layers/seasons';
 import { Tweaks } from '../../developer-mode/tweaks';
@@ -44,11 +47,20 @@ import { TIMER } from './timer';
  * when the group being typed ends, unless its settings hide that. Pausing offers to restart the game
  * or end it, back to the main menu. Every touch on the keypad, and every key typed, is recorded, with where and when, in
  * the run's touch log; restarting or ending the game ends the run.
+ *
+ * It also replays a run, given its touch log: the player can't type, nor pause, and nothing is recorded. Whatever
+ * replays it hands it the touches one after the other, on the run's own clock (`TIMER` and `RUN_CLOCK`), and resets it
+ * to replay them again from the start; the game plays them as it did, on the earlier runs, the run's keypad layout and
+ * whether it checked digits.
  */
 @Component({
   selector: 'app-play',
   imports: [BreakCountdown, Keypad, Pause, SeasonHeader, Slots, TypedDigits],
-  host: { class: 'screen' },
+  // Replaying, within the replay's screen, which is the one that comes and goes.
+  host: {
+    '[class.screen]': 'replay() === undefined',
+    '[class.replaying]': 'replay() !== undefined',
+  },
   template: `
     <h1 class="visually-hidden">Slice of Pi</h1>
     <app-season-header [view]="season()" />
@@ -70,6 +82,9 @@ import { TIMER } from './timer';
       [layout]="keypadLayout()"
       [colors]="keyColors()"
       [showAreas]="showTouchAreas()"
+      [disabled]="replay() !== undefined"
+      [shown]="shownKey()"
+      [marks]="marks()"
       (touched)="press($event)"
     >
       @let wait = breakWait();
@@ -77,11 +92,22 @@ import { TIMER } from './timer';
         <app-break-countdown [wait]="wait" />
       }
     </app-keypad>
-    <app-pause [(paused)]="paused" [(showTouchAreas)]="showTouchAreas" (restart)="restart()" />
+    @if (replay() === undefined) {
+      <app-pause [(paused)]="paused" [(showTouchAreas)]="showTouchAreas" (restart)="restart()" />
+    }
   `,
   styleUrl: './play.css',
 })
 export class Play {
+  /** The touch log of a run to replay, if replaying one rather than playing. */
+  readonly replay = input<TouchLog>();
+  /** Replaying a run, the key of the touch replayed to show pressed, if any. */
+  readonly shownKey = input<KeypadKey>();
+  /** Replaying a run, the touches to mark on the keypad. */
+  readonly marks = input<readonly KeypadMark[]>([]);
+  /** Whether slots don't fly into their words, as while a replay skips ahead. */
+  quiet = false;
+
   /** The decimals typed so far: one character per digit, so even a very long sequence takes little memory. */
   protected readonly digits = signal('');
   /**
@@ -99,8 +125,16 @@ export class Play {
   protected readonly showTouchAreas = signal(false);
 
   private readonly recorder = inject(RunRecorder);
-  /** The keypad layout the player picked. */
-  protected readonly keypadLayout = inject(KeypadLayoutSetting).layout;
+  private readonly clock = inject(RUN_CLOCK);
+  /** The run replayed so far, if replaying one. */
+  private replayed: LiveRun | undefined;
+  private readonly layoutSetting = inject(KeypadLayoutSetting).layout;
+  /** The keypad layout the player picked, or the one of the run replayed. */
+  protected readonly keypadLayout = computed(
+    () => this.replay()?.keypadLayout ?? this.layoutSetting(),
+  );
+  /** Whether digits are checked against π, as they are unless developer mode turns that off, or were in the run replayed. */
+  private readonly checking = computed(() => this.replay()?.checked ?? this.tweaks.checking());
   /**
    * How long after the last digit the group being typed ends, in milliseconds, while the player may still pause:
    * `Infinity` if no pause up to the longest wait looked at ends it.
@@ -125,7 +159,7 @@ export class Play {
   /** How the group being typed is played. */
   private readonly plan = computed(() =>
     this.gameplay().groupAt(
-      this.recorder.run()?.times ?? [],
+      this.session.run()?.times ?? [],
       this.digits().length - this.grouping().current.length,
     ),
   );
@@ -157,6 +191,7 @@ export class Play {
   private readonly injector = inject(Injector);
   private readonly timer = inject(TIMER);
   private readonly typedDigits = viewChild.required(TypedDigits);
+  private readonly keypad = viewChild.required(Keypad);
   /** Slots flying into their word. */
   private flights: Animation[] = [];
   /** Stops waiting for the player's pause to end the group. */
@@ -166,15 +201,21 @@ export class Play {
     // Ending the game, back to the main menu, ends the run.
     inject(DestroyRef).onDestroy(() => {
       this.stopWatching();
-      this.recorder.end();
+      this.session.end();
     });
     void inject(RunStore)
       .runs()
       .then((runs) => {
-        // Leaving out the run being played, already saved if a key came first, and those already added on restarts.
+        // Leaving out the run being played, already saved if a key came first, and those already added on restarts;
+        // replaying a run, those played after it.
         const playing = this.recorder.run()?.id;
+        const replayed = this.replay();
         this.earlierRuns.update((added) => [
-          ...runs.filter((run) => run.id !== playing && !added.some(({ id }) => id === run.id)),
+          ...runs.filter((run) =>
+            replayed === undefined
+              ? run.id !== playing && !added.some(({ id }) => id === run.id)
+              : run.startedAt < replayed.startedAt,
+          ),
           ...added,
         ]);
       });
@@ -184,11 +225,34 @@ export class Play {
     });
   }
 
+  /** What the run is recorded in: the recorder, or, replaying a run, the run replayed so far, never saved. */
+  private get session(): RunSession {
+    const log = this.replay();
+    if (log === undefined) {
+      return this.recorder;
+    }
+    this.replayed ??= new LiveRun(
+      () => this.clock.now(),
+      () => newTouchLog(log.id, log.startedAt, log.checked, log.keypadLayout),
+    );
+    return this.replayed;
+  }
+
   protected press(touch: KeypadTouch): void {
-    if (this.paused()) {
+    if (this.paused() || this.replay() !== undefined) {
       return;
     }
-    this.recorder.record(touch);
+    this.play(touch);
+  }
+
+  /** Plays a touch of the run replayed, its key, if any, filled with the color its digit takes now. */
+  replayTouch(touch: KeypadTouch): void {
+    this.keypad().noteColor(touch.key);
+    this.play(touch);
+  }
+
+  private play(touch: KeypadTouch): void {
+    this.session.record(touch);
     const key = touch.key;
     if (key === null) {
       return;
@@ -207,11 +271,7 @@ export class Play {
       }
       return;
     }
-    if (
-      key !== 'backspace' &&
-      this.tweaks.checking() &&
-      !isPiDecimal(this.digits().length + 1, key)
-    ) {
+    if (key !== 'backspace' && this.checking() && !isPiDecimal(this.digits().length + 1, key)) {
       // A group never finishes on a mistake.
       this.stopWatching();
       this.mistakes.set(key);
@@ -245,18 +305,23 @@ export class Play {
     this.watchForPause(this.sizes().length === words);
   }
 
-  /** Starts a new game: no digits typed, back to the first spring. */
+  /** Starts a new game: no digits typed, back to the first spring, the run ended counting as an earlier one. */
   protected restart(): void {
+    const ended = this.session.run();
+    this.reset();
+    if (ended !== undefined) {
+      this.earlierRuns.update((runs) => [...runs, ended]);
+    }
+  }
+
+  /** Back to the start, as if nothing had been typed, ending the run, such as to replay a run from its start. */
+  reset(): void {
     this.stopWatching();
     this.landFlights();
     this.digits.set('');
     this.mistakes.set('');
     this.sizes.set([]);
-    const ended = this.recorder.run();
-    this.recorder.end();
-    if (ended !== undefined) {
-      this.earlierRuns.update((runs) => [...runs, ended]);
-    }
+    this.session.end();
   }
 
   /**
@@ -274,7 +339,7 @@ export class Play {
     const trusted = this.plan().trusted;
     const start = this.digits().length - this.grouping().current.length;
     const wait = waitToEnd((waited) => this.endsAfter(waited, start, trusted));
-    const left = wait - this.recorder.waited();
+    const left = wait - this.session.waited();
     if (left <= 0) {
       this.finishGroup(flyNow);
       return;
@@ -298,7 +363,7 @@ export class Play {
    * digit, were it typed `wait` milliseconds after the last one.
    */
   private endsAfter(wait: number, start: number, trusted: boolean): boolean {
-    const times = this.recorder.run()?.times ?? [];
+    const times = this.session.run()?.times ?? [];
     const last = times.at(-1);
     return last !== undefined && this.gameplay().groupEnds([...times, last + wait], start, trusted);
   }
@@ -334,7 +399,7 @@ export class Play {
 
   /** Snapshots of the slots a group about to close fills, unless flights are off. */
   private slotsToFly(length: number): ReturnType<typeof snapshotSlot>[] {
-    if (!canFly(this.host)) {
+    if (this.quiet || !canFly(this.host)) {
       return [];
     }
     return Array.from(this.host.querySelectorAll('app-slots .slot'))

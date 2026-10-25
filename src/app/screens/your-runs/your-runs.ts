@@ -13,6 +13,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { Carousel } from '../../ui/carousel';
+import { Router } from '@angular/router';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
@@ -47,9 +48,9 @@ import { Segment, Segmented } from '../../ui/segmented';
  * runs, in two perspectives: along the places, over the runs, or across the runs at the place picked by tapping a chart
  * of the first. Tabs beside the runs hold sliders for the hyperparameters of the break model, so they can be tuned in
  * view of the chart of them all, and never moved by scrolling, and a dialog fits them to the player's own groups. A
- * long press on a run opens its context menu, to delete it or, in developer mode, play from after it, as if the runs
- * after it had never been played, until undone; one on all runs, in developer mode, to play from before them all, as if
- * none had been played.
+ * long press on a run opens its context menu, to watch its replay, delete it, or, in developer mode, play from after
+ * it, as if the runs after it had never been played, until undone; one on all runs, in developer mode, to play from
+ * before them all, as if none had been played.
  */
 @Component({
   selector: 'app-your-runs',
@@ -215,6 +216,7 @@ import { Segment, Segmented } from '../../ui/segmented';
       <!-- A run's context menu, opened by a long press on it, or on all runs to play from before them. -->
       <app-dropdown-menu label="Run" [button]="false">
         @if (picked() !== ALL) {
+          <button type="button" (click)="watchPicked()">Watch Replay</button>
           <button type="button" (click)="void deletePicked()">Delete Run</button>
         }
         @if (developerMode()) {
@@ -562,6 +564,7 @@ export class YourRuns {
   private readonly injector = inject(Injector);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly store = inject(RunStore);
+  private readonly router = inject(Router);
   private readonly recorder = inject(RunRecorder);
   private readonly confirm = inject(CONFIRM);
   private readonly myGroupings = inject(MyGroupings);
@@ -618,6 +621,11 @@ export class YourRuns {
   protected pick(id: string, at: { readonly x: number; readonly y: number }): void {
     this.picked.set(id);
     this.runMenu().openAt(at);
+  }
+
+  /** Opens the replay of the run picked. */
+  protected watchPicked(): void {
+    void this.router.navigate(['/runs', this.picked(), 'replay']);
   }
 
   /**

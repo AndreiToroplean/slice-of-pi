@@ -432,6 +432,57 @@ describe('Keypad', () => {
     });
   });
 
+  describe('replaying', () => {
+    function set(name: string, value: unknown): void {
+      fixture.componentRef.setInput(name, value);
+      fixture.detectChanges();
+    }
+
+    it('takes no touches nor keys when disabled', () => {
+      set('disabled', true);
+
+      tap('5');
+      keyboard('keydown', { key: '3' });
+      button('7').dispatchEvent(new MouseEvent('click', { detail: 0 }));
+
+      expect(touches).toEqual([]);
+      expect(pressedKeys()).toEqual([]);
+    });
+
+    it('shows the key it is told to pressed, filled with the color noted for it', () => {
+      const color = button('4').style.getPropertyValue('--press-color');
+      fixture.componentInstance.noteColor('4');
+      fixture.componentRef.setInput('colors', keyColors('14'));
+
+      set('shown', '4');
+
+      expect(pressedKeys()).toEqual(['4']);
+      expect(button('4').style.getPropertyValue('--press-color')).toBe(color);
+      set('shown', undefined);
+      expect(pressedKeys()).toEqual([]);
+    });
+
+    it('marks touches where they were, fading away, those typing nothing as rings', () => {
+      set('marks', [
+        { id: 0, typed: true, x: -1, y: 0.25, faded: 0.5 },
+        { id: 1, typed: false, x: 1.5, y: 2, faded: 0 },
+      ]);
+
+      const marks = Array.from(host.querySelectorAll<HTMLElement>('.mark'));
+      expect(
+        marks.map((mark) => [
+          mark.style.getPropertyValue('--x'),
+          mark.style.getPropertyValue('--y'),
+          mark.style.opacity,
+          mark.classList.contains('missed'),
+        ]),
+      ).toEqual([
+        ['-1', '0.25', '0.5', false],
+        ['1.5', '2', '1', true],
+      ]);
+    });
+  });
+
   describe('holding a key', () => {
     it('does not repeat a key held for less than the repeat delay', () => {
       down('backspace');

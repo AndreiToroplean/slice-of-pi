@@ -17,6 +17,10 @@ export const routes: Routes = [
     loadComponent: () => import('./screens/your-runs/your-runs').then((m) => m.YourRuns),
   },
   {
+    path: 'runs/:id/replay',
+    loadComponent: () => import('./screens/replay/replay').then((m) => m.Replay),
+  },
+  {
     path: 'data',
     loadComponent: () => import('./screens/your-data/data').then((m) => m.Data),
   },
