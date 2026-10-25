@@ -153,17 +153,17 @@ export class Tweaks {
   );
 
   constructor() {
-    this.loaded = this.store.setting(TWEAKS).then((stored) => {
+    this.loaded = this.store.setting(TWEAKS).then(async (stored) => {
       // Unless they were changed in the meantime.
       if (!this.changed) {
-        this.tweaks.set(parseTweaks(stored));
+        await this.adopt(stored);
       }
     });
   }
 
   /** Reads the stored setting again, once something else changed it, such as restoring a backup. */
   async reload(): Promise<void> {
-    this.tweaks.set(parseTweaks(await this.store.setting(TWEAKS)));
+    await this.adopt(await this.store.setting(TWEAKS));
   }
 
   /** Tunes the key colors; `undefined` brings back the game's. */
@@ -178,8 +178,7 @@ export class Tweaks {
 
   /** Picks the break model the groups come from, with the hyperparameters tuned for it, if any. */
   setBreakModel(kind: BreakModelKind): Promise<void> {
-    const breakModel = kind === this.gameBreakModel ? undefined : kind.id;
-    return this.save(tweakValues({ ...this.tweaks(), breakModel }));
+    return this.save(tweakValues({ ...this.tweaks(), breakModel: kind.id }));
   }
 
   /** Tunes the hyperparameters of the break model picked; `undefined` brings back its defaults. The others keep theirs. */
@@ -251,7 +250,18 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), layout }));
   }
 
-  private async save(next: TweakValues): Promise<void> {
+  /** Takes the tweaks of a stored setting, storing them again without those the game's own values have caught up with. */
+  private async adopt(stored: unknown): Promise<void> {
+    const parsed = parseTweaks(stored);
+    if (equal(withoutDefaults(parsed, this.gameBreakModel), parsed)) {
+      this.tweaks.set(parsed);
+    } else {
+      await this.save(parsed);
+    }
+  }
+
+  private async save(values: TweakValues): Promise<void> {
+    const next = withoutDefaults(values, this.gameBreakModel);
     this.changed = true;
     this.tweaks.set(next);
     await this.store.saveSetting(TWEAKS, { format: TWEAKS_FORMAT, ...next });
@@ -303,6 +313,45 @@ export function parseTweaks(stored: unknown): TweakValues {
     runOrder: runOrderOf(runOrder),
     layout: parseLayout(layout),
   });
+}
+
+/**
+ * Tweaks, leaving out those at the game's own values, whether tuned back to them or since met by them: as tweaks, they'd
+ * only keep the game's values from applying once those change.
+ */
+export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelKind): TweakValues {
+  const { palette, seasons, breakModel, grouping, colorSpace, seasonTurn, layout } = values;
+  const tuned = Object.entries(grouping ?? {}).filter(([id, settings]) => {
+    const defaults = breakModelKindById(id)?.defaults;
+    return (
+      defaults === undefined || Object.keys(defaults).some((key) => settings[key] !== defaults[key])
+    );
+  });
+  return tweakValues({
+    ...values,
+    palette: equal(palette, PALETTE) ? undefined : palette,
+    seasons: equal(seasons, SEASON_STARTS) ? undefined : seasons,
+    breakModel: breakModel === gameBreakModel.id ? undefined : breakModel,
+    grouping: tuned.length === 0 ? undefined : Object.fromEntries(tuned),
+    colorSpace: colorSpace === SEASON_COLOR_SPACE ? undefined : colorSpace,
+    seasonTurn: seasonTurn === SEASON_TURN ? undefined : seasonTurn,
+    layout: equal(layout, LAYOUT) ? undefined : layout,
+  });
+}
+
+/** Whether two values, as read from JSON, are the same, whatever the order of their keys. */
+function equal(a: unknown, b: unknown): boolean {
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
+    return a === b;
+  }
+  const keys = Object.keys(a);
+  return (
+    Array.isArray(a) === Array.isArray(b) &&
+    keys.length === Object.keys(b).length &&
+    keys.every((key) =>
+      equal((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]),
+    )
+  );
 }
 
 /** Tweaks, leaving out those that are `undefined`. */

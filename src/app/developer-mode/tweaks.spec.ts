@@ -86,6 +86,52 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({ seasons });
   });
 
+  it('drops each value tuned back to the game’s own', async () => {
+    const tweaks = await load();
+    await tweaks.setPalette(palette);
+    await tweaks.setSeasons(seasons);
+    await tweaks.setGrouping(grouping);
+    await tweaks.setBreakModel(VENUS);
+    await tweaks.setColorSpace('hsl');
+    await tweaks.setSeasonTurn(1);
+    await tweaks.setLayout({ ...LAYOUT, keypad: { height: 30, width: 90 } });
+
+    await tweaks.setPalette([...PALETTE]);
+    await tweaks.setSeasons({ ...SEASON_STARTS });
+    await tweaks.setBreakModel(MERCURY);
+    await tweaks.setGrouping({ ...MERCURY_DEFAULTS });
+    await tweaks.setColorSpace(SEASON_COLOR_SPACE);
+    await tweaks.setSeasonTurn(SEASON_TURN);
+    await tweaks.setLayout({ ...LAYOUT, keypad: { ...LAYOUT.keypad } });
+
+    expect(tweaks.values()).toEqual({});
+    expect((await load()).values()).toEqual({});
+  });
+
+  it('drops the stored values the game’s own have caught up with, keeping the others', async () => {
+    await (await load()).setPalette(palette);
+    await TestBed.inject(RunStore).saveSetting(TWEAKS, {
+      format: TWEAKS_FORMAT,
+      palette: [...PALETTE],
+      // In another order than the game's.
+      seasons: Object.fromEntries(Object.entries(SEASON_STARTS).reverse()),
+      grouping: { mercury: MERCURY_DEFAULTS, venus: { ...VENUS.defaults, recencyDecay: 0.95 } },
+      colorSpace: 'hsl',
+    });
+
+    const tweaks = await load();
+
+    const tuned = {
+      grouping: { venus: { ...VENUS.defaults, recencyDecay: 0.95 } },
+      colorSpace: 'hsl',
+    };
+    expect(tweaks.values()).toEqual(tuned);
+    expect(await TestBed.inject(RunStore).setting(TWEAKS)).toEqual({
+      format: TWEAKS_FORMAT,
+      ...tuned,
+    });
+  });
+
   it('keeps a change made before the stored tweaks were read', async () => {
     await (await load()).setPalette(palette);
     TestBed.resetTestingModule();

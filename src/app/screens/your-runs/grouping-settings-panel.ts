@@ -490,10 +490,7 @@ export class GroupingSettingsPanel {
   }
 
   private applyAll(values: Settings): void {
-    const settings = { ...this.settings(), ...values };
-    const { defaults } = this.kind();
-    const tuned = Object.keys(defaults).some((key) => settings[key] !== defaults[key]);
-    void this.tweaks.setGrouping(tuned ? settings : undefined);
+    void this.tweaks.setGrouping({ ...this.settings(), ...values });
   }
 
   protected showHelp(control: Hyperparameter): void {

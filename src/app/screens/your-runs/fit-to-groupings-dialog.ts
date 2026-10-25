@@ -3,7 +3,7 @@ import { Tweaks } from '../../developer-mode/tweaks';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import type { Plot } from './views/plot';
 import { PlotChart } from './views/plot-chart';
-import type { BreakModelKind, Settings } from '../../game/grouping/break-models/break-model';
+import type { BreakModelKind } from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import {
   fitToGroupings,
@@ -424,7 +424,7 @@ export class FitToGroupingsDialog {
     if (abort.signal.aborted || !ready) {
       return;
     }
-    await this.tweaks.setGrouping(tunedOnly(kind, best.settings));
+    await this.tweaks.setGrouping(best.settings);
     this.fittedFor.set({ kind, text });
     await this.drawCurve();
   }
@@ -465,13 +465,6 @@ function breather(): () => Promise<void> {
       paused = performance.now();
     }
   };
-}
-
-/** The settings, or `undefined` if they're all the model's defaults. */
-function tunedOnly(kind: BreakModelKind, settings: Settings): Settings | undefined {
-  return Object.keys(kind.defaults).some((key) => settings[key] !== kind.defaults[key])
-    ? settings
-    : undefined;
 }
 
 /**
