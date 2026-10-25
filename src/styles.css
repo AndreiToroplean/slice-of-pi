@@ -553,7 +553,7 @@ html:active-view-transition-type(zoom-out) {
   width: 1.125rem;
   height: 1.125rem;
   margin: 0;
-  accent-color: var(--candy-primary);
+  accent-color: var(--candy);
 }
 
 .dropdown button {

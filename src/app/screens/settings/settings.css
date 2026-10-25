@@ -47,5 +47,5 @@ app-segmented {
   width: 1.375rem;
   height: 1.375rem;
   margin: 0;
-  accent-color: var(--candy-primary);
+  accent-color: var(--candy);
 }
