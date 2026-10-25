@@ -207,3 +207,57 @@ describe('DropdownMenu opened where something was pressed', () => {
     expect(host.chosen).toEqual(['Play']);
   });
 });
+
+@Component({
+  imports: [DropdownMenu],
+  template: `
+    <button type="button" [attr.popovertarget]="menu.id">Speed</button>
+    <app-dropdown-menu #menu label="Speed" [button]="false">
+      <button type="button">×2</button>
+    </app-dropdown-menu>
+  `,
+})
+class ButtonHost {}
+
+describe('DropdownMenu opened from a button elsewhere', () => {
+  beforeEach(installPopovers);
+  afterEach(uninstallPopovers);
+
+  it('opens from the button, and squares its corner pointing at it', async () => {
+    const fixture = TestBed.createComponent(ButtonHost);
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+    const open = host.querySelector<HTMLButtonElement>('button[popovertarget]');
+    const dropdown = host.querySelector<HTMLElement>('.dropdown');
+    if (open === null || dropdown === null) {
+      throw new Error('No menu');
+    }
+    // Above the button, at the bottom of the screen, and to its right.
+    vi.spyOn(open, 'getBoundingClientRect').mockReturnValue(new DOMRect(100, 700, 80, 40));
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue(new DOMRect(100, 500, 160, 194));
+
+    open.click();
+
+    expect(dropdown.hasAttribute('data-popover-open')).toBe(true);
+    expect(dropdown.style.getPropertyValue('position-anchor')).toBe('');
+    expect(dropdown.dataset['corner']).toBe('bottom-left');
+  });
+
+  it('squares the corner nearer the button when too wide to line up with it', async () => {
+    const fixture = TestBed.createComponent(ButtonHost);
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+    const open = host.querySelector<HTMLButtonElement>('button[popovertarget]');
+    const dropdown = host.querySelector<HTMLElement>('.dropdown');
+    if (open === null || dropdown === null) {
+      throw new Error('No menu');
+    }
+    // A button on the left, under which the menu spans the whole column, from a little left of it.
+    vi.spyOn(open, 'getBoundingClientRect').mockReturnValue(new DOMRect(24, 160, 77, 44));
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue(new DOMRect(18, 210, 348, 416));
+
+    open.click();
+
+    expect(dropdown.dataset['corner']).toBe('top-left');
+  });
+});
