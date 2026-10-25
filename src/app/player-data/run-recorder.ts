@@ -77,6 +77,14 @@ export class RunRecorder implements RunSession {
     this.live.end();
   }
 
+  pause(): void {
+    this.live.pause();
+  }
+
+  resume(): void {
+    this.live.resume();
+  }
+
   /** Resolves once every key recorded so far is saved. */
   async saved(): Promise<void> {
     while (this.writing !== undefined) {

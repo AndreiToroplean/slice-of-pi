@@ -100,7 +100,8 @@ import { TIMER } from './timer';
     </app-keypad>
     @if (replay() === undefined) {
       <app-pause
-        [(paused)]="paused"
+        [paused]="paused()"
+        (pausedChange)="setPaused($event)"
         [(showTouchAreas)]="showTouchAreas"
         [replayable]="recorder.run() !== undefined"
         (restart)="restart()"
@@ -131,7 +132,10 @@ export class Play {
   /** The colors tuned in developer mode, or the game's own, and whether to count down to the end of the group. */
   protected readonly tweaks = inject(Tweaks);
 
-  /** Whether the game is paused: keys typed on a keyboard meanwhile don't count. */
+  /**
+   * Whether the game is paused: keys typed on a keyboard meanwhile don't count, and the run's clock stops, so that the
+   * time paused counts neither as a break nor between digits.
+   */
   protected readonly paused = signal(false);
   /** Whether the keypad shows its touch areas, as developer mode lets the player choose when paused. */
   protected readonly showTouchAreas = signal(false);
@@ -258,6 +262,21 @@ export class Play {
       return;
     }
     this.play(touch);
+  }
+
+  /**
+   * Pauses or resumes the game: the run's clock stops, and so does the wait for the group being typed to end, which
+   * goes on, once resumed, for what was left of it.
+   */
+  protected setPaused(paused: boolean): void {
+    this.paused.set(paused);
+    if (paused) {
+      this.session.pause();
+      this.stopWatching();
+    } else {
+      this.session.resume();
+      this.watchForPause();
+    }
   }
 
   /** Notes a touch landing elsewhere than on the keypad, the pause button and its dialog, which handle their own. */

@@ -13,6 +13,10 @@ export interface RunSession {
   waited(): number;
   /** Ends the current run, as kept so far: the next digit starts a new run. */
   end(): void;
+  /** Stops the run's clock, as while the game is paused, so that the time paused counts for nothing. */
+  pause(): void;
+  /** Starts the run's clock again, from where it stopped. */
+  resume(): void;
 }
 
 /**
@@ -20,7 +24,8 @@ export interface RunSession {
  * {@link replay}).
  *
  * A run starts with the first digit typed, in a touch log `begin` gives, and ends when told to: touches before it aren't
- * kept. Deleting every digit ends the run, as if it had never started, and the next digit starts a new one.
+ * kept. Deleting every digit ends the run, as if it had never started, and the next digit starts a new one. Its clock
+ * stops while paused.
  */
 export class LiveRun implements RunSession {
   /** The touch log of the run being played, from its first digit. */
@@ -33,8 +38,12 @@ export class LiveRun implements RunSession {
     const run = this.replayed()?.run;
     return run?.digits === '' ? undefined : run;
   });
-  /** When the current run's first digit was typed, on the precise clock. */
+  /** When the current run's first digit was typed, on the run's clock. */
   private start = 0;
+  /** How long the clock has been stopped, in milliseconds, over the times it was. */
+  private stopped = 0;
+  /** When the clock stopped, on the precise clock, while it is. */
+  private stoppedAt: number | undefined;
 
   /**
    * @param now A precise time in milliseconds, for the time between digits.
@@ -54,7 +63,7 @@ export class LiveRun implements RunSession {
    * forgotten.
    */
   add(touch: KeypadTouch): TouchLog | undefined {
-    const now = this.now();
+    const now = this.clock();
     let log = this.log();
     if (log === undefined) {
       if (touch.key === null || touch.key === 'backspace') {
@@ -73,10 +82,26 @@ export class LiveRun implements RunSession {
 
   waited(): number {
     const replayed = this.replayed();
-    return this.now() - this.start - (replayed?.rewound ?? 0) - (replayed?.run.times.at(-1) ?? 0);
+    return this.clock() - this.start - (replayed?.rewound ?? 0) - (replayed?.run.times.at(-1) ?? 0);
   }
 
   end(): void {
     this.log.set(undefined);
+  }
+
+  pause(): void {
+    this.stoppedAt ??= this.now();
+  }
+
+  resume(): void {
+    if (this.stoppedAt !== undefined) {
+      this.stopped += this.now() - this.stoppedAt;
+      this.stoppedAt = undefined;
+    }
+  }
+
+  /** The run's clock: the precise clock, less the time it was stopped. */
+  private clock(): number {
+    return (this.stoppedAt ?? this.now()) - this.stopped;
   }
 }
