@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Background } from '../../ui/background';
+import { Candy } from '../../ui/candy';
 import { Page } from '../../ui/page';
 import { Palette, PALETTE } from '../../game/layers/place-colors';
 import { SEASON_NAMES } from '../play/season-header/season-header';
@@ -33,10 +34,17 @@ export const CLOSE = 15;
  */
 @Component({
   selector: 'app-key-colors',
-  imports: [ColorPicker, CopyValues, Page],
+  imports: [Candy, ColorPicker, CopyValues, Page],
   template: `
     <app-page heading="Key Colors">
-      <button pageAction type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
+      <button
+        pageAction
+        type="button"
+        appCandy="danger"
+        class="small"
+        [disabled]="!tuned()"
+        (click)="reset()"
+      >
         Back to Default Settings
       </button>
       <div class="seasons" role="radiogroup" aria-label="Background">
