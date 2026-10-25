@@ -248,26 +248,60 @@ describe('Keypad', () => {
       expect(typed).toEqual(['7', '8']);
     });
 
-    it('does not type a key when the finger slides off it before release', () => {
+    it('still types a key when the finger slides off it, onto the next keys, up to a step beyond its cell', () => {
       down('5');
+      pointer('pointermove', CENTERS['6']);
+      pointer('pointerup', [299, 150]);
+      down('5');
+      pointer('pointermove', CENTERS['1']);
+      pointer('pointerup', [1, 299]);
+      down('5');
+      pointer('pointerup', [150, 1]);
+
+      expect(typed).toEqual(['5', '5', '5']);
+    });
+
+    it('still types a key released off the keypad, near enough to it', () => {
+      down('9');
+      pointer('pointerup', [330, 50]);
+      down('8');
+      pointer('pointerup', [150, -99]);
+
+      expect(typed).toEqual(['9', '8']);
+    });
+
+    it('does not type a key when the finger slides more than a step beyond its cell before release', () => {
+      down('5');
+      pointer('pointermove', [301, 150]);
+      pointer('pointerup', [301, 150]);
+      down('5');
+      pointer('pointermove', CENTERS['0']);
+      up('0');
+
+      expect(typed).toEqual([]);
+    });
+
+    it('does not type a key released more than a step beyond its cell, without sliding there first', () => {
+      down('8');
+      pointer('pointerup', [150, -101]);
+
+      expect(typed).toEqual([]);
+    });
+
+    it('types a key released near it, even after sliding too far off it: only where it is released counts', () => {
+      down('5');
+      pointer('pointermove', CENTERS['0']);
       pointer('pointermove', CENTERS['6']);
       up('6');
 
-      expect(typed).toEqual([]);
+      expect(typed).toEqual(['5']);
     });
 
-    it('does not type a key when the finger slides off and back onto it', () => {
+    it('does not type a key released too far off it, even after coming back near it', () => {
       down('5');
-      pointer('pointermove', CENTERS['6']);
+      pointer('pointermove', CENTERS['0']);
       pointer('pointermove', CENTERS['5']);
-      up('5');
-
-      expect(typed).toEqual([]);
-    });
-
-    it('does not type a key released outside the keypad', () => {
-      down('9');
-      pointer('pointerup', [330, 50]);
+      up('0');
 
       expect(typed).toEqual([]);
     });
@@ -356,7 +390,7 @@ describe('Keypad', () => {
       expect(typed).toEqual(['1']);
     });
 
-    it('shows touched keys pressed until released, a digit a moment longer, or cancelled or slid off', () => {
+    it('shows touched keys pressed while releasing would type them: until released (a digit a moment longer) or cancelled', () => {
       down('5', 1);
       down('backspace', 2);
       expect(pressedKeys()).toEqual(['5', 'backspace']);
@@ -367,7 +401,12 @@ describe('Keypad', () => {
       expect(pressedKeys()).toEqual(['backspace']);
 
       pointer('pointermove', CENTERS['3'], { pointerId: 2 });
+      expect(pressedKeys()).toEqual(['backspace']);
+      pointer('pointermove', CENTERS['6'], { pointerId: 2 });
       expect(pressedKeys()).toEqual([]);
+      pointer('pointermove', CENTERS['3'], { pointerId: 2 });
+      expect(pressedKeys()).toEqual(['backspace']);
+      pointer('pointerup', CENTERS['6'], { pointerId: 2 });
 
       down('9', 3);
       pointer('pointercancel', CENTERS['9'], { pointerId: 3 });
@@ -389,20 +428,27 @@ describe('Keypad', () => {
       ]);
     });
 
-    it('reports the touches that type nothing: on the empty cell, slid off their key, or released outside', () => {
+    it('reports the touches that type nothing: on the empty cell, or released too far off their key', () => {
       pointer('pointerdown', EMPTY_CELL);
       pointer('pointerup', EMPTY_CELL);
       down('5');
-      pointer('pointermove', CENTERS['6']);
-      up('6');
+      pointer('pointermove', CENTERS['0']);
+      up('0');
       down('9');
-      pointer('pointerup', [335, 50]);
+      pointer('pointerup', [250, -120]);
 
       expect(touches).toEqual([
         { key: null, x: -1, y: 2 },
-        { key: null, x: 1, y: 0 },
-        { key: null, x: 1.85, y: -1 },
+        { key: null, x: 0, y: 2 },
+        { key: null, x: 1, y: -2.7 },
       ]);
+    });
+
+    it('reports a touch that slid off its key but not too far where it is released, typing its key', () => {
+      down('5');
+      pointer('pointerup', CENTERS['6']);
+
+      expect(touches).toEqual([{ key: '5', x: 1, y: 0 }]);
     });
 
     it('reports nothing of a touch the browser cancels', () => {
@@ -510,14 +556,17 @@ describe('Keypad', () => {
       expect(typed).toEqual(['backspace', 'backspace']);
     });
 
-    it('stops repeating when the finger slides off backspace', () => {
+    it('pauses repeating while the finger is too far off backspace, and goes on as it comes back', () => {
       down('backspace');
       vi.advanceTimersByTime(REPEAT_DELAY);
-      pointer('pointermove', CENTERS['3']);
-      vi.advanceTimersByTime(1000);
-      up('3');
-
+      pointer('pointermove', CENTERS['6']);
+      vi.advanceTimersByTime(REPEAT_INTERVAL * 3);
       expect(typed).toEqual(['backspace']);
+
+      pointer('pointermove', CENTERS.backspace);
+      vi.advanceTimersByTime(REPEAT_INTERVAL);
+      up('backspace');
+      expect(typed).toEqual(['backspace', 'backspace']);
     });
 
     it('does not repeat digits: a long press types the digit once, on release', () => {
@@ -675,9 +724,19 @@ describe('Keypad', () => {
       expect(splash('3')).toBe(PALETTE[4]);
     });
 
-    it('empties a key at once when the finger slides off it or the browser cancels the touch', () => {
+    it('keeps a key filled while the finger slides off it, but not too far, and fills it again as it comes back', () => {
       down('5');
       pointer('pointermove', CENTERS['6']);
+      expect(splash('5')).toBe(PALETTE[5]);
+
+      pointer('pointermove', CENTERS['0']);
+      pointer('pointermove', CENTERS['5']);
+      expect(splash('5')).toBe(PALETTE[5]);
+    });
+
+    it('empties a key at once when the finger slides too far off it or the browser cancels the touch', () => {
+      down('5');
+      pointer('pointermove', CENTERS['0']);
       expect(splash('5')).toBeNull();
 
       down('9');

@@ -17,6 +17,7 @@ import {
   KeypadLayout,
   KeypadPoint,
   KeypadTouch,
+  isNearKey,
   keyAt,
   pointAt,
 } from '../../../game/layers/keypad-layout';
@@ -28,6 +29,8 @@ export const REPEAT_DELAY = 400;
 export const REPEAT_INTERVAL = 70;
 /** How long a digit key stays filled with its color at least, however short the press, in ms. */
 export const SPLASH_DURATION = 150;
+/** How far a touch can slide off its key and still type it, in steps from one key to the next (a key and a gap). */
+export const SLIDE_GRACE = 1;
 
 /** A touch shown on the keypad, as a mark where it was, fading away. */
 export interface KeypadMark extends KeypadPoint {
@@ -43,8 +46,8 @@ export interface KeypadMark extends KeypadPoint {
 interface Press {
   /** The key it landed on, if any. */
   readonly key: KeypadKey | null;
-  /** Whether it slid off its key, in which case releasing it types nothing. */
-  slid: boolean;
+  /** Whether it's too far off its key to type it if released now; its key then doesn't show pressed. */
+  far: boolean;
   /** Whether the key has already repeated, in which case releasing it does not type it once more. */
   repeated: boolean;
   /** Where it is. */
@@ -61,10 +64,10 @@ interface Press {
  *   included) is on it.
  * - The keys on the grid's edges reach out over the rest of the keypad, around the grid, as far as it goes, so that
  *   they're easy to hit; whoever lays it out gives it its room with its padding, which can reach over what's around.
- * - A key is typed when the touch is released, provided it is still on that key; sliding within the key is fine, but
- *   sliding off it cancels the press.
+ * - A key is typed when the touch is released no farther than `SLIDE_GRACE` beyond the key's cell, whatever is under it
+ *   then: another key, or nothing, off the keypad. Released farther, it types nothing. Only where it's released counts.
  * - Several fingers can press keys at once; each key is typed when its finger is released.
- * - Holding backspace repeats it; digits don't repeat.
+ * - Holding backspace repeats it, while near enough to type it; digits don't repeat.
  *
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
  * repeats it.
@@ -73,8 +76,9 @@ interface Press {
  * {@link KeypadPoint}); a mouse press, as the mouse is released. Each repeat of backspace held down is reported where the
  * finger is, and releasing it after it repeated, nothing. A touch the browser cancels isn't reported. Keys typed on a
  * physical keyboard, or by assistive technology, are reported without a place on the keypad.
- * The keys are see-through candy buttons. Keys being pressed, by touch or keyboard, are shown pressed, a digit key for at
- * least `SPLASH_DURATION`. Each digit key shows its color on its edge; pressing it fills it with that color at once.
+ * The keys are see-through candy buttons. Keys being pressed, by touch or keyboard, are shown pressed (a touch's key only
+ * while releasing it would type it), a digit key for at least `SPLASH_DURATION`. Each digit key shows its color on its
+ * edge; pressing it fills it with that color at once.
  * The keys don't take the focus, being typed from the keyboard's own keys, but the buttons still work with assistive
  * technology.
  *
@@ -245,7 +249,7 @@ export class Keypad {
     this.dropPress(event.pointerId);
     const press: Press = {
       key,
-      slid: false,
+      far: false,
       repeated: false,
       point,
       timer:
@@ -267,11 +271,8 @@ export class Keypad {
     if (press === undefined) {
       return;
     }
-    const { key, point } = this.touchAt(event);
-    press.point = point;
-    if (!press.slid && key !== press.key) {
-      this.slideOff(press);
-    }
+    press.point = this.touchAt(event).point;
+    this.checkDistance(press);
   }
 
   protected onPointerUp(event: PointerEvent): void {
@@ -279,12 +280,27 @@ export class Keypad {
     if (press === undefined) {
       return;
     }
+    press.point = this.touchAt(event).point;
+    this.checkDistance(press);
     this.dropPress(event.pointerId);
-    if (press.repeated) {
+    if (!press.repeated) {
+      this.touched.emit({ key: press.far ? null : press.key, ...press.point });
+    }
+  }
+
+  /** Notes whether a touch is too far off its key to type it, showing its key pressed only while it isn't. */
+  private checkDistance(press: Press): void {
+    if (press.key === null) {
       return;
     }
-    const { key, point } = this.touchAt(event);
-    this.touched.emit({ key: !press.slid && key === press.key ? key : null, ...point });
+    const far = !isNearKey(this.layout(), press.key, press.point, SLIDE_GRACE);
+    if (far !== press.far) {
+      press.far = far;
+      this.updateTouchedKeys();
+      if (far) {
+        this.endSplash(press.key);
+      }
+    }
   }
 
   /** Ends a touch the browser cancels, without typing its key, and without leaving its key filled. */
@@ -292,17 +308,9 @@ export class Keypad {
     const press = this.presses.get(pointerId);
     if (press !== undefined) {
       this.dropPress(pointerId);
-      this.slideOff(press);
-    }
-  }
-
-  /** Lets go of the key a touch slid off: it no longer types it, nor shows it pressed or filled. */
-  private slideOff(press: Press): void {
-    press.slid = true;
-    clearTimeout(press.timer);
-    this.updateTouchedKeys();
-    if (press.key !== null) {
-      this.endSplash(press.key);
+      if (press.key !== null) {
+        this.endSplash(press.key);
+      }
     }
   }
 
@@ -356,11 +364,13 @@ export class Keypad {
     if (press?.key == null) {
       return;
     }
-    press.repeated = true;
     press.timer = setTimeout(() => {
       this.repeat(pointerId);
     }, REPEAT_INTERVAL);
-    this.touched.emit({ key: press.key, ...press.point });
+    if (!press.far) {
+      press.repeated = true;
+      this.touched.emit({ key: press.key, ...press.point });
+    }
   }
 
   /** Fills a digit key with its color: the color its digit takes when typed now. */
@@ -391,7 +401,7 @@ export class Keypad {
   private updateTouchedKeys(): void {
     this.touchedKeys.set(
       Array.from(this.presses.values()).flatMap((press) =>
-        press.key === null || press.slid ? [] : [press.key],
+        press.key === null || press.far ? [] : [press.key],
       ),
     );
   }
