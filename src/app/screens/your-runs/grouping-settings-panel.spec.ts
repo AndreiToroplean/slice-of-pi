@@ -158,7 +158,7 @@ describe('GroupingSettingsPanel', () => {
   it('pins a setting for fitting while its pin is pressed, for the model picked', async () => {
     const { host, detect } = await setUp();
     const pin = host.querySelector<HTMLButtonElement>(
-      'button[aria-label="Pin the prior baseline when fitting"]',
+      'button[title="Pin the prior baseline when fitting"]',
     );
     const tweaks = TestBed.inject(Tweaks);
     const kind = tweaks.breakModelKind();
@@ -224,7 +224,7 @@ describe('GroupingSettingsPanel', () => {
   it('brings back the game’s value of one setting, keeping the others', async () => {
     const { host, detect } = await setUp();
     const revert = (): HTMLButtonElement | null =>
-      host.querySelector<HTMLButtonElement>('button[aria-label="Back to the default window"]');
+      host.querySelector<HTMLButtonElement>('button[title="Back to the default window"]');
 
     expect(revert()?.disabled).toBe(true);
     move(slider(host, 'window'), 11);
@@ -243,7 +243,7 @@ describe('GroupingSettingsPanel', () => {
     const { host, detect } = await setUp();
     const dialog = host.querySelector('dialog');
 
-    host.querySelector<HTMLButtonElement>('button[aria-label="About Recency decay"]')?.click();
+    host.querySelector<HTMLButtonElement>('button[title="About Recency decay"]')?.click();
     detect();
 
     expect(dialog?.open).toBe(true);
@@ -353,7 +353,7 @@ describe('GroupingSettingsPanel', () => {
     it('copies one hyperparameter from the model picked in its menu', async () => {
       const { host, detect } = await onLuna();
       const copy = host.querySelector<HTMLButtonElement>(
-        '[aria-label="Copy the window from another model"]',
+        '[title="Copy the window from another model"]',
       );
       copy?.click();
       detect();
@@ -361,9 +361,7 @@ describe('GroupingSettingsPanel', () => {
       buttonLabelled(host, 'From Mercury').click();
 
       expect(settings()).toEqual({ ...LUNA_DEFAULTS, window: 11 });
-      expect(host.querySelector('[aria-label="Copy the pause margin from another model"]')).toBe(
-        null,
-      );
+      expect(host.querySelector('[title="Copy the pause margin from another model"]')).toBe(null);
     });
   });
 });

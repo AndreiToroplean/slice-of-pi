@@ -23,7 +23,7 @@ const CONTEXT = 6;
       <button
         type="button"
         class="round"
-        aria-label="The usual break spot before"
+        title="The usual break spot before"
         [disabled]="previousBreak() === undefined"
         (click)="go(previousBreak())"
       >
@@ -32,7 +32,7 @@ const CONTEXT = 6;
       <button
         type="button"
         class="round"
-        aria-label="The place before"
+        title="The place before"
         [disabled]="place() <= 1"
         (click)="go(place() - 1)"
       >
@@ -48,7 +48,7 @@ const CONTEXT = 6;
       <button
         type="button"
         class="round"
-        aria-label="The place after"
+        title="The place after"
         [disabled]="place() >= last()"
         (click)="go(place() + 1)"
       >
@@ -57,7 +57,7 @@ const CONTEXT = 6;
       <button
         type="button"
         class="round"
-        aria-label="The usual break spot after"
+        title="The usual break spot after"
         [disabled]="nextBreak() === undefined"
         (click)="go(nextBreak())"
       >

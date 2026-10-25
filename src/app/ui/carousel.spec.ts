@@ -32,7 +32,7 @@ describe('Carousel', () => {
       scrolls.push(options.left ?? 0);
     }) as typeof track.scrollTo;
     const press = (label: string) => {
-      host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)?.click();
+      host.querySelector<HTMLButtonElement>(`button[title="${label}"]`)?.click();
     };
     return { track, scrolls, press };
   }

@@ -59,7 +59,7 @@ describe('Menu', () => {
   it('leads to the settings', async () => {
     const host = await setUp();
 
-    expect(host.querySelector('a[aria-label="Settings"]')?.getAttribute('href')).toBe('/settings');
+    expect(host.querySelector('a[title="Settings"]')?.getAttribute('href')).toBe('/settings');
   });
 
   it('shows even when its icon fails to load', async () => {
@@ -116,6 +116,7 @@ describe('Menu', () => {
 
     const focused = (): string | null | undefined =>
       document.activeElement?.getAttribute('aria-label') ??
+      document.activeElement?.getAttribute('title') ??
       document.activeElement?.textContent.trim();
 
     it('gives Play the focus once shown, for Enter to play', async () => {
@@ -143,7 +144,7 @@ describe('Menu', () => {
       press('ArrowDown');
       expect(focused()).toBe('Your Runs');
 
-      host.querySelector<HTMLElement>('[aria-label="Settings"]')?.focus();
+      host.querySelector<HTMLElement>('[title="Settings"]')?.focus();
       expect(press('ArrowDown').defaultPrevented).toBe(false);
       expect(focused()).toBe('Settings');
     });

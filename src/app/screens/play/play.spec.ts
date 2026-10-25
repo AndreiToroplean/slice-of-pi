@@ -423,7 +423,7 @@ describe('Play', () => {
         expect(slots(host)).toEqual(['', '', '', '', '']);
         await typeAll(type, '141 592 653 589 793 ');
 
-        host.querySelector<HTMLButtonElement>('button[aria-label="Pause"]')?.click();
+        host.querySelector<HTMLButtonElement>('button[title="Pause"]')?.click();
         Array.from(host.querySelectorAll<HTMLButtonElement>('button'))
           .find((button) => button.textContent.trim() === 'Restart')
           ?.click();
@@ -736,7 +736,7 @@ describe('Play', () => {
 
     touch(host.querySelector('app-slots'), 1);
     touch(host.querySelector('app-typed-digits'), 2);
-    touch(host.querySelector('[aria-label="Pause"]'), 3);
+    touch(host.querySelector('[title="Pause"]'), 3);
     await stable();
 
     expect(record.mock.calls.map(([touched]) => touched.key)).toEqual([null, null]);
@@ -932,7 +932,7 @@ describe('Play', () => {
 
     function pauseItem(host: HTMLElement, label: string): HTMLButtonElement {
       const item = Array.from(host.querySelectorAll<HTMLButtonElement>('button')).find(
-        (button) => button.textContent.trim() === label || button.ariaLabel === label,
+        (button) => button.textContent.trim() === label || button.title === label,
       );
       if (item === undefined) {
         throw new Error(`No button ${label}`);

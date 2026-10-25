@@ -67,7 +67,7 @@ export const TAIL = 1500;
   ],
   host: { class: 'screen', '(document:keydown.escape)': 'escape($event)' },
   template: `
-    <button type="button" appCandy="clear" class="corner back" aria-label="Back" (click)="back()">
+    <button type="button" appCandy="clear" class="corner back" title="Back" (click)="back()">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
     </button>
     @let replayed = log();
@@ -78,7 +78,7 @@ export const TAIL = 1500;
           type="button"
           appCandy="clear"
           class="control"
-          [attr.aria-label]="playing() ? 'Pause' : 'Play'"
+          [title]="playing() ? 'Pause' : 'Play'"
           (click)="toggle()"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -96,7 +96,7 @@ export const TAIL = 1500;
           type="button"
           appCandy="clear"
           class="control"
-          aria-label="Previous touch"
+          title="Previous touch"
           [disabled]="playing() || applied() === 0"
           (click)="stepBack()"
         >
@@ -111,7 +111,7 @@ export const TAIL = 1500;
           type="button"
           appCandy="clear"
           class="control"
-          aria-label="Next touch"
+          title="Next touch"
           [disabled]="playing() || applied() === replayed.touches.length"
           (click)="stepForward()"
         >

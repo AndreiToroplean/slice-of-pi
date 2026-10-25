@@ -26,7 +26,7 @@ let menus = 0;
         type="button"
         appCandy="clear"
         class="corner more"
-        [attr.aria-label]="label()"
+        [title]="label()"
         [attr.popovertarget]="id"
         [style.anchor-name]="anchor"
       >
