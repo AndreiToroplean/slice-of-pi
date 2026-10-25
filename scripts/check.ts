@@ -1,10 +1,27 @@
 // Runs the checks due before every commit all at once, then shows what each one said, in turn, failing if any failed.
+// Quicker than those of pull requests, which run them in full (`.github/workflows/deploy.yml`):
+// - Prettier and ESLint only look again at the files changed since they last passed. ESLint's type-aware rules can
+//   still be broken in a file left as it was by a change to another, which only a pull request then catches.
+// - The production build is left to pull requests: the tests already compile the app ahead of time, templates too.
 import { spawn } from 'node:child_process';
 
 const steps: readonly (readonly [name: string, args: readonly string[]])[] = [
-  ['format', ['run', '--silent', 'format:check']],
-  ['lint', ['run', '--silent', 'lint']],
-  ['build', ['run', '--silent', 'build']],
+  ['format', ['run', '--silent', 'format:check', '--', '--cache']],
+  [
+    'lint',
+    // In node_modules/.cache, as Prettier's.
+    [
+      'run',
+      '--silent',
+      'lint',
+      '--',
+      '--cache',
+      '--cache-strategy',
+      'content',
+      '--cache-location',
+      'node_modules/.cache/eslint/',
+    ],
+  ],
   ['test', ['test']],
 ];
 

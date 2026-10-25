@@ -30,7 +30,7 @@
 - `npm start` serves the app, `npm run build` builds it, `npm test` runs the unit tests once, `npm run test:coverage` adds a coverage report. Slow tests of things that never change are tagged `manual`: only `npm run test:manual` runs them, never CI. `npm run test:e2e` runs the end-to-end tests in Chromium (installed once with `npx playwright install chromium`), on the server `npm start` serves, or one started for them: run them when a change touches what they cover.
 - `npm run lint` runs ESLint (angular-eslint with the strict type-checked rules, including template accessibility rules). TypeScript runs with extra strict flags (see `tsconfig.json`). Don't loosen either; fix the code instead.
 - `npm run format` formats everything with Prettier; `npm run format:check` verifies it (vendored skills are ignored).
-- Run `npm run check` before every commit. It runs the formatting check, the linter, the build and the unit tests.
+- Run `npm run check` before every commit. It runs the formatting check and the linter on the files changed since they last passed, and the unit tests; pull requests also run them in full and build the app.
 
 # Angular
 
