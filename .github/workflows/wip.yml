@@ -1,0 +1,36 @@
+name: Publish work in progress
+
+# Every Monday at 04:00 UTC, publishes main as it stands under wip/<date>/ on the site, unless it had no commits that
+# week. Run by hand with backfill to publish every past week too. See scripts/publish-wip.ts.
+on:
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: Publish every week since the first commit
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wip
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      # The whole history of main, to build each week's commit.
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898333+github-actions[bot]@users.noreply.github.com'
+      - run: node scripts/publish-wip.ts ${{ inputs.backfill && '--backfill' || '' }}
