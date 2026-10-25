@@ -22,6 +22,7 @@ describe('Pause', () => {
     pause: Pause;
     dialog: HTMLDialogElement;
     click: (label: string) => Promise<void>;
+    replayable: () => Promise<void>;
   }> {
     const fixture = TestBed.createComponent(Pause);
     await fixture.whenStable();
@@ -36,7 +37,11 @@ describe('Pause', () => {
         ?.click();
       await fixture.whenStable();
     };
-    return { host, pause: fixture.componentInstance, dialog, click };
+    const replayable = async (): Promise<void> => {
+      fixture.componentRef.setInput('replayable', true);
+      await fixture.whenStable();
+    };
+    return { host, pause: fixture.componentInstance, dialog, click, replayable };
   }
 
   it('pauses with a labelled button, opening a dialog named after its heading', async () => {
@@ -137,6 +142,25 @@ describe('Pause', () => {
       expect(pause.paused()).toBe(false);
     });
   }
+
+  it('offers to stop and replay the run only once there is one, replaying it once the dialog has closed', async () => {
+    const { pause, dialog, click, replayable } = await setUp();
+    const replay = vi.fn();
+    pause.replay.subscribe(replay);
+    const labels = (): string[] =>
+      Array.from(dialog.querySelectorAll('button'), (button) => button.textContent.trim());
+    expect(labels()).not.toContain('Stop and Replay This Run');
+
+    await replayable();
+    expect(labels()).toEqual(['Resume', 'Restart', 'Stop and Replay This Run', 'End Game']);
+
+    await click('Pause');
+    await click('Stop and Replay This Run');
+    await new Promise((resolve) => setTimeout(resolve));
+
+    expect(dialog.open).toBe(false);
+    expect(replay).toHaveBeenCalledOnce();
+  });
 
   it('resumes when the dialog closes on its own, as with Escape', async () => {
     const { pause, dialog, click } = await setUp();

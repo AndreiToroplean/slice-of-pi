@@ -7,7 +7,8 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { touchPoint } from '../../game/layers/keypad-layout';
 import { RUN_CLOCK } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
@@ -20,6 +21,12 @@ import { SPLASH_DURATION } from '../play/keypad/keypad';
 import { Play } from '../play/play';
 import { TIMER } from '../play/timer';
 import { ReplayClock } from './replay-clock';
+
+/** What the game stopped to replay its run tells its replay, in the navigation's state. */
+export interface ReplayedGame {
+  /** Whether the main menu is just behind the replay in the history, as the game was opened from it. */
+  readonly menuBehind: boolean;
+}
 
 /** The speeds a run can be replayed at, and how each is labelled. */
 export const SPEEDS: readonly { readonly speed: number; readonly label: string }[] = [
@@ -42,7 +49,7 @@ export const TAIL = 1500;
  * own clock, at the speed picked, under a bar to play and pause it, step through it touch by touch while paused, and
  * move along it on its timeline, and a menu of speeds. Each touch shows on the keypad, a mark where it was, fading away, and its key pressed
  * as long as a tap's shortest press, on the run's clock. The player can't type into it: the back button, or Escape,
- * goes back to their runs.
+ * goes back to their runs, or, for a game stopped to replay its run, to the main menu.
  */
 @Component({
   selector: 'app-replay',
@@ -203,7 +210,7 @@ export class Replay {
     return marks;
   });
 
-  protected readonly back = injectBackTo('/runs');
+  protected readonly back = injectBackFromReplay();
   private readonly clock = inject(ReplayClock);
   private readonly play = viewChild(Play);
   private readonly document = inject(DOCUMENT);
@@ -330,4 +337,25 @@ export class Replay {
       play.quiet = false;
     }
   }
+}
+
+/**
+ * Gives a function that goes back from a replay: to the main menu for a game stopped to replay its run (see
+ * {@link ReplayedGame}), back in the history if the menu is just behind, and otherwise to the player's runs.
+ */
+function injectBackFromReplay(): () => void {
+  const router = inject(Router);
+  const location = inject(Location);
+  const toRuns = injectBackTo('/runs');
+  const game = router.currentNavigation()?.extras.state as ReplayedGame | undefined;
+  if (game === undefined) {
+    return toRuns;
+  }
+  return () => {
+    if (game.menuBehind) {
+      location.back();
+    } else {
+      void router.navigateByUrl('/', { replaceUrl: true });
+    }
+  };
 }

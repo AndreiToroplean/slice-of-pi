@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
@@ -240,6 +241,41 @@ describe('Replay', () => {
     await click(harness, control(host, 'Back'));
 
     expect(TestBed.inject(Router).url).toBe('/runs');
+  });
+
+  describe('for a game stopped to replay its run', () => {
+    async function setUpStopped(menuBehind: boolean): Promise<HTMLElement> {
+      await TestBed.inject(RunStore).save(log);
+      const harness = await RouterTestingHarness.create();
+      await TestBed.inject(Router).navigate(['/runs', 'replayed', 'replay'], {
+        state: { menuBehind },
+      });
+      await TestBed.inject(RunStore).touchLogs();
+      await harness.fixture.whenStable();
+      const host = harness.routeNativeElement;
+      if (host === null) {
+        throw new Error('No replay');
+      }
+      return host;
+    }
+
+    it('goes back to the main menu, just behind it', async () => {
+      const host = await setUpStopped(true);
+      const back = vi.spyOn(TestBed.inject(Location), 'back').mockReturnValue(undefined);
+
+      control(host, 'Back').click();
+
+      expect(back).toHaveBeenCalledOnce();
+    });
+
+    it('puts the main menu in its place when the menu is not behind it', async () => {
+      const host = await setUpStopped(false);
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+
+      control(host, 'Back').click();
+
+      expect(navigate).toHaveBeenCalledWith('/', { replaceUrl: true });
+    });
   });
 
   it('says when the run is no longer kept', async () => {

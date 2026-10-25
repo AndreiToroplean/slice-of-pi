@@ -1,12 +1,12 @@
-import { Component, ElementRef, inject, model, output, viewChild } from '@angular/core';
+import { Component, ElementRef, inject, input, model, output, viewChild } from '@angular/core';
 import { DeveloperMode } from '../../../developer-mode/developer-mode';
 import { injectBackToMenu } from '../../../ui/back-to-menu';
 import { ButtonList } from '../../../ui/button-list';
 import { Candy } from '../../../ui/candy';
 
 /**
- * The pause button, and the dialog it opens over the game: resume, restart the game, or end it, back to the main
- * menu. Escape pauses too, and resumes; up and down move between the dialog's buttons, and Enter chooses one, as on
+ * The pause button, and the dialog it opens over the game: resume, restart the game, stop it and replay the run, once
+ * there is one, or end it, back to the main menu. Escape pauses too, and resumes; up and down move between the dialog's buttons, and Enter chooses one, as on
  * any button. In developer mode, it can also show the keypad's touch areas.
  */
 @Component({
@@ -31,6 +31,11 @@ import { Candy } from '../../../ui/candy';
       <app-button-list>
         <button type="button" appCandy="primary" autofocus (click)="resume()">Resume</button>
         <button type="button" appCandy (click)="restart.emit(); resume()">Restart</button>
+        @if (replayable()) {
+          <button type="button" appCandy="danger" (click)="void stopAndReplay()">
+            Stop and Replay This Run
+          </button>
+        }
         <button type="button" appCandy="danger" (click)="void endGame()">End Game</button>
       </app-button-list>
       @if (developerMode.enabled()) {
@@ -52,6 +57,10 @@ export class Pause {
   readonly paused = model(false);
   /** The player chose to restart the game. */
   readonly restart = output();
+  /** Whether there's a run to replay. */
+  readonly replayable = input(false);
+  /** The player chose to stop the game and replay the run, once the dialog has closed. */
+  readonly replay = output();
   /** Whether the keypad shows its touch areas, in developer mode. */
   readonly showTouchAreas = model(false);
 
@@ -88,9 +97,19 @@ export class Pause {
    * same.
    */
   protected async endGame(): Promise<void> {
+    await this.close();
+    this.backToMenu();
+  }
+
+  /** On to the run's replay, the dialog closed first, as when ending the game. */
+  protected async stopAndReplay(): Promise<void> {
+    await this.close();
+    this.replay.emit();
+  }
+
+  private async close(): Promise<void> {
     const dialog = this.dialog().nativeElement;
     dialog.close();
     await Promise.allSettled(dialog.getAnimations().map(async (animation) => animation.finished));
-    this.backToMenu();
   }
 }
