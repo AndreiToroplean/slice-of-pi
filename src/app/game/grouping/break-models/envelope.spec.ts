@@ -108,6 +108,8 @@ describe('enveloped', () => {
   ): { readonly breaks: readonly number[]; readonly score: number }[] {
     const envelope = weightOf(shape);
     const sizes = Array.from({ length: 200 }, (_, k) => envelope(k + 1));
+    // The last group runs on: the highest factor of the sizes it can still reach, by its size so far.
+    const runningOn = sizes.map((_, k) => Math.max(...sizes.slice(k)));
     return Array.from({ length: 2 ** (digits - 1) }, (_, mask) => {
       const breaks = Array.from({ length: digits - 1 }, (_, k) => k + 1).filter(
         (i) => (mask >> (i - 1)) & 1,
@@ -117,9 +119,8 @@ describe('enveloped', () => {
         (sum, end, k) => sum + Math.log(envelope(end - (starts[k] ?? 0))) + (scores[end - 1] ?? 0),
         0,
       );
-      // The last group runs on: the highest factor of the sizes it can still reach.
       const last = digits - (starts.at(-1) ?? 0);
-      return { breaks, score: closed + Math.log(Math.max(...sizes.slice(last - 1))) };
+      return { breaks, score: closed + Math.log(runningOn[last - 1] ?? 0) };
     });
   }
 
@@ -144,12 +145,17 @@ describe('enveloped', () => {
       const found = all.find((grouping) => grouping.breaks.join() === shaped?.breaks.join());
 
       expect(found?.score).toBeCloseTo(best, 9);
+      // The best score of the groupings breaking at each place, and of those that don't.
+      const bestWith = Array<number>(digits).fill(-Infinity);
+      const bestWithout = Array<number>(digits).fill(-Infinity);
+      for (const { breaks, score } of all) {
+        for (let i = 1; i < digits; i++) {
+          const into = breaks.includes(i) ? bestWith : bestWithout;
+          into[i] = Math.max(into[i] ?? -Infinity, score);
+        }
+      }
       for (let i = 1; i < digits; i++) {
-        const has = all.filter((grouping) => grouping.breaks.includes(i));
-        const hasNot = all.filter((grouping) => !grouping.breaks.includes(i));
-        const margin =
-          Math.max(...has.map((grouping) => grouping.score)) -
-          Math.max(...hasNot.map((grouping) => grouping.score));
+        const margin = (bestWith[i] ?? NaN) - (bestWithout[i] ?? NaN);
         const evidence = shaped?.evidence[i] ?? NaN;
         if (Number.isFinite(margin)) {
           expect(evidence + (scores[i - 1] ?? 0)).toBeCloseTo(margin, 9);
