@@ -19,7 +19,7 @@ npm test               # run unit tests (Vitest)
 npm run test:coverage  # unit tests with coverage report
 npm run test:e2e       # end-to-end tests (Playwright, in Chromium)
 npm run build          # production build into dist/
-npm run check          # format check, lint, build and tests
+npm run check          # format check, lint and tests, before every commit
 ```
 
 Every pull request runs the checks (see `.github/workflows/deploy.yml`). `main` is deployed to GitHub Pages, and a pull request can ask for a preview of its own.
