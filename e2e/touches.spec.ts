@@ -39,7 +39,7 @@ async function touchAlong(touches: CDPSession, path: readonly Point[]): Promise<
   await touches.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
 
-test('records a touch slid off its key, from on its digit, as one typing nothing, where it lifted', async ({
+test('records a touch slid off its key from its digit, and one elsewhere, as typing nothing, where they lifted', async ({
   page,
 }) => {
   await page.goto('/play');
@@ -56,8 +56,15 @@ test('records a touch slid off its key, from on its digit, as one typing nothing
   };
   const touches = await page.context().newCDPSession(page);
 
+  const slots = await page.locator('app-slots').boundingBox();
+  if (slots === null) {
+    throw new Error('No slots');
+  }
+
   await touchAlong(touches, [await center('1')]);
   await touchAlong(touches, [await center('4'), await center('5')]);
+  // Over the slots, the column of 5, half a step above where the keypad starts.
+  await touchAlong(touches, [{ x: (await center('5')).x, y: slots.y + slots.height / 2 }]);
   await touchAlong(touches, [await center('4')]);
 
   // Where each touch lifted, to a hundredth of a step, and what it typed.
@@ -71,6 +78,9 @@ test('records a touch slid off its key, from on its digit, as one typing nothing
     .toEqual([
       ['1', -1, 1],
       [null, 0, 0],
+      [null, 0, expect.any(Number) as number],
       ['4', -1, 0],
     ]);
+  const [, , elsewhere] = await recordedTouches(page);
+  expect((elsewhere as { y: number }).y).toBeLessThan(-1.5);
 });

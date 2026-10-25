@@ -47,8 +47,9 @@ import { TIMER } from './timer';
  * Backspace deletes the last digit, reopening the last word when the slots are empty, and brings the last word back when
  * it empties them, for the player to carry on, until they break there again. Developer mode counts down, left of 0, to
  * when the group being typed ends, unless its settings hide that. Pausing offers to restart the game, stop it and
- * replay its run, or end it, back to the main menu. Every touch on the keypad, and every key typed, is recorded, with where and when, in
- * the run's touch log; restarting or ending the game ends the run.
+ * replay its run, or end it, back to the main menu. Every touch on the keypad, and every key typed, is recorded, with
+ * where and when, in the run's touch log, and so is every touch elsewhere on the screen, typing nothing, but those on
+ * the pause button and its dialog; restarting or ending the game ends the run.
  *
  * It also replays a run, given its touch log: the player can't type, nor pause, and nothing is recorded. Whatever
  * replays it hands it the touches one after the other, on the run's own clock (`TIMER` and `RUN_CLOCK`), and resets it
@@ -62,6 +63,9 @@ import { TIMER } from './timer';
   host: {
     '[class.screen]': 'replay() === undefined',
     '[class.replaying]': 'replay() !== undefined',
+    '(pointerdown)': 'touchDown($event)',
+    '(pointerup)': 'touchUp($event)',
+    '(pointercancel)': 'touchesElsewhere.delete($event.pointerId)',
   },
   template: `
     <h1 class="visually-hidden">Slice of Pi</h1>
@@ -201,6 +205,8 @@ export class Play {
   private readonly timer = inject(TIMER);
   private readonly typedDigits = viewChild.required(TypedDigits);
   private readonly keypad = viewChild.required(Keypad);
+  /** Touches in progress elsewhere than on the keypad, the pause button and its dialog, by pointer. */
+  protected readonly touchesElsewhere = new Set<number>();
   /** Slots flying into their word. */
   private flights: Animation[] = [];
   /** Stops waiting for the player's pause to end the group. */
@@ -252,6 +258,24 @@ export class Play {
       return;
     }
     this.play(touch);
+  }
+
+  /** Notes a touch landing elsewhere than on the keypad, the pause button and its dialog, which handle their own. */
+  protected touchDown(event: PointerEvent): void {
+    if (
+      event.button === 0 &&
+      event.target instanceof Element &&
+      event.target.closest('app-keypad, app-pause') === null
+    ) {
+      this.touchesElsewhere.add(event.pointerId);
+    }
+  }
+
+  /** Records a touch elsewhere than on the keypad as it's released, typing nothing, where it was from the keypad. */
+  protected touchUp(event: PointerEvent): void {
+    if (this.touchesElsewhere.delete(event.pointerId)) {
+      this.press({ key: null, ...this.keypad().pointOf(event) });
+    }
   }
 
   /** Plays a touch of the run replayed, its key, if any, filled with the color its digit takes now. */
