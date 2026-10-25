@@ -83,11 +83,6 @@ describe('Slots', () => {
     expect(host.style.getPropertyValue('--columns')).toBe('10');
   });
 
-  it('switches to smaller slots past 6', async () => {
-    expect((await render('141592')).classList).not.toContain('dense');
-    expect((await render('1415926')).classList).toContain('dense');
-  });
-
   it("follows the group's size", async () => {
     expect(slots(await render('', 3))).toHaveLength(3);
   });

@@ -8,7 +8,7 @@
 export interface Layout {
   /** Where the season header's top is, down from the top, and its height, which its text scales with. */
   readonly header: { readonly top: number; readonly height: number };
-  /** Where the slots' bottom is, up from the bottom, and their height, which they scale with. */
+  /** Where the slots' bottom is, up from the bottom, and a slot's height; a row of 10 is as wide as the keypad. */
   readonly slots: { readonly bottom: number; readonly height: number };
   /** The keypad's height, and its width, across. */
   readonly keypad: { readonly height: number; readonly width: number };
@@ -17,7 +17,7 @@ export interface Layout {
 /** The game's own layout. */
 export const LAYOUT: Layout = {
   header: { top: 0, height: 10 },
-  slots: { bottom: 37.4, height: 6.8 },
+  slots: { bottom: 37.4, height: 6 },
   keypad: { height: 32.4, width: 100 },
 };
 

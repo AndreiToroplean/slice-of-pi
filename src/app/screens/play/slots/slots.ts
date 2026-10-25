@@ -10,7 +10,6 @@ import { slotLayout } from './slot-layout';
   selector: 'app-slots',
   host: {
     'aria-hidden': 'true',
-    '[class.dense]': 'layout().dense',
     '[style.--columns]': 'layout().columns',
   },
   template: `
