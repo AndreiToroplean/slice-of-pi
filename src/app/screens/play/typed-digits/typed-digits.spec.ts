@@ -248,6 +248,23 @@ describe('TypedDigits', () => {
       expect(words.style.translate).toBe('');
     });
 
+    it('slides a row in as a word finishes after its last digit, and not again with the next digit', async () => {
+      let height = 100;
+      const { fixture, words } = await sized(() => height);
+      await type(fixture, '14159');
+      fixture.componentRef.setInput('words', []);
+      await fixture.whenStable();
+
+      height = 120;
+      fixture.componentRef.setInput('words', wordsOf5('14159'));
+      await fixture.whenStable();
+      expect(lowered(words)).toBe(20);
+
+      frameAt(words, SCROLL_DOWN_DURATION);
+      await type(fixture, '141592');
+      expect(words.style.translate).toBe('');
+    });
+
     it("doesn't move when the words don't grow", async () => {
       const { fixture, words } = await sized(() => 100);
 
