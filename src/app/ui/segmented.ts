@@ -11,7 +11,7 @@ export interface Segment<T extends string> {
  * chooses it instead. A setting, as radio buttons, or, given the panels they show (`panels`), tabs. Either way, Tab
  * stops on the one chosen, and left and right choose the one before or after it. Too many to fit, they scroll sideways,
  * the one chosen into view, rather than squeeze their names. The same everywhere, on the background as on a card: a
- * faint dark strip, the one chosen in ink, the others in the color of the text around them.
+ * faint dark strip, the one chosen white, as a white candy button, the others in the color of the text around them.
  */
 @Component({
   selector: 'app-segmented',
@@ -68,8 +68,8 @@ export interface Segment<T extends string> {
 
     [aria-checked='true'],
     [aria-selected='true'] {
-      background: var(--ink);
-      color: #ffffff;
+      background: var(--candy);
+      color: var(--on-candy);
       text-shadow: none;
     }
 
