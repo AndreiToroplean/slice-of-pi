@@ -11,6 +11,8 @@ import { Background } from './ui/background';
     // No long-press menu anywhere, nor the vibration Android gives it: the game is played by tapping and holding keys.
     // Text fields keep theirs, to paste into them.
     '(document:contextmenu)': 'contextMenu($event)',
+    // Nor can links and images be dragged away with the mouse, as a button slid on would be.
+    '(document:dragstart)': '$event.preventDefault()',
     '(document:pointerover)': 'hover($event)',
   },
 })

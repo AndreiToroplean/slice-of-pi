@@ -87,6 +87,20 @@ describe('App', () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
+  it('keeps anything from being dragged', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const link = document.createElement('a');
+    link.href = '/play';
+    document.body.append(link);
+    const event = new Event('dragstart', { bubbles: true, cancelable: true });
+
+    link.dispatchEvent(event);
+    link.remove();
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
   it('renders a main landmark with a router outlet', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
