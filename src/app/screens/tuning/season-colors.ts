@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Background } from '../../ui/background';
-import { COLOR_SPACE_NAMES, COLOR_SPACES } from '../../game/color/color-spaces';
+import { COLOR_SPACE_NAMES, COLOR_SPACES, ColorSpace } from '../../game/color/color-spaces';
+import { DropdownMenu } from '../../ui/dropdown-menu';
 import { Page } from '../../ui/page';
 import { SEASON_NAMES, SeasonHeader } from '../play/season-header/season-header';
 import {
@@ -30,7 +31,7 @@ const ENDS = [
  */
 @Component({
   selector: 'app-season-colors',
-  imports: [ColorPicker, CopyValues, Page, SeasonHeader],
+  imports: [ColorPicker, CopyValues, DropdownMenu, Page, SeasonHeader],
   template: `
     <app-page heading="Season Colors">
       <button pageAction type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
@@ -66,16 +67,26 @@ const ENDS = [
         [neighbors]="neighbors()"
         (colorChange)="pick($event)"
       />
-      <label class="space">
-        Blend colors in
-        <select class="frosted pill" (change)="blendIn($event)">
+      <div class="space">
+        <span id="space-label">Blend colors in</span>
+        <button
+          type="button"
+          class="frosted pill picker"
+          aria-haspopup="true"
+          aria-labelledby="space-label space-name"
+          (click)="spaceMenu.openAt(under($event))"
+        >
+          <span id="space-name">{{ spaceLabel(colorSpace()) }}</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+        <app-dropdown-menu #spaceMenu label="Blend colors in" [button]="false">
           @for (space of colorSpaces; track space) {
-            <option [value]="space" [selected]="space === colorSpace()">
-              {{ spaceNames[space] }}{{ space === gameSpace ? ' (The Game’s)' : '' }}
-            </option>
+            <button type="button" [disabled]="space === colorSpace()" (click)="blendIn(space)">
+              {{ spaceLabel(space) }}{{ space === colorSpace() ? ' Is Selected' : '' }}
+            </button>
           }
-        </select>
-      </label>
+        </app-dropdown-menu>
+      </div>
       <label class="slider turn">
         {{ turnText() }}
         <input
@@ -215,13 +226,20 @@ export class SeasonColors {
     void this.tweaks.setSeasons(this.starts());
   }
 
-  /** Blends the colors in the color space selected. */
-  protected blendIn(event: Event): void {
-    if (event.target instanceof HTMLSelectElement) {
-      const { value } = event.target;
-      const space = COLOR_SPACES.find((name) => name === value) ?? SEASON_COLOR_SPACE;
-      void this.tweaks.setColorSpace(space);
-    }
+  /** A color space's name, saying which is the game's. */
+  protected spaceLabel(space: ColorSpace): string {
+    return `${this.spaceNames[space]}${space === this.gameSpace ? ' (The Game’s)' : ''}`;
+  }
+
+  /** Where the menu of color spaces opens: from under the middle of its button, in window coordinates. */
+  protected under(event: Event): { readonly x: number; readonly y: number } {
+    const button = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    return { x: button.left + button.width / 2, y: button.bottom };
+  }
+
+  /** Blends the colors in this color space. */
+  protected blendIn(space: ColorSpace): void {
+    void this.tweaks.setColorSpace(space);
   }
 
   protected turnOver(event: Event): void {

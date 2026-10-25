@@ -12,6 +12,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { hexToHsl, hslToHex } from '../../game/color/color-spaces';
 import { averageHsl } from '../../game/color/color-math';
 import { SeasonColors } from './season-colors';
+import { installPopovers, uninstallPopovers } from '../../../testing/fake-popovers';
 import { SEASON_STARTS, Tweaks } from '../../developer-mode/tweaks';
 
 describe('SeasonColors', () => {
@@ -154,27 +155,31 @@ describe('SeasonColors', () => {
     expect(background()).toEqual(seasonAt(22).background);
   });
 
-  it('blends the colors in the color space selected, and brings back the game’s on reset', async () => {
+  it('blends the colors in the color space picked from its menu, and brings back the game’s on reset', async () => {
+    installPopovers();
+    onTestFinished(uninstallPopovers);
     await TestBed.inject(DeveloperMode).set(true);
     const { host, stable } = await setUp();
     const background = TestBed.inject(Background).colors;
     await set(slider(host), '72', stable);
-    const select = host.querySelector<HTMLSelectElement>('label.space select');
-    if (select === null) {
-      throw new Error('No color space');
-    }
-    expect(select.value).toBe(SEASON_COLOR_SPACE);
-    expect(Array.from(select.options, (option) => option.textContent.trim())).toEqual([
+    const picked = (): string | undefined =>
+      host.querySelector('.space .picker')?.textContent.trim();
+    const spaces = (): HTMLButtonElement[] =>
+      Array.from(host.querySelectorAll<HTMLButtonElement>('.space .dropdown button'));
+    expect(picked()).toBe('OKLCH (The Game’s)');
+    expect(spaces().map((button) => button.textContent.trim())).toEqual([
       'sRGB',
       'OKLab',
       'HSL',
-      'OKLCH (The Game’s)',
+      'OKLCH (The Game’s) Is Selected',
     ]);
 
-    select.value = 'srgb';
-    select.dispatchEvent(new Event('change'));
+    host.querySelector<HTMLButtonElement>('.space .picker')?.click();
+    expect(host.querySelector('.space .dropdown')?.hasAttribute('data-popover-open')).toBe(true);
+    spaces()[0]?.click();
     await stable();
 
+    expect(picked()).toBe('sRGB');
     expect(TestBed.inject(Tweaks).values()).toEqual({ colorSpace: 'srgb' });
     expect(background()).toEqual(seasonAt(72, SEASON_BACKGROUNDS, 'srgb').background);
 
@@ -183,7 +188,7 @@ describe('SeasonColors', () => {
 
     expect(TestBed.inject(Tweaks).values()).toEqual({});
     expect(background()).toEqual(seasonAt(72).background);
-    expect(select.value).toBe(SEASON_COLOR_SPACE);
+    expect(picked()).toBe('OKLCH (The Game’s)');
   });
 
   it('averages the selected color between the same end of the seasons on either side', async () => {
