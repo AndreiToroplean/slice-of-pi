@@ -93,7 +93,7 @@ function keysOf(kind: BreakModelKind): string[] {
         <hr />
         <button type="button" (click)="void copy()">Copy Hyperparameter Values</button>
         <button type="button" [disabled]="!tuned()" (click)="reset()">
-          Back to the Game's Settings
+          Back to Default Settings
         </button>
         <hr />
         <ng-content select="[menuItem]" />
@@ -442,7 +442,7 @@ export class GroupingSettingsPanel {
   }
 
   protected revertLabel(control: Hyperparameter): string {
-    return `Back to the game's ${nameOf(control).toLowerCase()}`;
+    return `Back to the default ${nameOf(control).toLowerCase()}`;
   }
 
   protected isDefault(control: Hyperparameter): boolean {
