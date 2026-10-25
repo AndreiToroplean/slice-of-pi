@@ -146,7 +146,7 @@ function keysOf(kind: BreakModelKind): string[] {
                   <button
                     type="button"
                     class="round"
-                    [title]="revertLabel(control)"
+                    title="Back to Default"
                     [disabled]="isDefault(control)"
                     (click)="revert(control)"
                   >
@@ -444,10 +444,6 @@ export class GroupingSettingsPanel {
 
   protected position(control: Hyperparameter): number {
     return this.settings()[control.key] ?? this.defaultOf(control);
-  }
-
-  protected revertLabel(control: Hyperparameter): string {
-    return `Back to the default ${nameOf(control).toLowerCase()}`;
   }
 
   protected isDefault(control: Hyperparameter): boolean {

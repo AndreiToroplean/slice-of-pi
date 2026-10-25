@@ -41,7 +41,7 @@ import { YourData } from './your-data';
           <button
             type="button"
             class="round"
-            title="Back to the default keypad layout"
+            title="Back to Default"
             [disabled]="layoutDefault()"
             (click)="resetLayout()"
           >
@@ -70,7 +70,7 @@ import { YourData } from './your-data';
             <button
               type="button"
               class="round"
-              title="Back to the default countdown"
+              title="Back to Default"
               [disabled]="countdownDefault()"
               (click)="resetCountdown()"
             >
@@ -91,7 +91,7 @@ import { YourData } from './your-data';
             <button
               type="button"
               class="round"
-              title="Back to the default digit checking"
+              title="Back to Default"
               [disabled]="tweaks.checking()"
               (click)="resetChecking()"
             >

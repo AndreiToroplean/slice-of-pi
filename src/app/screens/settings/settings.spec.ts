@@ -46,13 +46,13 @@ describe('Settings', () => {
       host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
     ).find((input) => input.closest('label')?.textContent.includes('Check Digits'));
     expect(checking?.checked).toBe(true);
-    expect(button(host, 'Back to the default digit checking')?.disabled).toBe(true);
+    expect(backToDefault(host, 'Check Digits')?.disabled).toBe(true);
 
     checking?.click();
     expect(tweaks.checking()).toBe(false);
 
     await TestBed.inject(ApplicationRef).whenStable();
-    button(host, 'Back to the default digit checking')?.click();
+    backToDefault(host, 'Check Digits')?.click();
     expect(tweaks.checking()).toBe(true);
   });
 
@@ -81,12 +81,20 @@ describe('Settings', () => {
     );
   }
 
+  /** The button bringing back the default value of the setting whose row says this. */
+  function backToDefault(host: HTMLElement, setting: string): HTMLButtonElement | null {
+    const row = Array.from(host.querySelectorAll('.row')).find((each) =>
+      each.textContent.includes(setting),
+    );
+    return row?.querySelector<HTMLButtonElement>('button[title="Back to Default"]') ?? null;
+  }
+
   it('brings back the default keypad layout, once it was changed', async () => {
     const setting = TestBed.inject(KeypadLayoutSetting);
     const fixture = TestBed.createComponent(Settings);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
-    const revert = button(host, 'Back to the default keypad layout');
+    const revert = backToDefault(host, 'Calculator');
     expect(revert?.disabled).toBe(true);
 
     await setting.set('telephone');
@@ -103,7 +111,7 @@ describe('Settings', () => {
     await tweaks.setCountdown(false);
     const host = await setUp();
 
-    button(host, 'Back to the default countdown')?.click();
+    backToDefault(host, 'Countdown')?.click();
 
     expect(tweaks.countdown()).toBe(true);
   });
