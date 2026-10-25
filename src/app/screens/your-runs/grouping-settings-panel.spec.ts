@@ -15,6 +15,7 @@ import type {
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import { oneIn } from '../../game/grouping/break-models/hyperparameters';
 import { LUNA, LUNA_DEFAULTS } from '../../game/grouping/break-models/luna';
+import { MARS } from '../../game/grouping/break-models/mars';
 import { MERCURY, MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
 import { GroupingSettingsPanel, nameOf, rowsOf } from './grouping-settings-panel';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
@@ -85,6 +86,18 @@ describe('GroupingSettingsPanel', () => {
   function settings(): Settings {
     return TestBed.inject(Tweaks).grouping();
   }
+
+  it('names each slider of a pair after it, side by side on one row of labels', async () => {
+    const { host, detect } = await setUp();
+    await TestBed.inject(Tweaks).setBreakModel(MARS);
+    detect();
+    const pair = Array.from(host.querySelectorAll('.row.pair')).at(0);
+
+    expect(Array.from(pair?.querySelectorAll('label') ?? [], (label) => label.textContent)).toEqual(
+      ['P1 size', 'P1 factor'],
+    );
+    expect(pair?.children.length).toBe(2);
+  });
 
   it('has a labelled slider for every setting, at its default', async () => {
     const { host } = await setUp();
