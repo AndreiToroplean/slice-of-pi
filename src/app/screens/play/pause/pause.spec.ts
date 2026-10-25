@@ -79,12 +79,10 @@ describe('Pause', () => {
   it('offers to resume, restart or end the game, resume first', async () => {
     const { dialog } = await setUp();
 
-    expect(Array.from(dialog.querySelectorAll('button'), (b) => b.textContent.trim())).toEqual([
-      'Resume',
-      'Restart',
-      'End Game',
-    ]);
-    expect(dialog.querySelector('button')?.hasAttribute('autofocus')).toBe(true);
+    expect(
+      Array.from(dialog.querySelectorAll('app-button-list button'), (b) => b.textContent.trim()),
+    ).toEqual(['Resume', 'Restart', 'End Game']);
+    expect(dialog.querySelector('app-button-list button')?.hasAttribute('autofocus')).toBe(true);
   });
 
   it('shows and hides the touch areas, in developer mode only', async () => {
@@ -143,21 +141,43 @@ describe('Pause', () => {
     });
   }
 
-  it('offers to stop and replay the run only once there is one, replaying it once the dialog has closed', async () => {
-    const { pause, dialog, click, replayable } = await setUp();
-    const replay = vi.fn();
-    pause.replay.subscribe(replay);
-    const labels = (): string[] =>
-      Array.from(dialog.querySelectorAll('button'), (button) => button.textContent.trim());
-    expect(labels()).not.toContain('Stop and Replay This Run');
+  it('offers to replay the run, saying so on hover too, disabled until there is one', async () => {
+    const { dialog, replayable } = await setUp();
+    const replayButton = (): HTMLButtonElement | null =>
+      dialog.querySelector('button[aria-label="Replay This Run"]');
+    expect(replayButton()?.title).toBe('Replay This Run');
+    expect(replayButton()?.disabled).toBe(true);
 
     await replayable();
-    expect(labels()).toEqual(['Resume', 'Restart', 'Stop and Replay This Run', 'End Game']);
+    expect(replayButton()?.disabled).toBe(false);
+    expect(dialog.querySelector('[autofocus]')?.textContent.trim()).toBe('Resume');
+  });
 
+  it('asks before replaying the run, warning that the game cannot be resumed then', async () => {
+    const { host, pause, dialog, click, replayable } = await setUp();
+    const replay = vi.fn();
+    pause.replay.subscribe(replay);
+    await replayable();
+    const confirmation = host.querySelector('dialog[aria-labelledby="replay-title"]');
+    if (!(confirmation instanceof HTMLDialogElement)) {
+      throw new Error('No confirmation');
+    }
+    expect(host.querySelector('#replay-title')?.textContent).toBe('Watch the Replay?');
+    const warning = confirmation.getAttribute('aria-describedby') ?? '';
+    expect(host.querySelector(`#${warning}`)?.textContent).toContain('won’t be able to resume');
     await click('Pause');
-    await click('Stop and Replay This Run');
-    await new Promise((resolve) => setTimeout(resolve));
 
+    await click('Replay This Run');
+    expect(confirmation.open).toBe(true);
+    await click('Back');
+    expect(confirmation.open).toBe(false);
+    expect(dialog.open).toBe(true);
+    expect(replay).not.toHaveBeenCalled();
+
+    await click('Replay This Run');
+    await click('Watch Replay');
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(confirmation.open).toBe(false);
     expect(dialog.open).toBe(false);
     expect(replay).toHaveBeenCalledOnce();
   });

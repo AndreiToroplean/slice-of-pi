@@ -1033,7 +1033,7 @@ describe('Play', () => {
       const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
       pauseItem(host, 'Pause').click();
       await harness.fixture.whenStable();
-      expect(host.textContent).not.toContain('Stop and Replay This Run');
+      expect(pauseItem(host, 'Replay This Run').disabled).toBe(true);
       pauseItem(host, 'Resume').click();
 
       time.advance(150);
@@ -1041,7 +1041,9 @@ describe('Play', () => {
       await harness.fixture.whenStable();
       pauseItem(host, 'Pause').click();
       await harness.fixture.whenStable();
-      pauseItem(host, 'Stop and Replay This Run').click();
+      pauseItem(host, 'Replay This Run').click();
+      await harness.fixture.whenStable();
+      pauseItem(host, 'Watch Replay').click();
       await new Promise((resolve) => setTimeout(resolve));
       await TestBed.inject(RunRecorder).saved();
       await harness.fixture.whenStable();

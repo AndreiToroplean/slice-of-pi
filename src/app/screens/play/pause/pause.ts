@@ -5,9 +5,11 @@ import { ButtonList } from '../../../ui/button-list';
 import { Candy } from '../../../ui/candy';
 
 /**
- * The pause button, and the dialog it opens over the game: resume, restart the game, stop it and replay the run, once
- * there is one, or end it, back to the main menu. Escape pauses too, and resumes; up and down move between the dialog's buttons, and Enter chooses one, as on
- * any button. In developer mode, it can also show the keypad's touch areas.
+ * The pause button, and the dialog it opens over the game: resume, restart the game, or end it, back to the main menu;
+ * a button in the dialog's corner also stops the game and replays the run, once there's one and the player has
+ * confirmed it, warned that the game can't be resumed then. Escape pauses too, and resumes, or goes back from the
+ * confirmation; up and down move between a dialog's buttons, and Enter chooses one, as on any button. In developer mode,
+ * it can also show the keypad's touch areas.
  */
 @Component({
   selector: 'app-pause',
@@ -27,15 +29,26 @@ import { Candy } from '../../../ui/candy';
       </svg>
     </button>
     <dialog #dialog class="card" aria-labelledby="pause-title" (close)="paused.set(false)">
-      <h2 id="pause-title">Paused</h2>
+      <div class="heading">
+        <h2 id="pause-title">Paused</h2>
+        <button
+          type="button"
+          appCandy="clear"
+          class="corner replay-button"
+          [disabled]="!replayable()"
+          aria-label="Replay This Run"
+          title="Replay This Run"
+          (click)="askToReplay()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4.5 12A7.5 7.5 0 1 0 12 4.5M14.5 2 12 4.5 14.5 7" />
+            <path class="play" d="M10.5 9.25 14.75 12l-4.25 2.75z" />
+          </svg>
+        </button>
+      </div>
       <app-button-list>
         <button type="button" appCandy="primary" autofocus (click)="resume()">Resume</button>
         <button type="button" appCandy (click)="restart.emit(); resume()">Restart</button>
-        @if (replayable()) {
-          <button type="button" appCandy="danger" (click)="void stopAndReplay()">
-            Stop and Replay This Run
-          </button>
-        }
         <button type="button" appCandy="danger" (click)="void endGame()">End Game</button>
       </app-button-list>
       @if (developerMode.enabled()) {
@@ -48,6 +61,21 @@ import { Candy } from '../../../ui/candy';
           Show Touch Areas
         </label>
       }
+    </dialog>
+    <dialog
+      #replayDialog
+      class="card"
+      aria-labelledby="replay-title"
+      aria-describedby="replay-warning"
+    >
+      <h2 id="replay-title">Watch the Replay?</h2>
+      <p id="replay-warning" class="warning">
+        Your game ends here: you won’t be able to resume it.
+      </p>
+      <app-button-list>
+        <button type="button" appCandy autofocus (click)="replayDialog.close()">Back</button>
+        <button type="button" appCandy="danger" (click)="void stopAndReplay()">Watch Replay</button>
+      </app-button-list>
     </dialog>
   `,
   styleUrl: './pause.css',
@@ -68,6 +96,7 @@ export class Pause {
 
   private readonly backToMenu = injectBackToMenu();
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
+  private readonly replayDialog = viewChild.required<ElementRef<HTMLDialogElement>>('replayDialog');
 
   protected pause(): void {
     this.dialog().nativeElement.showModal();
@@ -101,15 +130,23 @@ export class Pause {
     this.backToMenu();
   }
 
-  /** On to the run's replay, the dialog closed first, as when ending the game. */
+  protected askToReplay(): void {
+    this.replayDialog().nativeElement.showModal();
+  }
+
+  /** On to the run's replay, the dialogs closed first, as when ending the game. */
   protected async stopAndReplay(): Promise<void> {
-    await this.close();
+    await Promise.all([close(this.replayDialog().nativeElement), this.close()]);
     this.replay.emit();
   }
 
   private async close(): Promise<void> {
-    const dialog = this.dialog().nativeElement;
-    dialog.close();
-    await Promise.allSettled(dialog.getAnimations().map(async (animation) => animation.finished));
+    await close(this.dialog().nativeElement);
   }
+}
+
+/** Closes a dialog, once its transitions have ended. */
+async function close(dialog: HTMLDialogElement): Promise<void> {
+  dialog.close();
+  await Promise.allSettled(dialog.getAnimations().map(async (animation) => animation.finished));
 }
