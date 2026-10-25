@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792883626404,
+  "lastUpdate": 1792889957341,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2238,6 +2238,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1538,
+            "unit": "ms",
+            "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "a48f387e288b7c10d2fc3cff16b8600b1080d7c7",
+          "message": "fix: stop the run's clock while the game is paused\n\n- The time paused counted as a gap before the next digit, skewing the run's timings, and as a break: pausing mid-group ended it while the dialog was open.\n- The run's clock now stops while paused, and so does the wait for the group to end, which goes on, once resumed, for what was left of it.",
+          "timestamp": "2026-10-25T02:58:50+02:00",
+          "tree_id": "45e7821470825b34b25abd76b0884244b13dc327",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/a48f387e288b7c10d2fc3cff16b8600b1080d7c7"
+        },
+        "date": 1792889955839,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 13868,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 30263,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1474,
             "unit": "ms",
             "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
           }
