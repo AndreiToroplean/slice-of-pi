@@ -77,7 +77,7 @@ import { Segment, Segmented } from '../../ui/segmented';
     Zoom,
   ],
   template: `
-    <app-page title="Your Runs">
+    <app-page heading="Your Runs">
       <button
         pageAction
         type="button"
