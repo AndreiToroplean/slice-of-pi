@@ -87,6 +87,14 @@ describe('GroupingSettingsPanel', () => {
     return TestBed.inject(Tweaks).grouping();
   }
 
+  it('opens its menu from a plain ⋮ at the end of the tabs', async () => {
+    const { host } = await setUp();
+    const more = host.querySelector('.bar button[title="More"]');
+
+    expect(more?.getAttribute('popovertarget')).toBe(host.querySelector('.bar .dropdown')?.id);
+    expect(more?.classList).not.toContain('candy');
+  });
+
   it('names each slider of a pair after it, side by side on one row of labels', async () => {
     const { host, detect } = await setUp();
     await TestBed.inject(Tweaks).setBreakModel(MARS);

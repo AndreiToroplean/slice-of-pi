@@ -55,7 +55,7 @@ function keysOf(kind: BreakModelKind): string[] {
  * hyperparameter of the break model picked, a few to a tab, scrolling if they don't fit, a pair of sliders sharing a row, each with a toggle button pinning it, so that fitting the
  * model to the player's groups leaves it where it is (kept with the tweaks, for each model), a button bringing back the game's value and a help button
  * opening a dialog that says what it does, and, where another model has it too, a button copying its value from one of
- * them. Beside the tabs, an overflow menu shows
+ * them. At the end of the tabs' strip, a plain ⋮ opens an overflow menu, which shows
  * the break model picked and switches it, copies the values of the hyperparameters it shares with another model, and
  * has buttons to copy the settings' values so they go into the code and to bring back the game's settings, then what
  * is given to it marked `menuItem`.
@@ -72,7 +72,7 @@ function keysOf(kind: BreakModelKind): string[] {
         [segments]="tabs()"
         [(value)]="tab"
       />
-      <app-dropdown-menu>
+      <app-dropdown-menu [plain]="true">
         <button type="button" class="model" disabled>
           Model: {{ kind().label }} Is Selected
           <small>{{ kind().description }}</small>
@@ -226,16 +226,17 @@ function keysOf(kind: BreakModelKind): string[] {
       gap: calc(var(--space-2) / 2);
     }
 
+    /* The tabs' strip (see \`Segmented\`), drawn under the menu's button too, at its end. */
     .bar {
       display: flex;
-      align-items: center;
-      gap: var(--space-2);
+      border-radius: 1rem;
+      background: rgb(30 20 60 / 10%);
     }
 
-    /* The tabs (see \`Segmented\`), filling the bar beside the menu. */
     .tabs {
       flex: 1;
       min-width: 0;
+      background: none;
     }
 
     .pane {

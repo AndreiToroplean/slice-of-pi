@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, input, viewChild } from '@angular/core';
 import { ArrowFocus } from './arrow-focus';
 import { Candy } from './candy';
@@ -7,22 +8,35 @@ let menus = 0;
 
 /**
  * A menu: a frosted dropdown holding what is given to it (links, buttons and toggles, see `.dropdown` in `styles.css`),
- * opened by a ⋮ button for a screen's corner, or, without it, where something was pressed (`openAt`). The browser places it,
- * closes it on a tap outside or on Escape; choosing one of its buttons closes it too. It grows from, and shrinks back
- * to, its corner pointing at where it opened from. It opens ready for the keyboard:
+ * opened by a ⋮ button for a screen's corner, or a plain one, as at the end of a strip of tabs, which closes it too, or,
+ * without it, where something was pressed (`openAt`). The browser places it, and closes it on a tap outside or on
+ * Escape; choosing one of its buttons closes it too. It grows from, and shrinks back to, its corner pointing at where it
+ * opened from. It opens ready for the keyboard:
  * up and down move between its items, and Enter on a toggle flips it and closes the menu, as on a button.
  */
 @Component({
   selector: 'app-dropdown-menu',
-  imports: [ArrowFocus, Candy],
+  imports: [ArrowFocus, Candy, NgTemplateOutlet],
   // Without its button, only an anchor and the menu, which the browser places: no place of its own where it's put.
   host: {
     '(click)': 'chosen($event)',
     '(keydown.enter)': 'toggle($event)',
     '[style.display]': "button() ? null : 'contents'",
+    '[class.plain]': 'plain()',
   },
   template: `
-    @if (button()) {
+    @if (button() && plain()) {
+      <button
+        #more
+        type="button"
+        class="more"
+        [title]="label()"
+        [attr.popovertarget]="id"
+        [style.anchor-name]="anchor"
+      >
+        <ng-container [ngTemplateOutlet]="dots" />
+      </button>
+    } @else if (button()) {
       <button
         #more
         type="button"
@@ -32,11 +46,7 @@ let menus = 0;
         [attr.popovertarget]="id"
         [style.anchor-name]="anchor"
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="5.5" r="2" />
-          <circle cx="12" cy="12" r="2" />
-          <circle cx="12" cy="18.5" r="2" />
-        </svg>
+        <ng-container [ngTemplateOutlet]="dots" />
       </button>
     } @else {
       <span #point class="point" [style.anchor-name]="anchor"></span>
@@ -55,12 +65,48 @@ let menus = 0;
     >
       <ng-content />
     </div>
+    <ng-template #dots>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="5.5" r="2" />
+        <circle cx="12" cy="12" r="2" />
+        <circle cx="12" cy="18.5" r="2" />
+      </svg>
+    </ng-template>
   `,
   styles: `
     .more svg {
       width: 1.25rem;
       height: 1.25rem;
       fill: currentColor;
+    }
+
+    /* Plain, as the tabs not chosen are, within their strip: it opens a menu rather than a tab. */
+    :host(.plain) {
+      display: flex;
+    }
+
+    :host(.plain) .more {
+      display: grid;
+      place-items: center;
+      width: 2.25rem;
+      margin: 0.1875rem;
+      margin-inline-start: 0;
+      padding: 0;
+      border: none;
+      border-radius: 0.8125rem;
+      background: none;
+      color: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :host(.plain) .more:active {
+      background: var(--frost-pressed);
+    }
+
+    :host(.plain) .more:focus-visible {
+      outline: 0.1875rem solid transparent;
+      box-shadow: var(--selected-glow);
     }
 
     /* Where it was opened, for it to open from. */
@@ -74,6 +120,8 @@ export class DropdownMenu {
   readonly label = input('More');
   /** Whether it has its ⋮ button. Without it, it opens with `openAt`. */
   readonly button = input(true);
+  /** Whether its button is plain, as within a strip of tabs, rather than a candy button for a screen's corner. */
+  readonly plain = input(false);
 
   protected readonly id = `menu-${String(++menus)}`;
   /** What the dropdown opens from: its button, or the point where it was opened. */
