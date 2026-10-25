@@ -1,5 +1,6 @@
 # Conventions
 
+- Help the owner's vocabulary grow: when he uses a loose or wrong term for something (e.g. "touch down" for what the Pointer Events API calls `pointerdown`), say so in one sentence in your reply, with the right term, then use it. Precise terms make our exchanges, and his with other developers, more accurate.
 - Never hard-wrap prose: in Markdown documents, commit messages and similar text, one paragraph (or list item) is one line. Editors handle soft wrapping.
 - The design docs (`design/`) hold only what the code can't: the vision, the meaning, the glossary and the roadmap. They never describe or link to the code: how it works lives in its doc comments, and why in them and in the commit history. Keep them short and timeless (no "for now"; the roadmap aside), and give each idea one home.
 - Don't mention commercial apps or companies (e.g. other apps we take inspiration from) anywhere in the repo: docs, code, CLAUDE.md, commit messages. Describe them generically instead. Open-source projects (e.g. F-Droid) and the tools and platforms we actually use (e.g. Angular) are fine.
