@@ -1,14 +1,14 @@
-import { Component, computed, inject, InjectionToken, signal } from '@angular/core';
+import { Component, ElementRef, inject, InjectionToken, signal, viewChild } from '@angular/core';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { ButtonList } from '../../ui/button-list';
 import { backupFileName, readBackup, writeBackup } from '../../player-data/backup';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
-import { Run } from '../../player-data/run';
 import { RUN_CLOCK, RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { plural } from '../../ui/plural';
 import { Candy } from '../../ui/candy';
+import { LightDismiss } from '../../ui/light-dismiss';
 
 /** Hands a file to the player, as a download. */
 export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void>('SAVE_FILE', {
@@ -26,37 +26,47 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
 });
 
 /**
- * The player's data, a card at the top of the settings: how many runs are kept and how safe they are, with a backup
- * file to save and restore, which also keeps what was tuned in developer mode.
+ * The player's data, a card at the top of the settings: how safe it is on this device, with a backup file to save and
+ * restore, and a button to start over, erasing it all once the player has confirmed it.
  */
 @Component({
   selector: 'app-your-data',
-  imports: [ButtonList, Candy],
+  imports: [ButtonList, Candy, LightDismiss],
   template: `
     <section class="panel" aria-labelledby="data-title">
-      <h2 id="data-title">Your Data</h2>
-      <p>{{ count() }}</p>
-      @if (separatePreview()) {
-        <p>
-          This preview of the game stores runs in a different format from the main game, so it keeps
-          them apart: it has a copy of the main game's runs, and the runs played here stay here.
-        </p>
-      }
-      <p>
-        @if (persisted()) {
-          Your browser keeps them until this site's data is cleared.
-        } @else {
-          Your browser may delete them when your device runs low on space.
+      <div class="heading">
+        <h2 id="data-title">Your Data</h2>
+        <button
+          type="button"
+          appCandy="danger"
+          class="small"
+          aria-haspopup="dialog"
+          (click)="resetDialog.showModal()"
+        >
+          Start Over
+        </button>
+      </div>
+      @if (loaded()) {
+        @if (separatePreview()) {
+          <p>
+            This preview of the game keeps its data apart from the main game: it has a copy of the
+            main game's, and what you do here stays here.
+          </p>
         }
-        A backup file keeps them safe even then.
-      </p>
-      @if (tuned()) {
-        <p>It also keeps what you tuned in developer mode.</p>
+        <p>
+          @if (persisted()) {
+            Your runs and settings stay on this device until this site's data is cleared.
+          } @else {
+            Your runs and settings stay on this device, though your browser may delete them when it
+            runs low on space.
+          }
+          A backup file keeps them safe even then.
+        </p>
       }
       <app-button-list class="buttons">
         <button type="button" appCandy (click)="save()">Save a Backup</button>
         <label appCandy>
-          Restore a Backup
+          Restore from a Backup
           <input
             type="file"
             accept=".json,application/json"
@@ -67,36 +77,38 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
       </app-button-list>
       <p class="message" role="status">{{ message() }}</p>
     </section>
+    <dialog
+      #resetDialog
+      class="card"
+      closedby="any"
+      aria-labelledby="reset-title"
+      aria-describedby="reset-warning"
+    >
+      <h2 id="reset-title">Start Over?</h2>
+      <p id="reset-warning">
+        This erases your runs and settings on this device for good. Only a backup file can bring
+        them back.
+      </p>
+      <app-button-list>
+        <button type="button" appCandy autofocus (click)="resetDialog.close()">Back</button>
+        <button type="button" appCandy="danger" (click)="void reset()">Erase Everything</button>
+      </app-button-list>
+    </dialog>
   `,
   styleUrl: './your-data.css',
 })
 export class YourData {
-  /** Whether the runs have been read. */
-  private readonly loaded = signal(false);
+  /** Whether where the data stands has been read. */
+  protected readonly loaded = signal(false);
   protected readonly persisted = signal(false);
-  /** Whether this is a preview keeping its runs apart from the main game's (see {@link RunStore}). */
+  /** Whether this is a preview keeping its data apart from the main game's (see {@link RunStore}). */
   protected readonly separatePreview = signal(false);
   protected readonly message = signal('');
+  private readonly resetDialog = viewChild.required<ElementRef<HTMLDialogElement>>('resetDialog');
 
   private readonly developer = inject(DeveloperMode);
   private readonly tweaks = inject(Tweaks);
   private readonly keypadLayout = inject(KeypadLayoutSetting);
-  private readonly runs = signal<readonly Run[]>([]);
-  /** Unchecked runs, which may hold mistakes, only count in developer mode. */
-  private readonly shown = computed(() =>
-    this.runs().filter((run) => run.checked || this.developer.enabled()),
-  );
-  protected readonly count = computed(() => {
-    if (!this.loaded()) {
-      return '';
-    }
-    const count = this.shown().length;
-    return count === 0 ? 'No runs kept yet.' : `${plural(count, 'run')} kept on this device.`;
-  });
-
-  /** What was tuned in developer mode, whether or not it's on, which a backup keeps too. */
-  protected readonly tuned = computed(() => Object.keys(this.tweaks.values()).length > 0);
-
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
   private readonly clock = inject(RUN_CLOCK);
@@ -111,7 +123,7 @@ export class YourData {
     const [runs, settings] = await Promise.all([this.store.touchLogs(), this.store.settings()]);
     const now = this.clock.epoch();
     this.saveFile(backupFileName(now), writeBackup(runs, settings, now));
-    this.message.set(`Saved ${plural(runs.length, 'run')} in the backup.`);
+    this.message.set('Saved a backup of your data.');
   }
 
   protected async restore(event: Event): Promise<void> {
@@ -126,37 +138,41 @@ export class YourData {
       this.message.set(contents.error);
       return;
     }
-    const added = await this.store.addRuns(contents.runs);
+    await this.store.addRuns(contents.runs);
     await this.store.saveSettings(contents.settings);
+    await this.reload();
+    const unreadable =
+      contents.skipped > 0 ? ` ${plural(contents.skipped, 'run')} in it could not be read.` : '';
+    this.message.set(`Restored your data from the backup.${unreadable}`);
+  }
+
+  /** Erases every run and setting, once confirmed. */
+  protected async reset(): Promise<void> {
+    this.resetDialog().nativeElement.close();
+    await this.recorder.saved();
+    await this.store.deleteEverything();
+    await this.reload();
+    this.message.set('Erased your data: you start over.');
+  }
+
+  /** Applies the data as it now stands. */
+  private async reload(): Promise<void> {
     await Promise.all([
       this.developer.reload(),
       this.tweaks.reload(),
       this.keypadLayout.reload(),
       this.refresh(),
     ]);
-    const unreadable =
-      contents.skipped > 0 ? ` ${plural(contents.skipped, 'run')} in it could not be read.` : '';
-    const settings =
-      Object.keys(contents.settings).length > 0 ? ' Its settings replace yours.' : '';
-    this.message.set(
-      (added > 0
-        ? `Added ${plural(added, 'run')} from the backup.`
-        : 'Every run in this backup is already here.') +
-        unreadable +
-        settings,
-    );
   }
 
   private async refresh(): Promise<void> {
     await this.recorder.saved();
-    const [runs, persisted, separate] = await Promise.all([
-      this.store.runs(),
+    const [persisted, separate] = await Promise.all([
       this.store.persisted(),
       this.store.separate(),
     ]);
-    this.runs.set(runs);
-    this.loaded.set(true);
     this.separatePreview.set(separate);
     this.persisted.set(persisted);
+    this.loaded.set(true);
   }
 }
