@@ -73,7 +73,10 @@ export class TypedDigits {
   private height: number | null = null;
 
   constructor() {
+    // On each word too, not only each digit: a group finishes, or a word comes back into the slots, after its last
+    // digit, and a row it starts or ends must slide then, not with the next digit.
     afterRenderEffect(() => {
+      this.words();
       this.digits();
       untracked(() => {
         this.holdInPlace();
