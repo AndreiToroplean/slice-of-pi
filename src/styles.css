@@ -506,6 +506,27 @@ html:active-view-transition-type(zoom-out) {
   transform-origin: top left;
 }
 
+/* Its corner pointing at what it opens from is square, wherever it opens, and it grows from it. */
+.dropdown[data-corner='top-left'] {
+  border-top-left-radius: 0;
+  transform-origin: top left;
+}
+
+.dropdown[data-corner='top-right'] {
+  border-top-right-radius: 0;
+  transform-origin: top right;
+}
+
+.dropdown[data-corner='bottom-left'] {
+  border-bottom-left-radius: 0;
+  transform-origin: bottom left;
+}
+
+.dropdown[data-corner='bottom-right'] {
+  border-bottom-right-radius: 0;
+  transform-origin: bottom right;
+}
+
 /* Where the browser can't place it by what it opens from, in the middle of the window. */
 @supports not (position-area: block-end) {
   .dropdown,

@@ -41,6 +41,8 @@ test('opens a page from the overflow menu, and goes back on Escape', async ({ pa
   await page.keyboard.press('Enter');
   const keyColors = page.getByRole('link', { name: 'Key Colors' });
   await expect(keyColors).toBeFocused();
+  // Under the button, in the screen's top right corner: its corner pointing at the button is square.
+  await expect(page.locator('.dropdown')).toHaveAttribute('data-corner', 'top-right');
   await page.keyboard.press('Escape');
   await expect(keyColors).toBeHidden();
   await expect(more).toBeFocused();

@@ -8,7 +8,8 @@ let menus = 0;
 /**
  * A menu: a frosted dropdown holding what is given to it (links, buttons and toggles, see `.dropdown` in `styles.css`),
  * opened by a ⋮ button for a screen's corner, or, without it, where something was pressed (`openAt`). The browser places it,
- * closes it on a tap outside or on Escape; choosing one of its buttons closes it too. It opens ready for the keyboard:
+ * closes it on a tap outside or on Escape; choosing one of its buttons closes it too. It grows from, and shrinks back
+ * to, its corner pointing at where it opened from. It opens ready for the keyboard:
  * up and down move between its items, and Enter on a toggle flips it and closes the menu, as on a button.
  */
 @Component({
@@ -23,6 +24,7 @@ let menus = 0;
   template: `
     @if (button()) {
       <button
+        #more
         type="button"
         appCandy="clear"
         class="corner more"
@@ -77,6 +79,7 @@ export class DropdownMenu {
   /** What the dropdown opens from: its button, or the point where it was opened. */
   protected readonly anchor = `--${this.id}`;
   private readonly point = viewChild<ElementRef<HTMLElement>>('point');
+  private readonly more = viewChild<string, ElementRef<HTMLElement>>('more', { read: ElementRef });
   private readonly dropdown = viewChild.required<ElementRef<HTMLElement>>('dropdown');
   private readonly items = viewChild.required(ArrowFocus);
 
@@ -93,18 +96,34 @@ export class DropdownMenu {
     point.style.left = `${String(at.x - origin.left)}px`;
     point.style.top = `${String(at.y - origin.top)}px`;
     this.dropdown().nativeElement.showPopover();
+    // Laid out as it opens, so that it grows from the right corner from the start.
+    this.noteCorner();
   }
 
   /**
    * Tells the dropdown where it opened in the window, for it to draw the season background under it where it is (see
-   * `.dropdown` in `styles.css`). Once open, its first item takes the focus, so that the keyboard goes on from the menu.
+   * `.dropdown` in `styles.css`), and which of its corners points at what it opened from, which is square. Once open,
+   * its first item takes the focus, so that the keyboard goes on from the menu.
    */
   protected toggled(event: Event): void {
     const dropdown = this.dropdown().nativeElement;
     dropdown.style.setProperty('--window-x', `${String(dropdown.offsetLeft)}px`);
     dropdown.style.setProperty('--window-y', `${String(dropdown.offsetTop)}px`);
     if ((event as ToggleEvent).newState === 'open') {
+      this.noteCorner();
       this.items().focusFirst();
+    }
+  }
+
+  /** Notes which of its corners points at what it opened from: square, and where it grows from and shrinks to. */
+  private noteCorner(): void {
+    const dropdown = this.dropdown().nativeElement;
+    const anchor = (this.more() ?? this.point())?.nativeElement.getBoundingClientRect();
+    if (anchor !== undefined) {
+      const box = dropdown.getBoundingClientRect();
+      const above = box.top + box.height / 2 < anchor.top + anchor.height / 2;
+      const left = box.left + box.width / 2 < anchor.left + anchor.width / 2;
+      dropdown.dataset['corner'] = `${above ? 'bottom' : 'top'}-${left ? 'right' : 'left'}`;
     }
   }
 
