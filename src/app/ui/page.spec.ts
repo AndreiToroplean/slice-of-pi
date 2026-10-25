@@ -6,7 +6,7 @@ import { Page } from './page';
 
 @Component({
   imports: [Page],
-  template: `<app-page title="A page"><dialog>A dialog</dialog></app-page>`,
+  template: `<app-page heading="A page"><dialog>A dialog</dialog></app-page>`,
 })
 class APage {}
 
@@ -35,6 +35,7 @@ describe('Page', () => {
     const back = host?.querySelector<HTMLButtonElement>('button[title="Back"]');
 
     expect(host?.querySelector('h1')?.textContent).toBe('A page');
+    expect(host?.querySelector('app-page')?.hasAttribute('title')).toBe(false);
     back?.click();
     await harness.fixture.whenStable();
 

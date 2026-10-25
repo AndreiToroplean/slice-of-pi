@@ -17,7 +17,7 @@ import { YourData } from './your-data';
   selector: 'app-settings',
   imports: [Candy, Page, Segmented, YourData],
   template: `
-    <app-page title="Settings">
+    <app-page heading="Settings">
       <button
         pageAction
         type="button"

@@ -35,7 +35,7 @@ export const CLOSE = 15;
   selector: 'app-key-colors',
   imports: [ColorPicker, CopyValues, Page],
   template: `
-    <app-page title="Key Colors">
+    <app-page heading="Key Colors">
       <button pageAction type="button" class="frosted pill" [disabled]="!tuned()" (click)="reset()">
         Back to Default Settings
       </button>

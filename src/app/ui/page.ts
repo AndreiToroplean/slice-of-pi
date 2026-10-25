@@ -16,7 +16,7 @@ import { Candy } from './candy';
       <button type="button" appCandy="clear" class="corner back" title="Back" (click)="back()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
       </button>
-      <h1>{{ title() }}</h1>
+      <h1>{{ heading() }}</h1>
       <div class="actions"><ng-content select="[pageAction]" /></div>
     </header>
     <ng-content />
@@ -24,7 +24,8 @@ import { Candy } from './candy';
   styleUrl: './page.css',
 })
 export class Page {
-  readonly title = input.required<string>();
+  /** The page's title, in its top bar; not `title`, which the browser would show as a tooltip over the whole page. */
+  readonly heading = input.required<string>();
   protected readonly back = injectBackToMenu();
   private readonly document = inject(DOCUMENT);
 
