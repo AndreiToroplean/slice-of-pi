@@ -180,6 +180,23 @@ body {
   }
 }
 
+/* A pill picking one of a few choices from a menu, such as a break model: the choice, with a caret. */
+.pill.picker {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pill.picker svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* A frosted card for each part of a page. */
 .panel {
   display: grid;

@@ -148,19 +148,6 @@ const FRAME = 30;
 
     .picker {
       justify-self: start;
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-    }
-
-    .picker svg {
-      width: 1rem;
-      height: 1rem;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2.4;
-      stroke-linecap: round;
-      stroke-linejoin: round;
     }
 
     /* Each model with what it does under its name; the one picked, readable but set apart. */
