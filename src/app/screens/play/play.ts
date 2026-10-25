@@ -32,6 +32,7 @@ import { KeypadKey, KeypadTouch } from '../../game/layers/keypad-layout';
 import { SeasonHeader } from './season-header/season-header';
 import { seasonAt } from '../../game/layers/seasons';
 import { Tweaks } from '../../developer-mode/tweaks';
+import { layoutStyles } from '../../ui/layout';
 import { Slots } from './slots/slots';
 import { TypedDigits } from './typed-digits/typed-digits';
 import { TIMER } from './timer';
@@ -63,6 +64,7 @@ import { TIMER } from './timer';
   host: {
     '[class.screen]': 'replay() === undefined',
     '[class.replaying]': 'replay() !== undefined',
+    '[style]': 'layout()',
     '(pointerdown)': 'touchDown($event)',
     '(pointerup)': 'touchUp($event)',
     '(pointercancel)': 'touchesElsewhere.delete($event.pointerId)',
@@ -70,14 +72,16 @@ import { TIMER } from './timer';
   template: `
     <h1 class="visually-hidden">Slice of Pi</h1>
     <app-season-header [view]="season()" />
-    <app-typed-digits [words]="grouping().words" [digits]="digits()" [colors]="placeColors()" />
-    <app-slots
-      class="slots"
-      [digits]="grouping().current + mistakes()"
-      [colors]="currentColors()"
-      [size]="size()"
-      [wrong]="mistakes().length"
-    />
+    <div class="middle">
+      <app-typed-digits [words]="grouping().words" [digits]="digits()" [colors]="placeColors()" />
+      <app-slots
+        class="slots"
+        [digits]="grouping().current + mistakes()"
+        [colors]="currentColors()"
+        [size]="size()"
+        [wrong]="mistakes().length"
+      />
+    </div>
     <p class="visually-hidden" aria-live="assertive">
       @if (mistakes() !== '') {
         {{ mistakes().charAt(0) }} is wrong: delete back to it to go on.
@@ -131,6 +135,8 @@ export class Play {
 
   /** The colors tuned in developer mode, or the game's own, and whether to count down to the end of the group. */
   protected readonly tweaks = inject(Tweaks);
+  /** Where the header, slots and keypad sit, as the lengths they lay out with. */
+  protected readonly layout = computed(() => layoutStyles(this.tweaks.layout()));
 
   /**
    * Whether the game is paused: keys typed on a keyboard meanwhile don't count, and the run's clock stops, so that the

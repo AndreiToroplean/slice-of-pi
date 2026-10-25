@@ -67,12 +67,12 @@ test('records a touch slid off its key from its digit, and one elsewhere, as typ
   await touchAlong(touches, [{ x: (await center('5')).x, y: slots.y + slots.height / 2 }]);
   await touchAlong(touches, [await center('4')]);
 
-  // Where each touch lifted, to a hundredth of a step, and what it typed.
+  // Where each touch lifted, to a hundredth of a step (-0 as 0), and what it typed.
   await expect
     .poll(async () =>
       (await recordedTouches(page)).map((touch) => {
         const { key, x, y } = touch as { key: string | null; x: number; y: number };
-        return [key, Math.round(x * 100) / 100, Math.round(y * 100) / 100];
+        return [key, Math.round(x * 100) / 100 + 0, Math.round(y * 100) / 100 + 0];
       }),
     )
     .toEqual([

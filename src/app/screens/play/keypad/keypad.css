@@ -1,6 +1,7 @@
 /*
  * The keys' grid, in the keypad's padding: all of it takes touches, the keys on the grid's edges reaching out over it
- * (see `Keypad`). Whoever lays the keypad out sets how far on each side (`--reach-*`), as its padding.
+ * (see `Keypad`). Whoever lays the keypad out sets its keys' height, and how far on each side (`--reach-*`), as its
+ * padding; the digits scale with the keys.
  */
 :host {
   --key-height: 3.75rem;
@@ -22,6 +23,7 @@
 }
 
 .grid {
+  height: 100%;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(4, 1fr);
@@ -32,13 +34,13 @@
 .key {
   min-height: var(--key-height);
   padding: 0;
-  font-size: 1.6875rem;
+  font-size: calc(var(--key-height) * 0.45);
   font-variant-numeric: tabular-nums;
 }
 
 .backspace svg {
-  width: 1.625rem;
-  height: 1.625rem;
+  width: 0.96em;
+  height: 0.96em;
   vertical-align: middle;
   fill: none;
   stroke: currentColor;
