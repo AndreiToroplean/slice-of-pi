@@ -5,11 +5,20 @@
 //   node scripts/publish-pages.ts main <build>        # main's build at the site root, keeping the previews
 //   node scripts/publish-pages.ts preview <pr> <build> # a pull request's preview under pr-<number>/
 //   node scripts/publish-pages.ts remove <pr>          # delete a pull request's preview
+//   node scripts/publish-pages.ts wip <date> <build>   # a weekly work-in-progress build under wip/<date>/
 //
 // gh-pages keeps a single commit, replaced on every publish, so old builds don't pile up in the repository. Runs racing
 // for the branch push with a lease and start over from the newer commit when they lose.
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -18,6 +27,9 @@ import {
   destination,
   entriesToRemove,
   parseArgs,
+  WIP,
+  wipDates,
+  wipIndex,
   type SiteChange,
 } from './pages.ts';
 
@@ -56,6 +68,12 @@ function publish(change: SiteChange, build: string | undefined): boolean {
     const target = destination(change);
     if (target !== undefined && build !== undefined) {
       cpSync(build, join(site, target), { recursive: true });
+    }
+    if (existsSync(join(site, WIP))) {
+      writeFileSync(
+        join(site, WIP, 'index.html'),
+        wipIndex(wipDates(readdirSync(join(site, WIP)))),
+      );
     }
     writeFileSync(join(site, NO_JEKYLL), '');
 

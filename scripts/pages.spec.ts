@@ -7,9 +7,21 @@ import {
   previewDir,
   previewUrl,
   type RunContext,
+  wipDates,
+  wipDir,
+  wipIndex,
 } from './pages';
 
-const site = ['.nojekyll', '404.html', 'index.html', 'main-ABC.js', 'icons', 'pr-7', 'pr-12'];
+const site = [
+  '.nojekyll',
+  '404.html',
+  'index.html',
+  'main-ABC.js',
+  'icons',
+  'pr-7',
+  'pr-12',
+  'wip',
+];
 
 describe('previewDir', () => {
   it('names the directory after the pull request', () => {
@@ -18,6 +30,35 @@ describe('previewDir', () => {
 
   it.each([0, -1, 1.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1])('rejects %d', (pr) => {
     expect(() => previewDir(pr)).toThrow(RangeError);
+  });
+});
+
+describe('wipDir', () => {
+  it('names the directory after the date', () => {
+    expect(wipDir('2026-10-12')).toBe('wip/2026-10-12');
+  });
+
+  it.each(['2026-10-1', '2026/10/12', '2026-13-01', '../x', ''])('rejects %s', (date) => {
+    expect(() => wipDir(date)).toThrow(RangeError);
+  });
+});
+
+describe('wipDates', () => {
+  it('lists the weekly builds newest first, leaving out other files', () => {
+    expect(wipDates(['2026-10-12', 'index.html', '2026-10-26', '2026-10-19'])).toEqual([
+      '2026-10-26',
+      '2026-10-19',
+      '2026-10-12',
+    ]);
+  });
+});
+
+describe('wipIndex', () => {
+  it('links every weekly build, in the order given', () => {
+    const links = [...wipIndex(['2026-10-19', '2026-10-12']).matchAll(/href="([^"]*)"/g)].map(
+      (match) => match[1],
+    );
+    expect(links).toEqual(['2026-10-19/', '2026-10-12/']);
   });
 });
 
@@ -30,13 +71,17 @@ describe('destination', () => {
     expect(destination({ kind: 'publish-preview', pr: 7 })).toBe('pr-7');
   });
 
+  it("puts a weekly build in its date's directory", () => {
+    expect(destination({ kind: 'publish-wip', date: '2026-10-12' })).toBe('wip/2026-10-12');
+  });
+
   it('puts nothing anywhere when removing a preview', () => {
     expect(destination({ kind: 'remove-preview', pr: 7 })).toBeUndefined();
   });
 });
 
 describe('entriesToRemove', () => {
-  it("replaces main's files but keeps the previews and .nojekyll", () => {
+  it("replaces main's files but keeps the previews, the weekly builds and .nojekyll", () => {
     expect(entriesToRemove(site, { kind: 'publish-main' })).toEqual([
       '404.html',
       'index.html',
@@ -64,6 +109,12 @@ describe('entriesToRemove', () => {
     expect(entriesToRemove(site, { kind: 'remove-preview', pr: 1 })).toEqual([]);
   });
 
+  it('replaces only its own week of the weekly builds', () => {
+    expect(entriesToRemove(site, { kind: 'publish-wip', date: '2026-10-12' })).toEqual([
+      'wip/2026-10-12',
+    ]);
+  });
+
   it('removes nothing from an empty site', () => {
     expect(entriesToRemove([], { kind: 'publish-main' })).toEqual([]);
   });
@@ -76,6 +127,9 @@ describe('commitMessage', () => {
     expect(commitMessage({ kind: 'publish-main' }, sha)).toBe('Publish main from 0123456');
     expect(commitMessage({ kind: 'publish-preview', pr: 7 }, sha)).toBe(
       'Publish the preview of #7 from 0123456',
+    );
+    expect(commitMessage({ kind: 'publish-wip', date: '2026-10-12' }, sha)).toBe(
+      'Publish the work in progress of 2026-10-12 from 0123456',
     );
   });
 
@@ -96,6 +150,10 @@ describe('parseArgs', () => {
       build: 'dist',
     });
     expect(parseArgs(['remove', '7'])).toEqual({ change: { kind: 'remove-preview', pr: 7 } });
+    expect(parseArgs(['wip', '2026-10-12', 'dist'])).toEqual({
+      change: { kind: 'publish-wip', date: '2026-10-12' },
+      build: 'dist',
+    });
   });
 
   it.each([
