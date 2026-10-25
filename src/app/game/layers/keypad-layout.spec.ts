@@ -4,6 +4,7 @@ import {
   KEYPAD_LAYOUTS,
   KeypadLayout,
   KeypadPoint,
+  isNearKey,
   keyAt,
   keyCenter,
   pointAt,
@@ -126,5 +127,26 @@ describe('keyAt', () => {
     expect(at(-1, 2)).toBeNull();
     expect(at(-1, 3)).toBeNull();
     expect(at(-2, 2)).toBeNull();
+  });
+});
+
+describe('isNearKey', () => {
+  it('takes the whole cell of the key, and no farther without reach', () => {
+    expect(isNearKey('calculator', '5', { x: 0.5, y: -0.5 }, 0)).toBe(true);
+    expect(isNearKey('calculator', '5', { x: 0.501, y: 0 }, 0)).toBe(false);
+  });
+
+  it('reaches as many steps beyond the cell in every direction, diagonals included', () => {
+    expect(isNearKey('calculator', '5', { x: 1.5, y: 0 }, 1)).toBe(true);
+    expect(isNearKey('calculator', '5', { x: 0, y: -1.5 }, 1)).toBe(true);
+    expect(isNearKey('calculator', '5', { x: -1.5, y: 1.5 }, 1)).toBe(true);
+    expect(isNearKey('calculator', '5', { x: 1.501, y: 0 }, 1)).toBe(false);
+    expect(isNearKey('calculator', '5', { x: 0, y: 1.501 }, 1)).toBe(false);
+  });
+
+  it('measures from the key where the layout puts it, beyond the edges of the keys too', () => {
+    expect(isNearKey('calculator', '7', { x: -2.5, y: -2.5 }, 1)).toBe(true);
+    expect(isNearKey('telephone', '7', { x: -2.5, y: -2.5 }, 1)).toBe(false);
+    expect(isNearKey('telephone', '7', { x: -1, y: 2.5 }, 1)).toBe(true);
   });
 });

@@ -129,3 +129,18 @@ export function keyAt(layout: KeypadLayout, point: KeypadPoint): KeypadKey | nul
 function cell(position: number, count: number): number {
   return Math.min(Math.max(Math.round(position), 0), count - 1);
 }
+
+/**
+ * Whether a point on the keypad in a layout is near a key: in its own cell, which reaches halfway to the next keys, or at
+ * most `reach` steps beyond it, sideways or up and down, as in a square around the key.
+ */
+export function isNearKey(
+  layout: KeypadLayout,
+  key: KeypadKey,
+  point: KeypadPoint,
+  reach: number,
+): boolean {
+  const center = keyCenter(layout, key);
+  const limit = 0.5 + reach;
+  return Math.abs(point.x - center.x) <= limit && Math.abs(point.y - center.y) <= limit;
+}

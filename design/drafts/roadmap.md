@@ -40,7 +40,6 @@ To check with the owner: dropping the "π=3." lead for a "3" with a separator do
 
 Your Data stops being its own page: it becomes a card at the top of Settings. Settings might get a new name.
 
-## Maybe: grace when slipping off a key
+## Maybe: where touches start
 
-- **Grace.** Today, a touch that slides off its key types nothing. With grace, it would still type its key unless it slid off far enough, a set distance in pixels. The rule has to stay fair: the same for every player, giving no one an unfair advantage.
 - **Where touches start.** Touch logs would record where each touch went down as well as where it lifted. Replays would draw each touch as a line from the one to the other, with motion showing which way it went. Nothing else would use the new point: runs keep counting only the key a touch typed.
