@@ -3,14 +3,15 @@ import { slotLayout } from './slot-layout';
 
 /**
  * The typing area: the slots of the group being typed, filled with its digits so far, the next one outlined,
- * each in its place color, or marked as a mistake (red on white, outlined in red). There is no text under the slots. Hidden from assistive technology: the typed digits say what
- * was typed.
+ * each in its place color, or marked as a mistake (red on white, outlined in red); the empty ones fade out as told.
+ * There is no text under the slots. Hidden from assistive technology: the typed digits say what was typed.
  */
 @Component({
   selector: 'app-slots',
   host: {
     'aria-hidden': 'true',
     '[style.--columns]': 'layout().columns',
+    '[style.--empty-opacity]': 'emptyOpacity()',
   },
   template: `
     @for (slot of slots(); track $index) {
@@ -35,6 +36,8 @@ export class Slots {
   readonly size = input.required<number>();
   /** How many of the last digits are mistakes. */
   readonly wrong = input(0);
+  /** How opaque the empty slots are, from 1 down to 0, as they fade out. */
+  readonly emptyOpacity = input(1);
 
   protected readonly layout = computed(() => slotLayout(this.digits().length, this.size()));
 

@@ -38,6 +38,9 @@ import { Slots } from './slots/slots';
 import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { TIMER } from './timer';
 
+/** How often what shows the wait for the group being typed running out is redrawn, in milliseconds: about every frame. */
+const TICK = 16;
+
 /**
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
  * flies onto the tape as a word, as the seasons go by. Each typed digit takes the color its key showed.
@@ -83,6 +86,7 @@ import { TIMER } from './timer';
         [colors]="currentColors()"
         [size]="size()"
         [wrong]="mistakes().length"
+        [emptyOpacity]="waitLeft()"
       />
     </div>
     <p class="visually-hidden" aria-live="assertive">
@@ -167,6 +171,19 @@ export class Play implements PausesOnBack {
    * `Infinity` if no pause up to the longest wait looked at ends it.
    */
   protected readonly breakWait = signal<number | undefined>(undefined);
+  /** Ticks about every frame while the group being typed may end, for what shows its wait running out. */
+  private readonly ticks = signal(0);
+  /**
+   * The share of the wait for the group being typed to end that's left, from 1 down to 0: its empty slots fade out with
+   * it, as it may end before they're filled. Stopped while paused.
+   */
+  protected readonly waitLeft = computed(() => {
+    this.ticks();
+    const wait = this.breakWait();
+    return wait === undefined || wait === Infinity
+      ? 1
+      : Math.max(0, wait - this.session.waited()) / wait;
+  });
   /** The player's earlier runs, oldest first. */
   private readonly earlierRuns = signal<readonly Run[]>([]);
   /** How the break model plays the groups over the earlier runs that count in them, before this one. */
@@ -226,8 +243,8 @@ export class Play implements PausesOnBack {
   private flights: Animation[] = [];
   /** Whether backspace has emptied the slots, since the last digit, so that the next one may carry the last word on. */
   private reopenable = false;
-  /** Stops waiting for the player's pause to end the group. */
-  private stopWatching = (): void => undefined;
+  /** Stops the timers of the wait for the player's pause to end the group: its end, and its ticks. */
+  private stopTimers = (): void => undefined;
 
   constructor() {
     // Ending the game, back to the main menu, ends the run.
@@ -285,7 +302,8 @@ export class Play implements PausesOnBack {
     this.paused.set(paused);
     if (paused) {
       this.session.pause();
-      this.stopWatching();
+      this.stopTimers();
+      this.stopTimers = () => undefined;
     } else {
       this.session.resume();
       this.watchForPause();
@@ -461,17 +479,26 @@ export class Play implements PausesOnBack {
       return;
     }
     this.breakWait.set(wait);
-    const stop =
-      left < Infinity
-        ? this.timer.after(left, () => {
-            this.stopWatching();
-            this.finishGroup(true);
-          })
-        : (): void => undefined;
-    this.stopWatching = () => {
-      stop();
-      this.breakWait.set(undefined);
-    };
+    if (left < Infinity) {
+      const end = this.timer.after(left, () => {
+        this.stopWatching();
+        this.finishGroup(true);
+      });
+      const tick = this.timer.every(TICK, () => {
+        this.ticks.update((ticks) => ticks + 1);
+      });
+      this.stopTimers = () => {
+        end();
+        tick();
+      };
+    }
+  }
+
+  /** Stops waiting for the player's pause to end the group. */
+  private stopWatching(): void {
+    this.stopTimers();
+    this.stopTimers = () => undefined;
+    this.breakWait.set(undefined);
   }
 
   /**
