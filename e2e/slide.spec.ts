@@ -28,7 +28,15 @@ test('slides the slots of a group ending short of its slots together, centered, 
       );
       const effect = copy.getAnimations()[0]?.effect;
       const keyframes = effect instanceof KeyframeEffect ? effect.getKeyframes() : [];
-      const [, x = '0'] = /translate\((-?[\d.]+)px/.exec(String(keyframes[1]?.transform)) ?? [];
+      const [, x = '0'] =
+        /translate\((-?[\d.]+)px/.exec(
+          String(
+            // Where it lifts off from, pressed in, before it starts to take its tile's size.
+            [...keyframes]
+              .reverse()
+              .find((keyframe) => String(keyframe.transform).includes('scale(1,'))?.transform,
+          ),
+        ) ?? [];
       return { center: box.left + box.width / 2 + Number(x), width: box.width };
     }),
   );

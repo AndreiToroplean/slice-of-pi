@@ -64,26 +64,61 @@ describe('flightKeyframes', () => {
     expect(end?.['borderRadius']).toBe('8px 0px 0px 8px / 10px 0px 0px 10px');
   });
 
-  it('first slides, then waits its turn there, then presses in there, and lands on the tile all the same', () => {
+  describe('sweeping through where it slides to', () => {
     const slid = { ...slot, left: 130 };
-    const total = 120 + 56 + PRESS_DURATION + FLIGHT_DURATION;
+    const through = 56 + 120 + PRESS_DURATION;
+    const total = through + FLIGHT_DURATION;
+    const keyframes = flightKeyframes(slot, tile, 14, [4, 0, 0, 4], { slid, slide: 120, wait: 56 });
 
-    const [start, there, waited, pressed, end] = flightKeyframes(slot, tile, 14, [0, 0, 0, 0], {
-      slid,
-      slide: 120,
-      wait: 56,
+    /** Where a keyframe has the slot, from where it starts. */
+    function at(keyframe: Keyframe | undefined): { x: number; y: number } {
+      const [, x = '0', y = '0'] =
+        /translate\((-?[\d.e-]+)px, (-?[\d.e-]+)px\)/.exec(String(keyframe?.['transform'])) ?? [];
+      return { x: Number(x), y: Number(y) };
+    }
+
+    it('waits its turn on its slot, as it is', () => {
+      expect(keyframes[0]?.offset).toBe(0);
+      expect(keyframes[0]?.['boxShadow']).toContain('-4px');
+      expect(at(keyframes[0])).toEqual({ x: 0, y: 0 });
+      const waited = keyframes.find((keyframe) => keyframe.offset === 56 / total);
+      expect(at(waited)).toEqual({ x: 0, y: 0 });
     });
 
-    expect(start).toMatchObject({ offset: 0, transform: 'none', borderRadius: '14px' });
-    expect(there).toMatchObject({ offset: 120 / total, transform: 'translate(30px, 0px)' });
-    expect(waited).toMatchObject({ offset: (120 + 56) / total, transform: 'translate(30px, 0px)' });
-    expect(pressed).toMatchObject({
-      offset: (120 + 56 + PRESS_DURATION) / total,
-      transform: `translate(30px, 2px) scale(1, ${String(56 / 60)})`,
+    it('goes through where it slides to, pressed in, as it would have pressed in there, and lands on the tile', () => {
+      const middle = keyframes.find((keyframe) => keyframe.offset === through / total);
+      expect(at(middle)).toEqual({ x: 30, y: SLOT_DEPTH / 2 });
+      expect(middle?.['transform']).toContain(`scale(1, ${String(56 / 60)})`);
+      expect(keyframes.at(-1)).toMatchObject({
+        offset: 1,
+        transform: 'translate(-90px, -418px) scale(0.5, 0.4)',
+        borderRadius: '8px 0px 0px 8px / 10px 0px 0px 10px',
+      });
     });
-    expect(end).toMatchObject({
-      offset: 1,
-      transform: 'translate(-90px, -418px) scale(0.5, 0.4)',
+
+    it('only slides across until it lifts off, but for its face sinking as it presses in, never going back', () => {
+      const sliding = keyframes.filter((keyframe) => Number(keyframe.offset) <= through / total);
+      expect(
+        sliding.every((keyframe) => at(keyframe).y >= 0 && at(keyframe).y <= SLOT_DEPTH / 2),
+      ).toBe(true);
+      const across = sliding.map((keyframe) => at(keyframe).x);
+      expect(across).toEqual([...across].sort((a, b) => a - b));
+    });
+
+    it('never jumps nor turns sharply: it keeps its speed through where it slides to', () => {
+      const offsets = keyframes.map((keyframe) => Number(keyframe.offset));
+      expect(offsets).toEqual([...offsets].sort((a, b) => a - b));
+      const middle = keyframes.findIndex((keyframe) => keyframe.offset === through / total);
+      const speed = (i: number): { x: number; y: number } => {
+        const [a, b] = [keyframes[i], keyframes[i + 1]];
+        const time = (Number(b?.offset) - Number(a?.offset)) * total;
+        return { x: (at(b).x - at(a).x) / time, y: (at(b).y - at(a).y) / time };
+      };
+      const coming = speed(middle - 1);
+      const going = speed(middle);
+      expect(going.x).toBeCloseTo(coming.x, 1);
+      expect(going.y).toBeCloseTo(coming.y, 1);
+      expect(Math.hypot(going.x, going.y)).toBeGreaterThan(0.05);
     });
   });
 });
