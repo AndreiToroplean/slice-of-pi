@@ -3,10 +3,14 @@ import {
   provideRouter,
   ViewTransitionInfo,
   withNavigationErrorHandler,
+  withRouterConfig,
   withViewTransitions,
 } from '@angular/router';
 import { routes } from './app.routes';
 import { loadFailedPage } from './failed-navigation';
+
+/** Going back cancelled, as from the play screen, which pauses instead, leaves the history as it was. */
+export const KEEP_HISTORY = withRouterConfig({ canceledNavigationResolution: 'computed' });
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -15,6 +19,7 @@ export const appConfig: ApplicationConfig = {
       routes,
       withViewTransitions({ onViewTransitionCreated: zoom }),
       withNavigationErrorHandler(loadFailedPage),
+      KEEP_HISTORY,
     ),
   ],
 };

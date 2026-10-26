@@ -15,6 +15,7 @@ import { FakeTime } from '../../../testing/fake-time';
 import { Background } from '../../ui/background';
 import { FIRST_LANDING } from './flight/flight';
 import { routes } from '../../app.routes';
+import { KEEP_HISTORY } from '../../app.config';
 import { Menu } from '../menu/menu';
 import { PALETTE, placeColors } from '../../game/layers/place-colors';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
@@ -56,7 +57,7 @@ describe('Play', () => {
     TestBed.configureTestingModule({
       providers: [
         PLAY_WITH_MERCURY,
-        provideRouter(routes),
+        provideRouter(routes, KEEP_HISTORY),
         provideLocationMocks(),
         ...time.providers,
       ],
@@ -1093,6 +1094,30 @@ describe('Play', () => {
       expect(TestBed.inject(Router).url).toBe('/');
       expect(harness.routeDebugElement?.componentInstance).toBeInstanceOf(Menu);
     });
+
+    it('pauses as the player goes back, rather than leaving, and resumes going back again', async () => {
+      const harness = await RouterTestingHarness.create('/');
+      TestBed.inject(Router).initialNavigation();
+      const play = await harness.navigateByUrl('/play', Play);
+      const location = TestBed.inject(Location);
+
+      for (const paused of [true, false]) {
+        location.back();
+        await new Promise((resolve) => setTimeout(resolve));
+        await harness.fixture.whenStable();
+
+        expect(harness.routeDebugElement?.componentInstance).toBe(play);
+        expect(host(harness).querySelector<HTMLDialogElement>('dialog')?.open).toBe(paused);
+      }
+    });
+
+    function host(harness: RouterTestingHarness): HTMLElement {
+      const element = harness.routeNativeElement;
+      if (element === null) {
+        throw new Error('No play screen');
+      }
+      return element;
+    }
 
     it('ends a game opened directly by putting the main menu in its place', async () => {
       const harness = await RouterTestingHarness.create('/play');

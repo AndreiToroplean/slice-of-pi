@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { missingPreview } from './screens/missing-preview/missing-preview-path';
 import { Menu } from './screens/menu/menu';
+import { pauseOnBack } from './screens/play/pause-on-back';
 
 export const routes: Routes = [
   {
@@ -11,6 +12,7 @@ export const routes: Routes = [
   {
     path: 'play',
     loadComponent: () => import('./screens/play/play').then((m) => m.Play),
+    canDeactivate: [pauseOnBack],
   },
   {
     path: 'runs',
