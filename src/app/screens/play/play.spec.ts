@@ -335,6 +335,19 @@ describe('Play', () => {
     expect(emptyOpacity(host)).toBe(1);
   });
 
+  it('keeps the slots the digits typed past them took, after backspace, until the group ends', async () => {
+    const { host, type } = await setUp();
+    await typeAll(type, '141592');
+    expect(slots(host)).toHaveLength(6);
+
+    await typeAll(type, '<<');
+    expect(slots(host)).toEqual(['1', '4', '1', '5', '', '']);
+
+    await typeAll(type, ' ');
+    expect(words(host)).toEqual(['1415']);
+    expect(slots(host)).toHaveLength(5);
+  });
+
   it('waits for a new pause after backspace, counted from it', async () => {
     const { host, type } = await setUpPlayed();
     await typeAll(type, '1415');
