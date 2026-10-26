@@ -107,6 +107,13 @@ describe('Play', () => {
     return Array.from(host.querySelectorAll('app-slots .slot'), (slot) => slot.textContent);
   }
 
+  /** How opaque the empty slots are. */
+  function emptyOpacity(host: HTMLElement): number {
+    return Number(
+      host.querySelector<HTMLElement>('app-slots')?.style.getPropertyValue('--empty-opacity'),
+    );
+  }
+
   function summary(host: HTMLElement): string | undefined {
     return host.querySelector('app-typed-digits .visually-hidden')?.textContent;
   }
@@ -306,6 +313,26 @@ describe('Play', () => {
     await typeAll(type, '5');
     expect(words(host)).toEqual([]);
     expect(slots(host)).toEqual(['1', '4', '1', '5', '']);
+  });
+
+  it('fades the empty slots out evenly as the wait for the group to end runs out, and back in for the next', async () => {
+    const { host, type, stable } = await setUp();
+    expect(emptyOpacity(host)).toBe(1);
+    await typeAll(type, '141');
+    expect(emptyOpacity(host)).toBe(1);
+
+    const opacities: number[] = [];
+    while (words(host).length === 0) {
+      time.advance(100);
+      await stable();
+      opacities.push(emptyOpacity(host));
+    }
+
+    const faded = opacities.slice(0, -1);
+    const steps = faded.slice(1).map((opacity, i) => (faded[i] ?? 0) - opacity);
+    expect(steps.every((step) => step > 0 && Math.abs(step - (steps[0] ?? 0)) < 0.01)).toBe(true);
+    expect(faded.at(-1)).toBeLessThan(steps[0] ?? 0);
+    expect(emptyOpacity(host)).toBe(1);
   });
 
   it('waits for a new pause after backspace, counted from it', async () => {
@@ -981,6 +1008,21 @@ describe('Play', () => {
       time.advance(PAUSE);
       await stable();
       expect(words(host)).toEqual(['1415']);
+    });
+
+    it('keeps the empty slots as faded as they were while paused', async () => {
+      const { host, type, stable } = await setUp();
+      await typeAll(type, '141');
+      time.advance(300);
+      await stable();
+      const faded = emptyOpacity(host);
+      expect(faded).toBeLessThan(1);
+
+      pauseItem(host, 'Pause').click();
+      time.advance(10 * PAUSE);
+      await stable();
+
+      expect(emptyOpacity(host)).toBe(faded);
     });
 
     it("ignores keys typed on a keyboard until it's resumed", async () => {
