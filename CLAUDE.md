@@ -22,6 +22,7 @@
 
 - Keep test coverage high: every feature and bug fix comes with unit tests (Vitest).
 - End-to-end tests (Playwright, in `e2e/`) are written sparingly, only for what the unit tests can't check: what takes a real browser, such as the focus, popovers and dialogs, or a flow across screens. They run on pull requests in CI, not in `npm run check`.
+- To check something in a real browser, write an end-to-end test when you know beforehand what to check: it reruns at no cost, and it's kept. Drive the browser by hand (the Playwright MCP server) only to explore, when you don't know yet what to look for, such as how something looks or why it misbehaves.
 - Test behavior, not where things sit in the UI: no tests pinning which button is where or which menu holds what.
 - Keep each commit as small as its title promises. If a change turns out to touch far more than its intent suggests (many tests, docs or files for a small feature or fix), the code around it needs refactoring: refactor first, in its own commit, so the change itself stays small, and mention it in the pull request.
 
