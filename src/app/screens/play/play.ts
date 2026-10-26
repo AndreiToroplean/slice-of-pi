@@ -46,8 +46,9 @@ import { TIMER } from './timer';
  * player pauses.
  * Every digit is checked against π, unless developer mode turns that off: a wrong one, and any typed on after it, show
  * as mistakes in their slots, and never finish the group, until backspace deletes them.
- * Backspace deletes the last digit, reopening the last word when the slots are empty, and brings the last word back when
- * it empties them, for the player to carry on, until they break there again. Developer mode counts down, left of 0, to
+ * Backspace deletes the last digit, reopening the last word when the slots are empty. Once it empties them, the last
+ * word stays on the tape, and comes back into the slots only for a next digit typed fast enough to carry it on, until
+ * the player breaks there again. Developer mode counts down, left of 0, to
  * when the group being typed ends, unless its settings hide that. Pausing offers to restart the game, stop it and
  * replay its run, or end it, back to the main menu; going back, as the browser's or the system's Back does, pauses
  * too, and resumes, and only ending the game leaves it. Every touch on the keypad, and every key typed, is recorded, with
@@ -223,6 +224,8 @@ export class Play implements PausesOnBack {
   protected readonly touchesElsewhere = new Map<number, KeypadPoint>();
   /** Slots flying into their word. */
   private flights: Animation[] = [];
+  /** Whether backspace has emptied the slots, since the last digit, so that the next one may carry the last word on. */
+  private reopenable = false;
   /** Stops waiting for the player's pause to end the group. */
   private stopWatching = (): void => undefined;
 
@@ -325,6 +328,9 @@ export class Play implements PausesOnBack {
   }
 
   private play(touch: KeypadTouch): void {
+    // Before the touch is recorded, which starts the wait for the next digit over.
+    const carriesOn = touch.key !== null && touch.key !== 'backspace' && this.carriesOn();
+    this.reopenable = false;
     this.session.record(touch);
     const key = touch.key;
     if (key === null) {
@@ -340,7 +346,7 @@ export class Play implements PausesOnBack {
     if (this.mistakes() !== '') {
       if (key === 'backspace') {
         this.mistakes.update((mistakes) => mistakes.slice(0, -1));
-        this.bringBackEmptied(this.sizes().length);
+        this.afterBackspace();
       } else {
         this.mistakes.update((mistakes) => mistakes + key);
       }
@@ -354,30 +360,47 @@ export class Play implements PausesOnBack {
     }
     if (key === 'backspace') {
       this.landFlights();
-      const words = this.sizes().length;
-      if (this.grouping().current === '') {
+      // On empty slots, it reopens the last word.
+      const reopens = this.grouping().current === '';
+      if (reopens) {
         this.sizes.update((sizes) => sizes.slice(0, -1));
       }
       this.digits.update((digits) => digits.slice(0, -1));
-      this.bringBackEmptied(words);
+      // A word reopened and finished again at once never left its place: it has nothing to fly from.
+      this.afterBackspace(!reopens);
     } else {
+      if (carriesOn) {
+        this.landFlights();
+        this.sizes.update((sizes) => sizes.slice(0, -1));
+      }
       this.digits.update((digits) => digits + key);
       this.watchForPause();
     }
   }
 
   /**
-   * Brings the last word back into the slots once backspace has emptied them: the clock back to its last digit, the
-   * player can carry it on, until they break there again. Then watches for a break, as after any key. `words` is how
-   * many there were before the backspace.
+   * Once backspace has emptied the slots, lets the next digit carry the last word on (see {@link carriesOn}); else
+   * watches for a break, as after any key, the group flying into its word if it ends at once and `flyNow`.
    */
-  private bringBackEmptied(words: number): void {
-    if (this.grouping().current === '' && this.mistakes() === '' && this.sizes().length > 0) {
-      this.landFlights();
-      this.sizes.update((sizes) => sizes.slice(0, -1));
+  private afterBackspace(flyNow = true): void {
+    this.reopenable =
+      this.grouping().current === '' && this.mistakes() === '' && this.sizes().length > 0;
+    this.watchForPause(flyNow);
+  }
+
+  /**
+   * Whether a digit typed now carries the last word on, back in the slots, once backspace has emptied them: if it comes
+   * as fast as it would have had to, had the word stayed in them, the clock back to its last digit. Otherwise, it starts
+   * a new group, and the word never leaves the tape.
+   */
+  private carriesOn(): boolean {
+    const size = this.sizes().at(-1);
+    if (!this.reopenable || size === undefined) {
+      return false;
     }
-    // A word reopened and finished again at once never left its place: it has nothing to fly from.
-    this.watchForPause(this.sizes().length === words);
+    const start = this.digits().length - size;
+    const trusted = this.gameplay().groupAt(this.session.run()?.times ?? [], start).trusted;
+    return !this.endsAfter(this.session.waited(), start, trusted);
   }
 
   /** Starts a new game: no digits typed, back to the first spring, the run ended counting as an earlier one. */
@@ -413,6 +436,7 @@ export class Play implements PausesOnBack {
     this.digits.set('');
     this.mistakes.set('');
     this.sizes.set([]);
+    this.reopenable = false;
     this.session.end();
   }
 
