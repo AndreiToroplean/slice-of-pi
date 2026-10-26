@@ -21,6 +21,7 @@ import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { Keypad, KeypadMark } from './keypad/keypad';
 import { keyColors, placeColors } from '../../game/layers/place-colors';
 import { Pause } from './pause/pause';
+import { PausesOnBack } from './pause-on-back';
 import { isPiDecimal } from '../../game/pi/pi';
 import { groupRuns, Run } from '../../player-data/run';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
@@ -48,7 +49,8 @@ import { TIMER } from './timer';
  * Backspace deletes the last digit, reopening the last word when the slots are empty, and brings the last word back when
  * it empties them, for the player to carry on, until they break there again. Developer mode counts down, left of 0, to
  * when the group being typed ends, unless its settings hide that. Pausing offers to restart the game, stop it and
- * replay its run, or end it, back to the main menu. Every touch on the keypad, and every key typed, is recorded, with
+ * replay its run, or end it, back to the main menu; going back, as the browser's or the system's Back does, pauses
+ * too, and resumes, and only ending the game leaves it. Every touch on the keypad, and every key typed, is recorded, with
  * where and when, in the run's touch log, and so is every touch elsewhere on the screen, typing nothing, but those on
  * the pause button and its dialog; restarting or ending the game ends the run.
  *
@@ -116,7 +118,7 @@ import { TIMER } from './timer';
   `,
   styleUrl: './play.css',
 })
-export class Play {
+export class Play implements PausesOnBack {
   /** The touch log of a run to replay, if replaying one rather than playing. */
   readonly replay = input<TouchLog>();
   /** Replaying a run, the key of the touch replayed to show pressed, if any. */
@@ -216,6 +218,7 @@ export class Play {
   private readonly timer = inject(TIMER);
   private readonly typedDigits = viewChild.required(TypedDigits);
   private readonly keypad = viewChild.required(Keypad);
+  private readonly pause = viewChild(Pause);
   /** Touches in progress elsewhere than on the keypad, the pause button and its dialog, by pointer: where they started. */
   protected readonly touchesElsewhere = new Map<number, KeypadPoint>();
   /** Slots flying into their word. */
@@ -284,6 +287,15 @@ export class Play {
       this.session.resume();
       this.watchForPause();
     }
+  }
+
+  leaveOnBack(): boolean {
+    const pause = this.pause();
+    if (pause === undefined || pause.ending) {
+      return true;
+    }
+    pause.back();
+    return false;
   }
 
   /** Notes a touch landing elsewhere than on the keypad, the pause button and its dialog, which handle their own. */
