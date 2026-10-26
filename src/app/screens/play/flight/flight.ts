@@ -23,9 +23,11 @@ export interface SlotSnapshot {
   readonly slid: Box;
 }
 
-/** How long the slots slide together before they fly, when their group ends before filling them all, in ms. */
+/**
+ * How long the slots take to slide to their places, besides pressing in, before they fly on, when their group ends
+ * before filling them all, in ms.
+ */
 export const SLIDE_DURATION = 120;
-const SLIDE_EASING = 'cubic-bezier(0.3, 0, 0.3, 1)';
 
 /** How long each slot takes to press in before it flies, in ms. */
 export const PRESS_DURATION = 70;
@@ -70,11 +72,12 @@ export function leavesAt(index: number, slide: number): number {
 }
 
 /**
- * The flight of a slot, from `from`, into its tile, at `to`. First it slides to `slid`, along with the other slots, for
- * `slide` ms, and waits its turn there, `wait` ms. Then it presses in like a button: its face moves down over its
- * thickness, the dark band along its bottom, which it then no longer has. Then it keeps its form and color, moving and
- * shrinking onto the tile. Its radii undo the scale, so that it lands with the tile's corners: rounded on the outside of
- * the word, square inside it.
+ * The flight of a slot, from `from`, into its tile, at `to`, once it has waited its turn, `wait` ms. First it presses in
+ * like a button: its face moves down over its thickness, the dark band along its bottom, which it then no longer has.
+ * Then it keeps its form and color, moving and shrinking onto the tile. Its radii undo the scale, so that it lands with
+ * the tile's corners: rounded on the outside of the word, square inside it.
+ *
+ * When it slides to `slid` first, for `slide` ms, it sweeps there and on in one move instead (see {@link sweep}).
  */
 export function flightKeyframes(
   from: Box,
@@ -83,6 +86,9 @@ export function flightKeyframes(
   corners: Corners,
   { slid = from, slide = 0, wait = 0 }: { slid?: Box; slide?: number; wait?: number } = {},
 ): Keyframe[] {
+  if (slide > 0) {
+    return sweep(from, slid, to, slotRadius, corners, { slide, wait });
+  }
   const dx = to.left + to.width / 2 - (from.left + from.width / 2);
   const dy = to.top + to.height / 2 - (from.top + from.height / 2);
   const sx = to.width / from.width;
@@ -90,32 +96,19 @@ export function flightKeyframes(
   const radii = (scale: number): string => corners.map((c) => `${String(c / scale)}px`).join(' ');
   // Pressed, its face covers the bottom of the slot, where the band was: as wide, as tall, and lower by the depth.
   const pressedScale = (from.height - SLOT_DEPTH) / from.height;
-  const slidX = slid.left - from.left;
-  const slidY = slid.top - from.top;
-  const total = slide + wait + PRESS_DURATION + FLIGHT_DURATION;
+  const total = wait + PRESS_DURATION + FLIGHT_DURATION;
   const resting = {
+    transform: 'none',
     borderRadius: `${String(slotRadius)}px`,
     boxShadow: SLOT_EDGE,
+    easing: PRESS_EASING,
   };
-  const slidThere = `translate(${String(slidX)}px, ${String(slidY)}px)`;
   return [
-    { offset: 0, transform: 'none', ...resting, easing: slide > 0 ? SLIDE_EASING : PRESS_EASING },
-    ...(slide > 0
-      ? [{ offset: slide / total, transform: slidThere, ...resting, easing: PRESS_EASING }]
-      : []),
-    ...(wait > 0
-      ? [
-          {
-            offset: (slide + wait) / total,
-            transform: slide > 0 ? slidThere : 'none',
-            ...resting,
-            easing: PRESS_EASING,
-          },
-        ]
-      : []),
+    { offset: 0, ...resting },
+    ...(wait > 0 ? [{ offset: wait / total, ...resting }] : []),
     {
-      offset: (slide + wait + PRESS_DURATION) / total,
-      transform: `translate(${String(slidX)}px, ${String(slidY + SLOT_DEPTH / 2)}px) scale(1, ${String(pressedScale)})`,
+      offset: (wait + PRESS_DURATION) / total,
+      transform: `translate(0px, ${String(SLOT_DEPTH / 2)}px) scale(1, ${String(pressedScale)})`,
       borderRadius: `${String(slotRadius)}px / ${String(slotRadius / pressedScale)}px`,
       boxShadow: 'inset 0 0 0 rgb(0 0 0 / 0%)',
       easing: FLIGHT_EASING,
@@ -129,9 +122,109 @@ export function flightKeyframes(
   ];
 }
 
+/** How often a sweep is sampled, in ms: about every frame. */
+const SWEEP_SAMPLE = 16;
+
+interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
 /**
- * Timing of the `index`-th slot's flight, after the slots slide for `slide` ms: its wait for its turn is part of it, so
- * that the slots all slide together.
+ * The flight of a slot that slides to `slid` before it flies, as one smooth move: once it has waited its turn, `wait`
+ * ms, it sweeps from its slot, through `slid`, pressed in there as it would have been, on to its tile, at the times it
+ * would have pressed in and landed. Its path is a curve through the three, its position and speed never jumping: a
+ * cubic for each part (Hermite), from rest, through `slid`, and to rest on the tile. Until `slid`, it only slides across,
+ * pressing in, its face sinking over its thickness; only then does it lift off, keeping its speed across. It takes the
+ * tile's size and corners on the way from `slid`, each change easing in and out. Sampled into keyframes about every frame, as keyframes alone would move in straight lines.
+ */
+function sweep(
+  from: Box,
+  slid: Box,
+  to: Box,
+  slotRadius: number,
+  corners: Corners,
+  { slide, wait }: { slide: number; wait: number },
+): Keyframe[] {
+  const through = wait + slide + PRESS_DURATION;
+  const total = through + FLIGHT_DURATION;
+  const pressedScale = (from.height - SLOT_DEPTH) / from.height;
+  // Where it is, from where it starts, at each of the three.
+  const start: Point = { x: 0, y: 0 };
+  const middle: Point = { x: slid.left - from.left, y: slid.top - from.top + SLOT_DEPTH / 2 };
+  const end: Point = {
+    x: to.left + to.width / 2 - (from.left + from.width / 2),
+    y: to.top + to.height / 2 - (from.top + from.height / 2),
+  };
+  const before = through - wait;
+  const after = total - through;
+  // Through `slid`, across at the speed of the parabola through the three, but at least at its mean speed there, so
+  // that it never stops, arcing on to the tile rather, and at most three times as fast, so that it never overshoots
+  // `slid` on the way; and not yet up or down, as it slides only across until it lifts off.
+  const slideSpeed = (middle.x - start.x) / before;
+  const parabola = (((end.x - middle.x) / after) * before + slideSpeed * after) / (before + after);
+  const velocity: Point = {
+    x:
+      slideSpeed === 0
+        ? 0
+        : Math.sign(slideSpeed) *
+          Math.min(
+            Math.max(parabola * Math.sign(slideSpeed), Math.abs(slideSpeed)),
+            3 * Math.abs(slideSpeed),
+          ),
+    y: 0,
+  };
+  const rest: Point = { x: 0, y: 0 };
+  const times = [
+    0,
+    ...Array.from(
+      { length: Math.ceil((total - wait) / SWEEP_SAMPLE) },
+      (_, i) => wait + i * SWEEP_SAMPLE,
+    ),
+    through,
+    total,
+  ]
+    .filter((time, i, all) => all.indexOf(time) === i && time <= total)
+    .sort((a, b) => a - b);
+  return times.map((time) => {
+    const flying = time > through;
+    const s = flying ? (time - through) / after : Math.max(0, time - wait) / before;
+    const at = flying
+      ? hermite(middle, velocity, end, rest, after, s)
+      : hermite(start, rest, middle, velocity, before, s);
+    const eased = s * s * (3 - 2 * s);
+    const pressed = flying ? 1 : eased;
+    const landed = flying ? eased : 0;
+    const scaleX = 1 + (to.width / from.width - 1) * landed;
+    const scaleY =
+      1 + (pressedScale - 1) * pressed + (to.height / from.height - pressedScale) * landed;
+    const radius = (corner: number): number => slotRadius + (corner - slotRadius) * landed;
+    return {
+      offset: time / total,
+      transform: `translate(${String(at.x)}px, ${String(at.y)}px) scale(${String(scaleX)}, ${String(scaleY)})`,
+      borderRadius: `${corners.map((c) => `${String(radius(c) / scaleX)}px`).join(' ')} / ${corners
+        .map((c) => `${String(radius(c) / scaleY)}px`)
+        .join(' ')}`,
+      boxShadow: `inset 0 -${String(SLOT_DEPTH * (1 - pressed))}px 0 rgb(0 0 0 / ${String(14 * (1 - pressed))}%)`,
+    };
+  });
+}
+
+/** Where a cubic from `a`, going at `va`, to `b`, going at `vb`, over `duration` ms, is at `s`, from 0 to 1 (Hermite). */
+function hermite(a: Point, va: Point, b: Point, vb: Point, duration: number, s: number): Point {
+  const s2 = s * s;
+  const s3 = s2 * s;
+  const at = (axis: keyof Point): number =>
+    (2 * s3 - 3 * s2 + 1) * a[axis] +
+    (s3 - 2 * s2 + s) * duration * va[axis] +
+    (3 * s2 - 2 * s3) * b[axis] +
+    (s3 - s2) * duration * vb[axis];
+  return { x: at('x'), y: at('y') };
+}
+
+/**
+ * Timing of the `index`-th slot's flight, after the slots slide for `slide` ms, if they do: its wait for its turn is part
+ * of it.
  */
 export function flightTiming(index: number, slide = 0): KeyframeAnimationOptions {
   return {
@@ -178,10 +271,10 @@ export function snapshotSlot(layer: Element, slot: Element): SlotSnapshot {
 /**
  * Flies the slots that held a group into the tiles of its word: each slot is copied onto `layer` (which must be
  * positioned) and animated onto its tile. Each tile is hidden until its copy lands, and shows in the same frame as its
- * copy is removed, so that no digit is ever missing or shown twice. First the copies slide together, if they have
- * somewhere to (see {@link slideDuration}). `shift` is how far the word has left to move left before the first copy
- * lands (scrolling to it), so that copies aim for where it will be. Returns the animations, which
- * land their copy the same way when they're cancelled.
+ * copy is removed, so that no digit is ever missing or shown twice. Copies with somewhere to slide to sweep there and
+ * on (see {@link slideDuration} and {@link flightKeyframes}). `shift` is how far the word has left to move left before
+ * the first copy lands (scrolling to it), so that copies aim for where it will be. Returns the animations, which land
+ * their copy the same way when they're cancelled.
  */
 export function flyIntoWord(
   layer: HTMLElement,

@@ -1,18 +1,8 @@
 import { expect, Page, test } from '@playwright/test';
 import { PI_DECIMALS } from '../src/app/game/pi/pi-decimals';
+import { type } from './typing';
 
 test.use({ viewport: { width: 384, height: 824 } });
-
-/**
- * Types the digits as a player would, evenly, so that the group breaks only once they're all typed, however long the
- * test takes in between: a group with no runs before it ends at a pause clearly longer than the run's own.
- */
-async function type(page: Page, digits: string): Promise<void> {
-  for (const digit of digits) {
-    await page.keyboard.press(digit);
-    await page.waitForTimeout(120);
-  }
-}
 
 /**
  * Right as the slots of a group that ended start to fly: the centers across of the flying slots once slid, which they
@@ -29,7 +19,15 @@ async function handOver(
       const layer = copy.parentElement?.getBoundingClientRect() ?? new DOMRect();
       const effect = copy.getAnimations()[0]?.effect;
       const keyframes = effect instanceof KeyframeEffect ? effect.getKeyframes() : [];
-      const [, x = '0'] = /translate\((-?[\d.]+)px/.exec(String(keyframes[1]?.transform)) ?? [];
+      const [, x = '0'] =
+        /translate\((-?[\d.]+)px/.exec(
+          String(
+            // Where it lifts off from, pressed in, before it starts to take its tile's size.
+            [...keyframes]
+              .reverse()
+              .find((keyframe) => String(keyframe.transform).includes('scale(1,'))?.transform,
+          ),
+        ) ?? [];
       return (
         layer.left + parseFloat(copy.style.left) + parseFloat(copy.style.width) / 2 + Number(x)
       );
@@ -141,7 +139,8 @@ test('keeps the slots still on backspace as they grow, then slides the digits le
   expect(after).toHaveLength(6);
   const step = (before[1] ?? 0) - (before[0] ?? 0);
   after.forEach((center, i) => {
-    expect(Math.abs(center - (before[i] ?? 0))).toBeLessThan(step / 8);
+    // Moving on meanwhile, for a few frames, rather than jumping half a step.
+    expect(Math.abs(center - (before[i] ?? 0))).toBeLessThan(step / 4);
   });
   // The 5 digits fly from the middle of the slots, slid there together.
   await expect(page.locator('.flying-slot')).toHaveCount(5);
@@ -149,10 +148,14 @@ test('keeps the slots still on backspace as they grow, then slides the digits le
     copies.map((copy) => {
       const effect = copy.getAnimations()[0]?.effect;
       const keyframes = effect instanceof KeyframeEffect ? effect.getKeyframes() : [];
-      return String(keyframes[1]?.transform);
+      return String(
+        // Where it lifts off from, pressed in, before it starts to take its tile's size.
+        [...keyframes].reverse().find((keyframe) => String(keyframe.transform).includes('scale(1,'))
+          ?.transform,
+      );
     }),
   );
-  expect(slides.every((slide) => /^translate\([1-9][\d.]*px, 0px\)$/.test(slide))).toBe(true);
+  expect(slides.every((slide) => /^translate\([1-9][\d.]*px, /.test(slide))).toBe(true);
 });
 
 test("takes a mistake's slot away as it came, in reverse, the others moving back right from where they were", async ({
