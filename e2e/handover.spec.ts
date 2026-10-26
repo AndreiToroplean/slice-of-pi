@@ -101,3 +101,51 @@ test('makes room for more slots as the group grows, moving them on from where th
   });
   expect(opacity).toBeLessThan(0.5);
 });
+
+test('keeps the slots still on backspace as they grow, then slides the digits left together before they fly', async ({
+  page,
+}) => {
+  await page.goto('/play');
+  await expect(page.locator('app-slots .slot')).toHaveCount(5);
+  await page.waitForFunction(() => document.getAnimations().length === 0);
+  for (const digit of PI_DECIMALS.slice(0, 5)) {
+    await page.keyboard.press(digit);
+  }
+
+  // Growing to 6 slots, then backspace on the next frame, while they move.
+  const { before, after } = await page.evaluate(async (digit) => {
+    const centers = (): number[] =>
+      Array.from(document.querySelectorAll('app-slots .slot'), (slot) => {
+        const box = slot.getBoundingClientRect();
+        return box.left + box.width / 2;
+      });
+    const press = (key: string): void => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+      document.dispatchEvent(new KeyboardEvent('keyup', { key, bubbles: true }));
+    };
+    press(digit);
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    const before = centers();
+    press('Backspace');
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    return { before, after: centers() };
+  }, PI_DECIMALS.charAt(5));
+
+  expect(after).toHaveLength(6);
+  const step = (before[1] ?? 0) - (before[0] ?? 0);
+  after.forEach((center, i) => {
+    expect(Math.abs(center - (before[i] ?? 0))).toBeLessThan(step / 8);
+  });
+  // The 5 digits fly from the middle of the slots, slid there together.
+  await expect(page.locator('.flying-slot')).toHaveCount(5);
+  const slides = await page.locator('.flying-slot').evaluateAll((copies) =>
+    copies.map((copy) => {
+      const effect = copy.getAnimations()[0]?.effect;
+      const keyframes = effect instanceof KeyframeEffect ? effect.getKeyframes() : [];
+      return String(keyframes[1]?.transform);
+    }),
+  );
+  expect(slides.every((slide) => /^translate\([1-9][\d.]*px, 0px\)$/.test(slide))).toBe(true);
+});

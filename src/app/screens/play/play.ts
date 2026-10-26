@@ -8,6 +8,7 @@ import {
   inject,
   Injector,
   input,
+  linkedSignal,
   signal,
   viewChild,
 } from '@angular/core';
@@ -223,8 +224,26 @@ export class Play implements PausesOnBack {
       this.digits().length - this.grouping().current.length,
     ),
   );
+  /**
+   * The most digits the group being typed has held: it keeps the slots they took until it ends, those emptied by
+   * backspace fading out with the wait, so that they never go at once. Not mistakes: theirs go with them.
+   */
+  private readonly held = linkedSignal<
+    { readonly words: readonly number[]; readonly typed: number },
+    number
+  >({
+    source: () => ({
+      words: this.sizes(),
+      typed: this.grouping().current.length,
+    }),
+    // Starting over with each group, as words come and go.
+    computation: ({ words, typed }, previous) =>
+      previous?.source.words === words ? Math.max(previous.value, typed) : typed,
+  });
   /** The slots of the group being typed. */
-  protected readonly size = computed(() => slotCount(this.plan(), this.grouping().current.length));
+  protected readonly size = computed(() =>
+    Math.max(slotCount(this.plan(), this.grouping().current.length), this.held()),
+  );
 
   /** The color of each typed place. */
   protected readonly placeColors = computed(() =>
