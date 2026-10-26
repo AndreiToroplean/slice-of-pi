@@ -16,7 +16,15 @@ import type { ReplayedGame } from '../replay/replay';
 import { Background } from '../../ui/background';
 import { BreakCountdown } from './break-countdown';
 import { waitToEnd } from '../../game/grouping/wait-to-end';
-import { FIRST_LANDING, flyIntoWord, snapshotSlot } from './flight/flight';
+import {
+  boxIn,
+  FIRST_LANDING,
+  flyIntoWord,
+  slideDuration,
+  SlotSnapshot,
+  snapshotSlot,
+} from './flight/flight';
+import { slotBoxes } from './slots/slot-layout';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { Keypad, KeypadMark } from './keypad/keypad';
 import { keyColors, placeColors } from '../../game/layers/place-colors';
@@ -79,7 +87,12 @@ const TICK = 16;
     <h1 class="visually-hidden">Slice of Pi</h1>
     <app-season-header [view]="season()" />
     <div class="middle">
-      <app-typed-digits [words]="grouping().words" [digits]="digits()" [colors]="placeColors()" />
+      <app-typed-digits
+        [words]="grouping().words"
+        [digits]="digits()"
+        [colors]="placeColors()"
+        [arrival]="arrival()"
+      />
       <app-slots
         class="slots"
         [digits]="grouping().current + mistakes()"
@@ -239,6 +252,8 @@ export class Play implements PausesOnBack {
   private readonly pause = viewChild(Pause);
   /** Touches in progress elsewhere than on the keypad, the pause button and its dialog, by pointer: where they started. */
   protected readonly touchesElsewhere = new Map<number, KeypadPoint>();
+  /** How long the next word takes to fly onto the tape, until its first slot lands, in ms. */
+  protected readonly arrival = signal(FIRST_LANDING);
   /** Slots flying into their word. */
   private flights: Animation[] = [];
   /** Whether backspace has emptied the slots, since the last digit, so that the next one may carry the last word on. */
@@ -516,6 +531,7 @@ export class Play implements PausesOnBack {
     const length = this.grouping().current.length;
     const firstPlace = this.digits().length - length + 1;
     const slots = fly ? this.slotsToFly(length) : [];
+    this.arrival.set(slideDuration(slots) + FIRST_LANDING);
     this.sizes.update((sizes) => [...sizes, length]);
     if (slots.length === 0) {
       return;
@@ -528,7 +544,7 @@ export class Play implements PausesOnBack {
             `app-typed-digits .word[data-first-place="${String(firstPlace)}"]`,
           );
           if (word !== null) {
-            const shift = this.typedDigits().scrollToEnd(FIRST_LANDING);
+            const shift = this.typedDigits().scrollToEnd(this.arrival());
             this.flights = [
               ...this.flights.filter((flight) => flight.playState === 'running'),
               ...flyIntoWord(this.host, slots, word, shift),
@@ -540,14 +556,28 @@ export class Play implements PausesOnBack {
     );
   }
 
-  /** Snapshots of the slots a group about to close fills, unless flights are off. */
-  private slotsToFly(length: number): ReturnType<typeof snapshotSlot>[] {
-    if (this.quiet || !canFly(this.host)) {
+  /**
+   * Snapshots of the slots a group about to close fills, unless flights are off, each to slide where it would be were
+   * they all the slots, rather than some of them, empty, left.
+   */
+  private slotsToFly(length: number): SlotSnapshot[] {
+    const area = this.host.querySelector('app-slots');
+    if (this.quiet || !canFly(this.host) || area === null) {
       return [];
     }
-    return Array.from(this.host.querySelectorAll('app-slots .slot'))
+    const slots = Array.from(area.querySelectorAll('.slot'))
       .slice(0, length)
       .map((slot) => snapshotSlot(this.host, slot));
+    const first = slots[0];
+    if (first === undefined) {
+      return [];
+    }
+    const style = getComputedStyle(area);
+    const slid = slotBoxes(length, boxIn(this.host, area), first.box, {
+      column: parseFloat(style.columnGap) || 0,
+      row: parseFloat(style.rowGap) || 0,
+    });
+    return slots.map((slot, i) => ({ ...slot, slid: slid[i] ?? slot.box }));
   }
 
   /** Ends the flights at once, before a word they fly into may be reopened. */

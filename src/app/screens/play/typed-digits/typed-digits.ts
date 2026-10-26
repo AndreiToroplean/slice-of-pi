@@ -62,6 +62,8 @@ export class TypedDigits {
   readonly digits = input.required<string>();
   /** The place colors of the digits typed so far: place p's is at index p - 1. */
   readonly colors = input.required<readonly string[]>();
+  /** How long the next word takes to fly onto the tape, until its first digit lands, in ms. */
+  readonly arrival = input(FIRST_LANDING);
 
   protected readonly summary = computed(() => {
     const digits = this.digits();
@@ -98,7 +100,7 @@ export class TypedDigits {
       untracked(() => {
         const added = this.last !== null && words.length > this.last.words.length;
         this.leaveRoom(words);
-        this.scrollToEnd(added ? FIRST_LANDING : SCROLL_BACK_DURATION);
+        this.scrollToEnd(added ? this.arrival() : SCROLL_BACK_DURATION);
       });
     });
     inject(DestroyRef).onDestroy(() => {

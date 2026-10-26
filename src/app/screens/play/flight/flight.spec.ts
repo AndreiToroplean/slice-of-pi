@@ -4,7 +4,10 @@ import {
   SLOT_DEPTH,
   FLIGHT_STAGGER,
   flightKeyframes,
+  flightStagger,
   flightTiming,
+  SLIDE_DURATION,
+  slideDuration,
   flyIntoWord,
   snapshotSlot,
   tileCorners,
@@ -60,21 +63,56 @@ describe('flightKeyframes', () => {
 
     expect(end?.['borderRadius']).toBe('8px 0px 0px 8px / 10px 0px 0px 10px');
   });
+
+  it('first slides, then waits its turn there, then presses in there, and lands on the tile all the same', () => {
+    const slid = { ...slot, left: 130 };
+    const total = 120 + 56 + PRESS_DURATION + FLIGHT_DURATION;
+
+    const [start, there, waited, pressed, end] = flightKeyframes(slot, tile, 14, [0, 0, 0, 0], {
+      slid,
+      slide: 120,
+      wait: 56,
+    });
+
+    expect(start).toMatchObject({ offset: 0, transform: 'none', borderRadius: '14px' });
+    expect(there).toMatchObject({ offset: 120 / total, transform: 'translate(30px, 0px)' });
+    expect(waited).toMatchObject({ offset: (120 + 56) / total, transform: 'translate(30px, 0px)' });
+    expect(pressed).toMatchObject({
+      offset: (120 + 56 + PRESS_DURATION) / total,
+      transform: `translate(30px, 2px) scale(1, ${String(56 / 60)})`,
+    });
+    expect(end).toMatchObject({
+      offset: 1,
+      transform: 'translate(-90px, -418px) scale(0.5, 0.4)',
+    });
+  });
+});
+
+describe('slideDuration', () => {
+  const box = { left: 100, top: 500, width: 40, height: 60 };
+  const slot = { box, radius: 14, fontSize: 34, slid: box };
+
+  it('slides only when a slot has somewhere to slide to', () => {
+    expect(slideDuration([slot, slot])).toBe(0);
+    expect(slideDuration([slot, { ...slot, slid: { ...box, left: 130 } }])).toBe(SLIDE_DURATION);
+  });
 });
 
 describe('flightTiming', () => {
-  it('lets each slot leave a little after the one before it', () => {
+  it('lets each slot leave a little after the one before it, after they all slide', () => {
     expect(flightTiming(0)).toMatchObject({
       duration: PRESS_DURATION + FLIGHT_DURATION,
-      delay: 0,
       fill: 'both',
     });
-    expect(flightTiming(3).delay).toBe(3 * FLIGHT_STAGGER);
+    expect(flightTiming(3, 120).duration).toBe(
+      120 + 3 * FLIGHT_STAGGER + PRESS_DURATION + FLIGHT_DURATION,
+    );
+    expect(flightStagger(3)).toBe(3 * FLIGHT_STAGGER);
   });
 
   it('stops staggering after 12 slots, so long groups land together', () => {
-    expect(flightTiming(12).delay).toBe(12 * FLIGHT_STAGGER);
-    expect(flightTiming(30).delay).toBe(12 * FLIGHT_STAGGER);
+    expect(flightStagger(12)).toBe(12 * FLIGHT_STAGGER);
+    expect(flightStagger(30)).toBe(12 * FLIGHT_STAGGER);
   });
 });
 
@@ -98,7 +136,8 @@ describe('flyIntoWord', () => {
       word.append(tile);
     }
     document.body.append(word);
-    const slot = { box: { left: 0, top: 0, width: 40, height: 60 }, radius: 14, fontSize: 34 };
+    const box = { left: 0, top: 0, width: 40, height: 60 };
+    const slot = { box, radius: 14, fontSize: 34, slid: box };
 
     flyIntoWord(document.body, [slot, slot], word);
 
