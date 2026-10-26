@@ -82,13 +82,21 @@
     0 0.0625rem 0 var(--candy-edge);
 }
 
-/* With a press color, its edge shows it, and pressing fills its face with it, all at once. */
-:host(.colored) {
+/* With a press color, a see-through one's edge shows it, and pressing fills its face with it, all at once. */
+:host(.clear.colored) {
   --candy-edge: var(--press-color);
 }
 
-:host(.colored:active:not(.controlled)),
-:host(.colored.pressed) {
+/* A solid one is in that color, on a darker edge. */
+:host(.colored:not(.clear)) {
+  --candy: var(--press-color);
+  --on-candy: var(--on-palette);
+  --candy-edge: color-mix(in oklab, var(--press-color), #000000 28%);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 20%);
+}
+
+:host(.clear.colored:active:not(.controlled)),
+:host(.clear.colored.pressed) {
   background: var(--press-color);
   color: #ffffff;
   text-shadow: none;

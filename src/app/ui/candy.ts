@@ -13,8 +13,8 @@ export const SHORTEST_PRESS = 150;
  * A candy button, the game's button (see `candy.css`): a button, a link, or a label for an input within it, such as
  * `<button appCandy="primary">`, white without a look. A mouse over a solid one picks it out, as the keyboard does
  * (see `App`), unless it can't take the focus, as keys typed from the keyboard's own keys needn't. Pressed, it sinks
- * into its edge, for `SHORTEST_PRESS` at least, even if what it opens shows at once; given a press color, its edge
- * shows it, and pressing fills its face with it.
+ * into its edge, for `SHORTEST_PRESS` at least, even if what it opens shows at once. Given a press color, a see-through
+ * one's edge shows it, and pressing fills its face with it; a solid one is in that color, on a darker edge.
  */
 @Component({
   // On the native elements themselves, which keep all they do: an attribute rather than an element of its own.
