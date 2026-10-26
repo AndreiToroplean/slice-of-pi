@@ -107,8 +107,14 @@ export function boxIn(layer: Element, element: Element): Box {
   };
 }
 
-/** Takes a snapshot of a filled slot before it flies, relative to `layer`. */
+/**
+ * Takes a snapshot of a filled slot before it flies, relative to `layer`: as it is once it has popped in, as the slot
+ * of the digit typed last may still be doing, smaller, when its group ends at once.
+ */
 export function snapshotSlot(layer: Element, slot: Element): SlotSnapshot {
+  for (const animation of slot.getAnimations()) {
+    animation.finish();
+  }
   const style = getComputedStyle(slot);
   return {
     box: boxIn(layer, slot),

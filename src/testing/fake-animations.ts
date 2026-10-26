@@ -21,7 +21,10 @@ export class FakeAnimation {
   }
 }
 
-/** Gives every element an `animate` method that records the animations it starts; undo with `uninstallAnimations`. */
+/**
+ * Gives every element an `animate` method that records the animations it starts, and `getAnimations`, those of them
+ * still running on it; undo with `uninstallAnimations`.
+ */
 export function installAnimations(): FakeAnimation[] {
   const animations: FakeAnimation[] = [];
   Element.prototype.animate = function (
@@ -37,9 +40,15 @@ export function installAnimations(): FakeAnimation[] {
     animations.push(animation);
     return animation as unknown as Animation;
   };
+  Element.prototype.getAnimations = function (this: Element): Animation[] {
+    return animations.filter(
+      (animation) => animation.element === this && animation.playState === 'running',
+    ) as unknown as Animation[];
+  };
   return animations;
 }
 
 export function uninstallAnimations(): void {
   Reflect.deleteProperty(Element.prototype, 'animate');
+  Reflect.deleteProperty(Element.prototype, 'getAnimations');
 }
