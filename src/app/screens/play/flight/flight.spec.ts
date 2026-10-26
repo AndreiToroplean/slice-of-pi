@@ -6,6 +6,7 @@ import {
   flightKeyframes,
   flightTiming,
   flyIntoWord,
+  snapshotSlot,
   tileCorners,
 } from './flight';
 import { installAnimations, uninstallAnimations } from '../../../../testing/fake-animations';
@@ -110,5 +111,19 @@ describe('flyIntoWord', () => {
       ['rgb(229, 72, 77)', 'rgb(255, 255, 255)'],
       ['rgb(12, 148, 136)', 'rgb(255, 255, 255)'],
     ]);
+  });
+});
+
+describe('snapshotSlot', () => {
+  it('takes the slot as it is once it has popped in, its animation finished first', () => {
+    const slot = document.createElement('div');
+    let popped = false;
+    const pop = { finish: () => (popped = true) } as unknown as Animation;
+    slot.getAnimations = () => [pop];
+    vi.spyOn(slot, 'getBoundingClientRect').mockImplementation(
+      () => ({ left: 0, top: 0, width: popped ? 40 : 28, height: popped ? 60 : 42 }) as DOMRect,
+    );
+
+    expect(snapshotSlot(document.body, slot).box).toMatchObject({ width: 40, height: 60 });
   });
 });
