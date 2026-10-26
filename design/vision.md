@@ -22,6 +22,7 @@ The feel we're after is that of the best gamified learning apps: colorful, joyfu
 4. **Mobile-first.** The primary target is a phone, in the browser.
 5. **Built up incrementally.** The ideas below get implemented little by little; each layer should work on its own.
 6. **Actions trigger things.** What changes on screen should feel caused by the player: seasons turn because they progress through π, key colors change because they type.
+7. **Nothing jumps.** Things move on from wherever they are. What something leaves stays where it was until it has left, then moves on smoothly from there: a slot stays under its digit until the digit lifts off.
 
 ## 4. Game modes
 
