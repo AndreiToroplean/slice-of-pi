@@ -270,35 +270,42 @@ describe('Play', () => {
     expect(words(host)).toEqual(['1']);
   });
 
-  it('brings the last word back when backspace empties the slots, for the player to carry on', async () => {
+  it('leaves the last word on the tape when backspace empties the slots, and carries it on with a next digit typed fast', async () => {
     const { host, type } = await setUpPlayed();
 
     await typeAll(type, '141 5<');
 
-    expect(words(host)).toEqual([]);
-    expect(slots(host)).toEqual(['1', '4', '1', '', '']);
+    expect(words(host)).toEqual(['141']);
+    expect(slots(host).every((slot) => slot === '')).toBe(true);
 
-    await typeAll(type, '59 ');
+    await typeAll(type, '5');
+
+    expect(words(host)).toEqual([]);
+    expect(slots(host)).toEqual(['1', '4', '1', '5', '']);
+
+    await typeAll(type, '9 ');
 
     expect(words(host)).toEqual(['14159']);
   });
 
-  it('finishes the word brought back by backspace once the player breaks there again', async () => {
+  it('starts a new group, rather than carry the last word on, with a next digit typed after the break that ends it', async () => {
     const { host, type } = await setUpPlayed();
 
-    await typeAll(type, '141 5< ');
+    await typeAll(type, '141 5< 5');
 
     expect(words(host)).toEqual(['141']);
-    expect(slots(host)).toEqual(['', '', '', '', '']);
+    expect(slots(host)[0]).toBe('5');
   });
 
-  it('brings the last word back when backspace deletes a mistake that was alone in the slots', async () => {
+  it('lets a next digit typed fast carry the last word on once backspace deletes a mistake alone in the slots', async () => {
     const { host, type } = await setUpPlayed();
 
     await typeAll(type, '141 7<');
+    expect(words(host)).toEqual(['141']);
 
+    await typeAll(type, '5');
     expect(words(host)).toEqual([]);
-    expect(slots(host)).toEqual(['1', '4', '1', '', '']);
+    expect(slots(host)).toEqual(['1', '4', '1', '5', '']);
   });
 
   it('waits for a new pause after backspace, counted from it', async () => {
@@ -524,7 +531,12 @@ describe('Play', () => {
     expect(words(host)).toEqual(['14159']);
     expect(slots(host)).toEqual(['2', '6', '5', '3', '']);
 
-    await typeAll(type, '<<<<<');
+    await typeAll(type, '<<<<');
+
+    expect(words(host)).toEqual(['14159']);
+    expect(slots(host).every((slot) => slot === '')).toBe(true);
+
+    await typeAll(type, '<');
 
     expect(words(host)).toEqual([]);
     expect(slots(host)).toEqual(['1', '4', '1', '5', '']);
@@ -848,7 +860,7 @@ describe('Play', () => {
       expect(animations[0]?.keyframes[2]?.['transform']).toMatch(/^translate\(-50px, 0px\)/);
     });
 
-    it("doesn't fly a word brought back by backspace that finishes again at once", async () => {
+    it("doesn't fly the last word again when backspace empties the slots, as it stays on the tape", async () => {
       const animations = stubAnimations();
       const { host, type } = await setUpWithRuns(4);
       await typeAll(type, '141');
