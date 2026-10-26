@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { groupDigits, Word } from '../../../game/grouping/groups';
 import { PALETTE, placeColors } from '../../../game/layers/place-colors';
-import { SCROLL_DOWN_DURATION, TypedDigits } from './typed-digits';
+import { FIRST_LANDING } from '../flight/flight';
+import { PI_DECIMALS } from '../../../game/pi/pi-decimals';
+import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits';
 
 /** The words of the digits typed in groups of 5. */
 function wordsOf5(digits: string): readonly Word[] {
@@ -89,6 +91,10 @@ describe('TypedDigits', () => {
   });
 
   describe('scrolling', () => {
+    /** How wide the tape shows, a tile, and the space between words, in pixels. */
+    const VIEW = 200;
+    const TILE = 10;
+    const GAP = 5;
     let time: number;
     let frames: FrameRequestCallback[];
 
@@ -100,6 +106,18 @@ describe('TypedDigits', () => {
         frames.push(callback),
       );
       vi.stubGlobal('cancelAnimationFrame', () => undefined);
+      // The lead and each word end after their tiles, words GAP apart, from the start of the words.
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        const siblings = Array.from(this.parentElement?.children ?? []);
+        const upTo = siblings.slice(0, siblings.indexOf(this) + 1);
+        const right = upTo.reduce(
+          (end, element) => end + element.querySelectorAll('.tile').length * TILE,
+          (upTo.length - 1) * GAP,
+        );
+        return { left: 0, right } as DOMRect;
+      });
     });
 
     afterEach(() => {
@@ -107,28 +125,54 @@ describe('TypedDigits', () => {
       vi.unstubAllGlobals();
     });
 
-    /** Typed digits scrolled `up` pixels above the bottom, the way a reversed column scrolls: 0 at the bottom. */
-    async function scrolledUp(
-      up: number,
+    /**
+     * A tape showing `words` with the sizes above, VIEW wide: the lead is 40 pixels long, and each word of 5 adds 55. As
+     * in a browser, it can't scroll past its length, and it scrolls back as it gets shorter.
+     */
+    async function tape(
+      words: readonly Word[],
     ): Promise<{ fixture: ComponentFixture<TypedDigits>; host: HTMLElement }> {
       const fixture = TestBed.createComponent(TypedDigits);
       const host = fixture.nativeElement as HTMLElement;
-      let position = 0 - up;
-      Object.defineProperty(host, 'scrollTop', {
-        get: () => position,
+      let position = 0;
+      const length = (): number => {
+        const element = host.querySelector<HTMLElement>('.words');
+        const end = element?.lastElementChild?.getBoundingClientRect().right ?? 0;
+        return end + (parseFloat(element?.style.getPropertyValue('--room') ?? '') || 0);
+      };
+      const end = (): number => Math.max(0, length() - VIEW);
+      Object.defineProperty(host, 'scrollLeft', {
+        get: () => Math.min(position, end()),
         set: (value: number) => {
-          position = Math.min(0, Math.max(0 - up, value));
+          position = Math.min(end(), Math.max(0, value));
         },
       });
-      fixture.componentRef.setInput('words', []);
-      fixture.componentRef.setInput('digits', '14');
-      fixture.componentRef.setInput('colors', placeColors('14'));
-      await fixture.whenStable();
+      Object.defineProperty(host, 'scrollWidth', { get: () => Math.max(VIEW, length()) });
+      Object.defineProperty(host, 'clientWidth', { get: () => VIEW });
+      await put(fixture, words);
+      settle(host);
+      time = 0;
       return { fixture, host };
     }
 
-    async function type(fixture: ComponentFixture<TypedDigits>, digits: string): Promise<void> {
-      fixture.componentRef.setInput('words', wordsOf5(digits));
+    /** Words of 5 digits, then words of the other `sizes`. */
+    function wordsOf(fives: number, ...sizes: number[]): readonly Word[] {
+      const all = [...Array.from({ length: fives }, () => 5), ...sizes];
+      return groupDigits(
+        PI_DECIMALS.slice(
+          0,
+          all.reduce((sum, size) => sum + size, 0),
+        ),
+        all,
+      ).words;
+    }
+
+    async function put(
+      fixture: ComponentFixture<TypedDigits>,
+      words: readonly Word[],
+    ): Promise<void> {
+      const digits = words.map((word) => word.digits).join('');
+      fixture.componentRef.setInput('words', words);
       fixture.componentRef.setInput('digits', digits);
       fixture.componentRef.setInput('colors', placeColors(digits));
       await fixture.whenStable();
@@ -140,160 +184,128 @@ describe('TypedDigits', () => {
       for (const frame of frames.splice(0)) {
         frame(at);
       }
-      return host.scrollTop;
+      return host.scrollLeft;
     }
 
-    it('glides smoothly back down to the newest words as the player types', async () => {
-      const { fixture, host } = await scrolledUp(300);
+    /** Runs the animation frames until the tape stops, and returns where it stopped. */
+    function settle(host: HTMLElement): number {
+      return frameAt(host, time + 10_000);
+    }
 
-      await type(fixture, '141');
+    it('stays at the start while the words fit, then makes room for each word as it comes on, done as the first slot lands', async () => {
+      const { fixture, host } = await tape(wordsOf(2));
+      expect(host.scrollLeft).toBe(0);
 
-      const positions = [100, 200, 300, 399].map((at) => frameAt(host, at));
+      await put(fixture, wordsOf(4));
+
+      const positions = [100, 300, 500].map((at) => frameAt(host, at));
       expect(positions).toEqual([...positions].sort((a, b) => a - b));
-      expect(positions[1]).toBeCloseTo(-150);
-      expect(frameAt(host, SCROLL_DOWN_DURATION)).toBe(0);
+      expect(positions[0]).toBeGreaterThan(0);
+      expect(positions[2]).toBeLessThan(60);
+      expect(frameAt(host, FIRST_LANDING)).toBe(60);
     });
 
-    it("doesn't move when already at the bottom", async () => {
-      const { fixture, host } = await scrolledUp(0);
+    it('arrives sooner when asked, picking up from where it is, and says how far the words have left to move', async () => {
+      const { fixture, host } = await tape(wordsOf(2));
+      await put(fixture, wordsOf(4));
+      const halfway = frameAt(host, 275);
 
-      await type(fixture, '141');
-
-      expect(frameAt(host, 100)).toBe(0);
-      expect(fixture.componentInstance.scrollDown(100)).toBe(0);
+      expect(fixture.componentInstance.scrollToEnd(100)).toBeCloseTo(60 - halfway);
+      expect(frameAt(host, 325)).toBeGreaterThan(halfway);
+      expect(frameAt(host, 375)).toBe(60);
     });
 
-    it('arrives sooner when asked, picking up from where it is, and says how far it has left to go', async () => {
-      const { fixture, host } = await scrolledUp(300);
-      await type(fixture, '141');
-      const halfway = frameAt(host, 200);
+    it("leaves room for a word taken off, so that the tape doesn't move", async () => {
+      const { fixture, host } = await tape(wordsOf(5));
+      expect(host.scrollLeft).toBe(115);
 
-      expect(fixture.componentInstance.scrollDown(100)).toBeCloseTo(-halfway);
-      expect(frameAt(host, 250)).toBeGreaterThan(halfway);
-      expect(frameAt(host, 300)).toBe(0);
+      await put(fixture, wordsOf(4));
+
+      expect(settle(host)).toBe(115);
     });
 
-    /** Typed digits at the bottom, whose words are as tall as `height()`. */
-    async function sized(
-      height: () => number,
-    ): Promise<{ fixture: ComponentFixture<TypedDigits>; words: HTMLElement }> {
-      const fixture = TestBed.createComponent(TypedDigits);
-      const host = fixture.nativeElement as HTMLElement;
-      Object.defineProperty(host, 'scrollTop', { get: () => 0, set: () => undefined });
-      fixture.componentRef.setInput('words', wordsOf5('1415'));
-      fixture.componentRef.setInput('digits', '1415');
-      fixture.componentRef.setInput('colors', placeColors('1415'));
-      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (
-        this: HTMLElement,
-      ) {
-        return this.classList.contains('words') ? height() : 0;
-      });
+    it('scrolls back by that room as the next word is taken off, and leaves room for that one', async () => {
+      const { fixture, host } = await tape(wordsOf(5));
+      await put(fixture, wordsOf(4));
+
+      settle(host);
+      const start = time;
+
+      await put(fixture, wordsOf(3));
+
+      expect(host.scrollLeft).toBe(115);
+      const halfway = frameAt(host, start + SCROLL_BACK_DURATION / 2);
+      expect(halfway).toBeGreaterThan(60);
+      expect(halfway).toBeLessThan(115);
+      expect(frameAt(host, start + SCROLL_BACK_DURATION)).toBe(60);
+      expect(settle(host)).toBe(60);
+    });
+
+    it('keeps the room for a word as it comes back shorter, and is taken off again', async () => {
+      const { fixture, host } = await tape(wordsOf(5));
+
+      await put(fixture, wordsOf(4, 4));
+      expect(settle(host)).toBe(115);
+      await put(fixture, wordsOf(4, 3));
+      expect(settle(host)).toBe(115);
+      await put(fixture, wordsOf(4));
+      expect(settle(host)).toBe(115);
+    });
+
+    it('lets a word put on take up the room left before making more', async () => {
+      const { fixture, host } = await tape(wordsOf(5));
+      await put(fixture, wordsOf(4));
+
+      await put(fixture, wordsOf(4, 3));
+      expect(settle(host)).toBe(115);
+      await put(fixture, wordsOf(4, 3, 5));
+      expect(settle(host)).toBe(150);
+    });
+
+    it('leaves no room when words are all taken off at once, as the game restarts', async () => {
+      const { fixture, host } = await tape(wordsOf(5));
+
+      await put(fixture, []);
+
+      expect(settle(host)).toBe(0);
+    });
+
+    it('fades out an edge once words hide past it: the right one only once the player scrolls back', async () => {
+      const { fixture, host } = await tape(wordsOf(2));
+      expect(host.classList).not.toContain('hidden-left');
+
+      await put(fixture, wordsOf(5));
+      settle(host);
+      await put(fixture, wordsOf(4));
+      settle(host);
       await fixture.whenStable();
-      const words = host.querySelector<HTMLElement>('.words');
-      if (words === null) {
-        throw new Error('No words');
-      }
-      return { fixture, words };
-    }
+      expect(host.classList).toContain('hidden-left');
+      expect(host.classList).not.toContain('hidden-right');
 
-    /** How much lower than their place the words are drawn, in pixels. */
-    function lowered(words: HTMLElement): number {
-      return Number(/^0 (.+)px$/.exec(words.style.translate)?.[1] ?? 0);
-    }
-
-    it('slides a new row of words in, rather than pushing the words up at once', async () => {
-      let height = 100;
-      const { fixture, words } = await sized(() => height);
-
-      height = 120;
-      await type(fixture, '14159');
-
-      expect(lowered(words)).toBe(20);
-      const positions = [100, 200, 300].map((at) => {
-        frameAt(words, at);
-        return lowered(words);
-      });
-      expect(positions).toEqual([...positions].sort((a, b) => b - a));
-      expect(positions[1]).toBeCloseTo(10);
-      frameAt(words, SCROLL_DOWN_DURATION);
-      expect(words.style.translate).toBe('');
-    });
-
-    it('says how far a new row has left to slide, so that what flies to it can aim for where it will be', async () => {
-      let height = 100;
-      const { fixture, words } = await sized(() => height);
-      height = 120;
-      await type(fixture, '14159');
-      frameAt(words, 200);
-
-      expect(fixture.componentInstance.scrollDown(100)).toBeCloseTo(10);
-    });
-
-    it('slides the last row out when the words shrink, the same way back', async () => {
-      let height = 120;
-      const { fixture, words } = await sized(() => height);
-      await type(fixture, '14159');
-
-      height = 100;
-      await type(fixture, '1415');
-
-      expect(lowered(words)).toBe(-20);
-      const positions = [100, 200, 300].map((at) => {
-        frameAt(words, at);
-        return lowered(words);
-      });
-      expect(positions).toEqual([...positions].sort((a, b) => a - b));
-      expect(positions[1]).toBeCloseTo(-10);
-      frameAt(words, SCROLL_DOWN_DURATION);
-      expect(words.style.translate).toBe('');
-    });
-
-    it('slides a row in as a word finishes after its last digit, and not again with the next digit', async () => {
-      let height = 100;
-      const { fixture, words } = await sized(() => height);
-      await type(fixture, '14159');
-      fixture.componentRef.setInput('words', []);
+      host.scrollLeft = 0;
+      host.dispatchEvent(new Event('scroll'));
       await fixture.whenStable();
-
-      height = 120;
-      fixture.componentRef.setInput('words', wordsOf5('14159'));
-      await fixture.whenStable();
-      expect(lowered(words)).toBe(20);
-
-      frameAt(words, SCROLL_DOWN_DURATION);
-      await type(fixture, '141592');
-      expect(words.style.translate).toBe('');
+      expect(host.classList).not.toContain('hidden-left');
+      expect(host.classList).toContain('hidden-right');
     });
 
-    it("doesn't move when the words don't grow", async () => {
-      const { fixture, words } = await sized(() => 100);
+    it('glides back to the newest words when asked, as typing does', async () => {
+      const { fixture, host } = await tape(wordsOf(5));
+      host.scrollLeft = 0;
 
-      await type(fixture, '14159');
+      fixture.componentInstance.scrollToEnd(SCROLL_BACK_DURATION);
 
-      expect(words.style.translate).toBe('');
+      expect(frameAt(host, SCROLL_BACK_DURATION / 2)).toBeGreaterThan(0);
+      expect(frameAt(host, SCROLL_BACK_DURATION)).toBe(115);
     });
 
-    it('shows or hides a row at once when the player prefers reduced motion', async () => {
+    it('jumps at once when the player prefers reduced motion', async () => {
       vi.stubGlobal('matchMedia', () => ({ matches: true }));
-      let height = 100;
-      const { fixture, words } = await sized(() => height);
+      const { fixture, host } = await tape(wordsOf(2));
 
-      height = 120;
-      await type(fixture, '14159');
-      expect(words.style.translate).toBe('');
+      await put(fixture, wordsOf(4));
 
-      height = 100;
-      await type(fixture, '1415');
-      expect(words.style.translate).toBe('');
-    });
-
-    it('jumps down at once when the player prefers reduced motion', async () => {
-      vi.stubGlobal('matchMedia', () => ({ matches: true }));
-      const { fixture, host } = await scrolledUp(300);
-
-      await type(fixture, '141');
-
-      expect(host.scrollTop).toBe(0);
+      expect(host.scrollLeft).toBe(60);
     });
   });
 });

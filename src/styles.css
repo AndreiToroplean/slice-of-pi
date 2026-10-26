@@ -251,6 +251,19 @@ body {
   initial-value: 0;
 }
 
+/* How opaque the tape's left and right edges are: 1, unless words hide past them, which fade out (see `TypedDigits`). */
+@property --tape-left {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+
+@property --tape-right {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+
 @keyframes breathe {
   from {
     --candy-breath: 1;

@@ -1,17 +1,37 @@
 /*
- * Scrolls up through older words: the newest stay at the bottom (a reversed column starts scrolled to its end), and a
- * mask fades out whatever is in the top part of the area.
+ * The tape: one row of words that scrolls across the column, the newest on the right. An edge fades out, and back in,
+ * as words hide past it (`--tape-left` and `--tape-right` in `styles.css`).
  */
 :host {
-  container-type: size;
-  display: flex;
-  flex-direction: column-reverse;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0 1.375rem;
+  --fade: min(4rem, 15%);
+  display: block;
+  overflow: auto hidden;
   scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 38%);
-  mask-image: linear-gradient(to bottom, transparent, #000 38%);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    rgb(0 0 0 / var(--tape-left)),
+    #000 var(--fade),
+    #000 calc(100% - var(--fade)),
+    rgb(0 0 0 / var(--tape-right))
+  );
+  mask-image: linear-gradient(
+    to right,
+    rgb(0 0 0 / var(--tape-left)),
+    #000 var(--fade),
+    #000 calc(100% - var(--fade)),
+    rgb(0 0 0 / var(--tape-right))
+  );
+  transition:
+    --tape-left 0.3s,
+    --tape-right 0.3s;
+}
+
+:host(.hidden-left) {
+  --tape-left: 0;
+}
+
+:host(.hidden-right) {
+  --tape-right: 0;
 }
 
 :host::-webkit-scrollbar {
@@ -23,15 +43,13 @@
   outline-offset: -0.1875rem;
 }
 
+/* Room on the right for the last word taken off (`--room`, see `TypedDigits`). */
 .words {
   display: flex;
-  flex-wrap: wrap;
-  align-content: flex-end;
-  column-gap: 0.4em;
-  row-gap: 0.3em;
-  /* Room above the first word, as tall as the fade, so that scrolling all the way up brings the first word out of it. */
-  padding-top: 38cqh;
-  padding-bottom: 0.5rem;
+  align-items: center;
+  gap: 0.4em;
+  width: max-content;
+  padding: 0.5rem calc(1.375rem + var(--room, 0px)) 0.5rem 1.375rem;
   font-family: var(--font-digits);
   font-size: 0.9375rem;
   font-weight: 600;
@@ -43,7 +61,6 @@
 .word,
 .lead {
   display: inline-flex;
-  flex-wrap: wrap;
   border-radius: 0.3em;
   overflow: hidden;
 }
