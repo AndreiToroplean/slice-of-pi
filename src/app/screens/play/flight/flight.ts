@@ -25,6 +25,8 @@ export interface SlotSnapshot {
 export const PRESS_DURATION = 70;
 /** How long each slot then takes to fly into its tile, in ms. */
 export const FLIGHT_DURATION = 480;
+/** When the first slot lands in its tile, in ms after it starts. */
+export const FIRST_LANDING = PRESS_DURATION + FLIGHT_DURATION;
 /** The thickness of a filled slot: the dark band along its bottom (see `slots.css`), in pixels. */
 export const SLOT_DEPTH = 4;
 const SLOT_EDGE = `inset 0 -${String(SLOT_DEPTH)}px 0 rgb(0 0 0 / 14%)`;
@@ -118,7 +120,7 @@ export function snapshotSlot(layer: Element, slot: Element): SlotSnapshot {
 /**
  * Flies the slots that held a group into the tiles of its word: each slot is copied onto `layer` (which must be
  * positioned) and animated onto its tile. Each tile is hidden until its copy lands, and shows in the same frame as its
- * copy is removed, so that no digit is ever missing or shown twice. `rise` is how far the word has left to move up
+ * copy is removed, so that no digit is ever missing or shown twice. `shift` is how far the word has left to move left
  * before the first copy lands (scrolling to it), so that copies aim for where it will be. Returns the animations, which
  * land their copy the same way when they're cancelled.
  */
@@ -126,7 +128,7 @@ export function flyIntoWord(
   layer: HTMLElement,
   slots: readonly SlotSnapshot[],
   word: HTMLElement,
-  rise = 0,
+  shift = 0,
 ): Animation[] {
   const tiles = Array.from(word.children).filter((tile) => tile instanceof HTMLElement);
   const wordRadius = parseFloat(getComputedStyle(word).borderTopLeftRadius) || 0;
@@ -152,7 +154,7 @@ export function flyIntoWord(
     copy.style.background = colors.backgroundColor;
     copy.style.color = colors.color;
     const at = boxIn(layer, tile);
-    const to = { ...at, top: at.top - rise };
+    const to = { ...at, left: at.left - shift };
     tile.style.visibility = 'hidden';
     layer.append(copy);
     const animation = copy.animate(

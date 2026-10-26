@@ -16,7 +16,7 @@ import type { ReplayedGame } from '../replay/replay';
 import { Background } from '../../ui/background';
 import { BreakCountdown } from './break-countdown';
 import { waitToEnd } from '../../game/grouping/wait-to-end';
-import { FLIGHT_DURATION, flyIntoWord, snapshotSlot } from './flight/flight';
+import { FIRST_LANDING, flyIntoWord, snapshotSlot } from './flight/flight';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { Keypad, KeypadMark } from './keypad/keypad';
 import { keyColors, placeColors } from '../../game/layers/place-colors';
@@ -34,12 +34,12 @@ import { seasonAt } from '../../game/layers/seasons';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { layoutStyles } from '../../ui/layout';
 import { Slots } from './slots/slots';
-import { TypedDigits } from './typed-digits/typed-digits';
+import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { TIMER } from './timer';
 
 /**
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
- * flies up to the typed digits as a word, as the seasons go by. Each typed digit takes the color its key showed.
+ * flies onto the tape as a word, as the seasons go by. Each typed digit takes the color its key showed.
  * The groups follow the player's timings, over all their runs and this one: the slots show the
  * player's own group where it's trusted, up to the trust horizon the earlier runs give, else 5 slots that grow until the
  * player pauses.
@@ -322,6 +322,8 @@ export class Play {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
+    // Mistakes too bring the tape back from where the player scrolled it, though they never reach it.
+    this.typedDigits().scrollToEnd(SCROLL_BACK_DURATION);
     if (this.mistakes() !== '') {
       if (key === 'backspace') {
         this.mistakes.update((mistakes) => mistakes.slice(0, -1));
@@ -454,7 +456,7 @@ export class Play {
     if (slots.length === 0) {
       return;
     }
-    // Measured once the new word is laid out. The typed digits finish scrolling down to it before the first slot lands.
+    // Measured once the new word is laid out. The tape finishes making room for it as the first slot lands.
     afterNextRender(
       {
         read: () => {
@@ -462,10 +464,10 @@ export class Play {
             `app-typed-digits .word[data-first-place="${String(firstPlace)}"]`,
           );
           if (word !== null) {
-            const rise = this.typedDigits().scrollDown(FLIGHT_DURATION);
+            const shift = this.typedDigits().scrollToEnd(FIRST_LANDING);
             this.flights = [
               ...this.flights.filter((flight) => flight.playState === 'running'),
-              ...flyIntoWord(this.host, slots, word, rise),
+              ...flyIntoWord(this.host, slots, word, shift),
             ];
           }
         },

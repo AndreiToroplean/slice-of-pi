@@ -19,6 +19,7 @@
 - **Typing area:** where the group being typed appears, as slots to fill.
 - **Slot:** an empty space in the typing area waiting for a digit. The number of slots is the **group size**.
 - **Typed digits:** the digits typed so far in the run, in words.
+- **Tape:** the one row the typed digits sit on, scrolling as words come on and off it. Each digit on it is a **tile**.
 - **Background:** the season-colored backdrop behind every screen. Never call it the sky.
 - **Season header:** the top of the play screen: the season, and the place in the year on the **year bar**.
 - **Sky:** the 3D night sky where the player's constellations collect.

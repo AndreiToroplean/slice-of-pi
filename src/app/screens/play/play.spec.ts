@@ -13,7 +13,7 @@ import {
 import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
 import { FakeTime } from '../../../testing/fake-time';
 import { Background } from '../../ui/background';
-import { FLIGHT_DURATION } from './flight/flight';
+import { FIRST_LANDING } from './flight/flight';
 import { routes } from '../../app.routes';
 import { Menu } from '../menu/menu';
 import { PALETTE, placeColors } from '../../game/layers/place-colors';
@@ -24,7 +24,7 @@ import { typeKey } from '../../../testing/touch-logs';
 import { Digit } from '../../game/pi/digit';
 import { RunRecorder } from '../../player-data/run-recorder';
 import { INDEXED_DB, RunStore } from '../../player-data/run-store';
-import { TypedDigits } from './typed-digits/typed-digits';
+import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { backgroundsFrom, seasonAt } from '../../game/layers/seasons';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { MARS } from '../../game/grouping/break-models/mars';
@@ -597,6 +597,16 @@ describe('Play', () => {
       expect(words(host)).toEqual(['141']);
     });
 
+    it('brings the tape back to the newest words on a mistake too, though it never reaches it', async () => {
+      const { type } = await setUp();
+      await typeAll(type, '14159 2');
+      const scrollToEnd = vi.spyOn(TypedDigits.prototype, 'scrollToEnd');
+
+      await typeAll(type, '0');
+
+      expect(scrollToEnd).toHaveBeenCalledWith(SCROLL_BACK_DURATION);
+    });
+
     it('takes a wrong first digit', async () => {
       const { host, type } = await setUp();
 
@@ -826,15 +836,15 @@ describe('Play', () => {
       }
     });
 
-    it('aims for where the word will be once the typed digits have scrolled down to it', async () => {
+    it('aims for where the word will be once the tape has made room for it, as the first slot lands', async () => {
       const animations = stubAnimations();
-      const scrollDown = vi.spyOn(TypedDigits.prototype, 'scrollDown').mockReturnValue(50);
+      const scrollToEnd = vi.spyOn(TypedDigits.prototype, 'scrollToEnd').mockReturnValue(50);
       const { type } = await setUp();
 
       await typeAll(type, '14159 ');
 
-      expect(scrollDown).toHaveBeenCalledWith(FLIGHT_DURATION);
-      expect(animations[0]?.keyframes[2]?.['transform']).toMatch(/^translate\(0px, -50px\)/);
+      expect(scrollToEnd).toHaveBeenCalledWith(FIRST_LANDING);
+      expect(animations[0]?.keyframes[2]?.['transform']).toMatch(/^translate\(-50px, 0px\)/);
     });
 
     it("doesn't fly a word brought back by backspace that finishes again at once", async () => {
