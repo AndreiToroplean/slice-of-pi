@@ -25,7 +25,7 @@ app-season-header {
   height: var(--header-height);
 }
 
-/* The typed digits, from the header down to the slots, which push them up as they take more rows. */
+/* The tape, across the column right above the slots, which push it up as they take more rows. */
 .middle {
   position: absolute;
   inset-inline: var(--margin);
@@ -33,11 +33,8 @@ app-season-header {
   bottom: var(--slots-bottom);
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   gap: var(--space-1);
-}
-
-app-typed-digits {
-  flex: 1;
 }
 
 /* As wide as the keypad. */
