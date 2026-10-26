@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { placeColors } from '../../../game/layers/place-colors';
 import { installAnimations, uninstallAnimations } from '../../../../testing/fake-animations';
-import { HANDOVER_DURATION, SlotHandover, Slots } from './slots';
+import { GROW_DURATION, HANDOVER_DURATION, SlotHandover, Slots } from './slots';
 
 describe('Slots', () => {
   async function render(digits: string, size = 5, wrong = 0): Promise<HTMLElement> {
@@ -124,8 +124,8 @@ describe('Slots', () => {
       // The first of the 3 slots was the third of the 5, whose digit leaves at 200 ms.
       expect(first?.keyframes[1]?.offset).toBe(200 / (200 + HANDOVER_DURATION));
       expect(third?.keyframes[1]?.offset).toBe(400 / (400 + HANDOVER_DURATION));
-      expect(first?.keyframes.some((keyframe) => 'opacity' in keyframe)).toBe(false);
-      expect(goingFirst?.keyframes.map((keyframe) => keyframe['opacity'])).toEqual([1, 1, 0]);
+      expect(first?.keyframes.some((keyframe) => '--appear' in keyframe)).toBe(false);
+      expect(goingFirst?.keyframes.map((keyframe) => keyframe['--appear'])).toEqual([1, 1, 0]);
       expect(goingFirst?.options?.fill).toBe('forwards');
     });
 
@@ -134,7 +134,7 @@ describe('Slots', () => {
 
       await handOver(5, { from: 3, leftAt: (index) => 100 * index });
 
-      expect(animations.map((animation) => animation.keyframes[0]?.['opacity'])).toEqual([
+      expect(animations.map((animation) => animation.keyframes[0]?.['--appear'])).toEqual([
         undefined,
         undefined,
         undefined,
@@ -154,6 +154,32 @@ describe('Slots', () => {
       await fixture.whenStable();
 
       expect(host.querySelectorAll('.slot.leaving')).toHaveLength(0);
+    });
+
+    it('makes room for more slots as the group grows, at once, each move adding to any under way, the new ones fading in', async () => {
+      const animations = installAnimations();
+      const fixture = TestBed.createComponent(Slots);
+      fixture.componentRef.setInput('digits', '1415');
+      fixture.componentRef.setInput('colors', placeColors('1415'));
+      fixture.componentRef.setInput('size', 5);
+      await fixture.whenStable();
+      expect(animations).toEqual([]);
+
+      fixture.componentRef.setInput('digits', '141592');
+      fixture.componentRef.setInput('colors', placeColors('141592'));
+      await fixture.whenStable();
+
+      const moves = animations.filter((animation) => animation.options?.composite === 'add');
+      expect(moves).toHaveLength(6);
+      expect(moves.every((move) => move.options?.duration === GROW_DURATION)).toBe(true);
+      expect(moves[0]?.keyframes.map((keyframe) => keyframe['translate'])).toEqual([
+        '0px 0px',
+        '0px 0px',
+      ]);
+      const fades = animations.filter((animation) => animation.options?.composite !== 'add');
+      expect(fades.map((fade) => fade.element)).toEqual([
+        (fixture.nativeElement as HTMLElement).querySelectorAll('.slot')[5],
+      ]);
     });
 
     it("doesn't move when the player prefers reduced motion, nor past a row", async () => {
