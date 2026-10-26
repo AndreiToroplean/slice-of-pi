@@ -264,6 +264,13 @@ body {
   initial-value: 1;
 }
 
+/* How far a slot has appeared, from 0 to 1, as it comes or goes, so that it fades along with any other fade (see `Slots`). */
+@property --appear {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+
 @keyframes breathe {
   from {
     --candy-breath: 1;

@@ -13,7 +13,9 @@ import { SlotMove, slotHandover, slotLayout, SLOTS_PER_ROW } from './slot-layout
 
 /** How long a slot takes to move to its place as the slots hand over to the next group's, in ms. */
 export const HANDOVER_DURATION = 300;
-const HANDOVER_EASING = 'cubic-bezier(0.3, 0, 0.3, 1)';
+/** How long the slots take to make room for more, as the group being typed grows, in ms. */
+export const GROW_DURATION = 160;
+const MOVE_EASING = 'cubic-bezier(0.3, 0, 0.3, 1)';
 
 /** How the slots of the group that just ended hand over to the next group's (see {@link slotHandover}). */
 export interface SlotHandover {
@@ -29,8 +31,10 @@ export interface SlotHandover {
  * There is no text under the slots. Hidden from assistive technology: the typed digits say what was typed.
  *
  * Told how the slots of the group that just ended hand over to them, they move to their places from those slots', as
- * each one's digit flies off (see {@link slotHandover}), unless the player prefers reduced motion, or either group
- * takes more than a row.
+ * each one's digit flies off (see {@link slotHandover}). As the group being typed grows, they make room for more the
+ * same way, at once and quicker, the digits typed meanwhile filling them on their way. Not when the player prefers
+ * reduced motion, nor past a row. Each move adds to any still under way, so that the slots move on from wherever they
+ * are.
  */
 @Component({
   selector: 'app-slots',
@@ -97,13 +101,22 @@ export class Slots {
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private animations: Animation[] = [];
+  /** How many slots there were, and for which handover, when last rendered. */
+  private last: { readonly count: number; readonly handover: SlotHandover | undefined } | undefined;
 
   constructor() {
-    // Once the slots, and those leaving, are rendered for a new handover.
+    // Once the slots, and those leaving, are rendered for a new handover, or for more slots.
     afterRenderEffect(() => {
       const handover = this.handover();
+      const count = this.layout().count;
       untracked(() => {
-        this.hand(handover);
+        const last = this.last ?? { count, handover: undefined };
+        this.last = { count, handover };
+        if (handover !== last.handover) {
+          this.hand(handover);
+        } else if (count > last.count) {
+          this.grow(last.count, count);
+        }
       });
     });
     inject(DestroyRef).onDestroy(() => {
@@ -120,10 +133,9 @@ export class Slots {
     if (handover === undefined || moves === undefined || first === undefined) {
       return;
     }
-    // Measured exactly, as laid out, for the slots to start right where those they take over were.
     const area = this.host.getBoundingClientRect();
     const place = first.getBoundingClientRect();
-    const step = place.width + (parseFloat(getComputedStyle(this.host).columnGap) || 0);
+    const step = this.step(first);
     const leaving = Array.from(this.host.querySelectorAll<HTMLElement>('.slot.leaving'));
     // Where each slot leaving ends, from the first slot's place, which it moves to.
     leaving.forEach((ghost, j) => {
@@ -141,22 +153,18 @@ export class Slots {
       const at = Math.max(0, handover.leftAt(after));
       const total = at + HANDOVER_DURATION;
       const opacity = (shown: boolean): Keyframe =>
-        fade === undefined ? {} : { opacity: shown ? 1 : 0 };
+        fade === undefined ? {} : { '--appear': shown ? 1 : 0 };
       this.animations.push(
         element.animate(
           [
-            {
-              offset: 0,
-              transform: `translateX(${String((from - to) * step)}px)`,
-              ...opacity(fade !== 'in'),
-            },
+            { offset: 0, translate: across((from - to) * step), ...opacity(fade !== 'in') },
             {
               offset: at / total,
-              transform: `translateX(${String((from - to) * step)}px)`,
+              translate: across((from - to) * step),
               ...opacity(fade !== 'in'),
-              easing: HANDOVER_EASING,
+              easing: MOVE_EASING,
             },
-            { offset: 1, transform: 'none', ...opacity(fade !== 'out') },
+            { offset: 1, translate: across(0), ...opacity(fade !== 'out') },
           ],
           { duration: total, fill: fade === 'out' ? 'forwards' : 'none' },
         ),
@@ -176,12 +184,59 @@ export class Slots {
     }
   }
 
+  /** Makes room for more slots, from `before` to `after`, moving them all left, the new ones fading in. */
+  private grow(before: number, after: number): void {
+    const slots = Array.from(this.host.querySelectorAll<HTMLElement>('.slot:not(.leaving)'));
+    const first = slots[0];
+    if (
+      first === undefined ||
+      typeof first.animate !== 'function' ||
+      after > SLOTS_PER_ROW ||
+      prefersReducedMotion()
+    ) {
+      return;
+    }
+    const step = this.step(first);
+    slotHandover(before, after).slots.forEach(({ from, to, fade }, k) => {
+      const slot = slots[k];
+      if (slot === undefined) {
+        return;
+      }
+      const timing = { duration: GROW_DURATION, easing: MOVE_EASING };
+      this.animations.push(
+        slot.animate([{ translate: across((from - to) * step) }, { translate: across(0) }], {
+          ...timing,
+          composite: 'add',
+        }),
+      );
+      if (fade === 'in') {
+        this.animations.push(slot.animate([{ '--appear': 0 }, { '--appear': 1 }], timing));
+      }
+    });
+  }
+
+  /**
+   * How far one slot is from the next, in pixels: exactly, for slots to start right where others were, and as laid
+   * out, however much the slot is popping in.
+   */
+  private step(slot: Element): number {
+    return (
+      (parseFloat(getComputedStyle(slot).width) || 0) +
+      (parseFloat(getComputedStyle(this.host).columnGap) || 0)
+    );
+  }
+
   private stop(): void {
     for (const animation of this.animations) {
       animation.cancel();
     }
     this.animations = [];
   }
+}
+
+/** A move across, as a `translate`, which leaves the slots' own `transform`, as they pop in, to them. */
+function across(x: number): string {
+  return `${String(x)}px 0px`;
 }
 
 function prefersReducedMotion(): boolean {
