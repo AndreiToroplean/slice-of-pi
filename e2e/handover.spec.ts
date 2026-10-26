@@ -62,3 +62,42 @@ test('moves the slots on from right under the digits flying off them, as many or
     expect(center).toBeCloseTo((more.flying[0] ?? 0) + i * step, 0);
   });
 });
+
+test('makes room for more slots as the group grows, moving them on from where they were', async ({
+  page,
+}) => {
+  await page.goto('/play');
+  await expect(page.locator('app-slots .slot')).toHaveCount(5);
+  await page.waitForFunction(() => document.getAnimations().length === 0);
+  for (const digit of PI_DECIMALS.slice(0, 5)) {
+    await page.keyboard.press(digit);
+  }
+
+  // The slots' centers across just before the sixth digit, and on the first frame after it.
+  const { before, after, opacity } = await page.evaluate(async (digit) => {
+    const centers = (): number[] =>
+      Array.from(document.querySelectorAll('app-slots .slot'), (slot) => {
+        const box = slot.getBoundingClientRect();
+        return box.left + box.width / 2;
+      });
+    const before = centers();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: digit, bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keyup', { key: digit, bubbles: true }));
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    const sixth = document.querySelectorAll('app-slots .slot')[5];
+    return {
+      before,
+      after: centers(),
+      opacity: sixth === undefined ? 1 : Number(getComputedStyle(sixth).opacity),
+    };
+  }, PI_DECIMALS.charAt(5));
+
+  expect(after).toHaveLength(6);
+  const step = (before[1] ?? 0) - (before[0] ?? 0);
+  after.forEach((center, i) => {
+    // A frame or two into a move of half a step.
+    expect(Math.abs(center - ((before[0] ?? 0) + i * step))).toBeLessThan(step / 8);
+  });
+  expect(opacity).toBeLessThan(0.5);
+});

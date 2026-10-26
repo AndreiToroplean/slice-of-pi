@@ -31,8 +31,13 @@
   position: absolute;
 }
 
+/* Fading in or out as the slots move (`--appear`, see `Slots`), and out with the wait while empty. */
+.slot {
+  opacity: var(--appear);
+}
+
 .slot:not(.filled) {
-  opacity: var(--empty-opacity);
+  opacity: calc(var(--appear) * var(--empty-opacity));
 }
 
 .slot.next {
