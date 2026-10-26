@@ -1,14 +1,17 @@
 import {
+  afterNextRender,
   afterRenderEffect,
   Component,
   computed,
   DestroyRef,
   ElementRef,
   inject,
+  Injector,
   input,
   signal,
   untracked,
 } from '@angular/core';
+import type { Box } from '../flight/flight';
 import { SlotMove, slotHandover, slotLayout, SLOTS_PER_ROW } from './slot-layout';
 
 /** How long a slot takes to move to its place as the slots hand over to the next group's, in ms. */
@@ -33,8 +36,8 @@ export interface SlotHandover {
  * Told how the slots of the group that just ended hand over to them, they move to their places from those slots', as
  * each one's digit flies off (see {@link slotHandover}). As the group being typed grows, they make room for more the
  * same way, at once and quicker, the digits typed meanwhile filling them on their way. Not when the player prefers
- * reduced motion, nor past a row. Each move adds to any still under way, so that the slots move on from wherever they
- * are.
+ * reduced motion, nor past a row. As the slots shrink, the last of them go the same way in reverse, fading out, as
+ * they came. Each move adds to any still under way, so that the slots move on from wherever they are.
  */
 @Component({
   selector: 'app-slots',
@@ -56,6 +59,9 @@ export interface SlotHandover {
     }
     @for (move of leaving(); track $index) {
       <span class="slot leaving"></span>
+    }
+    @for (slot of dropped(); track slot.id) {
+      <span class="slot dropped" [attr.data-dropped]="slot.id"></span>
     }
   `,
   styleUrl: './slots.css',
@@ -99,7 +105,12 @@ export class Slots {
     this.done() === this.handover() ? [] : (this.moves()?.leaving ?? []),
   );
 
+  /** The slots taken away as the slots shrink, going, until they have. */
+  protected readonly dropped = signal<readonly Dropped[]>([]);
+  private dropping = 0;
+
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly injector = inject(Injector);
   private animations: Animation[] = [];
   /** How many slots there were, and for which handover, when last rendered. */
   private last: { readonly count: number; readonly handover: SlotHandover | undefined } | undefined;
@@ -116,6 +127,8 @@ export class Slots {
           this.hand(handover);
         } else if (count > last.count) {
           this.grow(last.count, count);
+        } else if (count < last.count) {
+          this.shrink(last.count, count);
         }
       });
     });
@@ -127,8 +140,9 @@ export class Slots {
   /** Moves the slots, and those leaving, from the slots of the group that ended to their places. */
   private hand(handover: SlotHandover | undefined): void {
     this.stop();
+    this.dropped.set([]);
     const moves = this.moves();
-    const slots = Array.from(this.host.querySelectorAll<HTMLElement>('.slot:not(.leaving)'));
+    const slots = this.slotElements();
     const first = slots[0];
     if (handover === undefined || moves === undefined || first === undefined) {
       return;
@@ -186,7 +200,7 @@ export class Slots {
 
   /** Makes room for more slots, from `before` to `after`, moving them all left, the new ones fading in. */
   private grow(before: number, after: number): void {
-    const slots = Array.from(this.host.querySelectorAll<HTMLElement>('.slot:not(.leaving)'));
+    const slots = this.slotElements();
     const first = slots[0];
     if (
       first === undefined ||
@@ -216,6 +230,103 @@ export class Slots {
   }
 
   /**
+   * Takes slots away, from `before` to `after`, as they came in reverse: the others move right, back to their places,
+   * and the last go right too, fading out (see {@link drop}), as do any still going.
+   */
+  private shrink(before: number, after: number): void {
+    const slots = this.slotElements();
+    const first = slots[0];
+    if (
+      first === undefined ||
+      typeof first.animate !== 'function' ||
+      before > SLOTS_PER_ROW ||
+      prefersReducedMotion()
+    ) {
+      return;
+    }
+    const step = this.step(first);
+    const shift = ((before - after) / 2) * step;
+    // Where the first slot is now, before it moves, for those taken away to go on from where they were.
+    const area = this.host.getBoundingClientRect();
+    const place = first.getBoundingClientRect();
+    const timing: KeyframeAnimationOptions = {
+      duration: GROW_DURATION,
+      easing: MOVE_EASING,
+      composite: 'add',
+    };
+    for (const slot of slots) {
+      this.animations.push(
+        slot.animate([{ translate: across(-shift) }, { translate: across(0) }], timing),
+      );
+    }
+    // Those still going, out of the grid, move right as the grid does.
+    for (const slot of this.host.querySelectorAll<HTMLElement>('.slot.dropped')) {
+      this.animations.push(
+        slot.animate([{ translate: across(0) }, { translate: across(shift) }], {
+          ...timing,
+          fill: 'forwards',
+        }),
+      );
+    }
+    this.dropped.update((dropped) => [
+      ...dropped,
+      ...Array.from({ length: before - after }, (_, i) => ({
+        id: ++this.dropping,
+        box: {
+          left: place.left - area.left + (after + i) * step,
+          top: place.top - area.top,
+          width: place.width,
+          height: place.height,
+        },
+        shift,
+      })),
+    ]);
+    // Once rendered.
+    afterNextRender(
+      () => {
+        this.drop(this.dropped());
+      },
+      { injector: this.injector },
+    );
+  }
+
+  /** Sends the slots just taken away on their way, from where they were, each dropped once it has gone. */
+  private drop(dropped: readonly Dropped[]): void {
+    for (const slot of dropped) {
+      const element = this.host.querySelector<HTMLElement>(
+        `.slot.dropped[data-dropped="${String(slot.id)}"]`,
+      );
+      // Unless already on its way.
+      const sent = element?.style.left !== '';
+      if (element === null || sent || typeof element.animate !== 'function') {
+        continue;
+      }
+      Object.assign(element.style, {
+        left: `${String(slot.box.left)}px`,
+        top: `${String(slot.box.top)}px`,
+        width: `${String(slot.box.width)}px`,
+        height: `${String(slot.box.height)}px`,
+      });
+      const animation = element.animate(
+        [
+          { translate: across(-slot.shift), '--appear': 1 },
+          { translate: across(0), '--appear': 0 },
+        ],
+        { duration: GROW_DURATION, easing: MOVE_EASING, fill: 'forwards' },
+      );
+      animation.onfinish = () => {
+        this.dropped.update((all) => all.filter(({ id }) => id !== slot.id));
+      };
+      this.animations.push(animation);
+    }
+  }
+
+  /** The slots of the group being typed, leaving out those going. */
+  private slotElements(): HTMLElement[] {
+    return Array.from(this.host.querySelectorAll<HTMLElement>('.slot:not(.leaving, .dropped)'));
+  }
+
+  /**
    * How far one slot is from the next, in pixels: exactly, for slots to start right where others were, and as laid
    * out, however much the slot is popping in.
    */
@@ -232,6 +343,13 @@ export class Slots {
     }
     this.animations = [];
   }
+}
+
+/** A slot taken away as the slots shrink, going: where it ends, in the area, and how far it moves right to get there. */
+interface Dropped {
+  readonly id: number;
+  readonly box: Box;
+  readonly shift: number;
 }
 
 /** A move across, as a `translate`, which leaves the slots' own `transform`, as they pop in, to them. */

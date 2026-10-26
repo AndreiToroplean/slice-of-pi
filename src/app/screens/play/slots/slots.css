@@ -26,8 +26,9 @@
   backdrop-filter: blur(8px);
 }
 
-/* A slot of the group that ended, going as the slots hand over to the next group's, out of the grid (see `Slots`). */
-.slot.leaving {
+/* A slot going, out of the grid: of the group that ended, as the slots hand over, or taken away (see `Slots`). */
+.slot.leaving,
+.slot.dropped {
   position: absolute;
 }
 

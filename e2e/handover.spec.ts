@@ -4,6 +4,17 @@ import { PI_DECIMALS } from '../src/app/game/pi/pi-decimals';
 test.use({ viewport: { width: 384, height: 824 } });
 
 /**
+ * Types the digits as a player would, evenly, so that the group breaks only once they're all typed, however long the
+ * test takes in between: a group with no runs before it ends at a pause clearly longer than the run's own.
+ */
+async function type(page: Page, digits: string): Promise<void> {
+  for (const digit of digits) {
+    await page.keyboard.press(digit);
+    await page.waitForTimeout(120);
+  }
+}
+
+/**
  * Right as the slots of a group that ended start to fly: the centers across of the flying slots once slid, which they
  * lift off from, and of the next group's slots, those leaving included, where they wait to move from.
  */
@@ -11,9 +22,7 @@ async function handOver(
   page: Page,
   digits: string,
 ): Promise<{ flying: number[]; slots: number[] }> {
-  for (const digit of digits) {
-    await page.keyboard.press(digit);
-  }
+  await type(page, digits);
   await expect(page.locator('.flying-slot')).toHaveCount(digits.length);
   return page.evaluate(() => {
     const flying = Array.from(document.querySelectorAll<HTMLElement>('.flying-slot'), (copy) => {
@@ -69,9 +78,7 @@ test('makes room for more slots as the group grows, moving them on from where th
   await page.goto('/play');
   await expect(page.locator('app-slots .slot')).toHaveCount(5);
   await page.waitForFunction(() => document.getAnimations().length === 0);
-  for (const digit of PI_DECIMALS.slice(0, 5)) {
-    await page.keyboard.press(digit);
-  }
+  await type(page, PI_DECIMALS.slice(0, 5));
 
   // The slots' centers across just before the sixth digit, and on the first frame after it.
   const { before, after, opacity } = await page.evaluate(async (digit) => {
@@ -108,9 +115,7 @@ test('keeps the slots still on backspace as they grow, then slides the digits le
   await page.goto('/play');
   await expect(page.locator('app-slots .slot')).toHaveCount(5);
   await page.waitForFunction(() => document.getAnimations().length === 0);
-  for (const digit of PI_DECIMALS.slice(0, 5)) {
-    await page.keyboard.press(digit);
-  }
+  await type(page, PI_DECIMALS.slice(0, 5));
 
   // Growing to 6 slots, then backspace on the next frame, while they move.
   const { before, after } = await page.evaluate(async (digit) => {
@@ -148,4 +153,44 @@ test('keeps the slots still on backspace as they grow, then slides the digits le
     }),
   );
   expect(slides.every((slide) => /^translate\([1-9][\d.]*px, 0px\)$/.test(slide))).toBe(true);
+});
+
+test("takes a mistake's slot away as it came, in reverse, the others moving back right from where they were", async ({
+  page,
+}) => {
+  await page.goto('/play');
+  await expect(page.locator('app-slots .slot')).toHaveCount(5);
+  await page.waitForFunction(() => document.getAnimations().length === 0);
+  await type(page, PI_DECIMALS.slice(0, 5));
+  // A wrong sixth digit, which takes a sixth slot.
+  const wrong = PI_DECIMALS.charAt(5) === '0' ? '1' : '0';
+  await type(page, wrong);
+  await expect(page.locator('app-slots .slot')).toHaveCount(6);
+  await page.waitForFunction(() => document.getAnimations().length === 0);
+
+  const { before, after, going } = await page.evaluate(async () => {
+    const centers = (selector: string): number[] =>
+      Array.from(document.querySelectorAll(selector), (slot) => {
+        const box = slot.getBoundingClientRect();
+        return box.left + box.width / 2;
+      });
+    const before = centers('app-slots .slot');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Backspace', bubbles: true }));
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    return {
+      before,
+      after: centers('app-slots .slot:not(.dropped)'),
+      going: centers('app-slots .slot.dropped'),
+    };
+  });
+
+  expect(after).toHaveLength(5);
+  expect(going).toHaveLength(1);
+  const step = (before[1] ?? 0) - (before[0] ?? 0);
+  [...after, ...going].forEach((center, i) => {
+    expect(Math.abs(center - (before[i] ?? 0))).toBeLessThan(step / 8);
+  });
+  await expect(page.locator('app-slots .slot.dropped')).toHaveCount(0);
 });

@@ -182,6 +182,34 @@ describe('Slots', () => {
       ]);
     });
 
+    it('takes the last slots away as they came, in reverse, each move adding to any under way, dropping them once gone', async () => {
+      const animations = installAnimations();
+      const fixture = TestBed.createComponent(Slots);
+      const host = fixture.nativeElement as HTMLElement;
+      const show = async (digits: string): Promise<void> => {
+        fixture.componentRef.setInput('digits', digits);
+        fixture.componentRef.setInput('colors', placeColors(digits));
+        await fixture.whenStable();
+      };
+      fixture.componentRef.setInput('size', 5);
+      fixture.componentRef.setInput('wrong', 1);
+      await show('141509');
+      animations.splice(0);
+
+      await show('14150');
+
+      expect(host.querySelectorAll('.slot:not(.dropped)')).toHaveLength(5);
+      expect(host.querySelectorAll('.slot.dropped')).toHaveLength(1);
+      const moves = animations.filter((animation) => animation.options?.composite === 'add');
+      expect(moves).toHaveLength(5);
+      const going = animations.find((animation) => animation.element.classList.contains('dropped'));
+      expect(going?.keyframes.map((keyframe) => keyframe['--appear'])).toEqual([1, 0]);
+
+      going?.finish();
+      await fixture.whenStable();
+      expect(host.querySelectorAll('.slot.dropped')).toHaveLength(0);
+    });
+
     it("doesn't move when the player prefers reduced motion, nor past a row", async () => {
       const animations = installAnimations();
       vi.stubGlobal('matchMedia', () => ({ matches: true }));
