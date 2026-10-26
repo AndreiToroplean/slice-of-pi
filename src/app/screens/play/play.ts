@@ -91,6 +91,7 @@ import { TIMER } from './timer';
       class="keypad"
       [layout]="keypadLayout()"
       [colors]="keyColors()"
+      [solid]="tweaks.solidKeys()"
       [showAreas]="showTouchAreas()"
       [disabled]="replay() !== undefined"
       [shown]="shownKey()"

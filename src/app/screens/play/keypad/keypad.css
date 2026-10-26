@@ -30,7 +30,7 @@
   gap: var(--gap);
 }
 
-/* See-through candy buttons (see `Candy`), for digits. */
+/* Candy buttons (see `Candy`), for digits. */
 .key {
   min-height: var(--key-height);
   padding: 0;
