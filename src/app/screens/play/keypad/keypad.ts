@@ -78,9 +78,9 @@ interface Press {
  * aimed at (see {@link KeypadPoint}); a mouse press, as the mouse is released. Each repeat of backspace held down is
  * reported likewise, and releasing it after it repeated, nothing. A touch the browser cancels isn't reported. Keys typed on a
  * physical keyboard, or by assistive technology, are reported without a place on the keypad.
- * The keys are see-through candy buttons. Keys being pressed, by touch or keyboard, are shown pressed (a touch's key only
- * while releasing it would type it), a digit key for at least `SPLASH_DURATION`. Each digit key shows its color on its
- * edge; pressing it fills it with that color at once.
+ * The keys are candy buttons, see-through unless solid, backspace see-through all the same. Keys being pressed, by touch or keyboard, are shown pressed (a touch's key only
+ * while releasing it would type it), a digit key for at least `SPLASH_DURATION`. Each digit key shows its color: see-through, on
+ * its edge, and pressing it fills it with that color at once; solid, all over.
  * The keys don't take the focus, being typed from the keyboard's own keys, but the buttons still work with assistive
  * technology.
  *
@@ -110,7 +110,7 @@ interface Press {
       @for (position of keys(); track position.key) {
         <button
           type="button"
-          appCandy="clear"
+          [appCandy]="solid() && position.key !== 'backspace' ? 'white' : 'clear'"
           class="key"
           [focusable]="false"
           [class.backspace]="position.key === 'backspace'"
@@ -168,6 +168,8 @@ export class Keypad {
   readonly colors = input.required<Readonly<Record<Digit, string>>>();
   /** Where the keys sit. */
   readonly layout = input<KeypadLayout>(DEFAULT_KEYPAD_LAYOUT);
+  /** Whether the digit keys are solid, each in its color, rather than see-through. */
+  readonly solid = input(false);
   /** Whether to show the area of each key, where touches type it. */
   readonly showAreas = input(false);
   /** Whether it takes no touches nor keys, as while a run is replayed. */

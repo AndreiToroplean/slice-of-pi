@@ -56,6 +56,21 @@ describe('Settings', () => {
     expect(tweaks.checking()).toBe(true);
   });
 
+  it('makes the keys solid or see-through, in developer mode, and brings back see-through ones', async () => {
+    await TestBed.inject(DeveloperMode).set(true);
+    const host = await setUp();
+    const tweaks = TestBed.inject(Tweaks);
+    expect(backToDefault(host, 'Solid Keys')?.disabled).toBe(true);
+
+    button(host, 'Solid Keys')?.click();
+    expect(tweaks.solidKeys()).toBe(true);
+    await TestBed.inject(ApplicationRef).whenStable();
+    expect(button(host, 'Solid Keys')?.getAttribute('aria-checked')).toBe('true');
+
+    backToDefault(host, 'Solid Keys')?.click();
+    expect(tweaks.solidKeys()).toBe(false);
+  });
+
   it("shows the player's data", async () => {
     const host = await setUp();
 
@@ -127,10 +142,12 @@ describe('Settings', () => {
 
     await tweaks.setCountdown(false);
     await tweaks.setChecking(false);
+    await tweaks.setSolidKeys(true);
     await setting.set('telephone');
     await fixture.whenStable();
     button(host, 'Reset Settings')?.click();
 
+    expect(tweaks.solidKeys()).toBe(false);
     expect(tweaks.countdown()).toBe(true);
     expect(tweaks.checking()).toBe(true);
     expect(setting.layout()).toBe('calculator');

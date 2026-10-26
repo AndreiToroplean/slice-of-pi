@@ -59,6 +59,8 @@ export interface TweakValues {
   readonly checking?: false;
   /** `false` to play without the countdown to the end of the group being typed, which developer mode otherwise shows. */
   readonly countdown?: false;
+  /** `'solid'` for keys in their colors, which are otherwise see-through. */
+  readonly keys?: 'solid';
   /** `true` to count unchecked runs in the player's groups, which otherwise leave them out. */
   readonly includeUnchecked?: true;
   /** The order the game takes the runs in, and the line it plays from among them (see {@link RunOrder}). */
@@ -135,6 +137,11 @@ export class Tweaks {
   /** Whether the game counts down to the end of the group being typed, which only developer mode does. */
   readonly countdown = computed(
     () => this.developerMode.enabled() && this.tweaks().countdown !== false,
+  );
+
+  /** Whether the keys are solid, in their colors, rather than see-through. */
+  readonly solidKeys = computed(
+    () => this.developerMode.enabled() && this.tweaks().keys === 'solid',
   );
 
   /** Whether the player's groups count unchecked runs, which may hold mistakes. */
@@ -233,6 +240,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), countdown: countdown ? undefined : false }));
   }
 
+  /** Makes the keys solid, in their colors, or see-through. */
+  setSolidKeys(solid: boolean): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), keys: solid ? 'solid' : undefined }));
+  }
+
   /** Counts unchecked runs in the player's groups, or leaves them out. */
   setIncludeUnchecked(includeUnchecked: boolean): Promise<void> {
     return this.save(
@@ -292,6 +304,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     seasonTurn,
     checking,
     countdown,
+    keys,
     includeUnchecked,
     runOrder,
     layout,
@@ -309,6 +322,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
     countdown: countdown === false ? countdown : undefined,
+    keys: keys === 'solid' ? keys : undefined,
     includeUnchecked: includeUnchecked === true ? includeUnchecked : undefined,
     runOrder: runOrderOf(runOrder),
     layout: parseLayout(layout),
@@ -365,6 +379,7 @@ function tweakValues({
   seasonTurn,
   checking,
   countdown,
+  keys,
   includeUnchecked,
   runOrder,
   layout,
@@ -381,6 +396,7 @@ function tweakValues({
     ...(seasonTurn === undefined ? {} : { seasonTurn }),
     ...(checking === undefined ? {} : { checking }),
     ...(countdown === undefined ? {} : { countdown }),
+    ...(keys === undefined ? {} : { keys }),
     ...(includeUnchecked === undefined ? {} : { includeUnchecked }),
     ...(runOrder === undefined ? {} : { runOrder }),
     ...(layout === undefined ? {} : { layout }),

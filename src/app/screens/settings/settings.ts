@@ -10,7 +10,8 @@ import { YourData } from './your-data';
 
 /**
  * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout, and in developer mode,
- * whether to count down to the end of each group and whether to check the digits typed. Each setting has a button to
+ * whether the keys are see-through or solid, whether to count down to the end of each group and whether to check the
+ * digits typed. Each setting has a button to
  * bring back its default value, and the top bar one to bring them all back.
  */
 @Component({
@@ -54,6 +55,26 @@ import { YourData } from './your-data';
       @if (developerMode.enabled()) {
         <section class="panel" aria-labelledby="developer-title">
           <h2 id="developer-title">Developer</h2>
+          <div class="row">
+            <app-segmented
+              label="Keys"
+              [segments]="keyLooks"
+              [value]="tweaks.solidKeys() ? 'solid' : 'clear'"
+              (valueChange)="setSolidKeys($event === 'solid')"
+            />
+            <button
+              type="button"
+              class="round"
+              title="Back to Default"
+              [disabled]="!tweaks.solidKeys()"
+              (click)="setSolidKeys(false)"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 14 4 9l5-5" />
+                <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+              </svg>
+            </button>
+          </div>
           <div class="row">
             <label class="setting">
               <span>
@@ -112,6 +133,10 @@ export class Settings {
     { value: 'calculator', label: 'Calculator' },
     { value: 'telephone', label: 'Telephone' },
   ];
+  protected readonly keyLooks: readonly Segment<'clear' | 'solid'>[] = [
+    { value: 'clear', label: 'Clear Keys' },
+    { value: 'solid', label: 'Solid Keys' },
+  ];
   protected readonly developerMode = inject(DeveloperMode);
   protected readonly tweaks = inject(Tweaks);
 
@@ -124,11 +149,19 @@ export class Settings {
   );
   /** Whether every setting shown has its default value; the digits are always checked outside developer mode. */
   protected readonly allDefault = computed(
-    () => this.layoutDefault() && this.countdownDefault() && this.tweaks.checking(),
+    () =>
+      this.layoutDefault() &&
+      this.countdownDefault() &&
+      this.tweaks.checking() &&
+      !this.tweaks.solidKeys(),
   );
 
   protected setCountdown(event: Event): void {
     void this.tweaks.setCountdown((event.target as HTMLInputElement).checked);
+  }
+
+  protected setSolidKeys(solid: boolean): void {
+    void this.tweaks.setSolidKeys(solid);
   }
 
   protected setChecking(event: Event): void {
@@ -151,6 +184,7 @@ export class Settings {
   protected resetAll(): void {
     this.resetLayout();
     if (this.developerMode.enabled()) {
+      this.setSolidKeys(false);
       this.resetCountdown();
       this.resetChecking();
     }

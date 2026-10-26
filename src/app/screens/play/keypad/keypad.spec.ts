@@ -163,6 +163,18 @@ describe('Keypad', () => {
       expect(button('backspace').querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
     });
 
+    it('makes the keys see-through, unless told to make the digit keys solid', () => {
+      expect(button('7').classList).toContain('clear');
+      expect(button('backspace').classList).toContain('clear');
+
+      fixture.componentRef.setInput('solid', true);
+      fixture.detectChanges();
+
+      expect(button('7').classList).not.toContain('clear');
+      expect(button('backspace').classList).toContain('clear');
+      expect(button('7').style.getPropertyValue('--press-color')).not.toBe('');
+    });
+
     it("shows each key's area when told to, in its cell, in its color", () => {
       expect(host.querySelector('.area')).toBeNull();
 
