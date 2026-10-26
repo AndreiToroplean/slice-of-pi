@@ -43,3 +43,44 @@ export function slotBoxes(
     height: slot.height,
   }));
 }
+
+/**
+ * A slot moving as the slots of a group that has ended hand over to those of the next one: from where it starts to
+ * where it ends, in steps between slots from the first slot's place, once the digit of the slot it waits for has left.
+ */
+export interface SlotMove {
+  readonly from: number;
+  readonly to: number;
+  /** The slot of the group that ended whose digit it waits for, or one imagined past them. */
+  readonly after: number;
+  /** Whether it fades in, coming, or out, going, as it moves. */
+  readonly fade?: 'in' | 'out';
+}
+
+/**
+ * How the slots move as a group that ended with `before` slots, all filled, hands over to one of `after` slots: all of
+ * them left, by half the difference, each once the digit of the slot it was has left. When there are more slots, those
+ * past the ones before are imagined on, past them, and fade in; when there are fewer, the leftmost of the ones before
+ * go, fading out off-center (`leaving`).
+ */
+export function slotHandover(
+  before: number,
+  after: number,
+): { readonly slots: SlotMove[]; readonly leaving: SlotMove[] } {
+  const shift = Math.abs(before - after) / 2;
+  const gone = Math.max(0, before - after);
+  return {
+    slots: Array.from({ length: after }, (_, k) => ({
+      from: k + shift,
+      to: k,
+      after: k + gone,
+      ...(k >= before ? { fade: 'in' as const } : {}),
+    })),
+    leaving: Array.from({ length: gone }, (_, j) => ({
+      from: j - shift,
+      to: j - 2 * shift,
+      after: j,
+      fade: 'out' as const,
+    })),
+  };
+}

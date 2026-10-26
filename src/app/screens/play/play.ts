@@ -20,11 +20,13 @@ import {
   boxIn,
   FIRST_LANDING,
   flyIntoWord,
+  leavesAt,
   slideDuration,
   SlotSnapshot,
   snapshotSlot,
 } from './flight/flight';
 import { slotBoxes } from './slots/slot-layout';
+import { SlotHandover } from './slots/slots';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { Keypad, KeypadMark } from './keypad/keypad';
 import { keyColors, placeColors } from '../../game/layers/place-colors';
@@ -100,6 +102,7 @@ const TICK = 16;
         [size]="size()"
         [wrong]="mistakes().length"
         [emptyOpacity]="waitLeft()"
+        [handover]="handover()"
       />
     </div>
     <p class="visually-hidden" aria-live="assertive">
@@ -254,6 +257,8 @@ export class Play implements PausesOnBack {
   protected readonly touchesElsewhere = new Map<number, KeypadPoint>();
   /** How long the next word takes to fly onto the tape, until its first slot lands, in ms. */
   protected readonly arrival = signal(FIRST_LANDING);
+  /** How the slots of the group that just ended, flying off, hand over to the next group's, if they do. */
+  protected readonly handover = signal<SlotHandover | undefined>(undefined);
   /** Slots flying into their word. */
   private flights: Animation[] = [];
   /** Whether backspace has emptied the slots, since the last digit, so that the next one may carry the last word on. */
@@ -531,7 +536,11 @@ export class Play implements PausesOnBack {
     const length = this.grouping().current.length;
     const firstPlace = this.digits().length - length + 1;
     const slots = fly ? this.slotsToFly(length) : [];
-    this.arrival.set(slideDuration(slots) + FIRST_LANDING);
+    const slide = slideDuration(slots);
+    this.arrival.set(slide + FIRST_LANDING);
+    this.handover.set(
+      slots.length === 0 ? undefined : { from: length, leftAt: (index) => leavesAt(index, slide) },
+    );
     this.sizes.update((sizes) => [...sizes, length]);
     if (slots.length === 0) {
       return;
@@ -580,12 +589,13 @@ export class Play implements PausesOnBack {
     return slots.map((slot, i) => ({ ...slot, slid: slid[i] ?? slot.box }));
   }
 
-  /** Ends the flights at once, before a word they fly into may be reopened. */
+  /** Ends the flights at once, before a word they fly into may be reopened, and the slots' handover with them. */
   private landFlights(): void {
     for (const flight of this.flights) {
       flight.cancel();
     }
     this.flights = [];
+    this.handover.set(undefined);
   }
 }
 

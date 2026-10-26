@@ -154,15 +154,18 @@ describe('flyIntoWord', () => {
 });
 
 describe('snapshotSlot', () => {
-  it('takes the slot as it is once it has popped in, its animation finished first', () => {
+  it('takes the slot as it is once it has popped in, its pop finished first, but not its move', () => {
     const slot = document.createElement('div');
     let popped = false;
-    const pop = { finish: () => (popped = true) } as unknown as Animation;
-    slot.getAnimations = () => [pop];
+    const pop = { animationName: 'pop', finish: () => (popped = true) } as unknown as Animation;
+    const move = { finish: () => (moved = true) } as unknown as Animation;
+    let moved = false;
+    slot.getAnimations = () => [pop, move];
     vi.spyOn(slot, 'getBoundingClientRect').mockImplementation(
       () => ({ left: 0, top: 0, width: popped ? 40 : 28, height: popped ? 60 : 42 }) as DOMRect,
     );
 
     expect(snapshotSlot(document.body, slot).box).toMatchObject({ width: 40, height: 60 });
+    expect(moved).toBe(false);
   });
 });

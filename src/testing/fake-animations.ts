@@ -22,11 +22,14 @@ export class FakeAnimation {
 }
 
 /**
- * Gives every element an `animate` method that records the animations it starts, and `getAnimations`, those of them
- * still running on it; undo with `uninstallAnimations`.
+ * Gives every element an `animate` method that records the animations it starts, on the elements `recorded` picks, and
+ * `getAnimations`, those still running on it; undo with `uninstallAnimations`.
  */
-export function installAnimations(): FakeAnimation[] {
+export function installAnimations(
+  recorded: (element: Element) => boolean = () => true,
+): FakeAnimation[] {
   const animations: FakeAnimation[] = [];
+  const all: FakeAnimation[] = [];
   Element.prototype.animate = function (
     this: Element,
     keyframes: Keyframe[] | PropertyIndexedKeyframes | null,
@@ -37,11 +40,14 @@ export function installAnimations(): FakeAnimation[] {
       keyframes as Keyframe[],
       typeof options === 'number' ? { duration: options } : options,
     );
-    animations.push(animation);
+    all.push(animation);
+    if (recorded(this)) {
+      animations.push(animation);
+    }
     return animation as unknown as Animation;
   };
   Element.prototype.getAnimations = function (this: Element): Animation[] {
-    return animations.filter(
+    return all.filter(
       (animation) => animation.element === this && animation.playState === 'running',
     ) as unknown as Animation[];
   };
