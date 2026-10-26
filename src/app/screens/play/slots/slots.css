@@ -25,6 +25,10 @@
   backdrop-filter: blur(8px);
 }
 
+.slot:not(.filled) {
+  opacity: var(--empty-opacity);
+}
+
 .slot.next {
   box-shadow: inset 0 0 0 2px var(--on-background);
 }
