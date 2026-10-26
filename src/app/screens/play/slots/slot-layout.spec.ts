@@ -1,4 +1,4 @@
-import { slotBoxes, slotLayout } from './slot-layout';
+import { slotBoxes, slotHandover, slotLayout } from './slot-layout';
 
 describe('slotLayout', () => {
   it("shows one slot per digit of the group's size, on one row", () => {
@@ -42,5 +42,37 @@ describe('slotBoxes', () => {
     expect(boxes[0]).toMatchObject({ left: 27.5, top: 110 });
     expect(boxes[10]).toMatchObject({ left: 27.5, top: 150 });
     expect(boxes[11]).toMatchObject({ left: 52.5, top: 150 });
+  });
+});
+
+describe('slotHandover', () => {
+  it('moves the slots left by half a step, from 3 to 4, the fourth imagined past the three and fading in', () => {
+    expect(slotHandover(3, 4)).toEqual({
+      slots: [
+        { from: 0.5, to: 0, after: 0 },
+        { from: 1.5, to: 1, after: 1 },
+        { from: 2.5, to: 2, after: 2 },
+        { from: 3.5, to: 3, after: 3, fade: 'in' },
+      ],
+      leaving: [],
+    });
+  });
+
+  it('moves the slots left by a step, from 5 to 3: the three rightmost stay, the two leftmost go off-center, fading out', () => {
+    expect(slotHandover(5, 3)).toEqual({
+      slots: [
+        { from: 1, to: 0, after: 2 },
+        { from: 2, to: 1, after: 3 },
+        { from: 3, to: 2, after: 4 },
+      ],
+      leaving: [
+        { from: -1, to: -2, after: 0, fade: 'out' },
+        { from: 0, to: -1, after: 1, fade: 'out' },
+      ],
+    });
+  });
+
+  it("doesn't move the slots when there are as many", () => {
+    expect(slotHandover(4, 4).slots.every((move) => move.from === move.to)).toBe(true);
   });
 });

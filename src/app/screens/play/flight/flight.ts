@@ -64,6 +64,11 @@ export function flightStagger(index: number): number {
   return Math.min(index, MOST_STAGGERED) * FLIGHT_STAGGER;
 }
 
+/** When the digit of the `index`-th slot leaves it, pressed in, flying off, in ms after the slots start to slide. */
+export function leavesAt(index: number, slide: number): number {
+  return slide + flightStagger(index) + PRESS_DURATION;
+}
+
 /**
  * The flight of a slot, from `from`, into its tile, at `to`. First it slides to `slid`, along with the other slots, for
  * `slide` ms, and waits its turn there, `wait` ms. Then it presses in like a button: its face moves down over its
@@ -150,12 +155,15 @@ export function boxIn(layer: Element, element: Element): Box {
 
 /**
  * Takes a snapshot of a filled slot before it flies, relative to `layer`: as it is once it has popped in, as the slot
- * of the digit typed last may still be doing, smaller, when its group ends at once. It slides nowhere, unless told
- * where (`slid`).
+ * of the digit typed last may still be doing, smaller, when its group ends at once, but wherever it's moving to, as
+ * slots handing over do. It slides nowhere, unless told where (`slid`).
  */
 export function snapshotSlot(layer: Element, slot: Element): SlotSnapshot {
   for (const animation of slot.getAnimations()) {
-    animation.finish();
+    // Its pop, a CSS animation, rather than its move, one of the script's.
+    if ('animationName' in animation) {
+      animation.finish();
+    }
   }
   const style = getComputedStyle(slot);
   const box = boxIn(layer, slot);

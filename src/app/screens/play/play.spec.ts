@@ -824,9 +824,10 @@ describe('Play', () => {
   });
 
   describe('when a group is finished', () => {
+    /** The flights of the slots, leaving out how the slots move as they hand over. */
     function stubAnimations(): FakeAnimation[] {
       vi.stubGlobal('matchMedia', () => ({ matches: false }));
-      return installAnimations();
+      return installAnimations((element) => element.classList.contains('flying-slot'));
     }
 
     afterEach(() => {
