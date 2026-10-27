@@ -154,7 +154,7 @@ body {
 
 /*
  * A button in a screen's corner, such as the pause button: a square candy button, for an icon, which scales with it,
- * as large as its text, as its rounding does (see `layout.ts`).
+ * as large as its text, rounded as the layout says (see `layout.ts`).
  */
 .candy.corner {
   display: grid;
@@ -162,7 +162,7 @@ body {
   width: var(--corner-size);
   height: var(--corner-size);
   padding: 0;
-  border-radius: calc(var(--corner-size) * 0.32);
+  border-radius: var(--corner-radius);
   font-size: calc(var(--corner-size) / 2.2);
 }
 

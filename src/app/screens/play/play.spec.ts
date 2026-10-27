@@ -185,7 +185,7 @@ describe('Play', () => {
   });
 
   it('lays the screen out as tuned in developer mode', async () => {
-    await TestBed.inject(Tweaks).setLayout({ ...LAYOUT, keypad: { top: 40 } });
+    await TestBed.inject(Tweaks).setLayout({ ...LAYOUT, keypad: { ...LAYOUT.keypad, top: 40 } });
     await TestBed.inject(DeveloperMode).set(true);
     const { host } = await setUp();
 

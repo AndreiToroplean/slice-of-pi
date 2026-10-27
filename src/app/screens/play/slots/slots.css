@@ -16,7 +16,7 @@
 
 .slot {
   height: var(--slots-height);
-  border-radius: calc(var(--slots-height) * 0.18);
+  border-radius: var(--slot-radius);
   display: grid;
   place-items: center;
   font-size: calc(var(--slots-height) * 0.55);
