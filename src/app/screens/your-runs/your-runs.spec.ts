@@ -7,7 +7,7 @@ import { RunStore } from '../../player-data/run-store';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { installPopovers, uninstallPopovers } from '../../../testing/fake-popovers';
-import { button, message, OpenPage, openPage } from '../../../testing/player-data-pages';
+import { button, message, OpenPage, openPage, text } from '../../../testing/player-data-pages';
 import { YourRuns } from './your-runs';
 
 describe('YourRuns', () => {
@@ -174,7 +174,7 @@ describe('YourRuns', () => {
     expect(host.querySelector('.runs .meta')?.textContent).toBe('30 digits in 10.4 s · 10 groups');
   });
 
-  it('shows the groups of all runs, dotted past the trust horizon', async () => {
+  it('shows the groups of all runs, dotted past the trust horizon, but not how confident they are', async () => {
     const { host } = await setUp(trusted);
 
     expect(
@@ -184,7 +184,8 @@ describe('YourRuns', () => {
       ]),
     ).toEqual(groupsBy3.map((digits, i) => [digits, i === 9]));
     expect(host.querySelectorAll('.summary app-run-chart .break')).toHaveLength(9);
-    expect(host.querySelector('.summary app-run-chart .confidence')).not.toBeNull();
+    expect(host.querySelector('.summary app-run-chart .confidence')).toBeNull();
+    expect(text(host)).not.toContain('Confidence trend');
   });
 
   it('finds no group in a single run, outweighed by the synthetic runs', async () => {
