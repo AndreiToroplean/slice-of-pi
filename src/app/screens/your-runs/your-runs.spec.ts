@@ -228,7 +228,7 @@ describe('YourRuns', () => {
       const { host } = await setUp([unchecked], false, false, undefined, true);
 
       const article = host.querySelector('.runs article');
-      expect(article?.classList).toContain('unchecked');
+      expect(host.querySelector('.runs app-run-card')?.classList).toContain('unchecked');
       expect(article?.querySelector('h3 .badge')?.textContent.trim()).toBe('Unchecked');
       expect(groupsShown(host)).toEqual([]);
     });
@@ -274,7 +274,9 @@ describe('YourRuns', () => {
     }
 
     function later(host: HTMLElement): boolean[] {
-      return articles(host).map((run) => run.classList.contains('later'));
+      return articles(host).map(
+        (run) => run.closest('app-run-card')?.classList.contains('later') === true,
+      );
     }
 
     it('plays from after a run long pressed, from its context menu, in developer mode', async () => {
@@ -531,7 +533,10 @@ describe('YourRuns', () => {
       const { host, until } = await setUp([first, second, third], false, false, undefined, true);
       await TestBed.inject(Tweaks).setRunOrder({ ids: ['a', 'b', 'third'], line: 2 });
       await until(() => here(host) === 2);
-      const later = (): boolean[] => articles(host).map((run) => run.classList.contains('later'));
+      const later = (): boolean[] =>
+        articles(host).map(
+          (run) => run.closest('app-run-card')?.classList.contains('later') === true,
+        );
       expect(later()).toEqual([false, false, true]);
 
       press(handles(host)[2], 'ArrowUp');
