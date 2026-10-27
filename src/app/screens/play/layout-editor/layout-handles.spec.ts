@@ -86,6 +86,16 @@ describe('layout handles', () => {
     expect(short.keyRadius).toBe(0.5);
   });
 
+  it('thickens the slots as their face’s bottom is raised, and the keys as theirs is lowered', () => {
+    expect(dragged(handle('Slot depth'), LAYOUT, -8, SIZES).slots.depth).toBe(
+      LAYOUT.slots.depth + 1,
+    );
+    expect(dragged(handle('Key depth'), LAYOUT, 8, SIZES).keypad.keyDepth).toBe(
+      LAYOUT.keypad.keyDepth + 1,
+    );
+    expect(dragged(handle('Key depth'), LAYOUT, -1000, SIZES).keypad.keyDepth).toBe(0);
+  });
+
   it('sizes the keys within the keypad, three of them across at most', () => {
     expect(dragged(handle('Key width'), LAYOUT, 1000, SIZES).keypad.keyWidth).toBe(33.3);
     expect(dragged(handle('Key height'), LAYOUT, 8, SIZES).keypad.keyHeight).toBe(

@@ -50,6 +50,7 @@ app-typed-digits {
   --gap-x: max(0px, (var(--column) - 2 * var(--margin-side) - 3 * var(--keypad-key-width)) / 2);
   --gap-y: max(0px, (var(--keys-height) - 4 * var(--key-height)) / 3);
   --radius-key: var(--keypad-key-radius);
+  --key-depth: var(--keypad-key-depth);
   --reach-top: var(--keypad-reach);
   --reach-sides: var(--margin-side);
   --reach-bottom: calc(var(--floor) + var(--margin-bottom));

@@ -231,6 +231,24 @@ export const LAYOUT_HANDLES: readonly LayoutHandle[] = [
     knob: across('85%'),
   },
   {
+    label: 'Slot depth',
+    axis: 'y',
+    sign: -1,
+    unit: 'height',
+    scale: 1,
+    get: (layout) => layout.slots.depth,
+    set: (layout, depth) => ({
+      ...layout,
+      slots: {
+        ...layout.slots,
+        depth: clamp(depth, 0, (layout.slots.top - layout.slots.bottom) / 2),
+      },
+    }),
+    // The bottom of a filled slot's face, above its thickness.
+    line: up('calc(var(--slots-bottom) + var(--slot-depth))'),
+    knob: across('60%'),
+  },
+  {
     label: 'Touch top',
     axis: 'y',
     sign: -1,
@@ -307,6 +325,21 @@ export const LAYOUT_HANDLES: readonly LayoutHandle[] = [
       'calc(100% - var(--floor) - var(--keypad-top) + var(--keypad-key-height))',
     ),
     knob: { top: '0' },
+  },
+  {
+    label: 'Key depth',
+    axis: 'y',
+    sign: 1,
+    unit: 'height',
+    scale: 1,
+    get: (layout) => layout.keypad.keyDepth,
+    set: (layout, depth) => ({
+      ...layout,
+      keypad: { ...layout.keypad, keyDepth: clamp(depth, 0, layout.keypad.keyHeight / 2) },
+    }),
+    // The bottom of the first row's thickness, below their faces.
+    line: up('calc(var(--keypad-top) - var(--keypad-key-height) - var(--keypad-key-depth))'),
+    knob: across('75%'),
   },
   {
     label: 'Bottom margin',

@@ -7,6 +7,7 @@
   --key-height: 3.75rem;
   --gap-x: var(--space-2);
   --gap-y: var(--space-2);
+  --key-depth: 0.3125rem;
   --reach-top: 0px;
   --reach-sides: 0px;
   --reach-bottom: 0px;
@@ -31,8 +32,9 @@
   gap: var(--gap-y) var(--gap-x);
 }
 
-/* Candy buttons (see `Candy`), for digits. */
+/* Candy buttons (see `Candy`), for digits, as thick as the keypad's keys are. */
 .key {
+  --candy-depth: var(--key-depth);
   min-height: var(--key-height);
   padding: 0;
   font-size: calc(var(--key-height) * 0.45);

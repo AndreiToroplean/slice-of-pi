@@ -17,18 +17,19 @@ export interface Layout {
   /** Where the tape's top and bottom are, and the height of its tiles, which have a slot's proportions. */
   readonly tape: { readonly top: number; readonly bottom: number; readonly words: number };
   /**
-   * Where the slots' top and bottom are, a slot's width, across, and its rounding, which the tape's tiles share, scaled
-   * with them. The gaps make a row of 10 as wide as the keypad.
+   * Where the slots' top and bottom are, a slot's width, across, its rounding, which the tape's tiles share, scaled with
+   * them, and the thickness of a filled one, below its face. The gaps make a row of 10 as wide as the keypad.
    */
   readonly slots: {
     readonly top: number;
     readonly bottom: number;
     readonly width: number;
     readonly radius: number;
+    readonly depth: number;
   };
   /**
    * Where the keypad's top is, how far above it the touches of the keys on top reach, and the keys' size, across and up
-   * and down, and their rounding.
+   * and down, their rounding, and their thickness, below their face.
    */
   readonly keypad: {
     readonly top: number;
@@ -36,6 +37,7 @@ export interface Layout {
     readonly keyWidth: number;
     readonly keyHeight: number;
     readonly keyRadius: number;
+    readonly keyDepth: number;
   };
 }
 
@@ -45,8 +47,8 @@ export const LAYOUT: Layout = {
   corner: { size: 2.75, radius: 0.875 },
   header: { size: 10 },
   tape: { top: 49, bottom: 44, words: 3.2 },
-  slots: { top: 43.4, bottom: 37.4, width: 8.1, radius: 1.1 },
-  keypad: { top: 35, reach: 2.5, keyWidth: 28.6, keyHeight: 7.4, keyRadius: 2.4 },
+  slots: { top: 43.4, bottom: 37.4, width: 8.1, radius: 1.1, depth: 0.5 },
+  keypad: { top: 35, reach: 2.5, keyWidth: 28.6, keyHeight: 7.4, keyRadius: 2.4, keyDepth: 0.6 },
 };
 
 /** A length of so many hundredths of the screen's height, in CSS (see `--unit` in `play.css`). */
@@ -68,8 +70,8 @@ function across(value: number): string {
  * The layout as the CSS lengths the screens lay out with: `--margin-top`, `--margin-side`, `--margin-bottom`,
  * `--corner-size` and `--corner-radius` on every screen; on the play screen, `--header-height`, `--tape-top`,
  * `--tape-bottom`, `--tile-height`, `--tile-width`, `--tile-radius`, `--slots-top`, `--slots-bottom`, `--slot-width`,
- * `--slot-radius`, `--keypad-top`, `--keypad-reach`, `--keypad-key-width`, `--keypad-key-height` and
- * `--keypad-key-radius`.
+ * `--slot-radius`, `--slot-depth`, `--keypad-top`, `--keypad-reach`, `--keypad-key-width`, `--keypad-key-height`,
+ * `--keypad-key-radius` and `--keypad-key-depth`.
  */
 export function layoutStyles(layout: Layout): Readonly<Record<string, string>> {
   const { margins, corner, header, tape, slots, keypad } = layout;
@@ -91,11 +93,13 @@ export function layoutStyles(layout: Layout): Readonly<Record<string, string>> {
     '--slots-bottom': down(slots.bottom),
     '--slot-width': across(slots.width),
     '--slot-radius': down(slots.radius),
+    '--slot-depth': down(slots.depth),
     '--keypad-top': down(keypad.top),
     '--keypad-reach': down(keypad.reach),
     '--keypad-key-width': across(keypad.keyWidth),
     '--keypad-key-height': down(keypad.keyHeight),
     '--keypad-key-radius': down(keypad.keyRadius),
+    '--keypad-key-depth': down(keypad.keyDepth),
   };
 }
 
