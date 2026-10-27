@@ -3,6 +3,7 @@
  * that tapping anywhere on it but the handle selects it.
  */
 :host {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0;
@@ -30,8 +31,16 @@ article {
   outline-offset: 0.25rem;
 }
 
+/* In the top right corner, beside the title. */
+.more {
+  position: absolute;
+  top: 0.375rem;
+  right: 0.375rem;
+}
+
 h3 {
   margin: 0;
+  padding-right: 1.75rem;
   font-size: 1rem;
   font-weight: 600;
   text-shadow: var(--text-shadow);

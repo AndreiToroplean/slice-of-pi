@@ -206,7 +206,7 @@ describe('ModelTuning', () => {
 
     it('plays from before all the runs, from the context menu of all runs', async () => {
       const { host, until } = await setUp(runs);
-      const all = host.querySelector<HTMLButtonElement>('button.aggregate');
+      const all = host.querySelector<HTMLButtonElement>('.aggregate > button[aria-pressed]');
 
       all?.dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
       await until(() => menu(host)?.hasAttribute('data-popover-open') === true);
@@ -217,6 +217,18 @@ describe('ModelTuning', () => {
       expect(here(host)).toBe(0);
       expect(later(host)).toEqual([true, true, true, true, true]);
       expect(all?.getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('plays from before all the runs, from the ⋮ of all runs', async () => {
+      const { host, until } = await setUp(runs);
+
+      host.querySelector<HTMLButtonElement>('.aggregate .more')?.click();
+      await until(() => menuItems(host).length === 1);
+      expect(menuItems(host)).toEqual(['Play from Here']);
+      button(host, 'Play from Here').click();
+      await until(() => here(host) !== undefined);
+
+      expect(here(host)).toBe(0);
     });
 
     it('draws the line after all the runs when they all come before it', async () => {
@@ -261,7 +273,7 @@ describe('ModelTuning', () => {
       expect(line()).not.toBe('');
 
       tap(article(host, 1));
-      host.querySelector<HTMLButtonElement>('button.aggregate')?.click();
+      host.querySelector<HTMLButtonElement>('.aggregate > button[aria-pressed]')?.click();
       await until(() => line() === '');
 
       expect(others(host)).toBe(1);

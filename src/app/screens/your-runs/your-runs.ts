@@ -69,6 +69,8 @@ import { Key, Range } from './views/plot';
               [places]="state.places()"
               [top]="state.top()"
               [window]="placeZoom()"
+              [menu]="runMenu.id"
+              (opening)="picked.set(chart.id)"
               (pressed)="pick(chart.id, $event)"
             />
           } @else {
@@ -80,8 +82,8 @@ import { Key, Range } from './views/plot';
           }
         }
       </section>
-      <!-- A run's context menu, opened by a long press on it; in developer mode, to play from it too. -->
-      <app-dropdown-menu label="Run" [button]="false">
+      <!-- A run's context menu, opened by its ⋮ or a long press on it; in developer mode, to play from it too. -->
+      <app-dropdown-menu #runMenu label="Run" [button]="false">
         <button type="button" (click)="watchPicked()">Watch Replay</button>
         <button type="button" (click)="void deletePicked()">Delete Run</button>
         @if (developerMode()) {

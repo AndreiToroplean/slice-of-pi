@@ -2,6 +2,7 @@ import { CdkDragHandle } from '@angular/cdk/drag-drop';
 import { Component, input, output } from '@angular/core';
 import type { Break } from '../../game/grouping/break-models/break-model';
 import { LongPress } from '../../ui/long-press';
+import { MoreButton } from '../../ui/more-button';
 import { RunChart } from './run-chart';
 import type { Series } from './run-charts';
 import type { Range } from './views/plot';
@@ -22,13 +23,13 @@ export interface RunCardChart {
 }
 
 /**
- * A run's card: its date, how many digits it has, in how long and in how many groups, and its chart. A long press on it
- * asks for its context menu. Selectable, a tap on it, or Enter or Space, selects it or not; reorderable, a handle on its
+ * A run's card: its date, how many digits it has, in how long and in how many groups, and its chart. A ⋮ button in its
+ * corner opens its context menu, as a long press on it does. Selectable, a tap on it, or Enter or Space, selects it or not; reorderable, a handle on its
  * left drags it to another place, as the `cdkDrag` on it has it, or moves it up or down with the arrow keys.
  */
 @Component({
   selector: 'app-run-card',
-  imports: [CdkDragHandle, LongPress, RunChart],
+  imports: [CdkDragHandle, LongPress, MoreButton, RunChart],
   host: {
     class: 'panel',
     '[class.unchecked]': '!chart().checked',
@@ -81,6 +82,12 @@ export interface RunCardChart {
         [label]="'Time per digit, ' + chart().title"
       />
     </article>
+    <button
+      class="more"
+      [appMore]="menu()"
+      [title]="'More for the run of ' + chart().title"
+      (click)="opening.emit()"
+    ></button>
   `,
   styleUrl: './run-card.css',
 })
@@ -96,6 +103,10 @@ export class RunCard {
   readonly selected = input(false);
   /** Whether it has a handle to move it to another place. */
   readonly reorderable = input(false);
+  /** The id of its context menu, which its ⋮ button opens. */
+  readonly menu = input.required<string>();
+  /** Its context menu opening from its ⋮ button. */
+  readonly opening = output();
   /** Where it was long pressed, for its context menu. */
   readonly pressed = output<{ readonly x: number; readonly y: number }>();
   /** Tapped, while selectable. */
