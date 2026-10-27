@@ -32,7 +32,8 @@ const PAGE = 10;
  * layout sets (see `layout-handles.ts`), dragged, or stepped with the arrow keys once picked out, as a slider. The play
  * screen shows each change at once, and it's saved, as a tweak, as each drag or key ends. Done ends it; Cancel, or
  * Escape, asks whether to cancel the changes, bringing back the layout it started with, or to go on editing. Reset
- * brings back the game's own layout, and a button copies the layout, to go into the code.
+ * brings back the game's own layout, and Copy copies the layout, to go into the code. A toggle hides the handles, to
+ * preview the layout as in the game, and shows them again.
  */
 @Component({
   selector: 'app-layout-editor',
@@ -40,41 +41,56 @@ const PAGE = 10;
   host: { '(document:keydown.escape)': 'escape($event)' },
   template: `
     <div #probe class="probe"></div>
-    @for (handle of handles; track handle.label) {
-      <div
-        class="line"
-        [class.across]="handle.axis === 'y'"
-        [class.upright]="handle.axis === 'x'"
-        [style]="handle.line"
-      >
+    @if (!previewing()) {
+      @for (handle of handles; track handle.label) {
         <div
-          class="knob"
-          role="slider"
-          tabindex="0"
-          [style]="handle.knob"
-          [attr.aria-label]="handle.label"
-          [attr.aria-orientation]="handle.axis === 'y' ? 'vertical' : 'horizontal'"
-          [attr.aria-valuenow]="handle.get(layout())"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          (pointerdown)="grab(handle, $event)"
-          (pointermove)="move($event)"
-          (pointerup)="release($event)"
-          (pointercancel)="release($event)"
-          (keydown)="key(handle, $event)"
+          class="line"
+          [class.across]="handle.axis === 'y'"
+          [class.upright]="handle.axis === 'x'"
+          [style]="handle.line"
         >
-          {{ handle.label }}
+          <div
+            class="knob"
+            role="slider"
+            tabindex="0"
+            [style]="handle.knob"
+            [attr.aria-label]="handle.label"
+            [attr.aria-orientation]="handle.axis === 'y' ? 'vertical' : 'horizontal'"
+            [attr.aria-valuenow]="handle.get(layout())"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            (pointerdown)="grab(handle, $event)"
+            (pointermove)="move($event)"
+            (pointerup)="release($event)"
+            (pointercancel)="release($event)"
+            (keydown)="key(handle, $event)"
+          >
+            {{ handle.label }}
+          </div>
         </div>
-      </div>
+      }
     }
     <div class="actions">
+      <button
+        type="button"
+        appCandy
+        class="preview"
+        title="Preview"
+        [attr.aria-pressed]="previewing()"
+        (click)="previewing.set(!previewing())"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
       <button type="button" appCandy="danger" aria-haspopup="dialog" (click)="askToCancel()">
         Cancel
       </button>
       <button type="button" appCandy="danger" [disabled]="untuned()" (click)="reset()">
         Reset
       </button>
-      <app-copy-values label="Copy Layout" [values]="{ layout: layout() }" />
+      <app-copy-values label="Copy" [values]="{ layout: layout() }" />
       <button type="button" appCandy="primary" (click)="done.emit()">Done</button>
     </div>
     <dialog #cancelDialog class="card" closedby="any" aria-labelledby="cancel-title">
@@ -94,6 +110,8 @@ export class LayoutEditor implements OnInit {
   readonly layout = model.required<Layout>();
   /** The player is done editing, keeping the changes or cancelling them. */
   readonly done = output();
+  /** Whether the handles are hidden, for the play screen to show as in the game. */
+  readonly previewing = model(false);
 
   protected readonly handles = LAYOUT_HANDLES;
   /** Whether the layout is the game's own. */
