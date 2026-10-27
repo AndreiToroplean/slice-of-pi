@@ -96,6 +96,7 @@ import { Candy } from '../../ui/candy';
       <app-dropdown-menu label="Developer Pages">
         <div class="section" role="group" aria-labelledby="developer-title">
           <h2 id="developer-title">Developer</h2>
+          <a routerLink="/developer/model-tuning">Model Tuning</a>
           <a routerLink="/developer/key-colors">Key Colors</a>
           <a routerLink="/developer/season-colors">Season Colors</a>
         </div>

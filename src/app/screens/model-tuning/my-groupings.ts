@@ -69,7 +69,7 @@ export function saveMyGroupings(store: RunStore, text: string): Promise<void> {
 }
 
 /**
- * The player's groupings as Your Runs has them, read from the store and saved there as they're typed, so that the
+ * The player's groupings as Model Tuning has them, read from the store and saved there as they're typed, so that the
  * Group tab, where they're typed, and the dialog fitting the break model to them share them.
  */
 @Service()

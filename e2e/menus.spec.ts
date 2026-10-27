@@ -1,13 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 test('closes a menu when its button is pressed again', async ({ page }) => {
-  await page.goto('/');
-  // Developer mode, which has the tabs of Your Runs and their menu, turned on by tapping the game's icon ten times.
-  const icon = page.getByRole('button', { name: 'Slice of Pi' });
-  for (let tap = 0; tap < 10; tap++) {
-    await icon.click();
-  }
-  await page.getByRole('link', { name: 'Your Runs' }).click();
+  // Model Tuning has tabs, and their menu.
+  await page.goto('/developer/model-tuning');
   const more = page.locator('.bar').getByRole('button', { name: 'More' });
   const menu = page.locator('.bar .dropdown');
 

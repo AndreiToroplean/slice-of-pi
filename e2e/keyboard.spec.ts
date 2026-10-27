@@ -39,18 +39,29 @@ test('opens a page from the overflow menu, and goes back on Escape', async ({ pa
   await expect(more).toBeFocused();
 
   await page.keyboard.press('Enter');
-  const keyColors = page.getByRole('link', { name: 'Key Colors' });
-  await expect(keyColors).toBeFocused();
+  // Ready for the keyboard: on its first item, whichever page that is.
+  const first = page.locator('.dropdown a').first();
+  await expect(first).toBeFocused();
   // Under the button, in the screen's top right corner: its corner pointing at the button is square.
   await expect(page.locator('.dropdown')).toHaveAttribute('data-corner', 'top-right');
   await page.keyboard.press('Escape');
-  await expect(keyColors).toBeHidden();
+  await expect(first).toBeHidden();
   await expect(more).toBeFocused();
 
   await page.keyboard.press('Enter');
-  await expect(keyColors).toBeFocused();
+  await expect(first).toBeFocused();
+  // Down to Model Tuning, wherever it is among them.
+  const modelTuning = page.getByRole('link', { name: 'Model Tuning' });
+  for (
+    let step = 0;
+    step < 10 && !(await modelTuning.evaluate((link) => link === document.activeElement));
+    step++
+  ) {
+    await page.keyboard.press('ArrowDown');
+  }
+  await expect(modelTuning).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL('/developer/key-colors');
+  await expect(page).toHaveURL('/developer/model-tuning');
   await page.keyboard.press('Escape');
   await expect(page).toHaveURL('/');
 });
