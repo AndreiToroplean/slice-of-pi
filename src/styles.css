@@ -69,6 +69,8 @@
   --space-1: 0.375rem;
   --space-2: 0.5625rem;
   --space-3: 1.125rem;
+  /* How wide the fade is at an edge of the tape, or of the slots, past which things hide: of the column's width. */
+  --edge-fade: min(4rem, 15%);
 
   background: var(--surround);
   color: var(--on-background);
@@ -267,6 +269,13 @@ body {
 }
 
 @property --tape-right {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+
+/* How opaque the slots' left edge is: 1, unless slots hide past it, which fade out (see `Slots`). */
+@property --slots-left {
   syntax: '<number>';
   inherits: false;
   initial-value: 1;

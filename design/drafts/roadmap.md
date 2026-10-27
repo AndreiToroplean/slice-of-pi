@@ -8,7 +8,7 @@ Everything in this folder is a draft: what's in progress and what may come next,
 
 - **Units.** Heights and vertical positions are hundredths of the screen's height. Widths and horizontal positions are hundredths of the column's width. The space around a page (its margins, and the corner buttons, snug against them) is a fixed size in rem. It scales only with the browser's zoom. The handoff's values, all in hundredths of the height, need converting.
 - **Centering.** The keypad, the slots and the season header are always centered across.
-- **Slots.** We plan for at most 10. Slots are always the same size and the same gap apart. A row of 10 spans exactly the keypad's width.
+- **Slots.** At most 10 show, in one row: digits typed past them push the first ones left, off the column. Slots are always the same size and the same gap apart. A row of 10 spans exactly the keypad's width.
 - **Tuning.** Every tuned value is a developer mode tweak. Copy buttons hand tweaks back as the JSON of a backup file holding them alone.
 - **Two editors.** Layout editors are the same in every season. Color editors are per season and come later.
 

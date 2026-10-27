@@ -1,32 +1,36 @@
-import { slotBoxes, slotHandover, slotLayout } from './slot-layout';
+import { rowStart, shownSlots, slotBoxes, slotHandover } from './slot-layout';
 
-describe('slotLayout', () => {
-  it("shows one slot per digit of the group's size, on one row", () => {
-    expect(slotLayout(0, 5)).toEqual({ count: 5, columns: 5 });
-    expect(slotLayout(3, 5)).toEqual({ count: 5, columns: 5 });
-    expect(slotLayout(5, 5)).toEqual({ count: 5, columns: 5 });
+describe('shownSlots', () => {
+  it("shows one slot per digit of the group's size", () => {
+    expect(shownSlots(0, 5)).toBe(5);
+    expect(shownSlots(3, 5)).toBe(5);
+    expect(shownSlots(0, 1)).toBe(1);
   });
 
   it('adds one slot per digit typed past its size, as mistakes are', () => {
-    expect(slotLayout(6, 5)).toEqual({ count: 6, columns: 6 });
-    expect(slotLayout(8, 5).count).toBe(8);
+    expect(shownSlots(6, 5)).toBe(6);
+    expect(shownSlots(23, 5)).toBe(23);
   });
 
-  it('grows a row up to 10 slots, then starts a new row', () => {
-    expect(slotLayout(10, 5).columns).toBe(10);
-    expect(slotLayout(11, 5)).toEqual({ count: 11, columns: 10 });
-    expect(slotLayout(23, 5)).toEqual({ count: 23, columns: 10 });
+  it('shows at most 10 slots for a larger group, then one per digit typed past them', () => {
+    expect(shownSlots(0, 12)).toBe(10);
+    expect(shownSlots(10, 12)).toBe(10);
+    expect(shownSlots(11, 12)).toBe(11);
   });
+});
 
-  it('shows a single slot for a group of 1', () => {
-    expect(slotLayout(0, 1)).toEqual({ count: 1, columns: 1 });
+describe('rowStart', () => {
+  it('centers up to 10 slots, and ends past them where 10 do', () => {
+    expect(rowStart(10)).toBe(0);
+    expect(rowStart(5)).toBe(2.5);
+    expect(rowStart(12)).toBe(-2);
   });
 });
 
 describe('slotBoxes', () => {
   const area = { left: 0, top: 100, width: 300, height: 80 };
   const slot = { width: 20, height: 30 };
-  const gap = { column: 5, row: 10 };
+  const gap = 5;
 
   it('centers a row across the area, on its bottom', () => {
     expect(slotBoxes(3, area, slot, gap)).toEqual([
@@ -36,12 +40,11 @@ describe('slotBoxes', () => {
     ]);
   });
 
-  it('starts a new row past 10 slots, the rows standing on the bottom together', () => {
-    const boxes = slotBoxes(12, area, slot, gap);
+  it('ends a row too long for the area where the area does, its first slots off it, to the left', () => {
+    const boxes = slotBoxes(14, area, slot, gap);
 
-    expect(boxes[0]).toMatchObject({ left: 27.5, top: 110 });
-    expect(boxes[10]).toMatchObject({ left: 27.5, top: 150 });
-    expect(boxes[11]).toMatchObject({ left: 52.5, top: 150 });
+    expect(boxes[0]).toMatchObject({ left: -45, top: 150 });
+    expect(boxes[13]).toMatchObject({ left: 280, top: 150 });
   });
 });
 
@@ -70,6 +73,21 @@ describe('slotHandover', () => {
         { from: 0, to: -1, after: 1, fade: 'out' },
       ],
     });
+  });
+
+  it('moves the slots from 12 as from the 10 shown, the 2 off the slots fading out too', () => {
+    const { slots, leaving } = slotHandover(12, 5);
+
+    expect(slots[0]).toEqual({ from: 2.5, to: 0, after: 7 });
+    expect(leaving).toHaveLength(7);
+    expect(leaving[0]).toEqual({ from: -4.5, to: -7, after: 0, fade: 'out' });
+    expect(leaving[2]).toEqual({ from: -2.5, to: -5, after: 2, fade: 'out' });
+  });
+
+  it('makes room for an eleventh slot by moving the 10 left a whole step', () => {
+    expect(slotHandover(10, 11).slots.map(({ from, to }) => from - to)).toEqual(
+      Array.from({ length: 11 }, () => 1),
+    );
   });
 
   it("doesn't move the slots when there are as many", () => {

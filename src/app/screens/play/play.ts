@@ -627,10 +627,14 @@ export class Play implements PausesOnBack {
       return [];
     }
     const style = getComputedStyle(area);
-    const slid = slotBoxes(length, boxIn(this.host, area), first.box, {
-      column: parseFloat(style.columnGap) || 0,
-      row: parseFloat(style.rowGap) || 0,
-    });
+    const box = boxIn(this.host, area);
+    const padding = parseFloat(style.paddingLeft) || 0;
+    const slid = slotBoxes(
+      length,
+      { ...box, left: box.left + padding, width: box.width - 2 * padding },
+      first.box,
+      parseFloat(style.columnGap) || 0,
+    );
     // The slot of the digit typed last isn't shown yet when that digit, typed past the slots, ends the group at once:
     // it flies from where it would have been shown, alike, as the others slide over to make room for it.
     return slid.map((box, i) => ({ ...(slots[i] ?? { ...first, box }), slid: box }));

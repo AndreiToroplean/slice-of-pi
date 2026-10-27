@@ -74,18 +74,20 @@ describe('Slots', () => {
     expect(host.querySelector('.next')).toBeNull();
   });
 
-  it('lays out one row up to 10 slots, then wraps onto new rows', async () => {
+  it('lays out one row, overflowing past 10 slots', async () => {
     expect((await render('')).style.getPropertyValue('--columns')).toBe('5');
-    expect((await render('14159265')).style.getPropertyValue('--columns')).toBe('8');
+    expect((await render('')).classList).not.toContain('overflowing');
 
     const host = await render('141592653589');
 
     expect(slots(host)).toHaveLength(12);
-    expect(host.style.getPropertyValue('--columns')).toBe('10');
+    expect(host.style.getPropertyValue('--columns')).toBe('12');
+    expect(host.classList).toContain('overflowing');
   });
 
-  it("follows the group's size", async () => {
+  it("follows the group's size, up to 10 slots", async () => {
     expect(slots(await render('', 3))).toHaveLength(3);
+    expect(slots(await render('14', 12))).toHaveLength(10);
   });
 
   it('shows no text besides the digits, and is hidden from assistive technology', async () => {
@@ -210,12 +212,19 @@ describe('Slots', () => {
       expect(host.querySelectorAll('.slot.dropped')).toHaveLength(0);
     });
 
-    it("doesn't move when the player prefers reduced motion, nor past a row", async () => {
+    it('hands over from more slots than shown, those off the slots going too', async () => {
+      const animations = installAnimations();
+
+      const { host } = await handOver(5, { from: 12, leftAt: (index) => 100 * index });
+
+      expect(host.querySelectorAll('.slot.leaving')).toHaveLength(7);
+      expect(animations).toHaveLength(12);
+    });
+
+    it("doesn't move when the player prefers reduced motion", async () => {
       const animations = installAnimations();
       vi.stubGlobal('matchMedia', () => ({ matches: true }));
       await handOver(3, handover);
-      vi.unstubAllGlobals();
-      await handOver(12, handover);
 
       expect(animations).toEqual([]);
     });
