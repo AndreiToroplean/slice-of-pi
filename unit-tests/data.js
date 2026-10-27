@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793133401494,
+  "lastUpdate": 1793144018429,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2760,6 +2760,46 @@ window.BENCHMARK_DATA = {
             "value": 961,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs shows unchecked runs too, marked, still leaving them out of the groups"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "a748f3cca2a2c66ed1a0dd003133a3a0397f36a3",
+          "message": "feat: preview the layout in edit mode with a toggle hiding the handles, and fit its buttons in a row\n\n- A candy button with `aria-pressed` is a toggle: on, it stays pressed in, its face dark.\n- A row of smaller candy buttons sets their size around them, as edit mode's does, so that Cancel, Reset, Copy, Done and the toggle fit on a phone.",
+          "timestamp": "2026-10-28T00:33:06+01:00",
+          "tree_id": "b0946a64868cbab7ee520d58e2fabf37e46c0e8d",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/a748f3cca2a2c66ed1a0dd003133a3a0397f36a3"
+        },
+        "date": 1793144017892,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14383,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 31382,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 932,
+            "unit": "ms",
+            "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
           }
         ]
       }
