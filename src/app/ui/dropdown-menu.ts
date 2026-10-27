@@ -139,6 +139,8 @@ export class DropdownMenu {
   private readonly document = inject(DOCUMENT);
   /** Whether it was last opened at a point, rather than by a button elsewhere. */
   private atPoint = false;
+  /** The button elsewhere it was last opened by, of the buttons that open it, where the browser tells it. */
+  private source: Element | null = null;
 
   /** Opens the menu from a point, in window coordinates. */
   openAt(at: { readonly x: number; readonly y: number }): void {
@@ -180,6 +182,7 @@ export class DropdownMenu {
   /** Opened by a button elsewhere, anchored to it rather than to the point it was last opened at. */
   protected beforeToggle(event: Event): void {
     if ((event as ToggleEvent).newState === 'open' && !this.atPoint && !this.button()) {
+      this.source = (event as ToggleEvent).source ?? null;
       this.dropdown().nativeElement.style.removeProperty('position-anchor');
     }
   }
@@ -191,7 +194,7 @@ export class DropdownMenu {
       this.more()?.nativeElement ??
       (this.atPoint
         ? this.point()?.nativeElement
-        : this.document.querySelector(`[popovertarget="${this.id}"]`))
+        : (this.source ?? this.document.querySelector(`[popovertarget="${this.id}"]`)))
     )?.getBoundingClientRect();
     if (anchor !== undefined) {
       const box = dropdown.getBoundingClientRect();
