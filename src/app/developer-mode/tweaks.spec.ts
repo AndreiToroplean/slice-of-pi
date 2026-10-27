@@ -198,17 +198,16 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({});
   });
 
-  it('counts down to the end of the group only in developer mode, unless told not to, and keeps that', async () => {
+  it('counts down to the end of the group only in developer mode, once told to, and keeps that', async () => {
     const tweaks = await load();
+    await tweaks.setCountdown(true);
     expect(tweaks.countdown()).toBe(false);
     await TestBed.inject(DeveloperMode).set(true);
     expect(tweaks.countdown()).toBe(true);
+    expect((await load()).values()).toEqual({ countdown: true });
 
-    await tweaks.setCountdown(false);
-    expect(tweaks.countdown()).toBe(false);
-    expect((await load()).values()).toEqual({ countdown: false });
-
-    await TestBed.inject(Tweaks).setCountdown(true);
+    await TestBed.inject(Tweaks).setCountdown(false);
+    expect(TestBed.inject(Tweaks).countdown()).toBe(false);
     expect((await load()).values()).toEqual({});
   });
 
@@ -399,8 +398,8 @@ describe('Tweaks', () => {
     expect(parseTweaks({ format: TWEAKS_FORMAT, checking: false })).toEqual({ checking: false });
     expect(parseTweaks({ format: TWEAKS_FORMAT, checking: true })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, checking: 'no' })).toEqual({});
-    expect(parseTweaks({ format: TWEAKS_FORMAT, countdown: false })).toEqual({ countdown: false });
-    expect(parseTweaks({ format: TWEAKS_FORMAT, countdown: true })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, countdown: true })).toEqual({ countdown: true });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, countdown: false })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, keys: 'clear' })).toEqual({ keys: 'clear' });
     expect(parseTweaks({ format: TWEAKS_FORMAT, keys: 'solid' })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, includeUnchecked: true })).toEqual({

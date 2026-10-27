@@ -490,10 +490,11 @@ describe('Play', () => {
       return host.querySelector('app-break-countdown')?.textContent;
     }
 
-    /** In developer mode, with a break model whose groups any pause long enough ends. */
+    /** In developer mode, with the countdown on and a break model whose groups any pause long enough ends. */
     function setUpCounting(): ReturnType<typeof setUp> {
       return setUpWithRuns(4, true, async () => {
         await TestBed.inject(DeveloperMode).set(true);
+        await TestBed.inject(Tweaks).setCountdown(true);
         await TestBed.inject(Tweaks).setBreakModel(MARS);
       });
     }
@@ -529,19 +530,19 @@ describe('Play', () => {
 
     it('shows the longest wait looked at where no pause up to it ends the group', async () => {
       // The game's model only ends the player's own groups where the runs agree they end.
-      const { host, type } = await setUpWithRuns(4, true, () =>
-        TestBed.inject(DeveloperMode).set(true),
-      );
+      const { host, type } = await setUpWithRuns(4, true, async () => {
+        await TestBed.inject(DeveloperMode).set(true);
+        await TestBed.inject(Tweaks).setCountdown(true);
+      });
       await typeAll(type, '14');
 
       expect(countdown(host)).toBe('> 10⁶');
     });
 
-    it('shows nothing when developer mode hides it', async () => {
-      const { host, type } = await setUpWithRuns(4, true, async () => {
-        await TestBed.inject(DeveloperMode).set(true);
-        await TestBed.inject(Tweaks).setCountdown(false);
-      });
+    it('shows nothing in developer mode unless turned on', async () => {
+      const { host, type } = await setUpWithRuns(4, true, () =>
+        TestBed.inject(DeveloperMode).set(true),
+      );
       await typeAll(type, '14');
 
       expect(countdown(host)).toBeUndefined();

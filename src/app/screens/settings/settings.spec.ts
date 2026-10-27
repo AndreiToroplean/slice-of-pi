@@ -24,18 +24,18 @@ describe('Settings', () => {
     return host.querySelector<HTMLInputElement>('input[type="checkbox"]');
   }
 
-  it('turns the countdown to the end of the group off and on, in developer mode', async () => {
+  it('turns the countdown to the end of the group on and off, in developer mode', async () => {
     await TestBed.inject(DeveloperMode).set(true);
     const host = await setUp();
     const tweaks = TestBed.inject(Tweaks);
     expect(countdown(host)?.closest('label')?.textContent).toContain('Countdown');
-    expect(countdown(host)?.checked).toBe(true);
-
-    countdown(host)?.click();
-    expect(tweaks.countdown()).toBe(false);
+    expect(countdown(host)?.checked).toBe(false);
 
     countdown(host)?.click();
     expect(tweaks.countdown()).toBe(true);
+
+    countdown(host)?.click();
+    expect(tweaks.countdown()).toBe(false);
   });
 
   it('turns checking the digits off and on, in developer mode, and brings it back', async () => {
@@ -120,15 +120,15 @@ describe('Settings', () => {
     expect(setting.layout()).toBe('calculator');
   });
 
-  it('brings back the countdown, once it was turned off', async () => {
+  it('hides the countdown again, once it was turned on', async () => {
     await TestBed.inject(DeveloperMode).set(true);
     const tweaks = TestBed.inject(Tweaks);
-    await tweaks.setCountdown(false);
+    await tweaks.setCountdown(true);
     const host = await setUp();
 
     backToDefault(host, 'Countdown')?.click();
 
-    expect(tweaks.countdown()).toBe(true);
+    expect(tweaks.countdown()).toBe(false);
   });
 
   it('brings back every default value at once', async () => {
@@ -140,7 +140,7 @@ describe('Settings', () => {
     const host = fixture.nativeElement as HTMLElement;
     expect(button(host, 'Reset Settings')?.disabled).toBe(true);
 
-    await tweaks.setCountdown(false);
+    await tweaks.setCountdown(true);
     await tweaks.setChecking(false);
     await tweaks.setSolidKeys(false);
     await setting.set('telephone');
@@ -148,7 +148,7 @@ describe('Settings', () => {
     button(host, 'Reset Settings')?.click();
 
     expect(tweaks.solidKeys()).toBe(true);
-    expect(tweaks.countdown()).toBe(true);
+    expect(tweaks.countdown()).toBe(false);
     expect(tweaks.checking()).toBe(true);
     expect(setting.layout()).toBe('calculator');
   });
