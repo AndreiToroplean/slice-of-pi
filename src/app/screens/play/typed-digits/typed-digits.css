@@ -3,22 +3,21 @@
  * as words hide past it (`--tape-left` and `--tape-right` in `styles.css`).
  */
 :host {
-  --fade: min(4rem, 15%);
   display: block;
   overflow: auto hidden;
   scrollbar-width: none;
   -webkit-mask-image: linear-gradient(
     to right,
     rgb(0 0 0 / var(--tape-left)),
-    #000 var(--fade),
-    #000 calc(100% - var(--fade)),
+    #000 var(--edge-fade),
+    #000 calc(100% - var(--edge-fade)),
     rgb(0 0 0 / var(--tape-right))
   );
   mask-image: linear-gradient(
     to right,
     rgb(0 0 0 / var(--tape-left)),
-    #000 var(--fade),
-    #000 calc(100% - var(--fade)),
+    #000 var(--edge-fade),
+    #000 calc(100% - var(--edge-fade)),
     rgb(0 0 0 / var(--tape-right))
   );
   transition:

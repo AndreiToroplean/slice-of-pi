@@ -31,11 +31,11 @@ app-typed-digits {
   height: calc(var(--tape-top) - var(--tape-bottom));
 }
 
-/* As wide as the keypad, a row of slots tall: more rows, past 10 slots, grow up over the tape. */
+/* Across the column, a row of slots tall, as wide as the keypad within its side margins. */
 .slots {
   --slots-height: calc(var(--slots-top) - var(--slots-bottom));
   position: absolute;
-  inset-inline: calc(var(--margin) + var(--margin-side));
+  inset-inline: var(--margin);
   bottom: calc(var(--floor) + var(--slots-bottom));
 }
 

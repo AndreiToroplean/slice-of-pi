@@ -12,7 +12,7 @@ import {
   untracked,
 } from '@angular/core';
 import type { Box } from '../flight/flight';
-import { SlotMove, slotHandover, slotLayout, SLOTS_PER_ROW } from './slot-layout';
+import { rowStart, shownSlots, SlotMove, slotHandover, SLOTS_SHOWN } from './slot-layout';
 
 /** How long a slot takes to move to its place as the slots hand over to the next group's, in ms. */
 export const HANDOVER_DURATION = 300;
@@ -31,19 +31,21 @@ export interface SlotHandover {
 /**
  * The typing area: the slots of the group being typed, filled with its digits so far, the next one outlined,
  * each in its place color, or marked as a mistake (red on white, outlined in red); the empty ones fade out as told.
- * There is no text under the slots. Hidden from assistive technology: the typed digits say what was typed.
+ * There is no text under the slots. Hidden from assistive technology: the typed digits say what was typed. They are one
+ * row: past {@link SLOTS_SHOWN}, the first of them are off the slots' width, to the left, fading out on the way.
  *
  * Told how the slots of the group that just ended hand over to them, they move to their places from those slots', as
  * each one's digit flies off (see {@link slotHandover}). As the group being typed grows, they make room for more the
  * same way, at once and quicker, the digits typed meanwhile filling them on their way. Not when the player prefers
- * reduced motion, nor past a row. As the slots shrink, the last of them go the same way in reverse, fading out, as
+ * reduced motion. As the slots shrink, the last of them go the same way in reverse, fading out, as
  * they came. Each move adds to any still under way, so that the slots move on from wherever they are.
  */
 @Component({
   selector: 'app-slots',
   host: {
     'aria-hidden': 'true',
-    '[style.--columns]': 'layout().columns',
+    '[style.--columns]': 'count()',
+    '[class.overflowing]': 'overflowing()',
     '[style.--empty-opacity]': 'emptyOpacity()',
   },
   template: `
@@ -80,21 +82,21 @@ export class Slots {
   /** How the slots of the group that just ended hand over to these, if they do. */
   readonly handover = input<SlotHandover>();
 
-  protected readonly layout = computed(() => slotLayout(this.digits().length, this.size()));
+  protected readonly count = computed(() => shownSlots(this.digits().length, this.size()));
+
+  /** Whether the first slots are off the slots' width, to the left. */
+  protected readonly overflowing = computed(() => this.count() > SLOTS_SHOWN);
 
   /** Each slot's digit, or `null` while it's empty. */
   protected readonly slots = computed(() =>
-    Array.from({ length: this.layout().count }, (_, i) => this.digits().charAt(i) || null),
+    Array.from({ length: this.count() }, (_, i) => this.digits().charAt(i) || null),
   );
 
   /** How the slots move as they hand over, if they do. */
   private readonly moves = computed(() => {
     const handover = this.handover();
-    const count = this.layout().count;
-    return handover === undefined ||
-      count === 0 ||
-      Math.max(count, handover.from) > SLOTS_PER_ROW ||
-      prefersReducedMotion()
+    const count = this.count();
+    return handover === undefined || count === 0 || prefersReducedMotion()
       ? undefined
       : slotHandover(handover.from, count);
   });
@@ -119,7 +121,7 @@ export class Slots {
     // Once the slots, and those leaving, are rendered for a new handover, or for more slots.
     afterRenderEffect(() => {
       const handover = this.handover();
-      const count = this.layout().count;
+      const count = this.count();
       untracked(() => {
         const last = this.last ?? { count, handover: undefined };
         this.last = { count, handover };
@@ -202,12 +204,7 @@ export class Slots {
   private grow(before: number, after: number): void {
     const slots = this.slotElements();
     const first = slots[0];
-    if (
-      first === undefined ||
-      typeof first.animate !== 'function' ||
-      after > SLOTS_PER_ROW ||
-      prefersReducedMotion()
-    ) {
+    if (first === undefined || typeof first.animate !== 'function' || prefersReducedMotion()) {
       return;
     }
     const step = this.step(first);
@@ -236,16 +233,11 @@ export class Slots {
   private shrink(before: number, after: number): void {
     const slots = this.slotElements();
     const first = slots[0];
-    if (
-      first === undefined ||
-      typeof first.animate !== 'function' ||
-      before > SLOTS_PER_ROW ||
-      prefersReducedMotion()
-    ) {
+    if (first === undefined || typeof first.animate !== 'function' || prefersReducedMotion()) {
       return;
     }
     const step = this.step(first);
-    const shift = ((before - after) / 2) * step;
+    const shift = (rowStart(after) - rowStart(before)) * step;
     // Where the first slot is now, before it moves, for those taken away to go on from where they were.
     const area = this.host.getBoundingClientRect();
     const place = first.getBoundingClientRect();
