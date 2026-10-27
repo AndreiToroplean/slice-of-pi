@@ -1,15 +1,19 @@
 /**
  * Gives elements the `showPopover` and `hidePopover` methods jsdom lacks, showing a popover by marking it
  * `data-popover-open`, displaying it over jsdom's hiding it, so that what it holds can take the focus, and telling its
- * `beforetoggle` and `toggle` events as browsers do. A button with a `popovertarget` opens and closes its popover once
- * pressed, after what it does itself, as in browsers. Undo with `uninstallPopovers`.
+ * `beforetoggle` and `toggle` events as browsers do, with what opened it as their `source`. A button with a
+ * `popovertarget` opens and closes its popover once pressed, after what it does itself, as in browsers. Undo with `uninstallPopovers`.
  */
 export function installPopovers(): void {
-  HTMLElement.prototype.showPopover = function (this: HTMLElement): void {
-    this.dispatchEvent(Object.assign(new Event('beforetoggle'), { newState: 'open' }));
+  HTMLElement.prototype.showPopover = function (
+    this: HTMLElement,
+    options?: ShowPopoverOptions,
+  ): void {
+    const source = options?.source ?? null;
+    this.dispatchEvent(Object.assign(new Event('beforetoggle'), { newState: 'open', source }));
     this.toggleAttribute('data-popover-open', true);
     this.style.display = 'block';
-    this.dispatchEvent(Object.assign(new Event('toggle'), { newState: 'open' }));
+    this.dispatchEvent(Object.assign(new Event('toggle'), { newState: 'open', source }));
   };
   HTMLElement.prototype.hidePopover = function (this: HTMLElement): void {
     if (this.hasAttribute('data-popover-open')) {
@@ -30,14 +34,15 @@ export function uninstallPopovers(): void {
 
 /** Opens or closes the popover of the button pressed, if it has one. */
 function invoke(event: Event): void {
-  const id =
+  const button =
     event.target instanceof Element
-      ? event.target.closest('button[popovertarget]')?.getAttribute('popovertarget')
-      : undefined;
+      ? event.target.closest<HTMLButtonElement>('button[popovertarget]')
+      : null;
+  const id = button?.getAttribute('popovertarget');
   const popover = id === undefined || id === null ? null : document.getElementById(id);
   if (popover?.hasAttribute('data-popover-open') === true) {
     popover.hidePopover();
-  } else {
-    popover?.showPopover();
+  } else if (button !== null) {
+    popover?.showPopover({ source: button });
   }
 }

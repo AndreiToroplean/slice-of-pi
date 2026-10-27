@@ -212,6 +212,7 @@ describe('DropdownMenu opened where something was pressed', () => {
   imports: [DropdownMenu],
   template: `
     <button type="button" [attr.popovertarget]="menu.id">Speed</button>
+    <button type="button" class="other" [attr.popovertarget]="menu.id">Other speed</button>
     <app-dropdown-menu #menu label="Speed" [button]="false">
       <button type="button">×2</button>
     </app-dropdown-menu>
@@ -259,5 +260,26 @@ describe('DropdownMenu opened from a button elsewhere', () => {
     open.click();
 
     expect(dropdown.dataset['corner']).toBe('top-left');
+  });
+
+  it('squares its corner pointing at the button it opened from, of those opening it', async () => {
+    const fixture = TestBed.createComponent(ButtonHost);
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+    const [first, other] = Array.from(
+      host.querySelectorAll<HTMLButtonElement>('button[popovertarget]'),
+    );
+    const dropdown = host.querySelector<HTMLElement>('.dropdown');
+    if (first === undefined || other === undefined || dropdown === null) {
+      throw new Error('No menu');
+    }
+    // The first button at the top, the other at the bottom, the menu above the other.
+    vi.spyOn(first, 'getBoundingClientRect').mockReturnValue(new DOMRect(100, 100, 80, 40));
+    vi.spyOn(other, 'getBoundingClientRect').mockReturnValue(new DOMRect(100, 700, 80, 40));
+    vi.spyOn(dropdown, 'getBoundingClientRect').mockReturnValue(new DOMRect(100, 500, 160, 194));
+
+    other.click();
+
+    expect(dropdown.dataset['corner']).toBe('bottom-left');
   });
 });
