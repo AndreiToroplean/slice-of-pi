@@ -72,6 +72,7 @@ describe('Play', () => {
 
   async function setUp(): Promise<{
     host: HTMLElement;
+    play: Play;
     type: (key: string) => Promise<void>;
     stable: () => Promise<void>;
   }> {
@@ -83,7 +84,7 @@ describe('Play', () => {
       host.querySelector<HTMLButtonElement>(`button[data-key="${key}"]`)?.click();
       await fixture.whenStable();
     };
-    return { host, type, stable: () => fixture.whenStable() };
+    return { host, play: fixture.componentInstance, type, stable: () => fixture.whenStable() };
   }
 
   /** Types the keys: `<` is backspace, and a space is a pause, long enough to finish a group. */
@@ -1048,6 +1049,84 @@ describe('Play', () => {
       time.advance(PAUSE);
       await stable();
       expect(words(host)).toEqual(['1415']);
+    });
+
+    it('edits the layout from the pause dialog in developer mode, paused, with 10 slots and the touch areas', async () => {
+      await TestBed.inject(DeveloperMode).set(true);
+      const { host, type, stable } = await setUp();
+      await typeAll(type, '14');
+
+      pauseItem(host, 'Pause').click();
+      pauseItem(host, 'Edit Layout').click();
+      await stable();
+      expect(host.querySelector('app-layout-editor')).not.toBeNull();
+      expect(host.querySelector('dialog')?.open).toBe(false);
+      expect(slots(host)).toEqual(['1', '4', '', '', '', '', '', '', '', '']);
+      expect(host.querySelectorAll('app-keypad .area').length).toBeGreaterThan(0);
+
+      await type('1');
+      time.advance(10 * PAUSE);
+      await stable();
+      expect(slots(host)).toEqual(['1', '4', '', '', '', '', '', '', '', '']);
+      expect(words(host)).toEqual([]);
+
+      pauseItem(host, 'Done').click();
+      await stable();
+      expect(host.querySelector('app-layout-editor')).toBeNull();
+      expect(host.querySelector('app-keypad .area')).toBeNull();
+      expect(host.querySelector('dialog')?.open).toBe(true);
+      pauseItem(host, 'Resume').click();
+      await type('1');
+      expect(slots(host)).toEqual(['1', '4', '1', '', '']);
+    });
+
+    it('shows the layout as it’s edited, and on going back, asks whether to cancel the changes', async () => {
+      await TestBed.inject(DeveloperMode).set(true);
+      const { host, play, stable } = await setUp();
+      const pauseDialog = host.querySelector<HTMLDialogElement>('app-pause dialog');
+      const cancelDialog = (): HTMLDialogElement | null =>
+        host.querySelector('app-layout-editor dialog');
+      const keypadTop = (): string => host.style.getPropertyValue('--keypad-top');
+      pauseItem(host, 'Pause').click();
+      pauseItem(host, 'Edit Layout').click();
+      await stable();
+
+      const knob = host.querySelector<HTMLElement>('[role="slider"][aria-label="Keypad top"]');
+      knob?.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageUp', bubbles: true }));
+      await stable();
+      expect(keypadTop()).toBe(`calc(${String(LAYOUT.keypad.top + 1)} * var(--unit))`);
+
+      expect(play.leaveOnBack()).toBe(false);
+      expect(cancelDialog()?.open).toBe(true);
+      expect(play.leaveOnBack()).toBe(false);
+      expect(cancelDialog()?.open).toBe(false);
+      expect(host.querySelector('app-layout-editor')).not.toBeNull();
+
+      play.leaveOnBack();
+      pauseItem(host, 'Yes').click();
+      await stable();
+      expect(host.querySelector('app-layout-editor')).toBeNull();
+      expect(pauseDialog?.open).toBe(true);
+      expect(keypadTop()).toBe(`calc(${String(LAYOUT.keypad.top)} * var(--unit))`);
+    });
+
+    it('keeps the changes to the layout once done', async () => {
+      await TestBed.inject(DeveloperMode).set(true);
+      const { host, stable } = await setUp();
+      pauseItem(host, 'Pause').click();
+      pauseItem(host, 'Edit Layout').click();
+      await stable();
+
+      host
+        .querySelector('[role="slider"][aria-label="Keypad top"]')
+        ?.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageUp', bubbles: true }));
+      pauseItem(host, 'Done').click();
+      await stable();
+
+      expect(host.querySelector('app-pause dialog')?.hasAttribute('open')).toBe(true);
+      expect(host.style.getPropertyValue('--keypad-top')).toBe(
+        `calc(${String(LAYOUT.keypad.top + 1)} * var(--unit))`,
+      );
     });
 
     it('keeps the empty slots as faded as they were while paused', async () => {
