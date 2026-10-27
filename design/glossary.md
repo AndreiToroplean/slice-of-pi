@@ -13,6 +13,8 @@
 ## Screen
 
 - **Main menu:** the screen the game opens on.
+- **Margins:** the space around every page and screen, the same on all of them, which nothing is ever in.
+- **Corner button:** a button in a screen's corner, such as the pause button, snug against the margins.
 - **Play screen:** where the player types π. Its **pause dialog** resumes, restarts or ends the game.
 - **Keypad:** the grid of keys the player types on.
 - **Key:** one button of the keypad: a **digit key** or the **backspace key**. "Key 3" is the digit key for 3.
@@ -58,6 +60,7 @@
 
 - **Developer mode:** a hidden mode for tuning the game.
 - **Tweaks:** the values tuned in developer mode, which apply to the game only while it's on.
+- **Edit mode:** developer mode's way of tuning the **layout**, where things sit on the screens, by dragging the edges of the play screen's parts.
 - **Break model:** how the game tells breaks from the intervals of the runs. Developer mode switches between several, each named after a planet or a moon.
 - **Group-size envelope:** a factor from 0 to 1 for each size of group, by which a break model weighs how likely a grouping is: groups of sizes near 0 are rare, and those at 0 never happen. Its **strength** raises every factor to a power, so that it can weigh as much as many runs. At 1 for every size, it changes nothing.
 - **Hyperparameter:** a value of a break model set by hand or by a fit, as opposed to what the model works out from the runs (baselines, breaks). A full set of values for a model is a **configuration**.
