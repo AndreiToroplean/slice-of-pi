@@ -605,7 +605,9 @@ export class Play implements PausesOnBack {
       column: parseFloat(style.columnGap) || 0,
       row: parseFloat(style.rowGap) || 0,
     });
-    return slots.map((slot, i) => ({ ...slot, slid: slid[i] ?? slot.box }));
+    // The slot of the digit typed last isn't shown yet when that digit, typed past the slots, ends the group at once:
+    // it flies from where it would have been shown, alike, as the others slide over to make room for it.
+    return slid.map((box, i) => ({ ...(slots[i] ?? { ...first, box }), slid: box }));
   }
 
   /** Ends the flights at once, before a word they fly into may be reopened, and the slots' handover with them. */

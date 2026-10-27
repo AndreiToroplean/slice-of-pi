@@ -34,6 +34,7 @@ import { LAYOUT } from '../../ui/layout';
 import { Play } from './play';
 import { Keypad } from './keypad/keypad';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
+import { GAME_BREAK_MODEL } from '../../game/grouping/break-models/break-models';
 
 /** A pause clearly longer than the time between digits, in milliseconds. */
 const PAUSE = 2000;
@@ -873,6 +874,25 @@ describe('Play', () => {
         expect(shownTiles(host)).toBe('14159'.slice(0, i + 1).padEnd(5, '_'));
         expect(flyingSlots(host)).toBe('14159'.slice(i + 1));
       }
+    });
+
+    it('flies the digit typed last too when it ends its group at once, though it made room for a slot not shown yet', async () => {
+      const animations = stubAnimations();
+      // The game's own model, whose envelope lets no group be longer than 10 digits: the tenth ends it, as it's typed.
+      TestBed.overrideProvider(GAME_BREAK_MODEL, { useValue: MARS });
+      const { host, stable } = await setUp();
+
+      // Evenly, so that no pause breaks it sooner.
+      for (const digit of '1415926535') {
+        time.advance(200);
+        host.querySelector<HTMLButtonElement>(`button[data-key="${digit}"]`)?.click();
+        await stable();
+      }
+
+      expect(words(host)).toEqual(['1415926535']);
+      expect(animations).toHaveLength(10);
+      expect(flyingSlots(host)).toBe('1415926535');
+      expect(shownTiles(host)).toBe('__________');
     });
 
     it('starts every flight shaped like its slot, even while it waits for its turn to leave', async () => {
