@@ -57,8 +57,8 @@ export interface TweakValues {
   readonly seasonTurn?: number;
   /** `false` to play without checking the digits, which the game otherwise always does. */
   readonly checking?: false;
-  /** `false` to play without the countdown to the end of the group being typed, which developer mode otherwise shows. */
-  readonly countdown?: false;
+  /** `true` to show the countdown to the end of the group being typed, in developer mode, which is otherwise hidden. */
+  readonly countdown?: true;
   /** `'clear'` for see-through keys, which are otherwise solid, in their colors. */
   readonly keys?: 'clear';
   /** `true` to count unchecked runs in the player's groups, which otherwise leave them out. */
@@ -134,9 +134,9 @@ export class Tweaks {
     () => !this.developerMode.enabled() || this.tweaks().checking !== false,
   );
 
-  /** Whether the game counts down to the end of the group being typed, which only developer mode does. */
+  /** Whether the game counts down to the end of the group being typed, which only developer mode does, once told to. */
   readonly countdown = computed(
-    () => this.developerMode.enabled() && this.tweaks().countdown !== false,
+    () => this.developerMode.enabled() && this.tweaks().countdown === true,
   );
 
   /** Whether the keys are solid, in their colors, rather than see-through. */
@@ -237,7 +237,7 @@ export class Tweaks {
 
   /** Shows the countdown to the end of the group being typed, or hides it. */
   setCountdown(countdown: boolean): Promise<void> {
-    return this.save(tweakValues({ ...this.tweaks(), countdown: countdown ? undefined : false }));
+    return this.save(tweakValues({ ...this.tweaks(), countdown: countdown ? true : undefined }));
   }
 
   /** Makes the keys solid, in their colors, or see-through. */
@@ -321,7 +321,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
-    countdown: countdown === false ? countdown : undefined,
+    countdown: countdown === true ? countdown : undefined,
     keys: keys === 'clear' ? keys : undefined,
     includeUnchecked: includeUnchecked === true ? includeUnchecked : undefined,
     runOrder: runOrderOf(runOrder),
