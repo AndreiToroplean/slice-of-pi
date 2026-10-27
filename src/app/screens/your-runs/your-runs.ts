@@ -172,6 +172,11 @@ import { Segment, Segmented } from '../../ui/segmented';
           } @else {
             <h3>{{ summaryTitle() }}</h3>
             <ng-container [ngTemplateOutlet]="timesChart" />
+            <app-plot-legend
+              [keys]="AGGREGATE_KEYS"
+              [hidden]="hiddenTimes()"
+              (toggled)="toggleTimes($event)"
+            />
             <app-group-list [groups]="groups()" />
           }
         </article>
@@ -265,12 +270,6 @@ import { Segment, Segmented } from '../../ui/segmented';
             <p>None yet: each game you play shows up here.</p>
           }
         } @else {
-          <ul class="legend">
-            <li><i class="time"></i>Time per digit</li>
-            <li><i class="baseline"></i>Baseline</li>
-            <li><i class="break"></i>Break</li>
-            <li><i class="confidence"></i>Confidence trend, for all runs</li>
-          </ul>
           @if (developerMode()) {
             <!-- In developer mode, the chart of all runs can be left out of the chart on top, and runs added to it. -->
             <button
@@ -478,6 +477,7 @@ export class YourRuns {
   protected readonly perspective = signal<Perspective>('run');
   protected readonly PERSPECTIVES = PERSPECTIVES;
   protected readonly TIMES_KEYS = TIMES_KEYS;
+  protected readonly AGGREGATE_KEYS = AGGREGATE_KEYS;
   protected readonly TIMES = TIMES;
   /** The marks of the chart of times hidden from its key, by id: only while the page is open, never saved. */
   protected readonly hiddenTimes = signal<ReadonlySet<string>>(new Set());
@@ -597,9 +597,9 @@ export class YourRuns {
     });
   }
 
-  /** Whether the marks of the chart of times under this key show: outside developer mode, all of them do. */
+  /** Whether the marks of the chart of times under this key show. */
   protected timesShown(key: Key): boolean {
-    return !this.developerMode() || !this.hiddenTimes().has(keyIdOf(key));
+    return !this.hiddenTimes().has(keyIdOf(key));
   }
 
   /** Hides or shows the marks of the chart of times under a key. */
@@ -755,7 +755,7 @@ export class YourRuns {
 /** The marks of the chart of times, on top in developer mode, by the key each shows under. */
 const TIMES = {
   time: { mark: 'line', role: 'aggregate', label: 'Time per digit' },
-  baseline: { mark: 'line', role: 'run', label: 'Without breaks' },
+  baseline: { mark: 'line', role: 'run', label: 'Baseline' },
   breaks: { mark: 'bars', role: 'break', label: 'Usual break' },
   confidence: { mark: 'area', role: 'faint', label: 'Confidence trend' },
   others: { mark: 'line', role: 'faint', label: 'Runs picked' },
@@ -763,6 +763,9 @@ const TIMES = {
 
 /** The key to the chart of times, drawn like its marks. */
 const TIMES_KEYS: readonly Key[] = Object.values(TIMES);
+
+/** The key to the chart of times outside developer mode, which shows no runs picked. */
+const AGGREGATE_KEYS: readonly Key[] = TIMES_KEYS.filter((key) => key !== TIMES.others);
 
 /**
  * The perspectives on the break model, by what its steps are plotted along: the places, over the runs; the runs, at one
