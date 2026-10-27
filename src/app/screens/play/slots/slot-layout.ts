@@ -1,44 +1,39 @@
 import type { Box } from '../flight/flight';
 
-/** The most slots in one row, which spans the slots' width; past that, slots go on a new row below. */
-export const SLOTS_PER_ROW = 10;
-
-export interface SlotLayout {
-  /** How many slots to show. */
-  readonly count: number;
-  /** How many slots per row. */
-  readonly columns: number;
-}
+/** The most slots shown, which span the slots' width; past that, the first of them are off it, to the left. */
+export const SLOTS_SHOWN = 10;
 
 /**
- * Lays out the slots of the group being typed: one per digit of its size, plus one per mistake typed past it.
- * Rows grow to 10 slots, then a new row starts.
+ * How many slots the group being typed shows: one per digit of its size, up to {@link SLOTS_SHOWN}, plus one per digit
+ * typed past them, as mistakes are.
  */
-export function slotLayout(typed: number, size: number): SlotLayout {
-  const count = Math.max(size, typed);
-  return {
-    count,
-    columns: Math.min(count, SLOTS_PER_ROW),
-  };
+export function shownSlots(typed: number, size: number): number {
+  return Math.max(Math.min(size, SLOTS_SHOWN), typed);
 }
 
 /**
- * Where the first `count` slots sit when they're all the slots there are: rows of {@link SLOTS_PER_ROW} at most,
- * centered across `area` and standing on its bottom, as the slots do, each `slot` in size and `gap` apart.
+ * Where the first of `count` slots in a row sits, in steps between slots from where the first of {@link SLOTS_SHOWN}
+ * does: centered up to them, and past them ending where they do, the first of them off the slots' width, to the left.
+ */
+export function rowStart(count: number): number {
+  return count <= SLOTS_SHOWN ? (SLOTS_SHOWN - count) / 2 : SLOTS_SHOWN - count;
+}
+
+/**
+ * Where the first `count` slots sit when they're all the slots there are: in a row across `area`, as the slots do (see
+ * {@link rowStart}), each `slot` in size and `gap` apart.
  */
 export function slotBoxes(
   count: number,
   area: Box,
   slot: { readonly width: number; readonly height: number },
-  gap: { readonly column: number; readonly row: number },
+  gap: number,
 ): Box[] {
-  const columns = Math.min(count, SLOTS_PER_ROW);
-  const rows = Math.ceil(count / SLOTS_PER_ROW);
-  const left = area.left + (area.width - columns * slot.width - (columns - 1) * gap.column) / 2;
-  const top = area.top + area.height - rows * slot.height - (rows - 1) * gap.row;
+  const free = area.width - count * slot.width - (count - 1) * gap;
+  const left = area.left + (free > 0 ? free / 2 : free);
   return Array.from({ length: count }, (_, i) => ({
-    left: left + (i % SLOTS_PER_ROW) * (slot.width + gap.column),
-    top: top + Math.floor(i / SLOTS_PER_ROW) * (slot.height + gap.row),
+    left: left + i * (slot.width + gap),
+    top: area.top + area.height - slot.height,
     width: slot.width,
     height: slot.height,
   }));
@@ -59,16 +54,17 @@ export interface SlotMove {
 
 /**
  * How the slots move as a group that ended with `before` slots, all filled, hands over to one of `after` slots: all of
- * them left, by half the difference, each once the digit of the slot it was has left. When there are more slots, those
- * past the ones before are imagined on, past them, and fade in; when there are fewer, the leftmost of the ones before
- * go, fading out off-center (`leaving`).
+ * them left, each once the digit of the slot it was has left, by half the difference, as far as both show (see
+ * {@link rowStart}). When there are more slots, those past the ones before are imagined on, past them, and fade in;
+ * when there are fewer, the leftmost of the ones before go, fading out off-center (`leaving`), as do any off the slots'
+ * width, as if there had been only those shown.
  */
 export function slotHandover(
   before: number,
   after: number,
 ): { readonly slots: SlotMove[]; readonly leaving: SlotMove[] } {
-  const shift = Math.abs(before - after) / 2;
   const gone = Math.max(0, before - after);
+  const shift = rowStart(before) + gone - rowStart(after);
   return {
     slots: Array.from({ length: after }, (_, k) => ({
       from: k + shift,
@@ -77,8 +73,8 @@ export function slotHandover(
       ...(k >= before ? { fade: 'in' as const } : {}),
     })),
     leaving: Array.from({ length: gone }, (_, j) => ({
-      from: j - shift,
-      to: j - 2 * shift,
+      from: j - gone + shift,
+      to: j - gone,
       after: j,
       fade: 'out' as const,
     })),

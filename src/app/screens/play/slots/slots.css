@@ -1,17 +1,33 @@
 /*
- * One row grows up to 10 slots, centered, then a new row starts below it. The slots are always the size the layout makes
- * them (see `layout.ts`), and the gaps between them make 10 of them span the slots' width.
+ * One row, centered, of up to 10 slots, which span the slots' width; past them, it ends where they do, the first slots
+ * off the slots' width, to the left. The slots are always the size the layout makes them (see `layout.ts`), and the gaps
+ * between them make 10 of them span the slots' width. Slots show across the side margin, left of them, up to the
+ * column's edge, past which they're cut off. While they overflow, the left edge fades out as the tape's does
+ * (`--slots-left` in `styles.css`). No blur behind them: the fade's mask would keep it from seeing what's behind it.
  */
 :host {
   --gap: max(0px, (100% - 10 * var(--slot-width)) / 9);
   position: relative;
   display: grid;
   grid-template-columns: repeat(var(--columns), var(--slot-width));
-  gap: 0.375rem var(--gap);
+  column-gap: var(--gap);
   justify-content: center;
   align-content: center;
+  padding-inline: var(--margin-side);
   font-family: var(--font-digits);
   font-weight: 600;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    rgb(0 0 0 / var(--slots-left)),
+    #000 var(--edge-fade)
+  );
+  mask-image: linear-gradient(to right, rgb(0 0 0 / var(--slots-left)), #000 var(--edge-fade));
+  transition: --slots-left 0.3s;
+}
+
+:host(.overflowing) {
+  --slots-left: 0;
+  justify-content: end;
 }
 
 /* Its digit in the middle of its face, above its thickness, if filled. */
@@ -24,8 +40,6 @@
   font-size: calc(var(--slots-height) * 0.55);
   background: var(--frost-slot);
   box-shadow: inset 0 0 0 1.5px var(--frost-highlight);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
 }
 
 /* A slot going, out of the grid: of the group that ended, as the slots hand over, or taken away (see `Slots`). */
