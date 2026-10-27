@@ -15,7 +15,7 @@ function handle(label: string): LayoutHandle {
 describe('layout handles', () => {
   it('follows the finger: a handle moves as far as it’s dragged, in its value’s unit', () => {
     expect(dragged(handle('Top margin'), LAYOUT, 16, SIZES).margins.top).toBe(1.625);
-    expect(dragged(handle('Corners'), LAYOUT, -8, SIZES).corner.size).toBe(2.25);
+    expect(dragged(handle('Corner size'), LAYOUT, -8, SIZES).corner.size).toBe(2.25);
     expect(dragged(handle('Slot width'), LAYOUT, 4, SIZES).slots.width).toBe(9.1);
   });
 
@@ -61,13 +61,43 @@ describe('layout handles', () => {
     expect(dragged(handle('Bottom margin'), LAYOUT, -16, SIZES)).toEqual({
       ...LAYOUT,
       margins: { ...LAYOUT.margins, bottom: LAYOUT.margins.bottom + 1 },
-      keypad: { top: LAYOUT.keypad.top + 2 },
+      keypad: { ...LAYOUT.keypad, top: LAYOUT.keypad.top + 2 },
     });
   });
 
   it('steps a value by the finest step of its unit, up or down', () => {
     expect(stepped(handle('Keypad top'), LAYOUT, 1, SIZES).keypad.top).toBe(35.1);
-    expect(stepped(handle('Corners'), LAYOUT, -10, SIZES).corner.size).toBe(2.125);
+    expect(stepped(handle('Corner size'), LAYOUT, -10, SIZES).corner.size).toBe(2.125);
+  });
+
+  it('keeps each rounding within half of what it rounds, shrinking it along with that', () => {
+    expect(dragged(handle('Key radius'), LAYOUT, 1000, SIZES).keypad.keyRadius).toBe(
+      LAYOUT.keypad.keyHeight / 2,
+    );
+    expect(dragged(handle('Slot radius'), LAYOUT, 1000, SIZES).slots.radius).toBe(
+      (LAYOUT.slots.top - LAYOUT.slots.bottom) / 2,
+    );
+    expect(dragged(handle('Corner size'), LAYOUT, -1000, SIZES).corner).toEqual({
+      size: 1,
+      radius: 0.5,
+    });
+    const short = dragged(handle('Key height'), LAYOUT, -1000, SIZES).keypad;
+    expect(short.keyHeight).toBe(1);
+    expect(short.keyRadius).toBe(0.5);
+  });
+
+  it('sizes the keys within the keypad, three of them across at most', () => {
+    expect(dragged(handle('Key width'), LAYOUT, 1000, SIZES).keypad.keyWidth).toBe(33.3);
+    expect(dragged(handle('Key height'), LAYOUT, 8, SIZES).keypad.keyHeight).toBe(
+      LAYOUT.keypad.keyHeight + 1,
+    );
+  });
+
+  it('raises the top of the keys’ touches above the keypad’s top, never below it', () => {
+    expect(dragged(handle('Touch top'), LAYOUT, -8, SIZES).keypad.reach).toBe(
+      LAYOUT.keypad.reach + 1,
+    );
+    expect(dragged(handle('Touch top'), LAYOUT, 1000, SIZES).keypad.reach).toBe(0);
   });
 
   it('changes only the value of the handle', () => {

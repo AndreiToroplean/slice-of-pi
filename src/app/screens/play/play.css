@@ -40,14 +40,17 @@ app-typed-digits {
 }
 
 /*
- * The keys, from the bottom margin up to the keypad's top, between the side margins, and their touches reaching out
- * from them as far as they can (see `Keypad`): out to the column's sides, down to the bottom of the screen, and up a
- * third of a key.
+ * The keys, from the bottom margin up to the keypad's top, between the side margins, the gaps between them what their
+ * size leaves, and their touches reaching out from them as far as they can (see `Keypad`): out to the column's sides,
+ * down to the bottom of the screen, and up as far as the layout says.
  */
 .keypad {
   --keys-height: calc(var(--keypad-top) - var(--margin-bottom));
-  --key-height: calc((var(--keys-height) - 3 * var(--gap)) / 4);
-  --reach-top: calc(var(--key-height) / 3);
+  --key-height: var(--keypad-key-height);
+  --gap-x: max(0px, (var(--column) - 2 * var(--margin-side) - 3 * var(--keypad-key-width)) / 2);
+  --gap-y: max(0px, (var(--keys-height) - 4 * var(--key-height)) / 3);
+  --radius-key: var(--keypad-key-radius);
+  --reach-top: var(--keypad-reach);
   --reach-sides: var(--margin-side);
   --reach-bottom: calc(var(--floor) + var(--margin-bottom));
   position: absolute;

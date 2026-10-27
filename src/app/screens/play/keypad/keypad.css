@@ -5,13 +5,14 @@
  */
 :host {
   --key-height: 3.75rem;
-  --gap: var(--space-2);
+  --gap-x: var(--space-2);
+  --gap-y: var(--space-2);
   --reach-top: 0px;
   --reach-sides: 0px;
   --reach-bottom: 0px;
   /* Each key's cell, a key and half a gap on either side of it, in the keypad's padding box. */
-  --cell-width: calc((100% - 2 * var(--reach-sides) + var(--gap)) / 3);
-  --cell-height: calc((100% - var(--reach-top) - var(--reach-bottom) + var(--gap)) / 4);
+  --cell-width: calc((100% - 2 * var(--reach-sides) + var(--gap-x)) / 3);
+  --cell-height: calc((100% - var(--reach-top) - var(--reach-bottom) + var(--gap-y)) / 4);
   position: relative;
   display: block;
   padding: var(--reach-top) var(--reach-sides) var(--reach-bottom);
@@ -27,7 +28,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(4, 1fr);
-  gap: var(--gap);
+  gap: var(--gap-y) var(--gap-x);
 }
 
 /* Candy buttons (see `Candy`), for digits. */
@@ -54,14 +55,14 @@
  * out to the keypad's, tinted with the key's color.
  */
 .areas {
-  --side-width: calc(var(--reach-sides) - var(--gap) / 2 + var(--cell-width));
+  --side-width: calc(var(--reach-sides) - var(--gap-x) / 2 + var(--cell-width));
   position: absolute;
   inset: 0;
   display: grid;
   grid-template-columns: var(--side-width) 1fr var(--side-width);
   grid-template-rows:
-    calc(var(--reach-top) - var(--gap) / 2 + var(--cell-height))
-    1fr 1fr calc(var(--reach-bottom) - var(--gap) / 2 + var(--cell-height));
+    calc(var(--reach-top) - var(--gap-y) / 2 + var(--cell-height))
+    1fr 1fr calc(var(--reach-bottom) - var(--gap-y) / 2 + var(--cell-height));
   pointer-events: none;
 }
 
@@ -82,8 +83,8 @@
 
 .mark {
   position: absolute;
-  left: calc(var(--reach-sides) - var(--gap) / 2 + (var(--x) + 1.5) * var(--cell-width));
-  top: calc(var(--reach-top) - var(--gap) / 2 + (var(--y) + 1.5) * var(--cell-height));
+  left: calc(var(--reach-sides) - var(--gap-x) / 2 + (var(--x) + 1.5) * var(--cell-width));
+  top: calc(var(--reach-top) - var(--gap-y) / 2 + (var(--y) + 1.5) * var(--cell-height));
   width: 0.75rem;
   height: 0.75rem;
   translate: -50% -50%;
