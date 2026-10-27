@@ -1,7 +1,6 @@
 import {
   FLIGHT_DURATION,
   PRESS_DURATION,
-  SLOT_DEPTH,
   FLIGHT_STAGGER,
   flightKeyframes,
   flightStagger,
@@ -29,37 +28,38 @@ describe('tileCorners', () => {
 describe('flightKeyframes', () => {
   const slot = { left: 100, top: 500, width: 40, height: 60 };
   const tile = { left: 20, top: 100, width: 20, height: 24 };
+  /** The slot's thickness, in pixels. */
+  const depth = 4;
 
   it('starts on the slot, with its radius and its thickness', () => {
-    expect(flightKeyframes(slot, tile, 14, [0, 0, 0, 0])[0]).toMatchObject({
+    expect(flightKeyframes(slot, tile, 14, [0, 0, 0, 0], { depth })[0]).toMatchObject({
       transform: 'none',
       borderRadius: '14px',
-      boxShadow: `inset 0 -${String(SLOT_DEPTH)}px 0 rgb(0 0 0 / 14%)`,
+      boxShadow: 'inset 0 -4px 0 rgb(0 0 0 / 14%)',
     });
   });
 
   it('first presses in: its face moves down over its thickness, which is gone', () => {
-    const [, pressed] = flightKeyframes(slot, tile, 14, [0, 0, 0, 0]);
+    const [, pressed] = flightKeyframes(slot, tile, 14, [0, 0, 0, 0], { depth });
 
-    expect(SLOT_DEPTH).toBe(4);
     // The face covers the bottom 56 of the slot's 60 pixels: its center moves down by 2.
     expect(pressed).toMatchObject({
       offset: PRESS_DURATION / (PRESS_DURATION + FLIGHT_DURATION),
       transform: `translate(0px, 2px) scale(1, ${String(56 / 60)})`,
       borderRadius: `14px / ${String(14 / (56 / 60))}px`,
-      boxShadow: 'inset 0 0 0 rgb(0 0 0 / 0%)',
+      boxShadow: 'inset 0 -0px 0 rgb(0 0 0 / 0%)',
     });
   });
 
   it('lands centered on the tile, scaled to its size', () => {
-    const [, , end] = flightKeyframes(slot, tile, 14, [0, 0, 0, 0]);
+    const [, , end] = flightKeyframes(slot, tile, 14, [0, 0, 0, 0], { depth });
 
     // Centers: the slot's at (120, 530), the tile's at (30, 112).
     expect(end?.['transform']).toBe('translate(-90px, -418px) scale(0.5, 0.4)');
   });
 
   it("lands with the tile's corners, undoing the scale", () => {
-    const [, , end] = flightKeyframes(slot, tile, 14, [4, 0, 0, 4]);
+    const [, , end] = flightKeyframes(slot, tile, 14, [4, 0, 0, 4], { depth });
 
     expect(end?.['borderRadius']).toBe('8px 0px 0px 8px / 10px 0px 0px 10px');
   });
@@ -68,7 +68,12 @@ describe('flightKeyframes', () => {
     const slid = { ...slot, left: 130 };
     const through = 56 + 120 + PRESS_DURATION;
     const total = through + FLIGHT_DURATION;
-    const keyframes = flightKeyframes(slot, tile, 14, [4, 0, 0, 4], { slid, slide: 120, wait: 56 });
+    const keyframes = flightKeyframes(slot, tile, 14, [4, 0, 0, 4], {
+      slid,
+      slide: 120,
+      wait: 56,
+      depth,
+    });
 
     /** Where a keyframe has the slot, from where it starts. */
     function at(keyframe: Keyframe | undefined): { x: number; y: number } {
@@ -87,7 +92,7 @@ describe('flightKeyframes', () => {
 
     it('goes through where it slides to, pressed in, as it would have pressed in there, and lands on the tile', () => {
       const middle = keyframes.find((keyframe) => keyframe.offset === through / total);
-      expect(at(middle)).toEqual({ x: 30, y: SLOT_DEPTH / 2 });
+      expect(at(middle)).toEqual({ x: 30, y: depth / 2 });
       expect(middle?.['transform']).toContain(`scale(1, ${String(56 / 60)})`);
       expect(keyframes.at(-1)).toMatchObject({
         offset: 1,
@@ -98,9 +103,9 @@ describe('flightKeyframes', () => {
 
     it('only slides across until it lifts off, but for its face sinking as it presses in, never going back', () => {
       const sliding = keyframes.filter((keyframe) => Number(keyframe.offset) <= through / total);
-      expect(
-        sliding.every((keyframe) => at(keyframe).y >= 0 && at(keyframe).y <= SLOT_DEPTH / 2),
-      ).toBe(true);
+      expect(sliding.every((keyframe) => at(keyframe).y >= 0 && at(keyframe).y <= depth / 2)).toBe(
+        true,
+      );
       const across = sliding.map((keyframe) => at(keyframe).x);
       expect(across).toEqual([...across].sort((a, b) => a - b));
     });
@@ -125,7 +130,7 @@ describe('flightKeyframes', () => {
 
 describe('slideDuration', () => {
   const box = { left: 100, top: 500, width: 40, height: 60 };
-  const slot = { box, radius: 14, fontSize: 34, slid: box };
+  const slot = { box, radius: 14, fontSize: 34, depth: 4, slid: box };
 
   it('slides only when a slot has somewhere to slide to', () => {
     expect(slideDuration([slot, slot])).toBe(0);
@@ -172,7 +177,7 @@ describe('flyIntoWord', () => {
     }
     document.body.append(word);
     const box = { left: 0, top: 0, width: 40, height: 60 };
-    const slot = { box, radius: 14, fontSize: 34, slid: box };
+    const slot = { box, radius: 14, fontSize: 34, depth: 4, slid: box };
 
     flyIntoWord(document.body, [slot, slot], word);
 
@@ -202,5 +207,15 @@ describe('snapshotSlot', () => {
 
     expect(snapshotSlot(document.body, slot).box).toMatchObject({ width: 40, height: 60 });
     expect(moved).toBe(false);
+  });
+
+  it('takes its thickness from the layout, in pixels', () => {
+    const slot = document.createElement('div');
+    slot.style.setProperty('--slot-depth', '4.5px');
+    slot.getAnimations = () => [];
+    document.body.append(slot);
+
+    expect(snapshotSlot(document.body, slot).depth).toBe(4.5);
+    slot.remove();
   });
 });

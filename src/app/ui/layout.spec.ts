@@ -33,7 +33,7 @@ describe('layout', () => {
   it('rounds the tape’s tiles as the slots, scaled with them', () => {
     const styles = layoutStyles({
       ...LAYOUT,
-      slots: { top: 46, bottom: 40, width: 9, radius: 1.2 },
+      slots: { ...LAYOUT.slots, top: 46, bottom: 40, width: 9, radius: 1.2 },
       tape: { ...LAYOUT.tape, words: 3 },
     });
 
@@ -47,6 +47,8 @@ describe('layout', () => {
     expect(styles['--keypad-key-height']).toBe('calc(7.4 * var(--unit))');
     expect(styles['--keypad-key-width']).toBe('calc(28.6 * var(--column) / 100)');
     expect(styles['--keypad-reach']).toBe('calc(2.5 * var(--unit))');
+    expect(styles['--keypad-key-depth']).toBe('calc(0.6 * var(--unit))');
+    expect(styles['--slot-depth']).toBe('calc(0.5 * var(--unit))');
   });
 
   it('reads a stored layout, each value missing or out of range at the game’s own', () => {

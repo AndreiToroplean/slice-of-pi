@@ -19,6 +19,8 @@ export interface SlotSnapshot {
   readonly box: Box;
   readonly radius: number;
   readonly fontSize: number;
+  /** Its thickness: the dark band along its bottom, below its face (see `slots.css`), in pixels. */
+  readonly depth: number;
   /** Where it slides to before it flies: where it would be were its group's slots all the slots there are. */
   readonly slid: Box;
 }
@@ -35,9 +37,10 @@ export const PRESS_DURATION = 70;
 export const FLIGHT_DURATION = 480;
 /** When the first slot lands in its tile, in ms after it starts, unless the slots slide first. */
 export const FIRST_LANDING = PRESS_DURATION + FLIGHT_DURATION;
-/** The thickness of a filled slot: the dark band along its bottom (see `slots.css`), in pixels. */
-export const SLOT_DEPTH = 4;
-const SLOT_EDGE = `inset 0 -${String(SLOT_DEPTH)}px 0 rgb(0 0 0 / 14%)`;
+/** The dark band along a filled slot's bottom, `depth` pixels thick, `shown` from 1 down to 0 as it presses in. */
+function slotEdge(depth: number, shown = 1): string {
+  return `inset 0 -${String(depth * shown)}px 0 rgb(0 0 0 / ${String(14 * shown)}%)`;
+}
 const PRESS_EASING = 'cubic-bezier(0.3, 0, 0.5, 1)';
 /** Each slot leaves this long after the one before it, in ms. */
 export const FLIGHT_STAGGER = 28;
@@ -74,8 +77,8 @@ export function leavesAt(index: number, slide: number): number {
 /**
  * The flight of a slot, from `from`, into its tile, at `to`, once it has waited its turn, `wait` ms. First it presses in
  * like a button: its face, its digit in the middle of it, moves down over its thickness, the dark band along its bottom,
- * which it then no longer has.
- * Then it keeps its form and color, moving and shrinking onto the tile. Its radii undo the scale, so that it lands with
+ * `depth` pixels thick, which it then no longer has. Then it keeps its form and color, moving and shrinking onto the
+ * tile. Its radii undo the scale, so that it lands with
  * the tile's corners: rounded on the outside of the word, square inside it.
  *
  * When it slides to `slid` first, for `slide` ms, it sweeps there and on in one move instead (see {@link sweep}).
@@ -85,10 +88,15 @@ export function flightKeyframes(
   to: Box,
   slotRadius: number,
   corners: Corners,
-  { slid = from, slide = 0, wait = 0 }: { slid?: Box; slide?: number; wait?: number } = {},
+  {
+    slid = from,
+    slide = 0,
+    wait = 0,
+    depth = 0,
+  }: { slid?: Box; slide?: number; wait?: number; depth?: number } = {},
 ): Keyframe[] {
   if (slide > 0) {
-    return sweep(from, slid, to, slotRadius, corners, { slide, wait });
+    return sweep(from, slid, to, slotRadius, corners, { slide, wait, depth });
   }
   const dx = to.left + to.width / 2 - (from.left + from.width / 2);
   const dy = to.top + to.height / 2 - (from.top + from.height / 2);
@@ -96,13 +104,13 @@ export function flightKeyframes(
   const sy = to.height / from.height;
   const radii = (scale: number): string => corners.map((c) => `${String(c / scale)}px`).join(' ');
   // Pressed, its face covers the bottom of the slot, where the band was: as wide, as tall, and lower by the depth.
-  const pressedScale = (from.height - SLOT_DEPTH) / from.height;
+  const pressedScale = (from.height - depth) / from.height;
   const total = wait + PRESS_DURATION + FLIGHT_DURATION;
   const resting = {
     transform: 'none',
     borderRadius: `${String(slotRadius)}px`,
-    boxShadow: SLOT_EDGE,
-    paddingBottom: `${String(SLOT_DEPTH)}px`,
+    boxShadow: slotEdge(depth),
+    paddingBottom: `${String(depth)}px`,
     easing: PRESS_EASING,
   };
   return [
@@ -110,9 +118,9 @@ export function flightKeyframes(
     ...(wait > 0 ? [{ offset: wait / total, ...resting }] : []),
     {
       offset: (wait + PRESS_DURATION) / total,
-      transform: `translate(0px, ${String(SLOT_DEPTH / 2)}px) scale(1, ${String(pressedScale)})`,
+      transform: `translate(0px, ${String(depth / 2)}px) scale(1, ${String(pressedScale)})`,
       borderRadius: `${String(slotRadius)}px / ${String(slotRadius / pressedScale)}px`,
-      boxShadow: 'inset 0 0 0 rgb(0 0 0 / 0%)',
+      boxShadow: slotEdge(depth, 0),
       paddingBottom: '0px',
       easing: FLIGHT_EASING,
     },
@@ -120,7 +128,7 @@ export function flightKeyframes(
       offset: 1,
       transform: `translate(${String(dx)}px, ${String(dy)}px) scale(${String(sx)}, ${String(sy)})`,
       borderRadius: `${radii(sx)} / ${radii(sy)}`,
-      boxShadow: 'inset 0 0 0 rgb(0 0 0 / 0%)',
+      boxShadow: slotEdge(depth, 0),
       paddingBottom: '0px',
     },
   ];
@@ -148,14 +156,14 @@ function sweep(
   to: Box,
   slotRadius: number,
   corners: Corners,
-  { slide, wait }: { slide: number; wait: number },
+  { slide, wait, depth }: { slide: number; wait: number; depth: number },
 ): Keyframe[] {
   const through = wait + slide + PRESS_DURATION;
   const total = through + FLIGHT_DURATION;
-  const pressedScale = (from.height - SLOT_DEPTH) / from.height;
+  const pressedScale = (from.height - depth) / from.height;
   // Where it is, from where it starts, at each of the three.
   const start: Point = { x: 0, y: 0 };
-  const middle: Point = { x: slid.left - from.left, y: slid.top - from.top + SLOT_DEPTH / 2 };
+  const middle: Point = { x: slid.left - from.left, y: slid.top - from.top + depth / 2 };
   const end: Point = {
     x: to.left + to.width / 2 - (from.left + from.width / 2),
     y: to.top + to.height / 2 - (from.top + from.height / 2),
@@ -209,8 +217,8 @@ function sweep(
       borderRadius: `${corners.map((c) => `${String(radius(c) / scaleX)}px`).join(' ')} / ${corners
         .map((c) => `${String(radius(c) / scaleY)}px`)
         .join(' ')}`,
-      boxShadow: `inset 0 -${String(SLOT_DEPTH * (1 - pressed))}px 0 rgb(0 0 0 / ${String(14 * (1 - pressed))}%)`,
-      paddingBottom: `${String(SLOT_DEPTH * (1 - pressed))}px`,
+      boxShadow: slotEdge(depth, 1 - pressed),
+      paddingBottom: `${String(depth * (1 - pressed))}px`,
     };
   });
 }
@@ -269,6 +277,7 @@ export function snapshotSlot(layer: Element, slot: Element): SlotSnapshot {
     box,
     radius: parseFloat(style.borderTopLeftRadius) || 0,
     fontSize: parseFloat(style.fontSize) || 0,
+    depth: parseFloat(style.getPropertyValue('--slot-depth')) || 0,
     slid: box,
   };
 }
@@ -320,6 +329,7 @@ export function flyIntoWord(
         slid: slot.slid,
         slide,
         wait: flightStagger(i),
+        depth: slot.depth,
       }),
       flightTiming(i, slide),
     );
