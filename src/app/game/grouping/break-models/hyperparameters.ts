@@ -2,7 +2,7 @@ import { Hyperparameter } from './break-model';
 
 /**
  * The hyperparameters of the break models that tell breaks by a baseline and a mixture (`steps.ts`), and the slider
- * each one has on Your Runs in developer mode, with what it means behind its help button. Each model picks those it
+ * each one has on Model Tuning, with what it means behind its help button. Each model picks those it
  * uses, and sets their defaults.
  */
 

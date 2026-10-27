@@ -53,7 +53,7 @@ function keysOf(kind: BreakModelKind): string[] {
 }
 
 /**
- * Developer mode's tabs on Your Runs: one with what is given to it, the runs; one picking the break model, and importing
+ * Developer mode's tabs on Model Tuning: one with what is given to it, the runs; one picking the break model, and importing
  * the values of the hyperparameters it shares with another model, both from pickers, then what is given to it marked
  * `modelAction`; and the break model's own, with the sliders for each of its hyperparameters, a few to a tab,
  * scrolling if they don't fit, a pair of sliders sharing a row. Each slider has a toggle button pinning it, so that
