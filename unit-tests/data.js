@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793131556299,
+  "lastUpdate": 1793133401494,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2720,6 +2720,46 @@ window.BENCHMARK_DATA = {
             "value": 603,
             "unit": "ms",
             "extra": "ContextMenu takes no mouse held down for a long press"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "noreply@anthropic.com",
+            "name": "Claude",
+            "username": "claude"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "e124c90bcfb9177467f692577adc0641547e433b",
+          "message": "feat: add a button resetting every developer tweak, once confirmed, to the settings\n\n- It sits at the end of the Developer section, red and disabled while nothing is tuned.\n- It asks first, as it also erases tuned colors, break model hyperparameters, pins, run order and layout.\n\nClaude-Session: https://claude.ai/code/session_01X1XesrNhrRsBJHUjwzL7xk",
+          "timestamp": "2026-10-27T21:36:11+01:00",
+          "tree_id": "a77a6bfc486f33b1090a7bd91ba9b9ae0ad66e15",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/e124c90bcfb9177467f692577adc0641547e433b"
+        },
+        "date": 1793133400316,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14465,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 31780,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 961,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs shows unchecked runs too, marked, still leaving them out of the groups"
           }
         ]
       }
