@@ -279,21 +279,6 @@ describe('GroupingSettingsPanel', () => {
     expect(dialog?.querySelector('h2')).toBeNull();
   });
 
-  it('brings back the game’s settings', async () => {
-    const { host, detect } = await setUp();
-    const reset = buttonLabelled(host, 'Back to Default Settings');
-
-    expect(reset.disabled).toBe(true);
-    move(slider(host, 'window'), 11);
-    detect();
-    expect(reset.disabled).toBe(false);
-    reset.click();
-    detect();
-
-    expect(TestBed.inject(Tweaks).values().grouping).toBeUndefined();
-    expect(slider(host, 'window').value).toBe('21');
-  });
-
   it('keeps the tuned settings, and none once they are all back to their defaults', async () => {
     const { host } = await setUp();
     const tweaks = TestBed.inject(Tweaks);

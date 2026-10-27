@@ -395,6 +395,25 @@ describe('ModelTuning', () => {
     ).toEqual([]);
   });
 
+  it('brings back the game’s values of the hyperparameters of the break model picked', async () => {
+    const { host, until } = await setUp(trusted);
+    const reset = button(host, 'Reset All');
+    const slider = host.querySelector<HTMLInputElement>('#setting-window');
+    if (slider === null) {
+      throw new Error('No slider');
+    }
+    expect(reset.disabled).toBe(true);
+
+    slider.value = '11';
+    slider.dispatchEvent(new Event('input'));
+    await until(() => !reset.disabled);
+    reset.click();
+    await until(() => reset.disabled);
+
+    expect(TestBed.inject(Tweaks).values().grouping).toBeUndefined();
+    expect(slider.value).toBe('21');
+  });
+
   it('follows the grouping settings as they change', async () => {
     const { host, until } = await setUp(trusted);
     const slider = host.querySelector<HTMLInputElement>('#setting-level');
