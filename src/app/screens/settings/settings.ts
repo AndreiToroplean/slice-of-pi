@@ -143,10 +143,8 @@ export class Settings {
   protected readonly layoutDefault = computed(
     () => this.keypadLayout.layout() === DEFAULT_KEYPAD_LAYOUT,
   );
-  /** Whether the countdown shows, as it does unless turned off: only developer mode has it. */
-  protected readonly countdownDefault = computed(
-    () => !this.developerMode.enabled() || this.tweaks.countdown(),
-  );
+  /** Whether the countdown is hidden, as it is unless turned on: only developer mode has it. */
+  protected readonly countdownDefault = computed(() => !this.tweaks.countdown());
   /** Whether every setting shown has its default value; the digits are always checked outside developer mode. */
   protected readonly allDefault = computed(
     () =>
@@ -173,7 +171,7 @@ export class Settings {
   }
 
   protected resetCountdown(): void {
-    void this.tweaks.setCountdown(true);
+    void this.tweaks.setCountdown(false);
   }
 
   protected resetChecking(): void {
