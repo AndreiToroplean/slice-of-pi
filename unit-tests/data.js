@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793144018429,
+  "lastUpdate": 1793145581025,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2800,6 +2800,46 @@ window.BENCHMARK_DATA = {
             "value": 932,
             "unit": "ms",
             "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "d5705ed41bb5cd9b121b07f50f32bd71477a3b71",
+          "message": "docs: ask for short, punchy titles",
+          "timestamp": "2026-10-28T00:59:17+01:00",
+          "tree_id": "419a0aa2f1640c936dd5cf40b4634939fa938f2a",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/d5705ed41bb5cd9b121b07f50f32bd71477a3b71"
+        },
+        "date": 1793145580202,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 12786,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 27347,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 811,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs shows unchecked runs too, marked, still leaving them out of the groups"
           }
         ]
       }
