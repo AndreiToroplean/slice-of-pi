@@ -71,6 +71,9 @@ import { TIMES, TimesView } from '../your-runs/times-view';
   providers: [RunsState, { provide: WITH_UNCHECKED, useValue: signal(true) }],
   template: `
     <app-page heading="Model Tuning">
+      <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
+        Reset All
+      </button>
       @if (charts().length > 0) {
         <app-summary-card>
           <!--
@@ -248,6 +251,10 @@ export class ModelTuning {
   protected readonly state = inject(RunsState);
   private readonly tweaks = inject(Tweaks);
   protected readonly includeUnchecked = this.tweaks.includeUnchecked;
+  /** Whether the hyperparameters of the break model picked are tuned. */
+  protected readonly tuned = computed(
+    () => this.tweaks.values().grouping?.[this.tweaks.breakModelKind().id] !== undefined,
+  );
   /** What the break model makes of the runs step by step, if it can show that. */
   private readonly steps = computed(() =>
     this.tweaks.breakModelKind().steps?.(this.tweaks.grouping(), this.state.countedTimes()),
@@ -350,6 +357,11 @@ export class ModelTuning {
 
   constructor() {
     void this.myGroupings.load();
+  }
+
+  /** Brings back the game's values of the hyperparameters of the break model picked. */
+  protected reset(): void {
+    void this.tweaks.setGrouping(undefined);
   }
 
   protected setIncludeUnchecked(event: Event): void {
