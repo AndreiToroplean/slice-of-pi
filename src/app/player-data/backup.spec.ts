@@ -73,12 +73,12 @@ describe('backup', () => {
     });
   });
 
-  it('names the file after the date', () => {
-    expect(backupFileName(new Date(2026, 9, 10, 23, 59).getTime())).toBe(
-      'slice-of-pi-2026-10-10.json',
+  it('names the file after the time, down to the millisecond', () => {
+    expect(backupFileName(new Date(2026, 9, 10, 23, 59, 7, 42).getTime())).toBe(
+      'slice-of-pi-2026-10-10-23-59-07-042.json',
     );
     expect(backupFileName(new Date(2027, 0, 2, 0, 1).getTime())).toBe(
-      'slice-of-pi-2027-01-02.json',
+      'slice-of-pi-2027-01-02-00-01-00-000.json',
     );
   });
 });
