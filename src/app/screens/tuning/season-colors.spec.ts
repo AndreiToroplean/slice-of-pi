@@ -87,13 +87,15 @@ describe('SeasonColors', () => {
     await set(range, '60', stable);
 
     expect(background()).toEqual(seasonAt(60).background);
-    expect(host.querySelector('app-season-header .name')?.textContent.trim()).toBe('Autumn');
+    expect(host.querySelector('app-season-header .season')?.textContent.trim()).toBe(
+      'Autumn · Year 0',
+    );
 
     await set(range, '-10', stable);
 
     expect(background()).toEqual(seasonAt(90).background);
-    expect(host.querySelector('app-season-header .place')?.textContent.trim()).toBe(
-      'Year 0 · digit 90 of 100',
+    expect(host.querySelector('app-season-header .season')?.textContent.trim()).toBe(
+      'Winter · Year -1',
     );
   });
 

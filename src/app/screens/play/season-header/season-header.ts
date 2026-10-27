@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { PLACES_PER_YEAR, SeasonView } from '../../../game/layers/seasons';
+import { SeasonView } from '../../../game/layers/seasons';
 
 /** Each season's name, as shown. */
 export const SEASON_NAMES = {
@@ -9,11 +9,12 @@ export const SEASON_NAMES = {
   winter: 'Winter',
 } as const;
 
-/** The season header: the season's icon and name, the year and place in it, and the four-part year bar. */
+/** The season header: the places typed, the season's icon and name, the year, and the four-part year bar. */
 @Component({
   selector: 'app-season-header',
   template: `
-    <p class="name">
+    <p class="count">Digit {{ view().places }}</p>
+    <p class="season">
       @switch (view().season) {
         @case ('spring') {
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="#fff">
@@ -63,10 +64,7 @@ export const SEASON_NAMES = {
           </svg>
         }
       }
-      <span>{{ name() }}</span>
-    </p>
-    <p class="place">
-      Year {{ view().year }} · digit {{ view().placeInYear }} of {{ placesPerYear }}
+      <span>{{ name() }} · Year {{ view().year }}</span>
     </p>
     <div class="year" aria-hidden="true">
       @for (progress of view().seasonProgress; track $index) {
@@ -80,5 +78,4 @@ export class SeasonHeader {
   readonly view = input.required<SeasonView>();
 
   protected readonly name = computed(() => SEASON_NAMES[this.view().season]);
-  protected readonly placesPerYear = PLACES_PER_YEAR;
 }
