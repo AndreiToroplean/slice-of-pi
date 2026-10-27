@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792965744961,
+  "lastUpdate": 1793059585028,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2560,6 +2560,46 @@ window.BENCHMARK_DATA = {
             "value": 1098,
             "unit": "ms",
             "extra": "enveloped finds the best grouping over all the places at once, and its evidence at each"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "73a96073876ae54fb74e8170b4d412a27a620bb1",
+          "message": "feat: sweep the slots of a group ending short of its slots through their places and on in one move\n\n- Each slides across only, pressing in, until it lifts off from its place, then rises to its tile, its position and speed never jumping, rather than stopping there before flying.\n- Its speed across through its place is the parabola's through its slot, place and tile, but never so slow that it stops, nor so fast that it overshoots.\n- It passes its place and lands when it would have lifted off and landed, so that the tape and the next group's slots keep in step with it.",
+          "timestamp": "2026-10-27T01:06:04+01:00",
+          "tree_id": "0cf99dabd938b5f352015c5dcb1b2d059e08478e",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/73a96073876ae54fb74e8170b4d412a27a620bb1"
+        },
+        "date": 1793059584526,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 12643,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 27277,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1029,
+            "unit": "ms",
+            "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
           }
         ]
       }
