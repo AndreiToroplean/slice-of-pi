@@ -10,7 +10,7 @@ import { YourData } from './your-data';
 
 /**
  * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout, and in developer mode,
- * whether the keys are see-through or solid, whether to count down to the end of each group and whether to check the
+ * whether the keys are solid or see-through, whether to count down to the end of each group and whether to check the
  * digits typed. Each setting has a button to
  * bring back its default value, and the top bar one to bring them all back.
  */
@@ -66,8 +66,8 @@ import { YourData } from './your-data';
               type="button"
               class="round"
               title="Back to Default"
-              [disabled]="!tweaks.solidKeys()"
-              (click)="setSolidKeys(false)"
+              [disabled]="tweaks.solidKeys()"
+              (click)="setSolidKeys(true)"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M9 14 4 9l5-5" />
@@ -134,8 +134,8 @@ export class Settings {
     { value: 'telephone', label: 'Telephone' },
   ];
   protected readonly keyLooks: readonly Segment<'clear' | 'solid'>[] = [
-    { value: 'clear', label: 'Clear Keys' },
     { value: 'solid', label: 'Solid Keys' },
+    { value: 'clear', label: 'Clear Keys' },
   ];
   protected readonly developerMode = inject(DeveloperMode);
   protected readonly tweaks = inject(Tweaks);
@@ -153,7 +153,7 @@ export class Settings {
       this.layoutDefault() &&
       this.countdownDefault() &&
       this.tweaks.checking() &&
-      !this.tweaks.solidKeys(),
+      this.tweaks.solidKeys(),
   );
 
   protected setCountdown(event: Event): void {
@@ -184,7 +184,7 @@ export class Settings {
   protected resetAll(): void {
     this.resetLayout();
     if (this.developerMode.enabled()) {
-      this.setSolidKeys(false);
+      this.setSolidKeys(true);
       this.resetCountdown();
       this.resetChecking();
     }
