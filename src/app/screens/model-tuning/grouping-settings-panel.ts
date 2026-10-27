@@ -60,8 +60,7 @@ function keysOf(kind: BreakModelKind): string[] {
  * fitting the model to the player's groups leaves it where it is (kept with the tweaks, for each model), a button
  * bringing back the game's value, a help button opening a dialog that says what it does, and, where another model has
  * it too, a button importing its value from one of them. At the end of the tabs' strip, a plain ⋮ opens an overflow menu
- * with buttons to copy the settings' values so they go into the code and to bring back the game's settings, then what
- * is given to it marked `menuItem`.
+ * with a button to copy the settings' values so they go into the code, then what is given to it marked `menuItem`.
  */
 @Component({
   selector: 'app-grouping-settings-panel',
@@ -77,9 +76,6 @@ function keysOf(kind: BreakModelKind): string[] {
       />
       <app-dropdown-menu [plain]="true">
         <button type="button" (click)="void copy()">Copy Hyperparameter Values</button>
-        <button type="button" [disabled]="!tuned()" (click)="reset()">
-          Back to Default Settings
-        </button>
         <hr />
         <ng-content select="[menuItem]" />
       </app-dropdown-menu>
@@ -454,9 +450,6 @@ export class GroupingSettingsPanel {
   /** The break model picked, and its hyperparameters. */
   protected readonly kind = this.tweaks.breakModelKind;
   private readonly settings = this.tweaks.grouping;
-  protected readonly tuned = computed(
-    () => this.tweaks.values().grouping?.[this.kind().id] !== undefined,
-  );
   /** The other break models, each with the keys of the hyperparameters it shares with the one picked, if any. */
   private readonly shared = computed(() => {
     const own = keysOf(this.kind());
@@ -542,10 +535,6 @@ export class GroupingSettingsPanel {
 
   protected closeHelp(): void {
     this.helpDialog().nativeElement.close();
-  }
-
-  protected reset(): void {
-    void this.tweaks.setGrouping(undefined);
   }
 
   protected togglePin(key: string): void {
