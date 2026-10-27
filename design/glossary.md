@@ -21,7 +21,7 @@
 - **Typed digits:** the digits typed so far in the run, in words.
 - **Tape:** the one row the typed digits sit on, scrolling as words come on and off it. Each digit on it is a **tile**.
 - **Background:** the season-colored backdrop behind every screen. Never call it the sky.
-- **Season header:** the top of the play screen: the season, and the place in the year on the **year bar**.
+- **Season header:** the top of the play screen: the digit reached (the places typed, digit 0 before any), the season and year, and the place in the year on the **year bar**.
 - **Sky:** the 3D night sky where the player's constellations collect.
 
 ## Play
@@ -47,7 +47,7 @@
 - **Palette:** the sequence of colors every digit key steps through.
 - **Place color:** the color of a place, from the palette.
 - **Key color:** the color a digit key shows: the place color of the next occurrence of its digit.
-- **Season / year:** 100 places make one year of four seasons.
+- **Season / year:** 100 places make one year of four seasons. Years count from 0, so the year is the hundreds of the digit reached: digit 200 starts year 2.
 
 ## Player
 

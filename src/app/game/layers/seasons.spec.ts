@@ -9,10 +9,11 @@ import {
 } from './seasons';
 
 describe('seasonAt', () => {
-  it('starts in spring of year 1', () => {
+  it('starts in spring of year 0, with no places typed', () => {
     expect(seasonAt(0)).toMatchObject({
+      places: 0,
       season: 'spring',
-      year: 1,
+      year: 0,
       placeInYear: 0,
       seasonProgress: [0, 0, 0, 0],
     });
@@ -32,15 +33,21 @@ describe('seasonAt', () => {
     ]);
   });
 
-  it('starts a new year every 100 places', () => {
+  it('starts a new year every 100 places, the year being their hundreds', () => {
     expect(PLACES_PER_YEAR).toBe(100);
-    expect(seasonAt(99)).toMatchObject({ year: 1, placeInYear: 99 });
-    expect(seasonAt(100)).toMatchObject({ season: 'spring', year: 2, placeInYear: 0 });
-    expect(seasonAt(1234)).toMatchObject({ season: 'summer', year: 13, placeInYear: 34 });
+    expect(seasonAt(99)).toMatchObject({ places: 99, year: 0, placeInYear: 99 });
+    expect(seasonAt(100)).toMatchObject({ places: 100, season: 'spring', year: 1, placeInYear: 0 });
+    expect(seasonAt(200)).toMatchObject({ places: 200, season: 'spring', year: 2, placeInYear: 0 });
+    expect(seasonAt(1234)).toMatchObject({
+      places: 1234,
+      season: 'summer',
+      year: 12,
+      placeInYear: 34,
+    });
   });
 
   it('goes back into the year before the first', () => {
-    expect(seasonAt(-25)).toMatchObject({ season: 'winter', year: 0, placeInYear: 75 });
+    expect(seasonAt(-25)).toMatchObject({ season: 'winter', year: -1, placeInYear: 75 });
     expect(seasonAt(-1).background).toEqual(seasonAt(99).background);
   });
 
