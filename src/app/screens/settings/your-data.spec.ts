@@ -83,13 +83,13 @@ describe('YourData', () => {
     );
   });
 
-  it('saves a backup of every run and setting, named after the date', async () => {
+  it('saves a backup of every run and setting, named after the time', async () => {
     const { host, until } = await setUp([first, second], false, false, undefined, true);
 
     button(host, 'Save a Backup').click();
     await until(() => message(host) !== '');
 
-    expect(saved.map((file) => file.name)).toEqual(['slice-of-pi-2026-10-10.json']);
+    expect(saved.map((file) => file.name)).toEqual(['slice-of-pi-2026-10-10-12-00-00-000.json']);
     expect(readBackup(saved[0]?.text ?? '')).toEqual({
       runs: [first, second],
       skipped: 0,
