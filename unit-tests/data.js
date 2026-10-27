@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793105046644,
+  "lastUpdate": 1793131121868,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2640,6 +2640,46 @@ window.BENCHMARK_DATA = {
             "value": 605,
             "unit": "ms",
             "extra": "ContextMenu takes no mouse held down for a long press"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "4d43352bb077a1739494be248e281ee145e4b38f",
+          "message": "fix: fly the last digit of a group ending at once past its slots, rather than show it on the tape\n\n- A group ending as its last digit is typed, such as the tenth of a group typed without a pause, which the envelope lets no longer be, had its slots snapshotted before that digit's slot was shown: it never flew, and its tile showed on the tape at once while the others flew.\n- It now flies from where its slot would have been, the others sliding over to make room for it, as they would have.",
+          "timestamp": "2026-10-27T20:58:12+01:00",
+          "tree_id": "97575e169efc3fa16d341e317d7ed28deba037b6",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/4d43352bb077a1739494be248e281ee145e4b38f"
+        },
+        "date": 1793131120797,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14660,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 31879,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1130,
+            "unit": "ms",
+            "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
           }
         ]
       }
