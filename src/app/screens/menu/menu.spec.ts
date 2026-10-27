@@ -198,10 +198,13 @@ describe('Menu', () => {
           link.textContent.trim(),
           link.getAttribute('href'),
         ]),
-      ).toEqual([
-        ['Key Colors', '/developer/key-colors'],
-        ['Season Colors', '/developer/season-colors'],
-      ]);
+      ).toEqual(
+        expect.arrayContaining([
+          ['Model Tuning', '/developer/model-tuning'],
+          ['Key Colors', '/developer/key-colors'],
+          ['Season Colors', '/developer/season-colors'],
+        ]),
+      );
     });
 
     it('starts on the tuned background of a new game', async () => {

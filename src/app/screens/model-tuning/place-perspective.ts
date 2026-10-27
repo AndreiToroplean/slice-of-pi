@@ -2,16 +2,16 @@ import { Component, computed, input, model, signal } from '@angular/core';
 import type { Steps } from '../../game/grouping/break-models/steps';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { Carousel } from '../../ui/carousel';
-import { placeAnalysis } from './views/place-views';
-import type { Range } from './views/plot';
-import { PlotView } from './views/plot-view';
+import { placeAnalysis } from '../your-runs/views/place-views';
+import type { Range } from '../your-runs/views/plot';
+import { PlotView } from '../your-runs/views/plot-view';
 
 /** How many of π's digits show on each side of the place. */
 const CONTEXT = 6;
 
 /**
- * In developer mode, what the break model makes of one place across the runs (`place-views.ts`), beside what it makes of
- * the runs along the places on top of Your Runs: the place, between two digits of π, stepped through one at a time or
+ * What the break model makes of one place across the runs (`place-views.ts`), beside what it makes of
+ * the runs along the places on top of Model Tuning: the place, between two digits of π, stepped through one at a time or
  * from one usual break spot to the next, then, one after the other, whether it's a break and why, what each run says
  * there, step by step, and every run there in a table. Tapping a chart along the places picks the place too.
  */

@@ -7,7 +7,7 @@ import type { Steps } from './steps';
  * answer, are its own: models are plugged in and out in `break-models.ts`, and developer mode picks one.
  *
  * The game sees a model with its hyperparameters set, a {@link BreakModel}: the play screen gets its {@link Gameplay},
- * Your Runs its {@link Stats}. Only developer mode sees a model's {@link BreakModelKind}: its hyperparameters, to tune
+ * the pages of the runs its {@link Stats}. Only developer mode sees a model's {@link BreakModelKind}: its hyperparameters, to tune
  * them, and its steps, to show them one by one.
  */
 

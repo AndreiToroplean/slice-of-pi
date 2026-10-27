@@ -1,8 +1,8 @@
 import { Component, computed, ElementRef, inject, input, signal, viewChild } from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { DropdownMenu } from '../../ui/dropdown-menu';
-import type { Plot } from './views/plot';
-import { PlotChart } from './views/plot-chart';
+import type { Plot } from '../your-runs/views/plot';
+import { PlotChart } from '../your-runs/views/plot-chart';
 import type { BreakModelKind } from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import {
@@ -22,8 +22,8 @@ const FRAME = 30;
 
 /**
  * Developer mode's dialog that fits a break model's hyperparameters to the player's own groups, opened from the overflow
- * menu of Your Runs: pick the model and fit it to the groups typed in the Group tab of Your Runs. Groups that aren't π
- * show as an error, saying where. The search, which leaves the hyperparameters pinned on Your Runs where they are, runs while the dialog stays open, showing how well the model matches the groups
+ * menu of Model Tuning: pick the model and fit it to the groups typed in the Group tab of Model Tuning. Groups that aren't π
+ * show as an error, saying where. The search, which leaves the hyperparameters pinned on Model Tuning where they are, runs while the dialog stays open, showing how well the model matches the groups
  * as an F1 score, which tells models apart on the same groups, with all the runs or, fitting the run-count curve, with
  * fewer too; then the sliders are set to the best values found. It
  * stays open, so as to fit again once the model or the groups change. It draws the run-count curve of the model as set,
@@ -341,7 +341,7 @@ export class FitToGroupingsDialog {
       return '';
     }
     if (this.groups().length === 0) {
-      return 'Type or paste the decimals of π as you group them in the Group tab on top of Your Runs.';
+      return 'Type or paste the decimals of π as you group them in the Group tab on top of Model Tuning.';
     }
     if (this.runs().length === 0) {
       return 'No runs to fit to.';

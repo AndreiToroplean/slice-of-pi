@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, InjectionToken, Signal, signal } from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
-import { groupRuns, orderRuns, Run } from '../../player-data/run';
+import { groupRuns, orderRuns, Run, RunOrder } from '../../player-data/run';
 import { RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { CONFIRM } from '../../ui/confirm';
@@ -97,6 +97,20 @@ export class RunsState {
       trusted: group.trusted,
     })),
   );
+  /** The runs shown, and the line played from among them, if any, which has no chart. */
+  readonly rows = computed(() => {
+    const rows = this.charts().map((chart) => ({ id: chart.id, chart }));
+    const line = this.order().line;
+    return line === undefined
+      ? rows
+      : [...rows.slice(0, line), { id: '', chart: undefined }, ...rows.slice(line)];
+  });
+  /** The order of the runs shown, to change. */
+  readonly shownOrder = computed((): RunOrder => {
+    const { runs, line } = this.order();
+    const ids = runs.map((run) => run.id);
+    return line === undefined ? { ids } : { ids, line };
+  });
   /** What the runs counted are called, as a whole. */
   readonly aggregateTitle = computed(() =>
     this.order().line === undefined ? 'All runs' : 'Runs before here',
@@ -104,6 +118,23 @@ export class RunsState {
 
   constructor() {
     void this.refresh();
+  }
+
+  /**
+   * Plays from just after the run with this id, as if only the runs up to it had been played, or from before all of
+   * them if none, keeping the order shown. A tweak, it only applies in developer mode.
+   */
+  playFrom(id?: string): void {
+    const { ids } = this.shownOrder();
+    const line = id === undefined ? 0 : ids.indexOf(id) + 1;
+    if (line !== 0 || id === undefined) {
+      void this.tweaks.setRunOrder({ ids, line });
+    }
+  }
+
+  /** Plays from after all the runs again, keeping them in the order shown. */
+  undoPlayFrom(): void {
+    void this.tweaks.setRunOrder({ ids: this.shownOrder().ids });
   }
 
   /** Deletes every run kept, once the player confirms. */

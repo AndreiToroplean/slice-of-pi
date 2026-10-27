@@ -27,6 +27,10 @@ export const routes: Routes = [
     loadComponent: () => import('./screens/settings/settings').then((m) => m.Settings),
   },
   {
+    path: 'developer/model-tuning',
+    loadComponent: () => import('./screens/model-tuning/model-tuning').then((m) => m.ModelTuning),
+  },
+  {
     path: 'developer/key-colors',
     loadComponent: () => import('./screens/tuning/key-colors').then((m) => m.KeyColors),
   },

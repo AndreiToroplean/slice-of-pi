@@ -1,13 +1,13 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { Carousel } from '../../ui/carousel';
-import { GroupList, ShownGroup } from './group-list';
+import { GroupList, ShownGroup } from '../your-runs/group-list';
 import { MyGroupings } from './my-groupings';
-import type { Plot, Range } from './views/plot';
-import { PlotView } from './views/plot-view';
+import type { Plot, Range } from '../your-runs/views/plot';
+import { PlotView } from '../your-runs/views/plot-view';
 
 /**
- * In developer mode, the groups the break model makes of the runs, beside what it makes of them along the places and at
- * one place on top of Your Runs, one after the other: the game's groups, the player's own as they type them, which the
+ * The groups the break model makes of the runs, beside what it makes of them along the places and at
+ * one place on top of Model Tuning, one after the other: the game's groups, the player's own as they type them, which the
  * break model is fitted to, then the views along the digits of a group (`group-views.ts`).
  */
 @Component({
