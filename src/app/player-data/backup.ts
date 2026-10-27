@@ -47,11 +47,22 @@ export function writeBackup(
   return JSON.stringify(backup);
 }
 
-/** The name of a backup file made at this date, in the player's time zone: `slice-of-pi-2026-10-10.json`. */
+/**
+ * The name of a backup file made at this time, in the player's time zone, down to the millisecond so that each backup
+ * gets its own, and in an order that sorts them by time: `slice-of-pi-2026-10-10-23-59-07-042.json`.
+ */
 export function backupFileName(exportedAt: number): string {
   const date = new Date(exportedAt);
-  const twoDigits = (value: number): string => String(value).padStart(2, '0');
-  return `slice-of-pi-${String(date.getFullYear())}-${twoDigits(date.getMonth() + 1)}-${twoDigits(date.getDate())}.json`;
+  const parts = [
+    date.getFullYear(),
+    date.getMonth() + 1,
+    date.getDate(),
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds(),
+  ].map((value) => String(value).padStart(2, '0'));
+  const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+  return `slice-of-pi-${[...parts, milliseconds].join('-')}.json`;
 }
 
 /** Reads the text of a backup file. */
