@@ -89,23 +89,21 @@ const TICK = 16;
   template: `
     <h1 class="visually-hidden">Slice of Pi</h1>
     <app-season-header [view]="season()" />
-    <div class="middle">
-      <app-typed-digits
-        [words]="grouping().words"
-        [digits]="digits()"
-        [colors]="placeColors()"
-        [arrival]="arrival()"
-      />
-      <app-slots
-        class="slots"
-        [digits]="grouping().current + mistakes()"
-        [colors]="currentColors()"
-        [size]="size()"
-        [wrong]="mistakes().length"
-        [emptyOpacity]="waitLeft()"
-        [handover]="handover()"
-      />
-    </div>
+    <app-typed-digits
+      [words]="grouping().words"
+      [digits]="digits()"
+      [colors]="placeColors()"
+      [arrival]="arrival()"
+    />
+    <app-slots
+      class="slots"
+      [digits]="grouping().current + mistakes()"
+      [colors]="currentColors()"
+      [size]="size()"
+      [wrong]="mistakes().length"
+      [emptyOpacity]="waitLeft()"
+      [handover]="handover()"
+    />
     <p class="visually-hidden" aria-live="assertive">
       @if (mistakes() !== '') {
         {{ mistakes().charAt(0) }} is wrong: delete back to it to go on.
@@ -160,7 +158,7 @@ export class Play implements PausesOnBack {
 
   /** The colors tuned in developer mode, or the game's own, and whether to count down to the end of the group. */
   protected readonly tweaks = inject(Tweaks);
-  /** Where the header, slots and keypad sit, as the lengths they lay out with. */
+  /** Where the header, tape, slots and keypad sit, as the lengths they lay out with. */
   protected readonly layout = computed(() => layoutStyles(this.tweaks.layout()));
 
   /**

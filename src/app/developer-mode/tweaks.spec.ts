@@ -94,7 +94,7 @@ describe('Tweaks', () => {
     await tweaks.setBreakModel(VENUS);
     await tweaks.setColorSpace('hsl');
     await tweaks.setSeasonTurn(1);
-    await tweaks.setLayout({ ...LAYOUT, keypad: { height: 30, width: 90 } });
+    await tweaks.setLayout({ ...LAYOUT, keypad: { top: 30 } });
 
     await tweaks.setPalette([...PALETTE]);
     await tweaks.setSeasons({ ...SEASON_STARTS });
@@ -187,7 +187,7 @@ describe('Tweaks', () => {
   it('brings back the game’s own value of everything tuned, and keeps that', async () => {
     const tweaks = await load();
     await tweaks.setBreakModel(VENUS);
-    await tweaks.setLayout({ ...LAYOUT, keypad: { height: 30, width: 90 } });
+    await tweaks.setLayout({ ...LAYOUT, keypad: { top: 30 } });
     await tweaks.setCountdown(true);
     await tweaks.setChecking(false);
 
@@ -268,7 +268,7 @@ describe('Tweaks', () => {
 
   it('moves things on the screens only while developer mode is on, and keeps them there until undone', async () => {
     const tweaks = await load();
-    const layout = { ...LAYOUT, keypad: { height: 40, width: 90 } };
+    const layout = { ...LAYOUT, keypad: { top: 40 } };
     expect(tweaks.layout()).toEqual(LAYOUT);
 
     await tweaks.setLayout(layout);
@@ -374,6 +374,11 @@ describe('Tweaks', () => {
       breakModel: 'venus',
       grouping: { mercury: grouping },
     });
+  });
+
+  it('leaves out the layout stored before the screens were laid out by their margins', () => {
+    const layout = { header: { top: 0, height: 10 } };
+    expect(parseTweaks({ format: 2, layout, seasonTurn: 3 })).toEqual({ seasonTurn: 3 });
   });
 
   it('leaves out the settings saved for the timing model the break model replaced', () => {

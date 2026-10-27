@@ -5,23 +5,23 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: 0.625rem calc(var(--space-3) + var(--margin))
-    calc(var(--space-3) + env(safe-area-inset-bottom));
+  padding: var(--margin-top) calc(var(--margin-side) + var(--margin))
+    calc(var(--margin-bottom) + env(safe-area-inset-bottom));
 }
 
 /* A frosted top bar that stays at the top of the page as it scrolls. */
 .top-bar {
   display: grid;
-  grid-template-columns: 2.75rem 1fr 2.75rem;
+  grid-template-columns: var(--corner-size) 1fr var(--corner-size);
   align-items: center;
   gap: var(--space-2);
   position: sticky;
   /* Flush with the top of the page, over its padding. */
-  top: -0.625rem;
+  top: calc(-1 * var(--margin-top));
   z-index: 1;
   /* Out to the edges of the page, which scrolls under it, past its margins. */
-  margin: -0.625rem calc(-1 * (var(--space-3) + var(--margin))) 0;
-  padding: 0.625rem var(--space-3);
+  margin: calc(-1 * var(--margin-top)) calc(-1 * (var(--margin-side) + var(--margin))) 0;
+  padding: var(--margin-top) var(--margin-side);
   /* Frosted more heavily than the cards, so that what scrolls under it doesn't show through its text. */
   background: rgb(255 255 255 / 30%);
   -webkit-backdrop-filter: blur(24px);
@@ -31,7 +31,7 @@
 
 /* Making room for what is in its corner. */
 .top-bar:has(.actions > *) {
-  grid-template-columns: 2.75rem 1fr auto;
+  grid-template-columns: var(--corner-size) 1fr auto;
 }
 
 .actions {
@@ -51,8 +51,8 @@ h1 {
 }
 
 .back svg {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1em;
+  height: 1em;
   fill: none;
   stroke: currentColor;
   stroke-width: 2.4;

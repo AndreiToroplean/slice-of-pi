@@ -77,8 +77,8 @@ let menus = 0;
   `,
   styles: `
     .more svg {
-      width: 1.25rem;
-      height: 1.25rem;
+      width: 1em;
+      height: 1em;
       fill: currentColor;
     }
 

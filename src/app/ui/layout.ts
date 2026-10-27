@@ -1,24 +1,34 @@
 /**
- * Where the play screen's parts sit, sized with the screen: up and down, in hundredths of the screen's height between
- * the status bar and the navigation bar, and across, in hundredths of the column's width. The space around them, such
- * as the screen's margins and the buttons in its corners, keeps its own size instead. The header sits at the top, the
- * slots above the keypad, and the keypad on the bottom margin; each is centered across, and the keypad is no wider
- * than the side margins leave room for.
+ * Where things sit on the screens. The margins around every page and screen, which nothing is ever in, and the buttons
+ * in the screens' corners, snug against them, keep their own size, in rem. The play screen's parts are sized with the
+ * screen instead: up and down, in hundredths of its height between the status bar and the navigation bar, measured up
+ * from its bottom, and across, in hundredths of the column's width. The season header hangs from the top margin, and the
+ * keypad stands on the bottom margin, spanning the column between the side margins; the header and the slots are
+ * centered across, and the tape spans the column.
  */
 export interface Layout {
-  /** Where the season header's top is, down from the top, and its height, which its text scales with. */
-  readonly header: { readonly top: number; readonly height: number };
-  /** Where the slots' bottom is, up from the bottom, and a slot's height; a row of 10 is as wide as the keypad. */
-  readonly slots: { readonly bottom: number; readonly height: number };
-  /** The keypad's height, and its width, across. */
-  readonly keypad: { readonly height: number; readonly width: number };
+  /** The margins around every page and screen, in rem. */
+  readonly margins: { readonly top: number; readonly side: number; readonly bottom: number };
+  /** The size of the buttons in the screens' corners, in rem. */
+  readonly corner: { readonly size: number };
+  /** The season header's height, which everything in it scales with. */
+  readonly header: { readonly size: number };
+  /** Where the tape's top and bottom are, and the height of its tiles, which have a slot's proportions. */
+  readonly tape: { readonly top: number; readonly bottom: number; readonly words: number };
+  /** Where the slots' top and bottom are, and a slot's width, across: the gaps make a row of 10 as wide as the keypad. */
+  readonly slots: { readonly top: number; readonly bottom: number; readonly width: number };
+  /** Where the keypad's top is. */
+  readonly keypad: { readonly top: number };
 }
 
 /** The game's own layout. */
 export const LAYOUT: Layout = {
-  header: { top: 0, height: 10 },
-  slots: { bottom: 37.4, height: 6 },
-  keypad: { height: 32.4, width: 100 },
+  margins: { top: 0.625, side: 1.125, bottom: 1.125 },
+  corner: { size: 2.75 },
+  header: { size: 10 },
+  tape: { top: 49, bottom: 44, words: 3.2 },
+  slots: { top: 43.4, bottom: 37.4, width: 8.1 },
+  keypad: { top: 35 },
 };
 
 /** A length of so many hundredths of the screen's height, in CSS (see `--unit` in `play.css`). */
@@ -26,23 +36,41 @@ function down(value: number): string {
   return `calc(${String(value)} * var(--unit))`;
 }
 
+/** A length of so many rem, in CSS. */
+function rem(value: number): string {
+  return `${String(value)}rem`;
+}
+
+/** A length of so many hundredths of the column's width, in CSS. */
+function across(value: number): string {
+  return `calc(${String(value)} * var(--column) / 100)`;
+}
+
 /**
- * The layout as the CSS lengths the play screen lays out with: `--header-top`, `--header-height`, `--slots-bottom`,
- * `--slots-height`, `--keypad-height` and `--keypad-width`, the last as wide as the side margins leave room for at most.
+ * The layout as the CSS lengths the screens lay out with: `--margin-top`, `--margin-side`, `--margin-bottom` and
+ * `--corner-size` on every screen; on the play screen, `--header-height`, `--tape-top`, `--tape-bottom`, `--tile-height`,
+ * `--tile-width`, `--slots-top`, `--slots-bottom`, `--slot-width` and `--keypad-top`.
  */
 export function layoutStyles(layout: Layout): Readonly<Record<string, string>> {
-  const { header, slots, keypad } = layout;
+  const { margins, corner, header, tape, slots, keypad } = layout;
   return {
-    '--header-top': down(header.top),
-    '--header-height': down(header.height),
+    '--margin-top': rem(margins.top),
+    '--margin-side': rem(margins.side),
+    '--margin-bottom': rem(margins.bottom),
+    '--corner-size': rem(corner.size),
+    '--header-height': down(header.size),
+    '--tape-top': down(tape.top),
+    '--tape-bottom': down(tape.bottom),
+    '--tile-height': down(tape.words),
+    '--tile-width': across((slots.width * tape.words) / Math.max(slots.top - slots.bottom, 0.1)),
+    '--slots-top': down(slots.top),
     '--slots-bottom': down(slots.bottom),
-    '--slots-height': down(slots.height),
-    '--keypad-height': down(keypad.height),
-    '--keypad-width': `min(${String(keypad.width)} * var(--column) / 100, var(--column) - 2 * var(--space-3))`,
+    '--slot-width': across(slots.width),
+    '--keypad-top': down(keypad.top),
   };
 }
 
-/** A layout read from untrusted data, or `undefined` if any of its values is missing or off the screen. */
+/** A layout read from untrusted data, or `undefined` if any of its values is missing or out of range. */
 export function parseLayout(value: unknown): Layout | undefined {
   return shaped(LAYOUT, value);
 }
