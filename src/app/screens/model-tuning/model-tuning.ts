@@ -31,6 +31,7 @@ import { Candy } from '../../ui/candy';
 import { Segment, Segmented } from '../../ui/segmented';
 import { RunCard } from '../your-runs/run-card';
 import { HereLine } from '../your-runs/here-line';
+import { MoreButton } from '../../ui/more-button';
 import { DropdownMenu } from '../../ui/dropdown-menu';
 import { dateAndTime, RunsState, WITH_UNCHECKED } from '../your-runs/runs-state';
 import { SummaryCard } from '../your-runs/summary-card';
@@ -58,6 +59,7 @@ import { TIMES, TimesView } from '../your-runs/times-view';
     FitToGroupingsDialog,
     GroupingSettingsPanel,
     LongPress,
+    MoreButton,
     Page,
     GroupPerspective,
     PlacePerspective,
@@ -165,18 +167,24 @@ import { TIMES, TimesView } from '../your-runs/times-view';
             }
           } @else {
             <!-- The chart of all runs can be left out of the card, and runs added to it. -->
-            <button
-              type="button"
-              class="panel aggregate"
-              [class.selected]="aggregateShown()"
-              [attr.aria-pressed]="aggregateShown()"
-              (appLongPress)="pick(ALL, $event)"
-              (appTap)="aggregateShown.set(!aggregateShown())"
-              (click)="clickAggregate($event)"
-            >
-              <span class="title">{{ state.aggregateTitle() }}</span>
-              <span class="meta">{{ plural(state.counted().length, 'run') }}</span>
-            </button>
+            <div class="panel aggregate" [class.selected]="aggregateShown()">
+              <button
+                type="button"
+                [attr.aria-pressed]="aggregateShown()"
+                (appLongPress)="pick(ALL, $event)"
+                (appTap)="aggregateShown.set(!aggregateShown())"
+                (click)="clickAggregate($event)"
+              >
+                <span class="title">{{ state.aggregateTitle() }}</span>
+                <span class="meta">{{ plural(state.counted().length, 'run') }}</span>
+              </button>
+              <button
+                class="more"
+                [appMore]="runMenu.id"
+                title="More for all runs"
+                (click)="picked.set(ALL)"
+              ></button>
+            </div>
             <!-- The runs can be dragged into another order, across the line too. -->
             <div
               class="list"
@@ -193,6 +201,8 @@ import { TIMES, TimesView } from '../your-runs/times-view';
                     [places]="places()"
                     [top]="top()"
                     [window]="placeZoom()"
+                    [menu]="runMenu.id"
+                    (opening)="picked.set(chart.id)"
                     [selectable]="true"
                     [selected]="selected().has(chart.id)"
                     [reorderable]="true"
@@ -235,8 +245,8 @@ import { TIMES, TimesView } from '../your-runs/times-view';
         </label>
       </app-grouping-settings-panel>
       <app-fit-to-groupings-dialog #fitDialog [runs]="state.countedTimes()" />
-      <!-- A run's context menu, opened by a long press on it, or on all runs to play from before them. -->
-      <app-dropdown-menu label="Run" [button]="false">
+      <!-- A run's context menu, opened by its ⋮ or a long press on it, or on all runs to play from before them. -->
+      <app-dropdown-menu #runMenu label="Run" [button]="false">
         @if (picked() !== ALL) {
           <button type="button" (click)="watchPicked()">Watch Replay</button>
           <hr />

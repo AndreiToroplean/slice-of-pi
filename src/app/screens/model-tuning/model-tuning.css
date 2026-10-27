@@ -34,11 +34,6 @@ p {
   padding: 0.25rem var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
 }
 
-.runs .aggregate {
-  gap: 0.375rem;
-  padding: 0.875rem var(--space-3) var(--space-3);
-}
-
 /* The runs, and the line among them. */
 .list {
   display: grid;
@@ -58,14 +53,23 @@ p {
   opacity: 0;
 }
 
-/* In developer mode, a row for all the runs, on the chart on top by default. */
-button.aggregate {
+/* A row for all the runs, on the card by default, a toggle button, then its ⋮. */
+.aggregate {
   display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 0.375rem 0 0;
+}
+
+.aggregate > button[aria-pressed] {
+  display: flex;
+  flex: 1;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-2);
-  width: 100%;
+  padding: 0.875rem var(--space-2) var(--space-3) var(--space-3);
   border: none;
+  background: none;
   color: inherit;
   font: inherit;
   text-align: left;
@@ -79,7 +83,8 @@ button.aggregate {
 
   &:focus-visible {
     outline: 0.1875rem solid var(--focus-ring);
-    outline-offset: 0.25rem;
+    outline-offset: -0.1875rem;
+    border-radius: 1.5rem;
   }
 }
 
@@ -93,7 +98,7 @@ app-summary-card + app-grouping-settings-panel {
   opacity: 0.85;
 }
 
-button.aggregate:not(.selected) {
+.aggregate:not(.selected) {
   opacity: 0.7;
 }
 

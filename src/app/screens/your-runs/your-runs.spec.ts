@@ -250,6 +250,17 @@ describe('YourRuns', () => {
       expect(await TestBed.inject(RunStore).touchLogs()).toEqual([first, second]);
     });
 
+    it("opens from the run's ⋮ too, for its run", async () => {
+      const { host } = await setUp([first, second]);
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+      host.querySelectorAll<HTMLButtonElement>('.runs .more')[1]?.click();
+      expect(menuItems(host)).toEqual(['Watch Replay', 'Delete Run']);
+      button(host, 'Watch Replay').click();
+
+      expect(navigate).toHaveBeenCalledWith(['/runs', 'b', 'replay']);
+    });
+
     it('opens from the keyboard too', async () => {
       const { host } = await setUp([first]);
 
@@ -298,7 +309,7 @@ describe('YourRuns', () => {
 
     expect(articles(host)).toHaveLength(1);
     expect(article(host, 0).getAttribute('role')).toBeNull();
-    expect(host.querySelector('.handle, button.aggregate, app-grouping-settings-panel')).toBeNull();
+    expect(host.querySelector('.handle, div.aggregate, app-grouping-settings-panel')).toBeNull();
   });
 
   describe('playing from a run', () => {
