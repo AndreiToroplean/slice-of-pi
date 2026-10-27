@@ -136,11 +136,28 @@ describe('LayoutEditor', () => {
     expect(button(host, 'Reset')?.disabled).toBe(true);
   });
 
+  it('hides the handles while previewing, as a toggle, and shows them again', async () => {
+    const { host, stable } = await setUp();
+    const preview = host.querySelector<HTMLButtonElement>('button[title="Preview"]');
+    expect(preview?.getAttribute('aria-pressed')).toBe('false');
+
+    preview?.click();
+    await stable();
+    expect(preview?.getAttribute('aria-pressed')).toBe('true');
+    expect(host.querySelector('[role="slider"]')).toBeNull();
+    expect(button(host, 'Done')).toBeDefined();
+
+    preview?.click();
+    await stable();
+    expect(preview?.getAttribute('aria-pressed')).toBe('false');
+    expect(host.querySelectorAll('[role="slider"]').length).toBe(LAYOUT_HANDLES.length);
+  });
+
   it('offers to copy the layout', async () => {
     const { host } = await setUp();
 
     expect(
       Array.from(host.querySelectorAll('button'), (button) => button.textContent.trim()),
-    ).toContain('Copy Layout');
+    ).toContain('Copy');
   });
 });

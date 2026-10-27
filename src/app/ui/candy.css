@@ -3,9 +3,6 @@
   /* How thick its edge is, and the shadow it drops. */
   --candy-depth: 0.3125rem;
   --candy-drop: 0 0.5rem 1.25rem rgb(40 20 60 / 18%);
-  /* Room around what it says. */
-  --candy-padding-block: 0.75rem;
-  --candy-padding-inline: 0.75rem;
   /*
    * Breathing, it grows by as much on every side, however wide it is (see `breathe` in `styles.css`): its padding, by
    * a sixteenth of a rem per breath, over a negative margin as wide, so that nothing around it moves; its face, shine
@@ -19,8 +16,9 @@
    */
   position: relative;
   margin: calc(-1 * var(--grown));
-  padding: calc(var(--candy-padding-block) + var(--grown))
-    calc(var(--candy-padding-inline) + var(--grown));
+  /* Room around what it says, and how large it says it, which a row of smaller ones sets around them. */
+  padding: calc(var(--candy-padding-block, 0.75rem) + var(--grown))
+    calc(var(--candy-padding-inline, 0.75rem) + var(--grown));
   border: none;
   border-radius: var(--radius-key);
   /* Its face, and its shine, off it until it's picked out (see below). */
@@ -32,7 +30,7 @@
   text-align: center;
   text-decoration: none;
   font-family: var(--font-digits);
-  font-size: 1.25rem;
+  font-size: var(--candy-font-size, 1.25rem);
   font-weight: 600;
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
@@ -50,6 +48,17 @@
   --candy: var(--candy-danger);
   --on-candy: var(--on-candy-danger);
   --candy-edge: var(--candy-danger-edge);
+}
+
+/* A toggle that's on (`aria-pressed`) stays pressed in, its face dark, as if held down. */
+:host([aria-pressed='true']) {
+  --candy: var(--candy-toggled);
+  --on-candy: var(--on-candy-toggled);
+  --candy-edge: var(--candy-toggled-edge);
+  translate: 0 calc(var(--candy-depth) - 0.0625rem);
+  box-shadow:
+    0 0.0625rem 0 var(--candy-edge),
+    0 0.25rem 0.75rem rgb(40 20 60 / 18%);
 }
 
 :host(:disabled) {

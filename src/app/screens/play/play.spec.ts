@@ -1110,6 +1110,28 @@ describe('Play', () => {
       expect(keypadTop()).toBe(`calc(${String(LAYOUT.keypad.top)} * var(--unit))`);
     });
 
+    it('shows the screen as in the game while previewing the layout, and edits it again after', async () => {
+      await TestBed.inject(DeveloperMode).set(true);
+      const { host, stable } = await setUp();
+      pauseItem(host, 'Pause').click();
+      pauseItem(host, 'Edit Layout').click();
+      await stable();
+
+      pauseItem(host, 'Preview').click();
+      await stable();
+      expect(slots(host)).toEqual(['', '', '', '', '']);
+      expect(host.querySelector('app-keypad .area')).toBeNull();
+
+      pauseItem(host, 'Done').click();
+      await stable();
+      pauseItem(host, 'Edit Layout').click();
+      await stable();
+      expect(slots(host)).toHaveLength(10);
+      expect(host.querySelector('button[title="Preview"]')?.getAttribute('aria-pressed')).toBe(
+        'false',
+      );
+    });
+
     it('keeps the changes to the layout once done', async () => {
       await TestBed.inject(DeveloperMode).set(true);
       const { host, stable } = await setUp();
