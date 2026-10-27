@@ -29,7 +29,7 @@ describe('Mars', () => {
    * The envelope at 1 for every size, so that each place breaks on the runs' evidence alone: with groups of 3, a break
    * anywhere else leaves a group of 1 digit beside it, which the envelope rules out.
    */
-  const FLAT: Settings = { envelopeFactor1: 1, envelopeFactor4: 1 };
+  const FLAT: Settings = { envelopeFactor1: 1, envelopeFactor3: 1, envelopeFactor4: 1 };
 
   /** How long the player must wait after typing `typed` digits of a grouped run for the group to end, to 10 ms. */
   function waitToEnd(
@@ -292,7 +292,7 @@ describe('Mars', () => {
           .groupEnds([...times, (times.at(-1) ?? 0) + 1e6], 12, true);
 
       expect(ends(FLAT)).toBe(true);
-      expect(ends({})).toBe(false);
+      expect(ends({ envelopeFactor1: 0 })).toBe(false);
     });
 
     it('adds nothing to the runs’ evidence at 1 for every size', () => {

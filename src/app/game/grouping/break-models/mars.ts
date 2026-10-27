@@ -97,7 +97,7 @@ export const MARS_DEFAULTS: MarsSettings = {
   window: 9,
   recencyDecay: 0.96,
   spreadFloor: 0.2,
-  breakShift: 2.7,
+  breakShift: 2.3,
   breakShare: 0.2,
   fullTrustUnevenness: 0.3,
   breakThreshold: 0.25,

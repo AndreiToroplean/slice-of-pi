@@ -119,15 +119,15 @@ export type EnvelopeSettings = Readonly<{
   envelopeFactor4: number;
 }>;
 
-/** No group of 1 digit, nor of more than 10, and those of 6 to 10 ever less likely the larger they are. */
+/** Groups of 5 digits favored, those of 1 and 8 half as much, and none of more than 10. */
 export const ENVELOPE_DEFAULTS: EnvelopeSettings = {
   envelopeStrength: 1,
   envelopeSize1: 1,
-  envelopeFactor1: 0,
-  envelopeSize2: 2,
+  envelopeFactor1: 0.5,
+  envelopeSize2: 5,
   envelopeFactor2: 1,
-  envelopeSize3: 5,
-  envelopeFactor3: 1,
+  envelopeSize3: 8,
+  envelopeFactor3: 0.5,
   envelopeSize4: 11,
   envelopeFactor4: 0,
 };
