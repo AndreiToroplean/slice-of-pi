@@ -18,7 +18,7 @@ import { Page } from '../../ui/page';
 import { moveRun } from '../../player-data/run';
 import { FitToGroupingsDialog } from './fit-to-groupings-dialog';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
-import { LongPress } from '../../ui/long-press';
+import { ContextMenu } from '../../ui/context-menu';
 import { GroupPerspective } from './group-perspective';
 import { MyGroupings } from './my-groupings';
 import { PlacePerspective } from './place-perspective';
@@ -58,7 +58,7 @@ import { TIMES, TimesView } from '../your-runs/times-view';
     CdkScrollable,
     FitToGroupingsDialog,
     GroupingSettingsPanel,
-    LongPress,
+    ContextMenu,
     MoreButton,
     Page,
     GroupPerspective,
@@ -171,9 +171,8 @@ import { TIMES, TimesView } from '../your-runs/times-view';
               <button
                 type="button"
                 [attr.aria-pressed]="aggregateShown()"
-                (appLongPress)="pick(ALL, $event)"
-                (appTap)="aggregateShown.set(!aggregateShown())"
-                (click)="clickAggregate($event)"
+                (appContextMenu)="pick(ALL, $event)"
+                (click)="aggregateShown.set(!aggregateShown())"
               >
                 <span class="title">{{ state.aggregateTitle() }}</span>
                 <span class="meta">{{ plural(state.counted().length, 'run') }}</span>
@@ -414,13 +413,6 @@ export class ModelTuning {
   protected playFromPicked(): void {
     const picked = this.picked();
     this.state.playFrom(picked === ALL ? undefined : picked);
-  }
-
-  /** Shows or leaves out the chart of all runs from the keyboard; taps do on their own, and long presses don't. */
-  protected clickAggregate(event: MouseEvent): void {
-    if (event.detail === 0) {
-      this.aggregateShown.set(!this.aggregateShown());
-    }
   }
 
   /** Puts the runs back in the order they were played in, the line staying where it is, under as many runs. */
