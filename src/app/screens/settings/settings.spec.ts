@@ -38,21 +38,22 @@ describe('Settings', () => {
     expect(tweaks.countdown()).toBe(false);
   });
 
-  it('turns checking the digits off and on, in developer mode, and brings it back', async () => {
+  it('turns checking the digits off, in developer mode, and brings it back', async () => {
     await TestBed.inject(DeveloperMode).set(true);
     const host = await setUp();
     const tweaks = TestBed.inject(Tweaks);
-    const checking = Array.from(
+    const unchecked = Array.from(
       host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
-    ).find((input) => input.closest('label')?.textContent.includes('Check Digits'));
-    expect(checking?.checked).toBe(true);
-    expect(backToDefault(host, 'Check Digits')?.disabled).toBe(true);
+    ).find((input) => input.closest('label')?.textContent.includes('Don’t Check Digits'));
+    expect(unchecked?.checked).toBe(false);
+    expect(backToDefault(host, 'Don’t Check Digits')?.disabled).toBe(true);
 
-    checking?.click();
+    unchecked?.click();
     expect(tweaks.checking()).toBe(false);
 
     await TestBed.inject(ApplicationRef).whenStable();
-    backToDefault(host, 'Check Digits')?.click();
+    expect(unchecked?.checked).toBe(true);
+    backToDefault(host, 'Don’t Check Digits')?.click();
     expect(tweaks.checking()).toBe(true);
   });
 
