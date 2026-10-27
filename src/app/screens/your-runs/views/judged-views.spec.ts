@@ -57,7 +57,9 @@ describe('the views of a model that judges each run on its own', () => {
       logOddsView(input(model), model.workings.pool ?? fail()).layers.filter(
         (each) => each.kind === 'line' && each.color === ENVELOPE_COLOR,
       );
-    const flat = stepsOf(MARS.steps?.({ envelopeFactor1: 1, envelopeFactor4: 1 }, runs));
+    const flat = stepsOf(
+      MARS.steps?.({ envelopeFactor1: 1, envelopeFactor3: 1, envelopeFactor4: 1 }, runs),
+    );
 
     expect(enveloped(mars)).toHaveLength(1);
     expect(enveloped(flat)).toEqual([]);

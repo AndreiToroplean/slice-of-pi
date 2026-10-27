@@ -52,11 +52,16 @@ describe('the views of the groups', () => {
     const plot = groupSizesView(input);
     const at = (size: number) =>
       curve(plot).find((point) => point !== undefined && Math.abs(point[0] - size) < 1e-9)?.[1];
-    const flat = stepsOf(MARS.steps?.({ envelopeFactor1: 1, envelopeFactor4: 1 }, [run(30)]));
+    const flat = stepsOf(
+      MARS.steps?.({ envelopeFactor1: 1, envelopeFactor3: 1, envelopeFactor4: 1 }, [run(30)]),
+    );
 
-    // Nothing at 1 digit, all of it from 2 to 5, nothing past 10.
-    expect([1, 2, 5, 11].map(at)).toEqual([0, at(2), at(2), 0]);
-    expect(at(2)).toBeCloseTo((plot.y.max * 10) / 11, 12);
+    // Half of it at 1 digit, all of it at 5, half again at 8, nothing past 10.
+    const top = at(5) ?? Number.NaN;
+    expect(top).toBeCloseTo((plot.y.max * 10) / 11, 12);
+    expect(at(1)).toBeCloseTo(top / 2, 12);
+    expect(at(8)).toBeCloseTo(top / 2, 12);
+    expect(at(11)).toBe(0);
     expect(curve(groupSizesView({ ...input, model: flat }))).toEqual([]);
   });
 
