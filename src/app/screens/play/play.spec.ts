@@ -184,11 +184,11 @@ describe('Play', () => {
   });
 
   it('lays the screen out as tuned in developer mode', async () => {
-    await TestBed.inject(Tweaks).setLayout({ ...LAYOUT, keypad: { height: 40, width: 90 } });
+    await TestBed.inject(Tweaks).setLayout({ ...LAYOUT, keypad: { top: 40 } });
     await TestBed.inject(DeveloperMode).set(true);
     const { host } = await setUp();
 
-    expect(host.style.getPropertyValue('--keypad-height')).toBe('calc(40 * var(--unit))');
+    expect(host.style.getPropertyValue('--keypad-top')).toBe('calc(40 * var(--unit))');
   });
 
   it('starts with the "π=3." lead, no words and 5 empty slots', async () => {

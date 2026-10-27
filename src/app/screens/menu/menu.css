@@ -5,7 +5,7 @@
   display: grid;
   grid-template-rows: 1fr auto;
   justify-items: center;
-  padding: 2rem calc(var(--space-3) + var(--margin)) calc(3rem + env(safe-area-inset-bottom));
+  padding: 2rem calc(var(--margin-side) + var(--margin)) calc(3rem + env(safe-area-inset-bottom));
   /* Fading in, but visible at once, so that Play can take the focus as it shows. */
   transition: opacity var(--duration-screen) var(--ease);
 }
@@ -95,20 +95,20 @@ h1 {
 /* The menu, in the top right corner. */
 app-dropdown-menu {
   position: absolute;
-  top: 0.625rem;
-  right: 0.75rem;
+  top: var(--margin-top);
+  right: var(--margin-side);
 }
 
 /* The settings' gear, in the top left corner, like the menu's button in the other. */
 .settings {
   position: absolute;
-  top: 0.625rem;
-  left: 0.75rem;
+  top: var(--margin-top);
+  left: var(--margin-side);
 }
 
 .settings svg {
-  width: 1.375rem;
-  height: 1.375rem;
+  width: 1.1em;
+  height: 1.1em;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;

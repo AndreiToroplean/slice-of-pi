@@ -1,6 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Background } from './ui/background';
+import { Tweaks } from './developer-mode/tweaks';
+import { layoutStyles } from './ui/layout';
 
 @Component({
   imports: [RouterOutlet],
@@ -18,6 +20,9 @@ import { Background } from './ui/background';
 })
 export class App {
   protected readonly background = inject(Background);
+  private readonly tweaks = inject(Tweaks);
+  /** The margins and corner buttons of every screen (see `layout.ts`). */
+  protected readonly layout = computed(() => layoutStyles(this.tweaks.layout()));
 
   /**
    * A mouse over a candy button gives it the focus, as in a game's menu, where the mouse and the keys pick out the same

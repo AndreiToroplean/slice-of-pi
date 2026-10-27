@@ -152,14 +152,18 @@ body {
   background: var(--frost-pressed);
 }
 
-/* A button in a screen's corner, such as the pause button: a square candy button, for an icon. */
+/*
+ * A button in a screen's corner, such as the pause button: a square candy button, for an icon, which scales with it,
+ * as large as its text, as its rounding does (see `layout.ts`).
+ */
 .candy.corner {
   display: grid;
   place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: var(--corner-size);
+  height: var(--corner-size);
   padding: 0;
-  border-radius: 0.875rem;
+  border-radius: calc(var(--corner-size) * 0.32);
+  font-size: calc(var(--corner-size) / 2.2);
 }
 
 /* A small frosted pill, such as a button in the top bar of a page. */

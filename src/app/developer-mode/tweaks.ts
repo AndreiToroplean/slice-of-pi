@@ -28,12 +28,14 @@ import { Layout, LAYOUT, parseLayout } from '../ui/layout';
 /** The name of the tweaks setting in the store. */
 export const TWEAKS = 'tweaks';
 /** The format of the stored tweaks, which changes, with a migration, whenever they do. */
-export const TWEAKS_FORMAT = 2;
+export const TWEAKS_FORMAT = 3;
 /** The steps that bring the stored tweaks in older formats to the current one, one per format (see {@link migrate}). */
 const TWEAKS_MIGRATIONS: readonly Migration[] = [
   // Format 2 keeps each break model's hyperparameters apart: those stored before go to Mercury.
   ({ grouping, ...tweaks }) =>
     grouping === undefined ? tweaks : { ...tweaks, grouping: { mercury: grouping } },
+  // Format 3 lays the screens out by their margins, as edit mode edits them: the layout stored before goes.
+  (tweaks) => Object.fromEntries(Object.entries(tweaks).filter(([key]) => key !== 'layout')),
 ];
 
 /** Each season's starting background colors, top then bottom. */
