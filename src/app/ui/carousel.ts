@@ -1,9 +1,19 @@
-import { Component, ElementRef, input, viewChild } from '@angular/core';
+import {
+  afterNextRender,
+  Component,
+  DestroyRef,
+  ElementRef,
+  inject,
+  input,
+  signal,
+  viewChild,
+} from '@angular/core';
 
 /**
  * Views side by side, shown one at a time: swiped through, scrolled through with the arrow keys, or stepped through with
  * the arrow buttons on its sides, which go around from the last view to the first and back. Each view, given as its
- * content, takes the carousel's whole width and snaps to its start.
+ * content, takes the carousel's whole width and snaps to its start. With a single view, it shows it as if it weren't
+ * in a carousel: no arrow buttons, and nothing to scroll to from the keyboard.
  */
 @Component({
   selector: 'app-carousel',
@@ -12,18 +22,20 @@ import { Component, ElementRef, input, viewChild } from '@angular/core';
       #track
       class="track"
       role="group"
-      tabindex="0"
+      [attr.tabindex]="single() ? null : 0"
       [attr.aria-label]="label()"
       (scrollend)="target = undefined"
     >
       <ng-content />
     </div>
-    <button type="button" class="arrow previous" title="Previous" (click)="go(-1)">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>
-    </button>
-    <button type="button" class="arrow next" title="Next" (click)="go(1)">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
-    </button>
+    @if (!single()) {
+      <button type="button" class="arrow previous" title="Previous" (click)="go(-1)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>
+      </button>
+      <button type="button" class="arrow next" title="Next" (click)="go(1)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+      </button>
+    }
   `,
   styles: `
     :host {
@@ -100,6 +112,24 @@ export class Carousel {
   private readonly track = viewChild.required<ElementRef<HTMLElement>>('track');
   /** The view an arrow button is scrolling to, until it's there, so that pressing again steps on from it. */
   protected target: number | undefined;
+  /** Whether it holds a single view, followed as views come and go. */
+  protected readonly single = signal(false);
+
+  constructor() {
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      const track = this.track().nativeElement;
+      const count = () => {
+        this.single.set(track.childElementCount <= 1);
+      };
+      count();
+      const observer = new MutationObserver(count);
+      observer.observe(track, { childList: true });
+      destroyRef.onDestroy(() => {
+        observer.disconnect();
+      });
+    });
+  }
 
   /** Shows the view a step away from the one shown, going around past either end. */
   protected go(step: number): void {

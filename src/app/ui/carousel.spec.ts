@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Carousel } from './carousel';
 
@@ -13,6 +13,21 @@ import { Carousel } from './carousel';
   `,
 })
 class Host {}
+
+@Component({
+  imports: [Carousel],
+  template: `
+    <app-carousel label="Steps">
+      <section>One</section>
+      @if (more()) {
+        <section>Two</section>
+      }
+    </app-carousel>
+  `,
+})
+class SingleHost {
+  readonly more = signal(false);
+}
 
 describe('Carousel', () => {
   /** A carousel of three views, 300 pixels wide, showing the view given, and where it was told to scroll to. */
@@ -74,5 +89,26 @@ describe('Carousel', () => {
     track.scrollLeft = 320;
     press('Next');
     expect(scrolls).toEqual([600]);
+  });
+
+  it('shows a single view as if it were not in a carousel, until another comes', async () => {
+    const fixture = TestBed.createComponent(SingleHost);
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+    const track = host.querySelector('[role="group"]');
+
+    expect(host.querySelectorAll('button')).toHaveLength(0);
+    expect(track?.hasAttribute('tabindex')).toBe(false);
+
+    fixture.componentInstance.more.set(true);
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve));
+    await fixture.whenStable();
+
+    expect(Array.from(host.querySelectorAll('button'), (button) => button.title)).toEqual([
+      'Previous',
+      'Next',
+    ]);
+    expect(track?.getAttribute('tabindex')).toBe('0');
   });
 });
