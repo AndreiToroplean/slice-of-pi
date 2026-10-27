@@ -91,7 +91,7 @@ describe('YourRuns', () => {
     // The page reads the runs as it opens.
     return openPage(
       YourRuns,
-      (host) => host.querySelector('.runs > p:not(.message), .runs .legend') !== null,
+      (host) => host.querySelector('.runs > p:not(.message), .runs .list') !== null,
       {
         runs,
         persisted,
@@ -196,8 +196,8 @@ describe('YourRuns', () => {
         group.classList.contains('unsure'),
       ]),
     ).toEqual(groupsBy3.map((digits, i) => [digits, i === 9]));
-    expect(host.querySelectorAll('.summary .break')).toHaveLength(9);
-    expect(host.querySelector('.summary .confidence')).not.toBeNull();
+    expect(host.querySelectorAll('.summary app-run-chart .break')).toHaveLength(9);
+    expect(host.querySelector('.summary app-run-chart .confidence')).not.toBeNull();
   });
 
   it('finds no group in a single run, outweighed by the synthetic runs', async () => {
@@ -667,8 +667,8 @@ describe('YourRuns', () => {
     ).toEqual(['Place 1', 'Place 16']);
   });
 
-  it('hides the marks of the chart of all runs under a key pressed, in developer mode', async () => {
-    const { host, until } = await setUp(trusted, false, false, undefined, true);
+  it('hides the marks of the chart of all runs under a key pressed', async () => {
+    const { host, until } = await setUp(trusted);
     const breaks = () => host.querySelectorAll('.summary app-run-chart line.break').length;
     expect(breaks()).toBeGreaterThan(0);
 
