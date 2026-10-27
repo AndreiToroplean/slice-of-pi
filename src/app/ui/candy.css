@@ -13,6 +13,11 @@
    */
   --grown: calc(var(--candy-breath) * 0.0625rem);
   display: block;
+  /*
+   * Positioned, so that pressing it, which moves it, never lifts it over the buttons after it: each covers those before
+   * it, as on a keypad, where the rows below, nearer to the player, cover those above.
+   */
+  position: relative;
   margin: calc(-1 * var(--grown));
   padding: calc(var(--candy-padding-block) + var(--grown))
     calc(var(--candy-padding-inline) + var(--grown));
