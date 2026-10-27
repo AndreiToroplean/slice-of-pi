@@ -262,6 +262,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), layout }));
   }
 
+  /** Brings back the game's own value of everything tuned. */
+  reset(): Promise<void> {
+    return this.save({});
+  }
+
   /** Takes the tweaks of a stored setting, storing them again without those the game's own values have caught up with. */
   private async adopt(stored: unknown): Promise<void> {
     const parsed = parseTweaks(stored);
