@@ -14,24 +14,25 @@ p {
   margin: 0;
 }
 
-.name {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
+.count {
   font-size: 1.5em;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
-.name svg {
-  width: 0.917em;
-  height: 0.917em;
-  filter: drop-shadow(0 1px 4px rgb(0 0 0 / 18%));
-}
-
-.place {
+.season {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
   font-size: 0.75em;
   opacity: 0.92;
   font-variant-numeric: tabular-nums;
+}
+
+.season svg {
+  width: 1.2em;
+  height: 1.2em;
+  filter: drop-shadow(0 1px 4px rgb(0 0 0 / 18%));
 }
 
 .year {
