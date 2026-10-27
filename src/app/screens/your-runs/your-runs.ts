@@ -124,5 +124,5 @@ export class YourRuns {
   }
 }
 
-/** The key to the chart of all runs. */
-const KEYS: readonly Key[] = [TIMES.time, TIMES.baseline, TIMES.breaks, TIMES.confidence];
+/** The key to the chart of all runs: what the break model makes of it, but how confident it is, which is for tuning it. */
+const KEYS: readonly Key[] = [TIMES.time, TIMES.baseline, TIMES.breaks];

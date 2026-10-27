@@ -113,7 +113,7 @@ export class TimesView {
   /** The places the chart spans, and the top of its scale, shared with the charts of the runs. */
   readonly places = input.required<number>();
   readonly top = input.required<number>();
-  /** The keys to the marks it shows. */
+  /** The keys to the marks it shows: it leaves out the others. */
   readonly keys = input.required<readonly Key[]>();
   /** What it shows, under the key, if anything. */
   readonly caption = input<string>();
@@ -138,7 +138,7 @@ export class TimesView {
   });
 
   protected shown(key: Key): boolean {
-    return !this.hidden().has(keyIdOf(key));
+    return this.keys().includes(key) && !this.hidden().has(keyIdOf(key));
   }
 
   protected toggle(id: string): void {
