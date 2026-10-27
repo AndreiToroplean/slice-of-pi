@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793131121868,
+  "lastUpdate": 1793131556299,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2680,6 +2680,46 @@ window.BENCHMARK_DATA = {
             "value": 1130,
             "unit": "ms",
             "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "af012b221f722f4fa0ae7b342e0aa9a70f810e72",
+          "message": "feat: lead the season header with the digit reached, and count years from 0\n\n- The header now reads \"Digit 195\" above \"Winter · Year 1\", instead of \"Year 2 · digit 95 of 100\", so the player sees how far into π they are.\n- Years count from 0, so the year is the hundreds of the digit reached: digit 0 before any decimal is typed, and digit 200 starts year 2.\n- Idea for later: replace year 0 with something more fun, such as counting the run like an age, where digit 0 of year 0 is its birthday and the first year counts the way a baby's age does (in days, then weeks, then months).\n\nClaude-Session: https://claude.ai/code/session_01EZEx3wCqcaZXRKjBaGzFAq",
+          "timestamp": "2026-10-27T21:05:34+01:00",
+          "tree_id": "56ee22943a2b2777d41e931ad145e6ecae97baec",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/af012b221f722f4fa0ae7b342e0aa9a70f810e72"
+        },
+        "date": 1793131555643,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 9537,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 20537,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 603,
+            "unit": "ms",
+            "extra": "ContextMenu takes no mouse held down for a long press"
           }
         ]
       }
