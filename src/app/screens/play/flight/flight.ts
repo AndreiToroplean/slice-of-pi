@@ -73,7 +73,8 @@ export function leavesAt(index: number, slide: number): number {
 
 /**
  * The flight of a slot, from `from`, into its tile, at `to`, once it has waited its turn, `wait` ms. First it presses in
- * like a button: its face moves down over its thickness, the dark band along its bottom, which it then no longer has.
+ * like a button: its face, its digit in the middle of it, moves down over its thickness, the dark band along its bottom,
+ * which it then no longer has.
  * Then it keeps its form and color, moving and shrinking onto the tile. Its radii undo the scale, so that it lands with
  * the tile's corners: rounded on the outside of the word, square inside it.
  *
@@ -101,6 +102,7 @@ export function flightKeyframes(
     transform: 'none',
     borderRadius: `${String(slotRadius)}px`,
     boxShadow: SLOT_EDGE,
+    paddingBottom: `${String(SLOT_DEPTH)}px`,
     easing: PRESS_EASING,
   };
   return [
@@ -111,6 +113,7 @@ export function flightKeyframes(
       transform: `translate(0px, ${String(SLOT_DEPTH / 2)}px) scale(1, ${String(pressedScale)})`,
       borderRadius: `${String(slotRadius)}px / ${String(slotRadius / pressedScale)}px`,
       boxShadow: 'inset 0 0 0 rgb(0 0 0 / 0%)',
+      paddingBottom: '0px',
       easing: FLIGHT_EASING,
     },
     {
@@ -118,6 +121,7 @@ export function flightKeyframes(
       transform: `translate(${String(dx)}px, ${String(dy)}px) scale(${String(sx)}, ${String(sy)})`,
       borderRadius: `${radii(sx)} / ${radii(sy)}`,
       boxShadow: 'inset 0 0 0 rgb(0 0 0 / 0%)',
+      paddingBottom: '0px',
     },
   ];
 }
@@ -206,6 +210,7 @@ function sweep(
         .map((c) => `${String(radius(c) / scaleY)}px`)
         .join(' ')}`,
       boxShadow: `inset 0 -${String(SLOT_DEPTH * (1 - pressed))}px 0 rgb(0 0 0 / ${String(14 * (1 - pressed))}%)`,
+      paddingBottom: `${String(SLOT_DEPTH * (1 - pressed))}px`,
     };
   });
 }
