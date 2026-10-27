@@ -1,7 +1,7 @@
 import { CdkDragHandle } from '@angular/cdk/drag-drop';
 import { Component, input, output } from '@angular/core';
 import type { Break } from '../../game/grouping/break-models/break-model';
-import { LongPress } from '../../ui/long-press';
+import { ContextMenu } from '../../ui/context-menu';
 import { MoreButton } from '../../ui/more-button';
 import { RunChart } from './run-chart';
 import type { Series } from './run-charts';
@@ -24,12 +24,12 @@ export interface RunCardChart {
 
 /**
  * A run's card: its date, how many digits it has, in how long and in how many groups, and its chart. A ⋮ button in its
- * corner opens its context menu, as a long press on it does. Selectable, a tap on it, or Enter or Space, selects it or not; reorderable, a handle on its
+ * corner opens its context menu, as a long press or a right click on it does. Selectable, a tap on it, or Enter or Space, selects it or not; reorderable, a handle on its
  * left drags it to another place, as the `cdkDrag` on it has it, or moves it up or down with the arrow keys.
  */
 @Component({
   selector: 'app-run-card',
-  imports: [CdkDragHandle, LongPress, MoreButton, RunChart],
+  imports: [CdkDragHandle, ContextMenu, MoreButton, RunChart],
   host: {
     class: 'panel',
     '[class.unchecked]': '!chart().checked',
@@ -60,8 +60,8 @@ export interface RunCardChart {
       [attr.role]="selectable() ? 'button' : null"
       [attr.aria-pressed]="selectable() ? selected() : null"
       tabindex="0"
-      (appLongPress)="pressed.emit($event)"
-      (appTap)="select()"
+      (appContextMenu)="pressed.emit($event)"
+      (click)="select()"
       (keydown.enter)="select()"
       (keydown.space)="select($event)"
     >
@@ -107,7 +107,7 @@ export class RunCard {
   readonly menu = input.required<string>();
   /** Its context menu opening from its ⋮ button. */
   readonly opening = output();
-  /** Where it was long pressed, for its context menu. */
+  /** Where its context menu was asked for, by a long press or a right click. */
   readonly pressed = output<{ readonly x: number; readonly y: number }>();
   /** Tapped, while selectable. */
   readonly toggled = output();

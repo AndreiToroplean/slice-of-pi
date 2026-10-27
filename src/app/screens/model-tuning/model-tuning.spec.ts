@@ -242,9 +242,8 @@ describe('ModelTuning', () => {
   });
 
   describe('the runs on the chart on top', () => {
-    function tap(element: Element): void {
-      element.dispatchEvent(new PointerEvent('pointerdown', { button: 0 }));
-      element.dispatchEvent(new PointerEvent('pointerup'));
+    function tap(element: HTMLElement): void {
+      element.click();
     }
 
     function others(host: HTMLElement): number {
