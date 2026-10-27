@@ -2,7 +2,7 @@
   display: contents;
 }
 
-h2 {
+.panel h2 {
   margin: 0;
   font-family: var(--font-digits);
   font-size: 1.375rem;
@@ -48,4 +48,12 @@ app-segmented {
   height: 1.375rem;
   margin: 0;
   accent-color: var(--candy);
+}
+
+/* What resetting the tweaks costs, in its confirmation. */
+dialog p {
+  margin: 0;
+  line-height: 1.45;
+  text-align: center;
+  text-shadow: var(--text-shadow);
 }
