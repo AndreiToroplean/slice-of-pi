@@ -1,4 +1,4 @@
-import { Component, inject, InjectionToken, input, signal } from '@angular/core';
+import { Component, computed, inject, InjectionToken, input, signal } from '@angular/core';
 import { TweakValues, tweaksBackup } from '../../developer-mode/tweaks';
 import { RUN_CLOCK } from '../../player-data/run-recorder';
 import { Candy } from '../../ui/candy';
@@ -11,7 +11,6 @@ export const WRITE_CLIPBOARD = new InjectionToken<(text: string) => Promise<void
 
 /** How long "Copied" shows on the button. */
 export const COPIED_MS = 2000;
-const LABEL = 'Copy Hyperparameter Values';
 
 /**
  * The button of a developer mode page that copies the values tuned on it, as a backup holding them alone (see
@@ -20,14 +19,21 @@ const LABEL = 'Copy Hyperparameter Values';
 @Component({
   selector: 'app-copy-values',
   imports: [Candy],
-  template: `<button type="button" appCandy (click)="void copy()">{{ label() }}</button>`,
+  template: `<button type="button" appCandy (click)="void copy()">{{ shown() }}</button>`,
   styleUrl: './copy-values.css',
 })
 export class CopyValues {
   /** The values to copy. */
   readonly values = input.required<TweakValues>();
+  /** What the button says, until it says whether it copied them. */
+  readonly label = input('Copy Hyperparameter Values');
 
-  protected readonly label = signal(LABEL);
+  /** Whether it copied them, for a while after it tried, if it did. */
+  private readonly copied = signal<boolean | undefined>(undefined);
+  protected readonly shown = computed(() => {
+    const copied = this.copied();
+    return copied === undefined ? this.label() : copied ? 'Copied' : "Couldn't Copy";
+  });
   private readonly writeClipboard = inject(WRITE_CLIPBOARD);
   private readonly clock = inject(RUN_CLOCK);
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -35,13 +41,13 @@ export class CopyValues {
   protected async copy(): Promise<void> {
     try {
       await this.writeClipboard(tweaksBackup(this.values(), this.clock.epoch()));
-      this.label.set('Copied');
+      this.copied.set(true);
     } catch {
-      this.label.set("Couldn't Copy");
+      this.copied.set(false);
     }
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {
-      this.label.set(LABEL);
+      this.copied.set(undefined);
     }, COPIED_MS);
   }
 }

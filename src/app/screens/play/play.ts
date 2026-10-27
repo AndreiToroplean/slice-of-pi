@@ -44,7 +44,8 @@ import { KeypadKey, KeypadPoint, KeypadTouch } from '../../game/layers/keypad-la
 import { SeasonHeader } from './season-header/season-header';
 import { seasonAt } from '../../game/layers/seasons';
 import { Tweaks } from '../../developer-mode/tweaks';
-import { layoutStyles } from '../../ui/layout';
+import { Layout, layoutStyles } from '../../ui/layout';
+import { LayoutEditor } from './layout-editor/layout-editor';
 import { Slots } from './slots/slots';
 import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { TIMER } from './timer';
@@ -65,7 +66,9 @@ const TICK = 16;
  * the player breaks there again. Developer mode counts down, left of 0, to
  * when the group being typed ends, unless its settings hide that. Pausing offers to restart the game, stop it and
  * replay its run, or end it, back to the main menu; going back, as the browser's or the system's Back does, pauses
- * too, and resumes, and only ending the game leaves it. Every touch on the keypad, and every key typed, is recorded, with
+ * too, and resumes, and only ending the game leaves it. In developer mode, pausing also offers edit mode, which shows
+ * 10 slots and the keypad's touch areas, and leads back to the pause dialog once done; going back from it asks whether
+ * to cancel the changes. Every touch on the keypad, and every key typed, is recorded, with
  * where and when, in the run's touch log, and so is every touch elsewhere on the screen, typing nothing, but those on
  * the pause button and its dialog; restarting or ending the game ends the run.
  *
@@ -76,7 +79,7 @@ const TICK = 16;
  */
 @Component({
   selector: 'app-play',
-  imports: [BreakCountdown, Keypad, Pause, SeasonHeader, Slots, TypedDigits],
+  imports: [BreakCountdown, Keypad, LayoutEditor, Pause, SeasonHeader, Slots, TypedDigits],
   // Replaying, within the replay's screen, which is the one that comes and goes.
   host: {
     '[class.screen]': 'replay() === undefined',
@@ -99,7 +102,7 @@ const TICK = 16;
       class="slots"
       [digits]="grouping().current + mistakes()"
       [colors]="currentColors()"
-      [size]="size()"
+      [size]="editedLayout() === undefined ? size() : 10"
       [wrong]="mistakes().length"
       [emptyOpacity]="waitLeft()"
       [handover]="handover()"
@@ -114,7 +117,7 @@ const TICK = 16;
       [layout]="keypadLayout()"
       [colors]="keyColors()"
       [solid]="tweaks.solidKeys()"
-      [showAreas]="showTouchAreas()"
+      [showAreas]="editedLayout() !== undefined"
       [disabled]="replay() !== undefined"
       [shown]="shownKey()"
       [marks]="marks()"
@@ -129,10 +132,18 @@ const TICK = 16;
       <app-pause
         [paused]="paused()"
         (pausedChange)="setPaused($event)"
-        [(showTouchAreas)]="showTouchAreas"
+        (edit)="editedLayout.set(tweaks.layout())"
         [replayable]="recorder.run() !== undefined"
         (restart)="restart()"
         (replay)="void replayRun()"
+      />
+    }
+    @let edited = editedLayout();
+    @if (edited !== undefined) {
+      <app-layout-editor
+        [layout]="edited"
+        (layoutChange)="editedLayout.set($event)"
+        (done)="doneEditing()"
       />
     }
   `,
@@ -158,17 +169,18 @@ export class Play implements PausesOnBack {
 
   /** The colors tuned in developer mode, or the game's own, and whether to count down to the end of the group. */
   protected readonly tweaks = inject(Tweaks);
+  /** The layout being edited, in developer mode's edit mode, while the game stays paused. */
+  protected readonly editedLayout = signal<Layout | undefined>(undefined);
   /** Where the header, tape, slots and keypad sit, as the lengths they lay out with. */
-  protected readonly layout = computed(() => layoutStyles(this.tweaks.layout()));
+  protected readonly layout = computed(() =>
+    layoutStyles(this.editedLayout() ?? this.tweaks.layout()),
+  );
 
   /**
    * Whether the game is paused: keys typed on a keyboard meanwhile don't count, and the run's clock stops, so that the
    * time paused counts neither as a break nor between digits.
    */
   protected readonly paused = signal(false);
-  /** Whether the keypad shows its touch areas, as developer mode lets the player choose when paused. */
-  protected readonly showTouchAreas = signal(false);
-
   protected readonly recorder = inject(RunRecorder);
   private readonly router = inject(Router);
   private readonly clock = inject(RUN_CLOCK);
@@ -270,6 +282,7 @@ export class Play implements PausesOnBack {
   private readonly typedDigits = viewChild.required(TypedDigits);
   private readonly keypad = viewChild.required(Keypad);
   private readonly pause = viewChild(Pause);
+  private readonly layoutEditor = viewChild(LayoutEditor);
   /** Touches in progress elsewhere than on the keypad, the pause button and its dialog, by pointer: where they started. */
   protected readonly touchesElsewhere = new Map<number, KeypadPoint>();
   /** How long the next word takes to fly onto the tape, until its first slot lands, in ms. */
@@ -352,8 +365,19 @@ export class Play implements PausesOnBack {
     if (pause === undefined || pause.ending) {
       return true;
     }
+    const editor = this.layoutEditor();
+    if (editor !== undefined) {
+      editor.askToCancel();
+      return false;
+    }
     pause.back();
     return false;
+  }
+
+  /** Ends edit mode, back to the pause dialog it was opened from. */
+  protected doneEditing(): void {
+    this.editedLayout.set(undefined);
+    this.pause()?.pause();
   }
 
   /** Notes a touch landing elsewhere than on the keypad, the pause button and its dialog, which handle their own. */
