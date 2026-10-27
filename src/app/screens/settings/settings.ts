@@ -10,8 +10,8 @@ import { YourData } from './your-data';
 
 /**
  * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout, and in developer mode,
- * whether the keys are solid or see-through, whether to count down to the end of each group and whether to check the
- * digits typed. Each setting has a button to
+ * whether the keys are solid or see-through, whether to count down to the end of each group and whether to leave the
+ * digits typed unchecked. Each setting has a button to
  * bring back its default value, and the top bar one to bring them all back.
  */
 @Component({
@@ -103,10 +103,16 @@ import { YourData } from './your-data';
           <div class="row">
             <label class="setting">
               <span>
-                Check Digits
-                <small>A wrong digit is a mistake; off, any digit goes, to try things out.</small>
+                Don’t Check Digits
+                <small
+                  >Any digit goes, to try things out; otherwise a wrong digit is a mistake.</small
+                >
               </span>
-              <input type="checkbox" [checked]="tweaks.checking()" (change)="setChecking($event)" />
+              <input
+                type="checkbox"
+                [checked]="!tweaks.checking()"
+                (change)="setUnchecked($event)"
+              />
             </label>
             <button
               type="button"
@@ -162,8 +168,8 @@ export class Settings {
     void this.tweaks.setSolidKeys(solid);
   }
 
-  protected setChecking(event: Event): void {
-    void this.tweaks.setChecking((event.target as HTMLInputElement).checked);
+  protected setUnchecked(event: Event): void {
+    void this.tweaks.setChecking(!(event.target as HTMLInputElement).checked);
   }
 
   protected resetLayout(): void {
