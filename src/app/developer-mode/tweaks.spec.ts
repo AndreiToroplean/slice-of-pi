@@ -212,15 +212,16 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({});
   });
 
-  it('makes the keys solid only in developer mode, once told to, and keeps that', async () => {
+  it('makes the keys see-through only in developer mode, once told to, and keeps that', async () => {
     const tweaks = await load();
-    await tweaks.setSolidKeys(true);
-    expect(tweaks.solidKeys()).toBe(false);
-    await TestBed.inject(DeveloperMode).set(true);
     expect(tweaks.solidKeys()).toBe(true);
-    expect((await load()).values()).toEqual({ keys: 'solid' });
+    await tweaks.setSolidKeys(false);
+    expect(tweaks.solidKeys()).toBe(true);
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.solidKeys()).toBe(false);
+    expect((await load()).values()).toEqual({ keys: 'clear' });
 
-    await TestBed.inject(Tweaks).setSolidKeys(false);
+    await TestBed.inject(Tweaks).setSolidKeys(true);
     expect((await load()).values()).toEqual({});
   });
 
@@ -400,8 +401,8 @@ describe('Tweaks', () => {
     expect(parseTweaks({ format: TWEAKS_FORMAT, checking: 'no' })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, countdown: false })).toEqual({ countdown: false });
     expect(parseTweaks({ format: TWEAKS_FORMAT, countdown: true })).toEqual({});
-    expect(parseTweaks({ format: TWEAKS_FORMAT, keys: 'solid' })).toEqual({ keys: 'solid' });
-    expect(parseTweaks({ format: TWEAKS_FORMAT, keys: 'clear' })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, keys: 'clear' })).toEqual({ keys: 'clear' });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, keys: 'solid' })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, includeUnchecked: true })).toEqual({
       includeUnchecked: true,
     });
