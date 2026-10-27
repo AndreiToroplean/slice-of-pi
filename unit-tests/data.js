@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793059585028,
+  "lastUpdate": 1793105046644,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2600,6 +2600,46 @@ window.BENCHMARK_DATA = {
             "value": 1029,
             "unit": "ms",
             "extra": "Mars lets the run being typed count for more than the recorded runs, by the current decay"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "noreply@anthropic.com",
+            "name": "Claude",
+            "username": "claude"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "157758445523d7d23c57a79ab7d73f08d9cace71",
+          "message": "docs: read a page in the browser as code rather than as pixels, with screenshots only for what only the eye can judge\n\nClaude-Session: https://claude.ai/code/session_01X1XesqUMto5xxFr25HdVgC",
+          "timestamp": "2026-10-27T13:43:41+01:00",
+          "tree_id": "aaa6e41af1a27617426a3fa6ff11eac0fb517a71",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/157758445523d7d23c57a79ab7d73f08d9cace71"
+        },
+        "date": 1793105046079,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 10940,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 23486,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 605,
+            "unit": "ms",
+            "extra": "ContextMenu takes no mouse held down for a long press"
           }
         ]
       }
