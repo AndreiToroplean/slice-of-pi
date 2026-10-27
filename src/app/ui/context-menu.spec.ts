@@ -34,4 +34,22 @@ describe('ContextMenu', () => {
 
     expect(host.points).toEqual([]);
   });
+
+  it('tells a right click asked for as the button goes down only once it is up', async () => {
+    element.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'mouse', button: 2 }));
+    element.dispatchEvent(new MouseEvent('contextmenu', { clientX: 30, clientY: 40 }));
+    expect(host.points).toEqual([]);
+
+    document.dispatchEvent(new PointerEvent('pointerup', { pointerType: 'mouse', button: 2 }));
+    await new Promise((resolve) => setTimeout(resolve));
+
+    expect(host.points).toEqual([{ x: 30, y: 40 }]);
+  });
+
+  it('tells a long press on a touch screen at once, as the finger is still down', () => {
+    element.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch' }));
+    element.dispatchEvent(new MouseEvent('contextmenu', { clientX: 30, clientY: 40 }));
+
+    expect(host.points).toEqual([{ x: 30, y: 40 }]);
+  });
 });
