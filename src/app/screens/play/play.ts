@@ -67,10 +67,10 @@ const TICK = 16;
  * when the group being typed ends, unless its settings hide that. Pausing offers to restart the game, stop it and
  * replay its run, or end it, back to the main menu; going back, as the browser's or the system's Back does, pauses
  * too, and resumes, and only ending the game leaves it. In developer mode, pausing also offers edit mode, which shows
- * 10 slots and the keypad's touch areas, and leads back to the pause dialog once done; going back from it asks whether
- * to cancel the changes. Every touch on the keypad, and every key typed, is recorded, with
- * where and when, in the run's touch log, and so is every touch elsewhere on the screen, typing nothing, but those on
- * the pause button and its dialog; restarting or ending the game ends the run.
+ * 10 slots and the keypad's touch areas, but while previewing the layout as in the game, and leads back to the pause
+ * dialog once done; going back from it asks whether to cancel the changes. Every touch on the keypad, and every key
+ * typed, is recorded, with where and when, in the run's touch log, and so is every touch elsewhere on the screen,
+ * typing nothing, but those on the pause button and its dialog; restarting or ending the game ends the run.
  *
  * It also replays a run, given its touch log: the player can't type, nor pause, and nothing is recorded. Whatever
  * replays it hands it the touches one after the other, on the run's own clock (`TIMER` and `RUN_CLOCK`), and resets it
@@ -102,7 +102,7 @@ const TICK = 16;
       class="slots"
       [digits]="grouping().current + mistakes()"
       [colors]="currentColors()"
-      [size]="editedLayout() === undefined ? size() : 10"
+      [size]="editedLayout() === undefined || previewing() ? size() : 10"
       [wrong]="mistakes().length"
       [emptyOpacity]="waitLeft()"
       [handover]="handover()"
@@ -117,7 +117,7 @@ const TICK = 16;
       [layout]="keypadLayout()"
       [colors]="keyColors()"
       [solid]="tweaks.solidKeys()"
-      [showAreas]="editedLayout() !== undefined"
+      [showAreas]="editedLayout() !== undefined && !previewing()"
       [disabled]="replay() !== undefined"
       [shown]="shownKey()"
       [marks]="marks()"
@@ -143,6 +143,7 @@ const TICK = 16;
       <app-layout-editor
         [layout]="edited"
         (layoutChange)="editedLayout.set($event)"
+        [(previewing)]="previewing"
         (done)="doneEditing()"
       />
     }
@@ -171,6 +172,8 @@ export class Play implements PausesOnBack {
   protected readonly tweaks = inject(Tweaks);
   /** The layout being edited, in developer mode's edit mode, while the game stays paused. */
   protected readonly editedLayout = signal<Layout | undefined>(undefined);
+  /** Whether edit mode hides its handles, the screen showing as in the game. */
+  protected readonly previewing = signal(false);
   /** Where the header, tape, slots and keypad sit, as the lengths they lay out with. */
   protected readonly layout = computed(() =>
     layoutStyles(this.editedLayout() ?? this.tweaks.layout()),
@@ -377,6 +380,7 @@ export class Play implements PausesOnBack {
   /** Ends edit mode, back to the pause dialog it was opened from. */
   protected doneEditing(): void {
     this.editedLayout.set(undefined);
+    this.previewing.set(false);
     this.pause()?.pause();
   }
 

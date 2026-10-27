@@ -21,6 +21,10 @@
   --candy-danger: #d63b41;
   --on-candy-danger: #ffffff;
   --candy-danger-edge: #a1262c;
+  /* A toggle candy button that's on. */
+  --candy-toggled: var(--ink);
+  --on-candy-toggled: #ffffff;
+  --candy-toggled-edge: #120c1c;
 
   /* Frosted surfaces over the background, such as keys. */
   --frost: rgb(255 255 255 / 26%);
