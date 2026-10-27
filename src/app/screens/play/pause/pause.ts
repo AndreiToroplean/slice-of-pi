@@ -7,10 +7,11 @@ import { LightDismiss } from '../../../ui/light-dismiss';
 
 /**
  * The pause button, and the dialog it opens over the game: resume, restart the game, or end it, back to the main menu;
- * a button in the dialog's corner also stops the game and replays the run, once there's one and the player has
+ * a button in the dialog's left corner also stops the game and replays the run, once there's one and the player has
  * confirmed it, warned that the game can't be resumed then. Escape pauses too, as going back does (see `Play`), and
  * resumes, or goes back from the confirmation, as do going back and a click outside the dialog; up and down move between a dialog's
- * buttons, and Enter chooses one, as on any button. In developer mode, it can also show the keypad's touch areas.
+ * buttons, and Enter chooses one, as on any button. In developer mode, a button in its right corner also puts the play screen
+ * in edit mode, the game staying paused until it's done.
  */
 @Component({
   selector: 'app-pause',
@@ -29,13 +30,7 @@ import { LightDismiss } from '../../../ui/light-dismiss';
         <rect x="14" y="5" width="4" height="14" rx="1.5" />
       </svg>
     </button>
-    <dialog
-      #dialog
-      class="card"
-      closedby="any"
-      aria-labelledby="pause-title"
-      (close)="paused.set(false)"
-    >
+    <dialog #dialog class="card" closedby="any" aria-labelledby="pause-title" (close)="closed()">
       <div class="heading">
         <h2 id="pause-title">Paused</h2>
         <button
@@ -51,22 +46,26 @@ import { LightDismiss } from '../../../ui/light-dismiss';
             <path class="play" d="M10.5 9.25 14.75 12l-4.25 2.75z" />
           </svg>
         </button>
+        @if (developerMode.enabled()) {
+          <button
+            type="button"
+            appCandy="clear"
+            class="corner edit-button"
+            title="Edit Layout"
+            (click)="editLayout()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.5 19.5h4l10-10-4-4-10 10z" />
+              <path d="m12.5 7.5 4 4" />
+            </svg>
+          </button>
+        }
       </div>
       <app-button-list>
         <button type="button" appCandy="primary" autofocus (click)="resume()">Resume</button>
         <button type="button" appCandy (click)="restart.emit(); resume()">Restart</button>
         <button type="button" appCandy="danger" (click)="void endGame()">End Game</button>
       </app-button-list>
-      @if (developerMode.enabled()) {
-        <label class="toggle">
-          <input
-            type="checkbox"
-            [checked]="showTouchAreas()"
-            (change)="setShowTouchAreas($event)"
-          />
-          Show Touch Areas
-        </label>
-      }
     </dialog>
     <dialog
       #replayDialog
@@ -96,19 +95,22 @@ export class Pause {
   readonly replayable = input(false);
   /** The player chose to stop the game and replay the run, once the dialog has closed. */
   readonly replay = output();
-  /** Whether the keypad shows its touch areas, in developer mode. */
-  readonly showTouchAreas = model(false);
+  /** The player chose to edit the layout, once the dialog has closed: the game stays paused meanwhile. */
+  readonly edit = output();
 
   protected readonly developerMode = inject(DeveloperMode);
 
   /** Whether the player chose to end the game, going back to the main menu. */
   ending = false;
+  /** Whether the player chose to edit the layout, as the dialog closes. */
+  private editing = false;
 
   private readonly backToMenu = injectBackToMenu();
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
   private readonly replayDialog = viewChild.required<ElementRef<HTMLDialogElement>>('replayDialog');
 
-  protected pause(): void {
+  /** Pauses, opening the dialog, as the pause button does. */
+  pause(): void {
     this.dialog().nativeElement.showModal();
     this.paused.set(true);
   }
@@ -134,8 +136,19 @@ export class Pause {
     }
   }
 
-  protected setShowTouchAreas(event: Event): void {
-    this.showTouchAreas.set((event.target as HTMLInputElement).checked);
+  protected editLayout(): void {
+    this.editing = true;
+    this.resume();
+  }
+
+  /** The dialog closed: the game resumes, unless the player chose to edit the layout. */
+  protected closed(): void {
+    if (this.editing) {
+      this.editing = false;
+      this.edit.emit();
+    } else {
+      this.paused.set(false);
+    }
   }
 
   protected resume(): void {

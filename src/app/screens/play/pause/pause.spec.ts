@@ -86,21 +86,26 @@ describe('Pause', () => {
     expect(dialog.querySelector('app-button-list button')?.hasAttribute('autofocus')).toBe(true);
   });
 
-  it('shows and hides the touch areas, in developer mode only', async () => {
-    const { host, pause } = await setUp();
-    const toggle = (): HTMLInputElement | null =>
-      host.querySelector<HTMLInputElement>('label.toggle input[type="checkbox"]');
-    expect(toggle()).toBeNull();
+  it('offers to edit the layout in developer mode only, staying paused while it’s edited', async () => {
+    const { host, pause, dialog, click } = await setUp();
+    let edits = 0;
+    pause.edit.subscribe(() => edits++);
+    const offered = (): boolean => host.querySelector('button[title="Edit Layout"]') !== null;
+    expect(offered()).toBe(false);
 
     await TestBed.inject(DeveloperMode).set(true);
     TestBed.tick();
-    expect(toggle()?.closest('label')?.textContent.trim()).toBe('Show Touch Areas');
-    expect(toggle()?.checked).toBe(false);
+    expect(offered()).toBe(true);
+    await click('Pause');
+    await click('Edit Layout');
 
-    toggle()?.click();
-    expect(pause.showTouchAreas()).toBe(true);
-    toggle()?.click();
-    expect(pause.showTouchAreas()).toBe(false);
+    expect(dialog.open).toBe(false);
+    expect(pause.paused()).toBe(true);
+    expect(edits).toBe(1);
+    pause.pause();
+    await click('Resume');
+    expect(pause.paused()).toBe(false);
+    expect(edits).toBe(1);
   });
 
   it('moves between its buttons with the up and down keys, round from either end', async () => {
