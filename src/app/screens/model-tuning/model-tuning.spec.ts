@@ -379,6 +379,12 @@ describe('ModelTuning', () => {
     });
   });
 
+  it('shows how confident the break model is, on the chart of all runs', async () => {
+    const { host } = await setUp(trusted);
+
+    expect(host.querySelector('.summary app-run-chart .confidence')).not.toBeNull();
+  });
+
   it('offers no way to delete runs', async () => {
     const { host } = await setUp([grouped, { ...grouped, id: 'unchecked', checked: false }]);
 
