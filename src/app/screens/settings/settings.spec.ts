@@ -5,6 +5,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { INDEXED_DB } from '../../player-data/run-store';
+import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
 import { Settings } from './settings';
 
 describe('Settings', () => {
@@ -152,6 +153,36 @@ describe('Settings', () => {
     expect(tweaks.countdown()).toBe(false);
     expect(tweaks.checking()).toBe(true);
     expect(setting.layout()).toBe('calculator');
+  });
+
+  it('resets every tweak once confirmed, in developer mode, and only once something is tuned', async () => {
+    installDialogs();
+    onTestFinished(uninstallDialogs);
+    await TestBed.inject(DeveloperMode).set(true);
+    const tweaks = TestBed.inject(Tweaks);
+    const fixture = TestBed.createComponent(Settings);
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+    const dialog = host.querySelector<HTMLDialogElement>(
+      'dialog[aria-labelledby="reset-tweaks-title"]',
+    );
+    expect(button(host, 'Reset All Tweaks')?.disabled).toBe(true);
+
+    await tweaks.setCountdown(true);
+    await tweaks.setSolidKeys(false);
+    await fixture.whenStable();
+    button(host, 'Reset All Tweaks')?.click();
+    expect(dialog?.open).toBe(true);
+    button(dialog ?? host, 'Back')?.click();
+    expect(dialog?.open).toBe(false);
+    expect(tweaks.countdown()).toBe(true);
+
+    button(host, 'Reset All Tweaks')?.click();
+    button(dialog ?? host, 'Reset All Tweaks')?.click();
+    await fixture.whenStable();
+
+    expect(dialog?.open).toBe(false);
+    expect(tweaks.values()).toEqual({});
   });
 
   it('has no developer settings outside developer mode', async () => {

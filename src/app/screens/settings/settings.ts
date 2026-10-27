@@ -1,10 +1,11 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, ElementRef, inject, viewChild } from '@angular/core';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { DEFAULT_KEYPAD_LAYOUT, KeypadLayout } from '../../game/layers/keypad-layout';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { Page } from '../../ui/page';
 import { Segment, Segmented } from '../../ui/segmented';
+import { ButtonList } from '../../ui/button-list';
 import { Candy } from '../../ui/candy';
 import { YourData } from './your-data';
 
@@ -12,11 +13,12 @@ import { YourData } from './your-data';
  * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout, and in developer mode,
  * whether the keys are solid or see-through, whether to count down to the end of each group and whether to leave the
  * digits typed unchecked. Each setting has a button to
- * bring back its default value, and the top bar one to bring them all back.
+ * bring back its default value, and the top bar one to bring them all back. In developer mode, a last button brings back
+ * the game's own value of every tweak, once confirmed.
  */
 @Component({
   selector: 'app-settings',
-  imports: [Candy, Page, Segmented, YourData],
+  imports: [ButtonList, Candy, Page, Segmented, YourData],
   template: `
     <app-page heading="Settings">
       <button
@@ -127,8 +129,36 @@ import { YourData } from './your-data';
               </svg>
             </button>
           </div>
+          <app-button-list>
+            <button
+              type="button"
+              appCandy="danger"
+              aria-haspopup="dialog"
+              [disabled]="untuned()"
+              (click)="resetTweaksDialog.showModal()"
+            >
+              Reset All Tweaks
+            </button>
+          </app-button-list>
         </section>
       }
+      <dialog
+        #resetTweaksDialog
+        class="card"
+        closedby="any"
+        aria-labelledby="reset-tweaks-title"
+        aria-describedby="reset-tweaks-warning"
+      >
+        <h2 id="reset-tweaks-title">Reset the Tweaks?</h2>
+        <p id="reset-tweaks-warning">
+          Everything tuned in developer mode goes back to the game’s own values: colors, break
+          models, layout, run order and these settings. Only a backup file can bring them back.
+        </p>
+        <app-button-list>
+          <button type="button" appCandy autofocus (click)="resetTweaksDialog.close()">Back</button>
+          <button type="button" appCandy="danger" (click)="resetTweaks()">Reset All Tweaks</button>
+        </app-button-list>
+      </dialog>
     </app-page>
   `,
   styleUrl: './settings.css',
@@ -145,6 +175,11 @@ export class Settings {
   ];
   protected readonly developerMode = inject(DeveloperMode);
   protected readonly tweaks = inject(Tweaks);
+  private readonly resetTweaksDialog =
+    viewChild.required<ElementRef<HTMLDialogElement>>('resetTweaksDialog');
+
+  /** Whether nothing is tuned in developer mode. */
+  protected readonly untuned = computed(() => Object.keys(this.tweaks.values()).length === 0);
 
   protected readonly layoutDefault = computed(
     () => this.keypadLayout.layout() === DEFAULT_KEYPAD_LAYOUT,
@@ -182,6 +217,12 @@ export class Settings {
 
   protected resetChecking(): void {
     void this.tweaks.setChecking(true);
+  }
+
+  /** Brings back the game's own value of every tweak, once confirmed. */
+  protected resetTweaks(): void {
+    this.resetTweaksDialog().nativeElement.close();
+    void this.tweaks.reset();
   }
 
   /** Brings back the default value of every setting shown. */

@@ -184,6 +184,19 @@ describe('Tweaks', () => {
     expect(parseTweaks({ format: TWEAKS_FORMAT, breakModel: 'pluto' })).toEqual({});
   });
 
+  it('brings back the game’s own value of everything tuned, and keeps that', async () => {
+    const tweaks = await load();
+    await tweaks.setBreakModel(VENUS);
+    await tweaks.setLayout({ ...LAYOUT, keypad: { height: 30, width: 90 } });
+    await tweaks.setCountdown(true);
+    await tweaks.setChecking(false);
+
+    await tweaks.reset();
+
+    expect(tweaks.values()).toEqual({});
+    expect((await load()).values()).toEqual({});
+  });
+
   it('checks the digits unless told not to, only while developer mode is on, and keeps that', async () => {
     const tweaks = await load();
     expect(tweaks.checking()).toBe(true);
