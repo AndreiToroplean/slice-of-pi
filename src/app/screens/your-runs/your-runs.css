@@ -30,6 +30,7 @@ p {
   align-content: start;
   gap: 0.75rem;
   /* Out to the edges of the page, so that the runs scroll under its padding, keeping room for focus rings. */
-  margin: 0 calc(-1 * var(--space-3)) calc(-1 * var(--space-3) - env(safe-area-inset-bottom));
-  padding: 0.25rem var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
+  margin: 0 calc(-1 * var(--margin-side))
+    calc(-1 * var(--margin-bottom) - env(safe-area-inset-bottom));
+  padding: 0.25rem var(--margin-side) calc(var(--margin-bottom) + env(safe-area-inset-bottom));
 }

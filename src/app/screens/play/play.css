@@ -1,7 +1,7 @@
 /*
- * The header, typed digits, slots and keypad, each in its place in the layout (see `layout.ts`), in `--unit`, a
- * hundredth of the screen's height above the navigation bar, or of the screen's when replaying, over the bar replaying
- * it. Slots fly over all of them.
+ * The header, tape, slots and keypad, each in its place in the layout (see `layout.ts`): up from `--floor`, the top of
+ * the navigation bar, or the screen's bottom when replaying, over the bar replaying it, in `--unit`, a hundredth of the
+ * screen's height above it. Slots fly over all of them.
  */
 :host {
   flex: 1;
@@ -9,51 +9,49 @@
   position: relative;
   isolation: isolate;
   container-type: size;
-  --unit: calc((100cqh - env(safe-area-inset-bottom)) / 100);
-  --edge-bottom: calc(1.375rem + env(safe-area-inset-bottom));
+  --floor: env(safe-area-inset-bottom);
+  --unit: calc((100cqh - var(--floor)) / 100);
 }
 
 :host(.replaying) {
-  --unit: 1cqh;
-  --edge-bottom: var(--space-2);
+  --floor: 0px;
 }
 
 app-season-header {
   position: absolute;
   inset-inline: var(--margin);
-  top: var(--header-top);
+  top: var(--margin-top);
   height: var(--header-height);
 }
 
-/* The tape, across the column right above the slots, which push it up as they take more rows. */
-.middle {
+app-typed-digits {
   position: absolute;
   inset-inline: var(--margin);
-  top: calc(var(--header-top) + var(--header-height));
-  bottom: var(--slots-bottom);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: var(--space-1);
+  bottom: calc(var(--floor) + var(--tape-bottom));
+  height: calc(var(--tape-top) - var(--tape-bottom));
 }
 
-/* As wide as the keypad. */
+/* As wide as the keypad, a row of slots tall: more rows, past 10 slots, grow up over the tape. */
 .slots {
-  align-self: center;
-  width: var(--keypad-width);
+  --slots-height: calc(var(--slots-top) - var(--slots-bottom));
+  position: absolute;
+  inset-inline: calc(var(--margin) + var(--margin-side));
+  bottom: calc(var(--floor) + var(--slots-bottom));
 }
 
 /*
- * The keys, on the bottom margin, centered in the column, and their touches reaching out from them as far as they can
- * (see `Keypad`): out to the column's sides, down to the bottom of the screen, and up a third of a key.
+ * The keys, from the bottom margin up to the keypad's top, between the side margins, and their touches reaching out
+ * from them as far as they can (see `Keypad`): out to the column's sides, down to the bottom of the screen, and up a
+ * third of a key.
  */
 .keypad {
-  --key-height: calc((var(--keypad-height) - 3 * var(--gap)) / 4);
+  --keys-height: calc(var(--keypad-top) - var(--margin-bottom));
+  --key-height: calc((var(--keys-height) - 3 * var(--gap)) / 4);
   --reach-top: calc(var(--key-height) / 3);
-  --reach-sides: calc((var(--column) - var(--keypad-width)) / 2);
-  --reach-bottom: var(--edge-bottom);
+  --reach-sides: var(--margin-side);
+  --reach-bottom: calc(var(--floor) + var(--margin-bottom));
   position: absolute;
   inset-inline: var(--margin);
   bottom: 0;
-  height: var(--keypad-height);
+  height: var(--keys-height);
 }
