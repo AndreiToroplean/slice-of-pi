@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793145581025,
+  "lastUpdate": 1793147754766,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2840,6 +2840,46 @@ window.BENCHMARK_DATA = {
             "value": 811,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs shows unchecked runs too, marked, still leaving them out of the groups"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "noreply@anthropic.com",
+            "name": "Claude",
+            "username": "claude"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "726de6e4f5f04903513b86de8a4eaabb33a55f36",
+          "message": "fix: space the slots right as they fly off and hand over\n\n- The slots' gap computes to a formula rather than a length, which read as no gap at all: the digits slid to the slots of a row without gaps before flying off, off their places, by most of a slot past 10 of them, and the slots handing over moved too little.\n- The gap is worked out from the row's width instead, as the slots' style spaces them.\n\nClaude-Session: https://claude.ai/code/session_01X1XesrA5qAA9sTvSFn2ZaK",
+          "timestamp": "2026-10-28T01:35:32+01:00",
+          "tree_id": "f5a8181a73ce672a79e2be6ce5ba10eff14cdf7e",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/726de6e4f5f04903513b86de8a4eaabb33a55f36"
+        },
+        "date": 1793147754328,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 9546,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 20150,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 604,
+            "unit": "ms",
+            "extra": "ContextMenu takes no mouse held down for a long press"
           }
         ]
       }
