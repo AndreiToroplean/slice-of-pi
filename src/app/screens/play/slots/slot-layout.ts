@@ -20,15 +20,23 @@ export function rowStart(count: number): number {
 }
 
 /**
+ * How far apart the slots are, in a row `width` wide of slots `slotWidth` wide: as `slots.css` spaces them, for
+ * {@link SLOTS_SHOWN} of them to span it. Worked out here, as the gap computes to a formula rather than a length.
+ */
+export function slotGap(width: number, slotWidth: number): number {
+  return Math.max(0, (width - SLOTS_SHOWN * slotWidth) / (SLOTS_SHOWN - 1));
+}
+
+/**
  * Where the first `count` slots sit when they're all the slots there are: in a row across `area`, as the slots do (see
- * {@link rowStart}), each `slot` in size and `gap` apart.
+ * {@link rowStart} and {@link slotGap}), each `slot` in size.
  */
 export function slotBoxes(
   count: number,
   area: Box,
   slot: { readonly width: number; readonly height: number },
-  gap: number,
 ): Box[] {
+  const gap = slotGap(area.width, slot.width);
   const free = area.width - count * slot.width - (count - 1) * gap;
   const left = area.left + (free > 0 ? free / 2 : free);
   return Array.from({ length: count }, (_, i) => ({

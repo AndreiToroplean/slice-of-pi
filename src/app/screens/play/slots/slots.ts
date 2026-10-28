@@ -12,7 +12,7 @@ import {
   untracked,
 } from '@angular/core';
 import type { Box } from '../flight/flight';
-import { rowStart, shownSlots, SlotMove, slotHandover, SLOTS_SHOWN } from './slot-layout';
+import { rowStart, shownSlots, slotGap, SlotMove, slotHandover, SLOTS_SHOWN } from './slot-layout';
 
 /** How long a slot takes to move to its place as the slots hand over to the next group's, in ms. */
 export const HANDOVER_DURATION = 300;
@@ -323,10 +323,8 @@ export class Slots {
    * out, however much the slot is popping in.
    */
   private step(slot: Element): number {
-    return (
-      (parseFloat(getComputedStyle(slot).width) || 0) +
-      (parseFloat(getComputedStyle(this.host).columnGap) || 0)
-    );
+    const width = parseFloat(getComputedStyle(slot).width) || 0;
+    return width + slotGap(parseFloat(getComputedStyle(this.host).width) || 0, width);
   }
 
   private stop(): void {

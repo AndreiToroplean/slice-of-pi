@@ -6,6 +6,7 @@
  * (`--slots-left` in `styles.css`). No blur behind them: the fade's mask would keep it from seeing what's behind it.
  */
 :host {
+  /* Worked out again in `slotGap` (`slot-layout.ts`): computed, it stays a formula, which can't be read as a length. */
   --gap: max(0px, (100% - 10 * var(--slot-width)) / 9);
   position: relative;
   display: grid;
