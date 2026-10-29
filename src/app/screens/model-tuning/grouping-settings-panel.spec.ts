@@ -1,7 +1,9 @@
+import { CdkMenuItem } from '@angular/cdk/menu';
+import { Component, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
-import { installPopovers, uninstallPopovers } from '../../../testing/fake-popovers';
+import { menuItem, menuItems, openMenu } from '../../../testing/menus';
 import { WRITE_CLIPBOARD } from '../tuning/copy-values';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { parseTweaks, Tweaks, TWEAKS } from '../../developer-mode/tweaks';
@@ -15,15 +17,32 @@ import { MARS } from '../../game/grouping/break-models/mars';
 import { MERCURY, MERCURY_DEFAULTS } from '../../game/grouping/break-models/mercury';
 import { GroupingSettingsPanel, nameOf, rowsOf } from './grouping-settings-panel';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
+import { Dropdown } from '../../ui/menu';
+
+/** The panel, given an overflow menu copying its values, as Model Tuning gives it one. */
+@Component({
+  imports: [CdkMenuItem, Dropdown, GroupingSettingsPanel],
+  template: `
+    <app-grouping-settings-panel #panel [menu]="menu" />
+    <ng-template #menu>
+      <div appDropdown>
+        <button type="button" cdkMenuItem (cdkMenuItemTriggered)="void panel.copy()">
+          Copy Hyperparameter Values
+        </button>
+      </div>
+    </ng-template>
+  `,
+})
+class PanelHost {
+  readonly panel = viewChild.required(GroupingSettingsPanel);
+}
 
 describe('GroupingSettingsPanel', () => {
   beforeEach(() => {
     installDialogs();
-    installPopovers();
   });
   afterEach(() => {
     uninstallDialogs();
-    uninstallPopovers();
   });
 
   let copied: string[];
@@ -49,8 +68,9 @@ describe('GroupingSettingsPanel', () => {
     });
     await TestBed.inject(DeveloperMode).set(true);
     await TestBed.inject(Tweaks).loaded;
-    const fixture = TestBed.createComponent(GroupingSettingsPanel);
-    fixture.componentInstance.told.subscribe((message) => told.push(message));
+    const fixture = TestBed.createComponent(PanelHost);
+    fixture.detectChanges();
+    fixture.componentInstance.panel().told.subscribe((message) => told.push(message));
     fixture.detectChanges();
     return {
       host: fixture.nativeElement as HTMLElement,
@@ -87,12 +107,16 @@ describe('GroupingSettingsPanel', () => {
     return TestBed.inject(Tweaks).grouping();
   }
 
-  it('opens its menu from a plain ⋮ at the end of the tabs', async () => {
-    const { host } = await setUp();
-    const more = host.querySelector('.bar button[title="More"]');
-
-    expect(more?.getAttribute('popovertarget')).toBe(host.querySelector('.bar .dropdown')?.id);
+  it('opens the menu given to it from a plain ⋮ at the end of the tabs', async () => {
+    const { host, detect } = await setUp();
+    const more = host.querySelector<HTMLButtonElement>('.bar button[title="More"]');
     expect(more?.classList).not.toContain('candy');
+
+    more?.click();
+    detect();
+
+    expect(more?.getAttribute('aria-expanded')).toBe('true');
+    expect(menuItems()).toEqual(['Copy Hyperparameter Values']);
   });
 
   it('names each slider of a pair after it, side by side on one row of labels', async () => {
@@ -294,7 +318,9 @@ describe('GroupingSettingsPanel', () => {
 
     move(slider(host, 'level'), 0.95);
     detect();
-    buttonLabelled(host, 'Copy Hyperparameter Values').click();
+    host.querySelector<HTMLButtonElement>('.bar button[title="More"]')?.click();
+    detect();
+    menuItem('Copy Hyperparameter Values').click();
     await vi.waitFor(() => {
       expect(copied).toHaveLength(1);
     });
@@ -314,12 +340,17 @@ describe('GroupingSettingsPanel', () => {
     detect();
     expect(pane().hidden).toBe(false);
     expect(pane().querySelector('#model-name')?.textContent).toBe(MERCURY.label);
-    const models = Array.from(pane().querySelectorAll<HTMLButtonElement>('.dropdown .model'));
-    expect(models.map((button) => button.firstChild?.textContent?.trim())).toEqual(
-      BREAK_MODELS.map((kind) => (kind === MERCURY ? `${kind.label} Is Selected` : kind.label)),
+    pane().querySelector<HTMLButtonElement>('[aria-labelledby="model-label model-name"]')?.click();
+    detect();
+    const models = Array.from(openMenu()?.querySelectorAll('[role="menuitemradio"]') ?? []);
+    expect(
+      models.map((item) => item.querySelector('span')?.firstChild?.textContent?.trim()),
+    ).toEqual(BREAK_MODELS.map((kind) => kind.label));
+    expect(models.map((item) => item.getAttribute('aria-checked'))).toEqual(
+      BREAK_MODELS.map((kind) => String(kind === MERCURY)),
     );
 
-    models[BREAK_MODELS.indexOf(LUNA)]?.click();
+    menuItem(LUNA.label).click();
     await vi.waitFor(() => {
       expect(TestBed.inject(Tweaks).breakModelKind()).toBe(LUNA);
     });
@@ -341,22 +372,16 @@ describe('GroupingSettingsPanel', () => {
     }
 
     it('imports all the hyperparameters another model shares with the one picked, from its picker', async () => {
-      const { host } = await onLuna();
+      const { host, detect } = await onLuna();
       move(slider(host, 'pauseMargin'), 1.5);
       const pane = host.querySelector<HTMLElement>('#pane-Model') ?? host;
-      const picker = pane.querySelector<HTMLButtonElement>(
-        '[aria-labelledby="import-label import-name"]',
-      );
-      const menu = pane.querySelector<HTMLElement>(
-        `#${picker?.getAttribute('popovertarget') ?? ''}`,
-      );
-      picker?.click();
-      expect(menu?.hasAttribute('data-popover-open')).toBe(true);
-      expect(
-        Array.from(menu?.querySelectorAll('button') ?? [], (b) => b.textContent.trim()),
-      ).toContain('Venus');
+      pane
+        .querySelector<HTMLButtonElement>('[aria-labelledby="import-label import-name"]')
+        ?.click();
+      detect();
+      expect(menuItems()).toContain('Venus');
 
-      buttonLabelled(menu ?? pane, 'Mercury').click();
+      menuItem('Mercury').click();
 
       expect(settings()).toEqual({
         ...LUNA_DEFAULTS,
@@ -374,11 +399,8 @@ describe('GroupingSettingsPanel', () => {
       );
       importOne?.click();
       detect();
-      const menu = host.querySelector<HTMLElement>(
-        `#${importOne?.getAttribute('popovertarget') ?? ''}`,
-      );
 
-      buttonLabelled(menu ?? host, 'From Mercury').click();
+      menuItem('From Mercury').click();
 
       expect(settings()).toEqual({ ...LUNA_DEFAULTS, window: 11 });
       expect(host.querySelector('[title="Import the pause margin from another model"]')).toBe(null);

@@ -1,7 +1,7 @@
 import { CdkDragHandle } from '@angular/cdk/drag-drop';
-import { Component, input, output } from '@angular/core';
+import { Component, computed, input, output, TemplateRef } from '@angular/core';
 import type { Break } from '../../game/grouping/break-models/break-model';
-import { ContextMenu } from '../../ui/context-menu';
+import { ContextMenu } from '../../ui/menu';
 import { MoreButton } from '../../ui/more-button';
 import { RunChart } from './run-chart';
 import type { Series } from './run-charts';
@@ -24,7 +24,7 @@ export interface RunCardChart {
 
 /**
  * A run's card: its date, how many digits it has, in how long and in how many groups, and its chart. A ⋮ button in its
- * corner opens its context menu, as a long press or a right click on it does. Selectable, a tap on it, or Enter or Space, selects it or not; reorderable, a handle on its
+ * corner opens its context menu, given the run's id, as a long press or a right click on it does. Selectable, a tap on it, or Enter or Space, selects it or not; reorderable, a handle on its
  * left drags it to another place, as the `cdkDrag` on it has it, or moves it up or down with the arrow keys.
  */
 @Component({
@@ -60,7 +60,8 @@ export interface RunCardChart {
       [attr.role]="selectable() ? 'button' : null"
       [attr.aria-pressed]="selectable() ? selected() : null"
       tabindex="0"
-      (appContextMenu)="pressed.emit($event)"
+      [appContextMenu]="menu()"
+      [appContextMenuData]="menuData()"
       (click)="select()"
       (keydown.enter)="select()"
       (keydown.space)="select($event)"
@@ -84,9 +85,9 @@ export interface RunCardChart {
     </article>
     <button
       class="more"
-      [appMore]="menu()"
       [title]="'More for the run of ' + chart().title"
-      (click)="opening.emit()"
+      [appMore]="menu()"
+      [appMoreData]="menuData()"
     ></button>
   `,
   styleUrl: './run-card.css',
@@ -103,16 +104,14 @@ export class RunCard {
   readonly selected = input(false);
   /** Whether it has a handle to move it to another place. */
   readonly reorderable = input(false);
-  /** The id of its context menu, which its ⋮ button opens. */
-  readonly menu = input.required<string>();
-  /** Its context menu opening from its ⋮ button. */
-  readonly opening = output();
-  /** Where its context menu was asked for, by a long press or a right click. */
-  readonly pressed = output<{ readonly x: number; readonly y: number }>();
+  /** Its context menu (an `ng-template` holding an `appDropdown`), given the run's id. */
+  readonly menu = input.required<TemplateRef<unknown>>();
   /** Tapped, while selectable. */
   readonly toggled = output();
   /** Moved up (-1) or down (1) a place with the arrow keys on its handle. */
   readonly moved = output<number>();
+
+  protected readonly menuData = computed(() => ({ $implicit: this.chart().id }));
 
   protected select(event?: Event): void {
     if (!this.selectable()) {

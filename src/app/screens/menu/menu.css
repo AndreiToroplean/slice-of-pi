@@ -92,14 +92,20 @@ h1 {
   font-size: 1.5rem;
 }
 
-/* The menu, in the top right corner. */
-app-dropdown-menu {
+/* The developer pages' menu button, in the top right corner, the menu it opens within it. */
+.more {
   position: absolute;
   top: var(--margin-top);
   right: var(--margin-side);
 }
 
-/* The settings' gear, in the top left corner, like the menu's button in the other. */
+.more svg {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+}
+
+/* The settings' gear, in the top left corner, like the menu button in the other. */
 .settings {
   position: absolute;
   top: var(--margin-top);

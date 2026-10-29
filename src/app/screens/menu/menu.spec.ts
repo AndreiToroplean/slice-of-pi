@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { openMenu } from '../../../testing/menus';
 import { provideRouter } from '@angular/router';
 import { routes } from '../../app.routes';
 import { Background } from '../../ui/background';
@@ -176,25 +177,27 @@ describe('Menu', () => {
       winter: ['#000000', '#111111'],
     } as const;
 
-    function developerSection(host: HTMLElement): Element | null {
-      return host.querySelector('.dropdown [role="group"]');
-    }
-
     it('has an overflow menu of developer pages, only once developer mode is on', async () => {
       const fixture = TestBed.createComponent(Menu);
       await fixture.whenStable();
       const host = fixture.nativeElement as HTMLElement;
-      const overflow = (): Element | null => host.querySelector('button[title="Developer Pages"]');
+      const overflow = (): HTMLButtonElement | null =>
+        host.querySelector('button[title="Developer Pages"]');
       expect(overflow()).toBeNull();
-      expect(developerSection(host)).toBeNull();
 
       await TestBed.inject(DeveloperMode).set(true);
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(overflow()).not.toBeNull();
+      });
+      overflow()?.click();
       await fixture.whenStable();
 
-      expect(overflow()).not.toBeNull();
-      expect(developerSection(host)?.querySelector('h2')?.textContent).toBe('Developer');
+      const section = openMenu()?.querySelector('[role="group"]');
+      expect(openMenu()?.getAttribute('aria-labelledby')).toBe('developer-title');
+      expect(section?.querySelector('h2')?.textContent).toBe('Developer');
       expect(
-        Array.from(developerSection(host)?.querySelectorAll('a') ?? [], (link) => [
+        Array.from(section?.querySelectorAll('a') ?? [], (link) => [
           link.textContent.trim(),
           link.getAttribute('href'),
         ]),

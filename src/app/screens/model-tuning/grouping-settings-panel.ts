@@ -1,8 +1,20 @@
-import { Component, computed, ElementRef, inject, output, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  input,
+  output,
+  signal,
+  TemplateRef,
+  viewChild,
+} from '@angular/core';
 import { WRITE_CLIPBOARD } from '../tuning/copy-values';
 import { RUN_CLOCK } from '../../player-data/run-recorder';
 import { Tweaks, tweaksBackup } from '../../developer-mode/tweaks';
-import { DropdownMenu } from '../../ui/dropdown-menu';
+import { CdkMenuItem, CdkMenuItemRadio } from '@angular/cdk/menu';
+import { Dropdown, MenuTrigger } from '../../ui/menu';
+import { MoreButton } from '../../ui/more-button';
 import type {
   BreakModelKind,
   Hyperparameter,
@@ -59,12 +71,21 @@ function keysOf(kind: BreakModelKind): string[] {
  * scrolling if they don't fit, a pair of sliders sharing a row. Each slider has a toggle button pinning it, so that
  * fitting the model to the player's groups leaves it where it is (kept with the tweaks, for each model), a button
  * bringing back the game's value, a help button opening a dialog that says what it does, and, where another model has
- * it too, a button importing its value from one of them. At the end of the tabs' strip, a plain ⋮ opens an overflow menu
- * with a button to copy the settings' values so they go into the code, then what is given to it marked `menuItem`.
+ * it too, a button importing its value from one of them. At the end of the tabs' strip, a plain ⋮ opens the overflow menu
+ * given to it (`menu`), which can copy the settings' values so they go into the code (`copy`).
  */
 @Component({
   selector: 'app-grouping-settings-panel',
-  imports: [Candy, LightDismiss, DropdownMenu, Segmented],
+  imports: [
+    Candy,
+    CdkMenuItem,
+    CdkMenuItemRadio,
+    Dropdown,
+    LightDismiss,
+    MenuTrigger,
+    MoreButton,
+    Segmented,
+  ],
   template: `
     <div class="bar">
       <app-segmented
@@ -74,11 +95,7 @@ function keysOf(kind: BreakModelKind): string[] {
         [segments]="tabs()"
         [(value)]="tab"
       />
-      <app-dropdown-menu [plain]="true">
-        <button type="button" (click)="void copy()">Copy Hyperparameter Values</button>
-        <hr />
-        <ng-content select="[menuItem]" />
-      </app-dropdown-menu>
+      <button class="more" title="More" [appMore]="menu()"></button>
     </div>
     <div
       class="pane runs-pane"
@@ -101,21 +118,30 @@ function keysOf(kind: BreakModelKind): string[] {
         <button
           type="button"
           class="frosted pill picker"
-          aria-haspopup="true"
           aria-labelledby="model-label model-name"
-          [attr.popovertarget]="modelMenu.id"
+          [appMenuTrigger]="modelMenu"
         >
           <span id="model-name">{{ kind().label }}</span>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
         </button>
-        <app-dropdown-menu #modelMenu label="Break model" [button]="false">
-          @for (each of models; track each.id) {
-            <button type="button" class="model" [disabled]="each === kind()" (click)="pick(each)">
-              {{ each.label }}{{ each === kind() ? ' Is Selected' : '' }}
-              <small>{{ each.description }}</small>
-            </button>
-          }
-        </app-dropdown-menu>
+        <ng-template #modelMenu>
+          <div appDropdown aria-label="Break model">
+            @for (each of models; track each.id) {
+              <button
+                type="button"
+                class="model"
+                cdkMenuItemRadio
+                [cdkMenuItemChecked]="each === kind()"
+                (cdkMenuItemTriggered)="pick(each)"
+              >
+                <span>
+                  {{ each.label }}
+                  <small>{{ each.description }}</small>
+                </span>
+              </button>
+            }
+          </div>
+        </ng-template>
       </div>
       @if (sources().length > 0) {
         <div class="field">
@@ -123,22 +149,21 @@ function keysOf(kind: BreakModelKind): string[] {
           <button
             type="button"
             class="frosted pill picker"
-            aria-haspopup="true"
             aria-labelledby="import-label import-name"
-            [attr.popovertarget]="importMenu.id"
+            [appMenuTrigger]="importMenu"
           >
             <span id="import-name">Choose a Model</span>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
           </button>
-          <app-dropdown-menu
-            #importMenu
-            label="Import shared hyperparameters from"
-            [button]="false"
-          >
-            @for (source of sources(); track source.id) {
-              <button type="button" (click)="importAll(source)">{{ source.label }}</button>
-            }
-          </app-dropdown-menu>
+          <ng-template #importMenu>
+            <div appDropdown aria-label="Import shared hyperparameters from">
+              @for (source of sources(); track source.id) {
+                <button type="button" cdkMenuItem (cdkMenuItemTriggered)="importAll(source)">
+                  {{ source.label }}
+                </button>
+              }
+            </div>
+          </ng-template>
         </div>
       }
       <ng-content select="[modelAction]" />
@@ -186,7 +211,7 @@ function keysOf(kind: BreakModelKind): string[] {
                       type="button"
                       class="round"
                       [title]="'Import the ' + name(control).toLowerCase() + ' from another model'"
-                      [attr.popovertarget]="importMenu.id"
+                      [appMenuTrigger]="importMenu"
                     >
                       <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M12 4v11" />
@@ -194,17 +219,22 @@ function keysOf(kind: BreakModelKind): string[] {
                         <path d="M5 20h14" />
                       </svg>
                     </button>
-                    <app-dropdown-menu
-                      #importMenu
-                      [label]="'Import the ' + name(control).toLowerCase()"
-                      [button]="false"
-                    >
-                      @for (source of others; track source.id) {
-                        <button type="button" (click)="importFrom(source, [control.key])">
-                          From {{ source.label }}
-                        </button>
-                      }
-                    </app-dropdown-menu>
+                    <ng-template #importMenu>
+                      <div
+                        appDropdown
+                        [attr.aria-label]="'Import the ' + name(control).toLowerCase()"
+                      >
+                        @for (source of others; track source.id) {
+                          <button
+                            type="button"
+                            cdkMenuItem
+                            (cdkMenuItemTriggered)="importFrom(source, [control.key])"
+                          >
+                            From {{ source.label }}
+                          </button>
+                        }
+                      </div>
+                    </ng-template>
                   }
                   <button
                     type="button"
@@ -272,6 +302,18 @@ function keysOf(kind: BreakModelKind): string[] {
       flex: 1;
       min-width: 0;
       background: none;
+    }
+
+    /* Plain, as the tabs not chosen are: it opens a menu rather than a tab. */
+    .bar .more {
+      height: auto;
+      margin: 0.1875rem;
+      margin-inline-start: 0;
+    }
+
+    .bar .more:focus-visible {
+      outline: 0.1875rem solid transparent;
+      box-shadow: var(--selected-glow);
     }
 
     .pane {
@@ -355,7 +397,7 @@ function keysOf(kind: BreakModelKind): string[] {
       opacity: 0.9;
     }
     /* A break model, picked or to switch to, with what it does under its name. */
-    .model {
+    .model span {
       display: grid;
     }
 
@@ -376,11 +418,6 @@ function keysOf(kind: BreakModelKind): string[] {
 
     .field .picker {
       justify-self: start;
-    }
-
-    /* The one picked, readable but set apart. */
-    .model:disabled {
-      opacity: 0.75;
     }
 
     .model small {
@@ -424,6 +461,8 @@ function keysOf(kind: BreakModelKind): string[] {
 export class GroupingSettingsPanel {
   /** Tells what happened, such as the values being copied. */
   readonly told = output<string>();
+  /** The overflow menu its ⋮ opens (an `ng-template` holding an `appDropdown`). */
+  readonly menu = input.required<TemplateRef<unknown>>();
 
   protected readonly runsTab = RUNS_TAB;
   protected readonly modelTab = MODEL_TAB;
@@ -542,7 +581,7 @@ export class GroupingSettingsPanel {
   }
 
   /** Copies the break model and its settings' values, tuned or not, to hand back so they go into the code. */
-  protected async copy(): Promise<void> {
+  async copy(): Promise<void> {
     try {
       const { id } = this.kind();
       const values = { breakModel: id, grouping: { [id]: this.settings() } };
