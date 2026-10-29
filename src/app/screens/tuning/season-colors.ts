@@ -1,9 +1,17 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Background } from '../../ui/background';
 import { COLOR_SPACE_NAMES, COLOR_SPACES, ColorSpace } from '../../game/color/color-spaces';
-import { DropdownMenu } from '../../ui/dropdown-menu';
-import { Candy } from '../../ui/candy';
-import { Page } from '../../ui/page';
+import { MatButton } from '@angular/material/button';
+import {
+  MatCard,
+  MatCardContent,
+  MatCardHeader,
+  MatCardSubtitle,
+  MatCardTitle,
+} from '@angular/material/card';
+import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
+import { MatSlider, MatSliderThumb } from '@angular/material/slider';
+import { MatPage } from '../../ui/mat-page';
 import { SEASON_NAMES, SeasonHeader } from '../play/season-header/season-header';
 import {
   backgroundsFrom,
@@ -32,10 +40,26 @@ const ENDS = [
  */
 @Component({
   selector: 'app-season-colors',
-  imports: [Candy, ColorPicker, CopyValues, DropdownMenu, Page, SeasonHeader],
+  imports: [
+    ColorPicker,
+    CopyValues,
+    MatButton,
+    MatCard,
+    MatCardContent,
+    MatCardHeader,
+    MatCardSubtitle,
+    MatCardTitle,
+    MatMenu,
+    MatMenuItem,
+    MatMenuTrigger,
+    MatPage,
+    MatSlider,
+    MatSliderThumb,
+    SeasonHeader,
+  ],
   template: `
-    <app-page heading="Season Colors">
-      <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
+    <app-mat-page heading="Season Colors">
+      <button pageAction matButton type="button" [disabled]="!tuned()" (click)="reset()">
         Reset All
       </button>
       <app-season-header [view]="view()" />
@@ -68,55 +92,56 @@ const ENDS = [
         [neighbors]="neighbors()"
         (colorChange)="pick($event)"
       />
-      <div class="space">
-        <span id="space-label">Blend colors in</span>
-        <button
-          type="button"
-          class="frosted pill picker"
-          aria-haspopup="true"
-          aria-labelledby="space-label space-name"
-          [attr.popovertarget]="spaceMenu.id"
-        >
-          <span id="space-name">{{ spaceLabel(colorSpace()) }}</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-        </button>
-        <app-dropdown-menu #spaceMenu label="Blend colors in" [button]="false">
-          @for (space of colorSpaces; track space) {
-            <button type="button" [disabled]="space === colorSpace()" (click)="blendIn(space)">
-              {{ spaceLabel(space) }}{{ space === colorSpace() ? ' Is Selected' : '' }}
-            </button>
-          }
-        </app-dropdown-menu>
-      </div>
-      <label class="slider turn">
-        {{ turnText() }}
-        <input
-          type="range"
-          min="1"
-          [max]="placesPerSeason"
-          step="1"
-          [value]="seasonTurn()"
-          (input)="turnOver($event)"
-        />
-      </label>
-      <label class="slider place">
-        Place in the year
-        <input
-          type="range"
-          [min]="-placesPerSeason"
-          [max]="placesPerYear + placesPerSeason"
-          step="1"
-          [value]="place()"
-          (input)="moveTo($event)"
-        />
-        <span class="marks" aria-hidden="true">
-          @for (mark of yearEnds; track mark.place) {
-            <span [style.--at]="mark.at">{{ mark.place }}</span>
-          }
-        </span>
-      </label>
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Blending</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <p>Blend colors in</p>
+          <button matButton="outlined" type="button" [matMenuTriggerFor]="spaceMenu">
+            {{ spaceLabel(colorSpace()) }}
+          </button>
+          <mat-menu #spaceMenu="matMenu">
+            @for (space of colorSpaces; track space) {
+              <button mat-menu-item type="button" (click)="blendIn(space)">
+                {{ spaceLabel(space) }}{{ space === colorSpace() ? ' ✓' : '' }}
+              </button>
+            }
+          </mat-menu>
+          <p>{{ turnText() }}</p>
+          <mat-slider min="1" [max]="placesPerSeason" step="1" discrete>
+            <input
+              matSliderThumb
+              aria-label="Season turn"
+              [value]="seasonTurn()"
+              (valueChange)="turnOver($event)"
+            />
+          </mat-slider>
+        </mat-card-content>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Place in the year</mat-card-title>
+          <mat-card-subtitle>The year runs from 0 to {{ placesPerYear }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-slider
+            [min]="-placesPerSeason"
+            [max]="placesPerYear + placesPerSeason"
+            step="1"
+            discrete
+          >
+            <input
+              matSliderThumb
+              aria-label="Place in the year"
+              [value]="place()"
+              (valueChange)="place.set($event)"
+            />
+          </mat-slider>
+        </mat-card-content>
+      </mat-card>
       <app-copy-values [values]="copied()" />
-    </app-page>
+    </app-mat-page>
   `,
   styleUrl: './season-colors.css',
 })
@@ -126,11 +151,6 @@ export class SeasonColors {
   protected readonly ends = ENDS;
   protected readonly placesPerYear = PLACES_PER_YEAR;
   protected readonly placesPerSeason = PLACES_PER_SEASON;
-  /** Marks under the place slider where the year starts and ends, and how far along the slider they are. */
-  protected readonly yearEnds = [0, PLACES_PER_YEAR].map((place) => ({
-    place,
-    at: (place + PLACES_PER_SEASON) / (PLACES_PER_YEAR + 2 * PLACES_PER_SEASON),
-  }));
   protected readonly colorSpaces = COLOR_SPACES;
   protected readonly spaceNames = COLOR_SPACE_NAMES;
   protected readonly gameSpace = SEASON_COLOR_SPACE;
@@ -237,17 +257,8 @@ export class SeasonColors {
     void this.tweaks.setColorSpace(space);
   }
 
-  protected turnOver(event: Event): void {
-    if (event.target instanceof HTMLInputElement) {
-      const turn = Number(event.target.value);
-      void this.tweaks.setSeasonTurn(turn);
-    }
-  }
-
-  protected moveTo(event: Event): void {
-    if (event.target instanceof HTMLInputElement) {
-      this.place.set(Number(event.target.value));
-    }
+  protected turnOver(turn: number): void {
+    void this.tweaks.setSeasonTurn(turn);
   }
 
   protected reset(): void {

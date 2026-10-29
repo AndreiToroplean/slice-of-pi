@@ -1,0 +1,19 @@
+@use '@angular/material' as mat;
+
+// Angular Material's theme, for the utility screens built from its components: the game's fonts and a palette near
+// its colors, everything else as Material 3 has it.
+html {
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$violet-palette,
+        tertiary: mat.$orange-palette,
+      ),
+      typography: (
+        plain-family: var(--font-ui),
+        brand-family: var(--font-digits),
+      ),
+      density: 0,
+    )
+  );
+}

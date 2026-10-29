@@ -2,8 +2,14 @@
   display: contents;
 }
 
-app-page {
-  gap: var(--space-2);
+mat-card {
+  color: var(--mat-sys-on-surface);
+  background: var(--mat-sys-surface-container-lowest);
+}
+
+mat-slider {
+  width: 100%;
+  margin: 0;
 }
 
 /* Four seasons side by side, each a little screen from its top color to its bottom one. */
@@ -58,57 +64,4 @@ app-page {
 
 .bottom {
   grid-row: 4;
-}
-
-/* The color space, beside its label. */
-.space {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  font-weight: 500;
-  text-shadow: var(--text-shadow);
-}
-
-/* A slider under its label. */
-.slider {
-  display: grid;
-  gap: 0.375rem;
-  font-weight: 500;
-  text-shadow: var(--text-shadow);
-
-  & input {
-    width: 100%;
-    margin: 0;
-    accent-color: var(--on-background);
-  }
-}
-
-/* The year's start and end under the place slider: a tick and its place, under where the slider's thumb would be. */
-.marks {
-  position: relative;
-  height: 1.125rem;
-  margin-top: -0.25rem;
-  font-size: 0.6875rem;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.92;
-
-  & span {
-    position: absolute;
-    top: 0;
-    /* The thumb's center travels from half its width in to half its width before the end. */
-    left: calc(0.5rem + (100% - 1rem) * var(--at));
-    translate: -50% 0;
-    display: grid;
-    justify-items: center;
-    line-height: 1;
-  }
-
-  & span::before {
-    content: '';
-    width: 1px;
-    height: 0.3125rem;
-    margin-bottom: 0.125rem;
-    background: currentcolor;
-  }
 }
