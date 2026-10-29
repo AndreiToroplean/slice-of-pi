@@ -1,6 +1,7 @@
-import { CdkMenuItem } from '@angular/cdk/menu';
+import { CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { menuItem, menuItems, openMenu } from '../../testing/menus';
 import { ContextMenu, Dropdown, MenuTrigger } from './menu';
 import { MoreButton } from './more-button';
@@ -18,6 +19,7 @@ import { OverlayHost } from './overlay-host';
       Open
     </button>
     <button class="more" title="More" [appMore]="menu" [appMoreData]="{ $implicit: 'b' }"></button>
+    <button type="button" class="corner-more" appMenuTriggerMore [appMenuTrigger]="menu">⋮</button>
     <article [appContextMenu]="menu" [appContextMenuData]="{ $implicit: 'c' }">A run</article>
     <section class="host" appOverlayHost>
       <button type="button" class="inner" [appMenuTrigger]="menu">Open within</button>
@@ -129,6 +131,18 @@ describe('menus', () => {
     expect(openMenu()?.closest('.cdk-overlay-pane')?.className).toMatch(
       /\bmenu-corner-(top|bottom)-(left|right)\b/,
     );
+  });
+
+  it('lines up with the right edge of a ⋮ first, and with the left edge of any other button', async () => {
+    const fixture = TestBed.createComponent(Host);
+    await fixture.whenStable();
+    const first = (selector: string): unknown =>
+      fixture.debugElement.query(By.css(selector)).injector.get(CdkMenuTrigger).menuPosition[0]
+        ?.panelClass;
+
+    expect(first('.opener')).toBe('menu-corner-top-left');
+    expect(first('.more')).toBe('menu-corner-top-right');
+    expect(first('.corner-more')).toBe('menu-corner-top-right');
   });
 
   it('notes where it is in the window, to draw the background under it there', async () => {

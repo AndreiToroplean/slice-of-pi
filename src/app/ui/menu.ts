@@ -1,6 +1,14 @@
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuTrigger } from '@angular/cdk/menu';
 import { ConnectedPosition } from '@angular/cdk/overlay';
-import { afterNextRender, Directive, ElementRef, inject } from '@angular/core';
+import {
+  afterNextRender,
+  booleanAttribute,
+  Directive,
+  effect,
+  ElementRef,
+  inject,
+  input,
+} from '@angular/core';
 
 /** How far a menu stands off the button it opens from. */
 const GAP = 6;
@@ -85,7 +93,8 @@ const POINT_POSITIONS: ConnectedPosition[] = [
 
 /**
  * A menu (`ng-template` holding an `appDropdown`), opened by the button this is on: the CDK's menu trigger, placing it as
- * our menus open (`BUTTON_POSITIONS`). The menu is given what's in `appMenuTriggerData`, as its template's context.
+ * our menus open (`BUTTON_POSITIONS`), or, from a ⋮ (`appMenuTriggerMore`), as from a ⋮ (`MORE_POSITIONS`). The menu is
+ * given what's in `appMenuTriggerData`, as its template's context.
  */
 @Directive({
   selector: '[appMenuTrigger]',
@@ -97,8 +106,14 @@ const POINT_POSITIONS: ConnectedPosition[] = [
   ],
 })
 export class MenuTrigger {
+  /** Whether the button is a ⋮, at the end of what it's for, such as one in a screen's corner that isn't a `MoreButton`. */
+  readonly more = input(false, { alias: 'appMenuTriggerMore', transform: booleanAttribute });
+
   constructor() {
-    inject(CdkMenuTrigger, { self: true }).menuPosition = BUTTON_POSITIONS;
+    const trigger = inject(CdkMenuTrigger, { self: true });
+    effect(() => {
+      trigger.menuPosition = this.more() ? MORE_POSITIONS : BUTTON_POSITIONS;
+    });
   }
 }
 
