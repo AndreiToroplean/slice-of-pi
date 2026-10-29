@@ -382,29 +382,28 @@ dialog.card[open] {
   }
 }
 
+/*
+ * The game behind, dimmed and blurred, fading in and out: its blur stays the same, rather than growing, which phones
+ * draw again for every radius, in steps, the whole screen changing at once as it crosses a pixel.
+ */
 dialog.card::backdrop {
-  background: rgb(30 20 60 / 0%);
-  -webkit-backdrop-filter: blur(0);
-  backdrop-filter: blur(0);
+  background: rgb(30 20 60 / 30%);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  opacity: 0;
   transition:
-    background-color var(--duration-dialog) var(--ease),
-    backdrop-filter var(--duration-dialog) var(--ease),
-    -webkit-backdrop-filter var(--duration-dialog) var(--ease),
+    opacity var(--duration-dialog) var(--ease),
     overlay var(--duration-dialog) allow-discrete,
     display var(--duration-dialog) allow-discrete;
 }
 
 dialog.card[open]::backdrop {
-  background: rgb(30 20 60 / 30%);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  opacity: 1;
 }
 
 @starting-style {
   dialog.card[open]::backdrop {
-    background: rgb(30 20 60 / 0%);
-    -webkit-backdrop-filter: blur(0);
-    backdrop-filter: blur(0);
+    opacity: 0;
   }
 }
 
