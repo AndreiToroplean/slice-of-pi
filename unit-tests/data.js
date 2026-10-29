@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793147754766,
+  "lastUpdate": 1793315941138,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2880,6 +2880,46 @@ window.BENCHMARK_DATA = {
             "value": 604,
             "unit": "ms",
             "extra": "ContextMenu takes no mouse held down for a long press"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "37fb3b56ac4e2651b4b800688c7359bffa4dc564",
+          "message": "fix: keep a menu's links within it, rather than scrolling it sideways\n\n- A menu's items fill its width with their padding on top: buttons hold their padding within their width, but links didn't, overflowing the developer pages' menu by 26 pixels, which then scrolled sideways\n- Its links now hold their padding within their width too\n\nClaude-Session: https://claude.ai/code/session_01X1Xeso9y436sHoo5QVKFSH",
+          "timestamp": "2026-10-30T00:18:35+01:00",
+          "tree_id": "f49d45b7f06317b3ddaee85947da509f540c6d59",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/37fb3b56ac4e2651b4b800688c7359bffa4dc564"
+        },
+        "date": 1793315940581,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 13831,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 29639,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 784,
+            "unit": "ms",
+            "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
           }
         ]
       }
