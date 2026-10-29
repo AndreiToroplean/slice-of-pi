@@ -4,6 +4,7 @@ import { installDialogs, uninstallDialogs } from '../../../../testing/fake-dialo
 import { DeveloperMode } from '../../../developer-mode/developer-mode';
 import { INDEXED_DB } from '../../../player-data/run-store';
 import { Pause } from './pause';
+import { pressKey } from '../../../../testing/keys';
 
 describe('Pause', () => {
   beforeEach(() => {
@@ -113,13 +114,13 @@ describe('Pause', () => {
     await click('Pause');
     const focused = (): string | undefined => document.activeElement?.textContent.trim();
     const press = (key: string): KeyboardEvent => {
-      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
       const active = document.activeElement;
-      (active !== null && dialog.contains(active)
-        ? active
-        : dialog.querySelector('app-button-list')
-      )?.dispatchEvent(event);
-      return event;
+      return pressKey(
+        key,
+        active !== null && dialog.contains(active)
+          ? active
+          : dialog.querySelector('app-button-list'),
+      );
     };
 
     (document.activeElement as HTMLElement | null)?.blur();
