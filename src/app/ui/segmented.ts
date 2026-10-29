@@ -1,13 +1,17 @@
+import { FocusKeyManager } from '@angular/cdk/a11y';
 import {
   afterNextRender,
   afterRenderEffect,
   Component,
+  computed,
   DOCUMENT,
   ElementRef,
   inject,
+  Injector,
   input,
   model,
   viewChild,
+  viewChildren,
 } from '@angular/core';
 
 /** One of the choices of a segmented control: its value, and what its segment says. */
@@ -19,7 +23,8 @@ export interface Segment<T extends string> {
 /**
  * A choice of one among a few, as simple buttons side by side on a strip, the one chosen filled: pressing another one
  * chooses it instead. A setting, as radio buttons, or, given the panels they show (`panels`), tabs. Either way, Tab
- * stops on the one chosen, and left and right choose the one before or after it. Too many to fit, they scroll sideways,
+ * stops on the one chosen, and the arrow keys choose the one before or after it, round, and Home and End the first and
+ * the last, as the CDK's focus key manager moves the focus. Too many to fit, they scroll sideways,
  * the one chosen into view, rather than squeeze their names. The same everywhere, on the background as on a card: a
  * faint dark strip, the one chosen on a white pill, as a white candy button, the others in the color of the text around
  * them. Choosing another one slides the pill over to it, fitting it, as its name fades to the pill's text color.
@@ -29,8 +34,7 @@ export interface Segment<T extends string> {
   host: {
     '[attr.role]': "panels() === undefined ? 'radiogroup' : 'tablist'",
     '[attr.aria-label]': 'label()',
-    '(keydown.arrowleft)': 'step($event, -1)',
-    '(keydown.arrowright)': 'step($event, 1)',
+    '(keydown)': 'keydown($event)',
     '(window:resize)': 'place()',
   },
   template: `
@@ -38,6 +42,7 @@ export interface Segment<T extends string> {
     @for (segment of segments(); track segment.value) {
       @let chosen = segment.value === value();
       <button
+        #segment
         type="button"
         [attr.role]="panels() === undefined ? 'radio' : 'tab'"
         [attr.aria-checked]="panels() === undefined ? chosen : null"
@@ -121,6 +126,23 @@ export class Segmented<T extends string> {
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly pill = viewChild.required<ElementRef<HTMLElement>>('pill');
+  private readonly segmentRefs = viewChildren<ElementRef<HTMLButtonElement>>('segment');
+  private readonly buttons = computed(() => this.segmentRefs().map((ref) => ref.nativeElement));
+  /** Moves the focus through them with the arrow keys, and Home and End, round, as for any group of options. */
+  private readonly keys = new FocusKeyManager(
+    computed(() =>
+      this.buttons().map((button) => ({
+        focus: () => {
+          button.focus();
+        },
+      })),
+    ),
+    inject(Injector),
+  )
+    .withHorizontalOrientation('ltr')
+    .withVerticalOrientation(false)
+    .withWrap()
+    .withHomeAndEnd();
   /** Whether the pill is under the one chosen yet, from which it then slides to the next. */
   private placed = false;
 
@@ -162,16 +184,15 @@ export class Segmented<T extends string> {
     this.scrollTo(this.segments().findIndex((segment) => segment.value === value));
   }
 
-  /** Chooses the one `offset` after the one chosen, before if negative, round from either end, and moves onto it. */
-  protected step(event: Event, offset: number): void {
-    event.preventDefault();
+  /** Chooses the one the keyboard moves onto, from the one chosen. */
+  protected keydown(event: KeyboardEvent): void {
     const segments = this.segments();
-    const index = segments.findIndex((segment) => segment.value === this.value());
-    const next = (index + offset + segments.length) % segments.length;
-    const segment = segments[next];
-    if (segment !== undefined) {
+    const chosen = segments.findIndex((segment) => segment.value === this.value());
+    this.keys.updateActiveItem(chosen);
+    this.keys.onKeydown(event);
+    const segment = segments[this.keys.activeItemIndex ?? chosen];
+    if (this.keys.activeItemIndex !== chosen && segment !== undefined) {
       this.choose(segment.value);
-      this.buttons()[next]?.focus();
     }
   }
 
@@ -184,9 +205,5 @@ export class Segmented<T extends string> {
     const [shown, all] = [button.getBoundingClientRect(), this.host.getBoundingClientRect()];
     this.host.scrollLeft +=
       Math.min(0, shown.left - all.left) + Math.max(0, shown.right - all.right);
-  }
-
-  private buttons(): HTMLButtonElement[] {
-    return Array.from(this.host.querySelectorAll('button'));
   }
 }
