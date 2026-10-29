@@ -12,7 +12,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { hexToHsl, hslToHex } from '../../game/color/color-spaces';
 import { averageHsl } from '../../game/color/color-math';
 import { SeasonColors } from './season-colors';
-import { installPopovers, uninstallPopovers } from '../../../testing/fake-popovers';
+import { menuItem, menuItems } from '../../../testing/menus';
 import { SEASON_STARTS, Tweaks } from '../../developer-mode/tweaks';
 
 describe('SeasonColors', () => {
@@ -158,27 +158,19 @@ describe('SeasonColors', () => {
   });
 
   it('blends the colors in the color space picked from its menu, and brings back the game’s on reset', async () => {
-    installPopovers();
-    onTestFinished(uninstallPopovers);
     await TestBed.inject(DeveloperMode).set(true);
     const { host, stable } = await setUp();
     const background = TestBed.inject(Background).colors;
     await set(slider(host), '72', stable);
     const picked = (): string | undefined =>
       host.querySelector('.space .picker')?.textContent.trim();
-    const spaces = (): HTMLButtonElement[] =>
-      Array.from(host.querySelectorAll<HTMLButtonElement>('.space .dropdown button'));
     expect(picked()).toBe('OKLCH (The Game’s)');
-    expect(spaces().map((button) => button.textContent.trim())).toEqual([
-      'sRGB',
-      'OKLab',
-      'HSL',
-      'OKLCH (The Game’s) Is Selected',
-    ]);
 
     host.querySelector<HTMLButtonElement>('.space .picker')?.click();
-    expect(host.querySelector('.space .dropdown')?.hasAttribute('data-popover-open')).toBe(true);
-    spaces()[0]?.click();
+    await stable();
+    expect(menuItems()).toEqual(['sRGB', 'OKLab', 'HSL', 'OKLCH (The Game’s)']);
+    expect(menuItem('OKLCH').getAttribute('aria-checked')).toBe('true');
+    menuItem('sRGB').click();
     await stable();
 
     expect(picked()).toBe('sRGB');

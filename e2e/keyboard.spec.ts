@@ -40,10 +40,12 @@ test('opens a page from the overflow menu, and goes back on Escape', async ({ pa
 
   await page.keyboard.press('Enter');
   // Ready for the keyboard: on its first item, whichever page that is.
-  const first = page.locator('.dropdown a').first();
+  const first = page.getByRole('menuitem').first();
   await expect(first).toBeFocused();
   // Under the button, in the screen's top right corner: its corner pointing at the button is square.
-  await expect(page.locator('.dropdown')).toHaveAttribute('data-corner', 'top-right');
+  await expect(page.locator('.cdk-overlay-pane:has(.dropdown)')).toHaveClass(
+    /menu-corner-top-right/,
+  );
   await page.keyboard.press('Escape');
   await expect(first).toBeHidden();
   await expect(more).toBeFocused();
@@ -51,7 +53,7 @@ test('opens a page from the overflow menu, and goes back on Escape', async ({ pa
   await page.keyboard.press('Enter');
   await expect(first).toBeFocused();
   // Down to Model Tuning, wherever it is among them.
-  const modelTuning = page.getByRole('link', { name: 'Model Tuning' });
+  const modelTuning = page.getByRole('menuitem', { name: 'Model Tuning' });
   for (
     let step = 0;
     step < 10 && !(await modelTuning.evaluate((link) => link === document.activeElement));

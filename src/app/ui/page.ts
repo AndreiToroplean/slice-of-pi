@@ -1,15 +1,17 @@
 import { Component, DOCUMENT, inject, input } from '@angular/core';
 import { injectBackToMenu } from './back-to-menu';
 import { Candy } from './candy';
+import { OverlayHost } from './overlay-host';
 
 /**
  * A page opened from the main menu, scrolling under a frosted top bar that stays at its top: a back button, to the main
  * menu, the page's title, and in the top right corner what is marked `pageAction`, if anything. What else it contains
- * goes under the top bar, in a column. Escape goes back to the main menu too.
+ * goes under the top bar, in a column. Escape goes back to the main menu too. The menus opened on it open within it.
  */
 @Component({
   selector: 'app-page',
   imports: [Candy],
+  hostDirectives: [OverlayHost],
   host: { class: 'screen', '(document:keydown.escape)': 'escape($event)' },
   template: `
     <header class="top-bar">
@@ -29,12 +31,9 @@ export class Page {
   protected readonly back = injectBackToMenu();
   private readonly document = inject(DOCUMENT);
 
-  /** Back to the main menu, unless the Escape closes an open dialog or menu, as the browser does with it. */
+  /** Back to the main menu, unless the Escape closes something open: a menu, or a dialog, as the browser does with it. */
   protected escape(event: Event): void {
-    if (
-      !event.defaultPrevented &&
-      this.document.querySelector('dialog[open], :popover-open') === null
-    ) {
+    if (!event.defaultPrevented && this.document.querySelector('dialog[open]') === null) {
       event.preventDefault();
       this.back();
     }

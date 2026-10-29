@@ -1,6 +1,8 @@
 import { Component, computed, ElementRef, inject, input, signal, viewChild } from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
-import { DropdownMenu } from '../../ui/dropdown-menu';
+import { CdkMenuItemRadio } from '@angular/cdk/menu';
+import { Dropdown, MenuTrigger } from '../../ui/menu';
+import { OverlayHost } from '../../ui/overlay-host';
 import type { Plot } from '../your-runs/views/plot';
 import { PlotChart } from '../your-runs/views/plot-chart';
 import type { BreakModelKind } from '../../game/grouping/break-models/break-model';
@@ -32,11 +34,12 @@ const FRAME = 30;
  */
 @Component({
   selector: 'app-fit-to-groupings-dialog',
-  imports: [Candy, LightDismiss, DropdownMenu, PlotChart],
+  imports: [Candy, CdkMenuItemRadio, Dropdown, LightDismiss, MenuTrigger, OverlayHost, PlotChart],
   template: `
     <!-- The dialog itself takes the focus as it opens, so that no field shows a focus ring or opens the keyboard. -->
     <dialog
       #dialog
+      appOverlayHost
       class="card"
       closedby="any"
       aria-labelledby="fit-title"
@@ -49,22 +52,31 @@ const FRAME = 30;
         <button
           type="button"
           class="frosted pill picker"
-          aria-haspopup="true"
           aria-labelledby="fit-model fit-model-name"
           [disabled]="locked()"
-          [attr.popovertarget]="modelMenu.id"
+          [appMenuTrigger]="modelMenu"
         >
           <span id="fit-model-name">{{ kind().label }}</span>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
         </button>
-        <app-dropdown-menu #modelMenu label="Break model" [button]="false">
-          @for (each of models; track each.id) {
-            <button type="button" class="model" [disabled]="each === kind()" (click)="pick(each)">
-              {{ each.label }}{{ each === kind() ? ' Is Selected' : '' }}
-              <small>{{ each.description }}</small>
-            </button>
-          }
-        </app-dropdown-menu>
+        <ng-template #modelMenu>
+          <div appDropdown aria-label="Break model">
+            @for (each of models; track each.id) {
+              <button
+                type="button"
+                class="model"
+                cdkMenuItemRadio
+                [cdkMenuItemChecked]="each === kind()"
+                (cdkMenuItemTriggered)="pick(each)"
+              >
+                <span>
+                  {{ each.label }}
+                  <small>{{ each.description }}</small>
+                </span>
+              </button>
+            }
+          </div>
+        </ng-template>
       </div>
       <!-- Kept in its place while idle, so the dialog doesn't change size as a fit starts and ends. -->
       <progress
@@ -150,13 +162,9 @@ const FRAME = 30;
       justify-self: start;
     }
 
-    /* Each model with what it does under its name; the one picked, readable but set apart. */
-    .model {
+    /* Each model with what it does under its name. */
+    .model span {
       display: grid;
-    }
-
-    .model:disabled {
-      opacity: 0.75;
     }
 
     .model small {

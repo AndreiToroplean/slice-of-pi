@@ -9,7 +9,6 @@ import {
   inject,
   Injector,
   signal,
-  viewChild,
 } from '@angular/core';
 import { Carousel } from '../../ui/carousel';
 import { Router } from '@angular/router';
@@ -18,7 +17,8 @@ import { Page } from '../../ui/page';
 import { moveRun } from '../../player-data/run';
 import { FitToGroupingsDialog } from './fit-to-groupings-dialog';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
-import { ContextMenu } from '../../ui/context-menu';
+import { CdkMenuItem, CdkMenuItemCheckbox } from '@angular/cdk/menu';
+import { ContextMenu, Dropdown } from '../../ui/menu';
 import { GroupPerspective } from './group-perspective';
 import { MyGroupings } from './my-groupings';
 import { PlacePerspective } from './place-perspective';
@@ -32,7 +32,6 @@ import { Segment, Segmented } from '../../ui/segmented';
 import { RunCard } from '../your-runs/run-card';
 import { HereLine } from '../your-runs/here-line';
 import { MoreButton } from '../../ui/more-button';
-import { DropdownMenu } from '../../ui/dropdown-menu';
 import { dateAndTime, RunsState, WITH_UNCHECKED } from '../your-runs/runs-state';
 import { SummaryCard } from '../your-runs/summary-card';
 import { TIMES, TimesView } from '../your-runs/times-view';
@@ -58,6 +57,8 @@ import { TIMES, TimesView } from '../your-runs/times-view';
     CdkScrollable,
     FitToGroupingsDialog,
     GroupingSettingsPanel,
+    CdkMenuItem,
+    CdkMenuItemCheckbox,
     ContextMenu,
     MoreButton,
     Page,
@@ -65,7 +66,7 @@ import { TIMES, TimesView } from '../your-runs/times-view';
     PlacePerspective,
     PlotView,
     RunCard,
-    DropdownMenu,
+    Dropdown,
     HereLine,
     SummaryCard,
     TimesView,
@@ -157,7 +158,7 @@ import { TIMES, TimesView } from '../your-runs/times-view';
           </div>
         </app-summary-card>
       }
-      <app-grouping-settings-panel (told)="state.message.set($event)">
+      <app-grouping-settings-panel #panel [menu]="panelMenu" (told)="state.message.set($event)">
         <!-- The runs, scrolling under the card: the only part of the page that scrolls. -->
         <section class="runs" cdkScrollable>
           <p class="message" role="status">{{ state.message() }}</p>
@@ -171,7 +172,8 @@ import { TIMES, TimesView } from '../your-runs/times-view';
               <button
                 type="button"
                 [attr.aria-pressed]="aggregateShown()"
-                (appContextMenu)="pick(ALL, $event)"
+                [appContextMenu]="runMenu"
+                [appContextMenuData]="{ $implicit: ALL }"
                 (click)="aggregateShown.set(!aggregateShown())"
               >
                 <span class="title">{{ state.aggregateTitle() }}</span>
@@ -179,9 +181,9 @@ import { TIMES, TimesView } from '../your-runs/times-view';
               </button>
               <button
                 class="more"
-                [appMore]="runMenu.id"
                 title="More for all runs"
-                (click)="picked.set(ALL)"
+                [appMore]="runMenu"
+                [appMoreData]="{ $implicit: ALL }"
               ></button>
             </div>
             <!-- The runs can be dragged into another order, across the line too. -->
@@ -200,12 +202,10 @@ import { TIMES, TimesView } from '../your-runs/times-view';
                     [places]="places()"
                     [top]="top()"
                     [window]="placeZoom()"
-                    [menu]="runMenu.id"
-                    (opening)="picked.set(chart.id)"
+                    [menu]="runMenu"
                     [selectable]="true"
                     [selected]="selected().has(chart.id)"
                     [reorderable]="true"
-                    (pressed)="pick(chart.id, $event)"
                     (toggled)="select(chart.id)"
                     (moved)="step(chart.id, index, $event)"
                   />
@@ -225,33 +225,47 @@ import { TIMES, TimesView } from '../your-runs/times-view';
         >
           Fit to My Groupings
         </button>
-        <button
-          menuItem
-          type="button"
-          [disabled]="chronological()"
-          (click)="reorderChronologically()"
-        >
-          Reorder Runs Chronologically
-        </button>
-        <hr menuItem />
-        <label menuItem class="toggle unchecked">
-          <input
-            type="checkbox"
-            [checked]="includeUnchecked()"
-            (change)="setIncludeUnchecked($event)"
-          />
-          Count Unchecked Runs
-        </label>
       </app-grouping-settings-panel>
       <app-fit-to-groupings-dialog #fitDialog [runs]="state.countedTimes()" />
-      <!-- A run's context menu, opened by its ⋮ or a long press on it, or on all runs to play from before them. -->
-      <app-dropdown-menu #runMenu label="Run" [button]="false">
-        @if (picked() !== ALL) {
-          <button type="button" (click)="watchPicked()">Watch Replay</button>
+      <ng-template #panelMenu>
+        <div appDropdown aria-label="More">
+          <button type="button" cdkMenuItem (cdkMenuItemTriggered)="void panel.copy()">
+            Copy Hyperparameter Values
+          </button>
           <hr />
-        }
-        <button type="button" (click)="playFromPicked()">Play from Here</button>
-      </app-dropdown-menu>
+          <button
+            type="button"
+            cdkMenuItem
+            [cdkMenuItemDisabled]="chronological()"
+            (cdkMenuItemTriggered)="reorderChronologically()"
+          >
+            Reorder Runs Chronologically
+          </button>
+          <hr />
+          <button
+            type="button"
+            cdkMenuItemCheckbox
+            [cdkMenuItemChecked]="includeUnchecked()"
+            (cdkMenuItemTriggered)="setIncludeUnchecked(!includeUnchecked())"
+          >
+            Count Unchecked Runs
+          </button>
+        </div>
+      </ng-template>
+      <!-- A run's context menu, opened by its ⋮ or a long press on it, or on all runs to play from before them. -->
+      <ng-template #runMenu let-id>
+        <div appDropdown aria-label="Run">
+          @if (id !== ALL) {
+            <button type="button" cdkMenuItem (cdkMenuItemTriggered)="watch(id)">
+              Watch Replay
+            </button>
+            <hr />
+          }
+          <button type="button" cdkMenuItem (cdkMenuItemTriggered)="playFrom(id)">
+            Play from Here
+          </button>
+        </div>
+      </ng-template>
     </app-page>
   `,
   styleUrl: './model-tuning.css',
@@ -353,10 +367,7 @@ export class ModelTuning {
       .runs.every((run, i, runs) => i === 0 || (runs[i - 1]?.startedAt ?? 0) <= run.startedAt),
   );
   private readonly shownOrder = this.state.shownOrder;
-  /** The id of the run whose context menu is open, or {@link ALL} for all of them. */
-  protected readonly picked = signal<string | undefined>(undefined);
   protected readonly ALL = ALL;
-  private readonly runMenu = viewChild.required(DropdownMenu);
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
@@ -373,8 +384,8 @@ export class ModelTuning {
     void this.tweaks.setGrouping(undefined);
   }
 
-  protected setIncludeUnchecked(event: Event): void {
-    void this.tweaks.setIncludeUnchecked((event.target as HTMLInputElement).checked);
+  protected setIncludeUnchecked(include: boolean): void {
+    void this.tweaks.setIncludeUnchecked(include);
   }
 
   /** Adds a run tapped to the card, or takes it off. */
@@ -395,24 +406,17 @@ export class ModelTuning {
     }
   }
 
-  /** Opens the context menu of a run long pressed, or of all of them, where it was pressed. */
-  protected pick(id: string, at: { readonly x: number; readonly y: number }): void {
-    this.picked.set(id);
-    this.runMenu().openAt(at);
-  }
-
-  /** Opens the replay of the run picked. */
-  protected watchPicked(): void {
-    void this.router.navigate(['/runs', this.picked(), 'replay']);
+  /** Opens the replay of a run. */
+  protected watch(id: string): void {
+    void this.router.navigate(['/runs', id, 'replay']);
   }
 
   /**
-   * Plays from just after the run picked, as if only the runs up to it had been played, or from before all of them,
+   * Plays from just after a run, as if only the runs up to it had been played, or from before all of them ({@link ALL}),
    * keeping the order shown.
    */
-  protected playFromPicked(): void {
-    const picked = this.picked();
-    this.state.playFrom(picked === ALL ? undefined : picked);
+  protected playFrom(id: string): void {
+    this.state.playFrom(id === ALL ? undefined : id);
   }
 
   /** Puts the runs back in the order they were played in, the line staying where it is, under as many runs. */
@@ -457,7 +461,7 @@ export class ModelTuning {
 /** The key to the chart of times, drawn like its marks. */
 const TIMES_KEYS: readonly Key[] = Object.values(TIMES);
 
-/** What's picked for the context menu when it's all runs rather than one: no run's id is empty. */
+/** What the context menu is given when it's for all runs rather than one: no run's id is empty. */
 const ALL = '';
 
 /**

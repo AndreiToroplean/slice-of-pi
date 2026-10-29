@@ -4,7 +4,7 @@ test('closes a menu when its button is pressed again', async ({ page }) => {
   // Model Tuning has tabs, and their menu.
   await page.goto('/developer/model-tuning');
   const more = page.locator('.bar').getByRole('button', { name: 'More' });
-  const menu = page.locator('.bar .dropdown');
+  const menu = page.getByRole('menu');
 
   await more.click();
   await expect(menu).toBeVisible();
@@ -20,7 +20,7 @@ test('closes a menu opened from a button elsewhere when that button is pressed a
 }) => {
   await page.goto('/developer/season-colors');
   const picker = page.getByRole('button', { name: /Blend colors in/ });
-  const menu = page.getByRole('group', { name: 'Blend colors in' });
+  const menu = page.getByRole('menu', { name: 'Blend colors in' });
 
   await picker.click();
   await expect(menu).toBeVisible();

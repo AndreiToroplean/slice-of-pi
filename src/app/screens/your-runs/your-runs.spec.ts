@@ -6,7 +6,7 @@ import { typeKey } from '../../../testing/touch-logs';
 import { RunStore } from '../../player-data/run-store';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
-import { installPopovers, uninstallPopovers } from '../../../testing/fake-popovers';
+import { menuItem, openMenu } from '../../../testing/menus';
 import { button, message, OpenPage, openPage, text } from '../../../testing/player-data-pages';
 import { YourRuns } from './your-runs';
 
@@ -33,10 +33,7 @@ describe('YourRuns', () => {
   beforeEach(() => {
     questions = [];
     confirming = true;
-    installPopovers();
   });
-
-  afterEach(uninstallPopovers);
 
   function articles(host: HTMLElement): HTMLElement[] {
     return Array.from(host.querySelectorAll<HTMLElement>('.runs article'));
@@ -50,22 +47,15 @@ describe('YourRuns', () => {
     return found;
   }
 
-  function menu(host: HTMLElement): HTMLElement | null {
-    // The run's own, not those of the grouping settings.
-    return host.querySelector('app-page > app-dropdown-menu .dropdown');
-  }
-
-  /** The items of the context menu open, if any. */
-  function menuItems(host: HTMLElement): string[] {
-    const open = menu(host);
-    return open?.hasAttribute('data-popover-open') === true
-      ? Array.from(open.children, (child) => child.textContent.trim() || '—')
-      : [];
+  /** The items of the context menu open, and lines between them, if any. */
+  function menuLayout(): string[] {
+    return Array.from(openMenu()?.children ?? [], (child) => child.textContent.trim() || '—');
   }
 
   /** Opens the context menu of a run, as a long press does. */
-  function openMenu(host: HTMLElement, index: number): void {
+  async function longPress({ host, until }: OpenPage, index: number): Promise<void> {
     article(host, index).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
+    await until(() => openMenu() !== null);
   }
 
   function setUp(
@@ -215,20 +205,21 @@ describe('YourRuns', () => {
 
   describe("a run's context menu", () => {
     it("opens the run's replay", async () => {
-      const { host } = await setUp([first, second]);
+      const page = await setUp([first, second]);
       const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
-      openMenu(host, 1);
-      button(host, 'Watch Replay').click();
+      await longPress(page, 1);
+      menuItem('Watch Replay').click();
 
       expect(navigate).toHaveBeenCalledWith(['/runs', 'b', 'replay']);
     });
 
     it('deletes the run once the player confirms', async () => {
-      const { host, until } = await setUp([first, second]);
+      const page = await setUp([first, second]);
+      const { host, until } = page;
 
-      openMenu(host, 0);
-      button(host, 'Delete Run').click();
+      await longPress(page, 0);
+      menuItem('Delete Run').click();
       await until(() => message(host) !== '');
 
       expect(questions).toEqual(['Delete this run? Only a backup file can bring it back.']);
@@ -238,11 +229,11 @@ describe('YourRuns', () => {
     });
 
     it('keeps the run when the player does not confirm', async () => {
-      const { host } = await setUp([first, second]);
+      const page = await setUp([first, second]);
       confirming = false;
 
-      openMenu(host, 0);
-      button(host, 'Delete Run').click();
+      await longPress(page, 0);
+      menuItem('Delete Run').click();
       await vi.waitFor(() => {
         expect(questions).toHaveLength(1);
       });
@@ -251,12 +242,13 @@ describe('YourRuns', () => {
     });
 
     it("opens from the run's ⋮ too, for its run", async () => {
-      const { host } = await setUp([first, second]);
+      const { host, until } = await setUp([first, second]);
       const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
       host.querySelectorAll<HTMLButtonElement>('.runs .more')[1]?.click();
-      expect(menuItems(host)).toEqual(['Watch Replay', 'Delete Run']);
-      button(host, 'Watch Replay').click();
+      await until(() => openMenu() !== null);
+      expect(menuLayout()).toEqual(['Watch Replay', 'Delete Run']);
+      menuItem('Watch Replay').click();
 
       expect(navigate).toHaveBeenCalledWith(['/runs', 'b', 'replay']);
     });
@@ -327,11 +319,12 @@ describe('YourRuns', () => {
     }
 
     it('plays from after a run long pressed, from its context menu, in developer mode', async () => {
-      const { host, until } = await setUp(trusted, false, false, undefined, true);
+      const page = await setUp(trusted, false, false, undefined, true);
+      const { host, until } = page;
 
-      openMenu(host, 0);
-      expect(menuItems(host)).toEqual(['Watch Replay', 'Delete Run', '—', 'Play from Here']);
-      button(host, 'Play from Here').click();
+      await longPress(page, 0);
+      expect(menuLayout()).toEqual(['Watch Replay', 'Delete Run', '—', 'Play from Here']);
+      menuItem('Play from Here').click();
       await until(() => host.querySelector('app-here-line') !== null);
 
       expect(rows(host)).toEqual(['run', 'here', 'later', 'later', 'later']);
@@ -351,11 +344,9 @@ describe('YourRuns', () => {
     });
 
     it('offers it only in developer mode', async () => {
-      const { host } = await setUp(trusted);
+      await longPress(await setUp(trusted), 0);
 
-      openMenu(host, 0);
-
-      expect(menuItems(host)).toEqual(['Watch Replay', 'Delete Run']);
+      expect(menuLayout()).toEqual(['Watch Replay', 'Delete Run']);
     });
   });
 

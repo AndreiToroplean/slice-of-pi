@@ -1,8 +1,9 @@
 import { CdkScrollable } from '@angular/cdk/scrolling';
-import { Component, inject, signal, viewChild } from '@angular/core';
+import { CdkMenuItem } from '@angular/cdk/menu';
+import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
-import { DropdownMenu } from '../../ui/dropdown-menu';
+import { Dropdown } from '../../ui/menu';
 import { Candy } from '../../ui/candy';
 import { Page } from '../../ui/page';
 import { GroupList } from './group-list';
@@ -25,7 +26,8 @@ import { Key, Range } from './views/plot';
   imports: [
     CdkScrollable,
     Candy,
-    DropdownMenu,
+    CdkMenuItem,
+    Dropdown,
     GroupList,
     HereLine,
     Page,
@@ -69,9 +71,7 @@ import { Key, Range } from './views/plot';
               [places]="state.places()"
               [top]="state.top()"
               [window]="placeZoom()"
-              [menu]="runMenu.id"
-              (opening)="picked.set(chart.id)"
-              (pressed)="pick(chart.id, $event)"
+              [menu]="runMenu"
             />
           } @else {
             <app-here-line />
@@ -83,14 +83,20 @@ import { Key, Range } from './views/plot';
         }
       </section>
       <!-- A run's context menu, opened by its ⋮ or a long press on it; in developer mode, to play from it too. -->
-      <app-dropdown-menu #runMenu label="Run" [button]="false">
-        <button type="button" (click)="watchPicked()">Watch Replay</button>
-        <button type="button" (click)="void deletePicked()">Delete Run</button>
-        @if (developerMode()) {
-          <hr />
-          <button type="button" (click)="state.playFrom(picked())">Play from Here</button>
-        }
-      </app-dropdown-menu>
+      <ng-template #runMenu let-id>
+        <div appDropdown aria-label="Run">
+          <button type="button" cdkMenuItem (cdkMenuItemTriggered)="watch(id)">Watch Replay</button>
+          <button type="button" cdkMenuItem (cdkMenuItemTriggered)="void state.deleteRun(id)">
+            Delete Run
+          </button>
+          @if (developerMode()) {
+            <hr />
+            <button type="button" cdkMenuItem (cdkMenuItemTriggered)="state.playFrom(id)">
+              Play from Here
+            </button>
+          }
+        </div>
+      </ng-template>
     </app-page>
   `,
   styleUrl: './your-runs.css',
@@ -103,26 +109,13 @@ export class YourRuns {
    */
   protected readonly placeZoom = signal<Range | undefined>(undefined);
   protected readonly KEYS = KEYS;
-  /** The id of the run whose context menu is open. */
-  protected readonly picked = signal('');
   /** Playing from a run is a tweak, for developer mode only. */
   protected readonly developerMode = inject(DeveloperMode).enabled;
-  private readonly runMenu = viewChild.required(DropdownMenu);
   private readonly router = inject(Router);
 
-  /** Opens the context menu of a run long pressed, where it was pressed. */
-  protected pick(id: string, at: { readonly x: number; readonly y: number }): void {
-    this.picked.set(id);
-    this.runMenu().openAt(at);
-  }
-
-  /** Opens the replay of the run picked. */
-  protected watchPicked(): void {
-    void this.router.navigate(['/runs', this.picked(), 'replay']);
-  }
-
-  protected deletePicked(): Promise<void> {
-    return this.state.deleteRun(this.picked());
+  /** Opens the replay of a run. */
+  protected watch(id: string): void {
+    void this.router.navigate(['/runs', id, 'replay']);
   }
 }
 

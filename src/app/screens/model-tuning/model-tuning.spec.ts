@@ -5,7 +5,7 @@ import { newTouchLog, TouchLog } from '../../player-data/touch-log';
 import { typeKey } from '../../../testing/touch-logs';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
-import { installPopovers, uninstallPopovers } from '../../../testing/fake-popovers';
+import { menuItem, menuItems, openMenu } from '../../../testing/menus';
 import { button, OpenPage, openPage } from '../../../testing/player-data-pages';
 import { ModelTuning } from './model-tuning';
 
@@ -26,12 +26,6 @@ describe('ModelTuning', () => {
   /** Enough runs grouped by 3 for the game to trust their groups. */
   const trusted = ['d', 'e', 'f', 'g'].map((id, i) => ({ ...grouped, id, startedAt: 4_000 + i }));
 
-  beforeEach(() => {
-    installPopovers();
-  });
-
-  afterEach(uninstallPopovers);
-
   function articles(host: HTMLElement): HTMLElement[] {
     return Array.from(host.querySelectorAll<HTMLElement>('.runs article'));
   }
@@ -42,11 +36,6 @@ describe('ModelTuning', () => {
       throw new Error(`No run ${String(index)}`);
     }
     return found;
-  }
-
-  function menu(host: HTMLElement): HTMLElement | null {
-    // The run's own, not those of the grouping settings.
-    return host.querySelector('app-page > app-dropdown-menu .dropdown');
   }
 
   /** Where the "You are here" line is among the runs: how many come before it. */
@@ -61,17 +50,19 @@ describe('ModelTuning', () => {
     return articles(host).map((run) => run.querySelector('h3')?.textContent.trim() ?? '');
   }
 
-  /** The items of the context menu open, if any. */
-  function menuItems(host: HTMLElement): string[] {
-    const open = menu(host);
-    return open?.hasAttribute('data-popover-open') === true
-      ? Array.from(open.children, (child) => child.textContent.trim() || '—')
-      : [];
+  /** Opens the context menu of a run, as a long press does. */
+  async function longPress({ host, until }: OpenPage, index: number): Promise<void> {
+    article(host, index).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
+    await until(() => openMenu() !== null);
   }
 
-  /** Opens the context menu of a run, as a long press does. */
-  function openMenu(host: HTMLElement, index: number): void {
-    article(host, index).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
+  /** The item named so of the overflow menu of the grouping settings, opened if it isn't. */
+  async function overflowItem({ host, until }: OpenPage, name: string): Promise<HTMLElement> {
+    if (openMenu() === null) {
+      host.querySelector<HTMLButtonElement>('.bar button[title="More"]')?.click();
+      await until(() => openMenu() !== null);
+    }
+    return menuItem(name);
   }
 
   function setUp(runs: TouchLog[] = []): Promise<OpenPage> {
@@ -103,14 +94,18 @@ describe('ModelTuning', () => {
     });
 
     it('counts unchecked runs in the groups when told to', async () => {
-      const { host, until } = await setUp([grouped, unchecked]);
-      const checkbox = host.querySelector<HTMLInputElement>('.unchecked input[type="checkbox"]');
-      expect(checkbox?.checked).toBe(false);
+      const page = await setUp([grouped, unchecked]);
+      const { host, until } = page;
+      const toggle = await overflowItem(page, 'Count Unchecked Runs');
+      expect(toggle.getAttribute('aria-checked')).toBe('false');
 
       expect(groupsShown(host)).toEqual([PI_DECIMALS.slice(0, 30)]);
 
-      checkbox?.click();
+      toggle.click();
       await until(() => groupsShown(host).length > 1);
+      expect((await overflowItem(page, 'Count Unchecked Runs')).getAttribute('aria-checked')).toBe(
+        'true',
+      );
 
       expect(groupsShown(host)).toEqual(groupsBy3);
       expect(TestBed.inject(Tweaks).values()).toEqual({ includeUnchecked: true });
@@ -135,15 +130,15 @@ describe('ModelTuning', () => {
     }
 
     it('plays from after a run long pressed, from its context menu', async () => {
-      const { host, until } = await setUp(runs);
+      const page = await setUp(runs);
+      const { host, until } = page;
       const before = groupsShown(host);
 
-      article(host, 0).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
-      await until(() => menu(host)?.hasAttribute('data-popover-open') === true);
-      button(host, 'Play from Here').click();
+      await longPress(page, 0);
+      menuItem('Play from Here').click();
       await until(() => here(host) !== undefined);
 
-      expect(menu(host)?.hasAttribute('data-popover-open')).toBe(false);
+      expect(openMenu()).toBeNull();
       expect(TestBed.inject(Tweaks).values()).toEqual({
         runOrder: { ids: ['c', 'from', 'd', 'e', 'f'], line: 1 },
       });
@@ -173,14 +168,14 @@ describe('ModelTuning', () => {
     });
 
     it('keeps the runs in the order shown when playing from a run while already playing from one', async () => {
-      const { host, until } = await setUp(runs);
+      const page = await setUp(runs);
+      const { host, until } = page;
       await TestBed.inject(Tweaks).setRunOrder(playedSince);
       await until(() => here(host) === 4);
       const shown = articles(host).map((run) => run.querySelector('h3')?.textContent);
 
-      article(host, 2).dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
-      await until(() => menu(host)?.hasAttribute('data-popover-open') === true);
-      button(host, 'Play from Here').click();
+      await longPress(page, 2);
+      menuItem('Play from Here').click();
       await until(() => here(host) === 3);
 
       expect(articles(host).map((run) => run.querySelector('h3')?.textContent)).toEqual(shown);
@@ -209,9 +204,9 @@ describe('ModelTuning', () => {
       const all = host.querySelector<HTMLButtonElement>('.aggregate > button[aria-pressed]');
 
       all?.dispatchEvent(new MouseEvent('contextmenu', { clientX: 40, clientY: 50 }));
-      await until(() => menu(host)?.hasAttribute('data-popover-open') === true);
-      expect(menuItems(host)).toEqual(['Play from Here']);
-      button(host, 'Play from Here').click();
+      await until(() => openMenu() !== null);
+      expect(menuItems()).toEqual(['Play from Here']);
+      menuItem('Play from Here').click();
       await until(() => here(host) !== undefined);
 
       expect(here(host)).toBe(0);
@@ -223,9 +218,9 @@ describe('ModelTuning', () => {
       const { host, until } = await setUp(runs);
 
       host.querySelector<HTMLButtonElement>('.aggregate .more')?.click();
-      await until(() => menuItems(host).length === 1);
-      expect(menuItems(host)).toEqual(['Play from Here']);
-      button(host, 'Play from Here').click();
+      await until(() => openMenu() !== null);
+      expect(menuItems()).toEqual(['Play from Here']);
+      menuItem('Play from Here').click();
       await until(() => here(host) !== undefined);
 
       expect(here(host)).toBe(0);
@@ -282,11 +277,11 @@ describe('ModelTuning', () => {
 
   describe("a run's context menu", () => {
     it('sets playing from a run apart from watching its replay, and never deletes it', async () => {
-      const { host } = await setUp([first]);
+      await longPress(await setUp([first]), 0);
 
-      openMenu(host, 0);
-
-      expect(menuItems(host)).toEqual(['Watch Replay', '—', 'Play from Here']);
+      expect(
+        Array.from(openMenu()?.children ?? [], (child) => child.textContent.trim() || '—'),
+      ).toEqual(['Watch Replay', '—', 'Play from Here']);
     });
   });
 
@@ -365,25 +360,31 @@ describe('ModelTuning', () => {
     });
 
     it('puts the runs back in the order they were played in', async () => {
-      const { host, until } = await setUp([first, second, third]);
-      expect(button(host, 'Reorder Runs Chronologically').disabled).toBe(true);
+      const page = await setUp([first, second, third]);
+      const { host, until } = page;
+      const reorder = await overflowItem(page, 'Reorder Runs Chronologically');
+      expect(reorder.getAttribute('aria-disabled')).toBe('true');
       await TestBed.inject(Tweaks).setRunOrder({ ids: ['third', 'b', 'a'] });
-      await until(() => !button(host, 'Reorder Runs Chronologically').disabled);
+      await until(() => reorder.getAttribute('aria-disabled') === null);
 
-      button(host, 'Reorder Runs Chronologically').click();
-      await until(() => button(host, 'Reorder Runs Chronologically').disabled);
+      reorder.click();
+      await until(() => openMenu() === null);
+      expect(
+        (await overflowItem(page, 'Reorder Runs Chronologically')).getAttribute('aria-disabled'),
+      ).toBe('true');
 
       expect(titles(host)).toEqual([1_000, 2_000, 3_000].map((time) => format.format(time)));
       expect(TestBed.inject(Tweaks).values()).toEqual({});
     });
 
     it('keeps the line under as many runs when putting them back in the order they were played in', async () => {
-      const { host, until } = await setUp([first, second, third]);
+      const page = await setUp([first, second, third]);
+      const { host, until } = page;
       await TestBed.inject(Tweaks).setRunOrder({ ids: ['third', 'b', 'a'], line: 1 });
       await until(() => here(host) === 1);
 
-      button(host, 'Reorder Runs Chronologically').click();
-      await until(() => button(host, 'Reorder Runs Chronologically').disabled);
+      (await overflowItem(page, 'Reorder Runs Chronologically')).click();
+      await until(() => titles(host)[0] === format.format(1_000));
 
       expect(titles(host)).toEqual([1_000, 2_000, 3_000].map((time) => format.format(time)));
       expect(here(host)).toBe(1);

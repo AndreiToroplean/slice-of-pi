@@ -1,8 +1,9 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Background } from '../../ui/background';
 import { COLOR_SPACE_NAMES, COLOR_SPACES, ColorSpace } from '../../game/color/color-spaces';
-import { DropdownMenu } from '../../ui/dropdown-menu';
+import { CdkMenuItemRadio } from '@angular/cdk/menu';
 import { Candy } from '../../ui/candy';
+import { Dropdown, MenuTrigger } from '../../ui/menu';
 import { Page } from '../../ui/page';
 import { SEASON_NAMES, SeasonHeader } from '../play/season-header/season-header';
 import {
@@ -32,7 +33,16 @@ const ENDS = [
  */
 @Component({
   selector: 'app-season-colors',
-  imports: [Candy, ColorPicker, CopyValues, DropdownMenu, Page, SeasonHeader],
+  imports: [
+    Candy,
+    CdkMenuItemRadio,
+    ColorPicker,
+    CopyValues,
+    Dropdown,
+    MenuTrigger,
+    Page,
+    SeasonHeader,
+  ],
   template: `
     <app-page heading="Season Colors">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
@@ -73,20 +83,26 @@ const ENDS = [
         <button
           type="button"
           class="frosted pill picker"
-          aria-haspopup="true"
           aria-labelledby="space-label space-name"
-          [attr.popovertarget]="spaceMenu.id"
+          [appMenuTrigger]="spaceMenu"
         >
           <span id="space-name">{{ spaceLabel(colorSpace()) }}</span>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
         </button>
-        <app-dropdown-menu #spaceMenu label="Blend colors in" [button]="false">
-          @for (space of colorSpaces; track space) {
-            <button type="button" [disabled]="space === colorSpace()" (click)="blendIn(space)">
-              {{ spaceLabel(space) }}{{ space === colorSpace() ? ' Is Selected' : '' }}
-            </button>
-          }
-        </app-dropdown-menu>
+        <ng-template #spaceMenu>
+          <div appDropdown aria-label="Blend colors in">
+            @for (space of colorSpaces; track space) {
+              <button
+                type="button"
+                cdkMenuItemRadio
+                [cdkMenuItemChecked]="space === colorSpace()"
+                (cdkMenuItemTriggered)="blendIn(space)"
+              >
+                {{ spaceLabel(space) }}
+              </button>
+            }
+          </div>
+        </ng-template>
       </div>
       <label class="slider turn">
         {{ turnText() }}

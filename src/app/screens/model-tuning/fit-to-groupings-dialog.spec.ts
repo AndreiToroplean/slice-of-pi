@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
-import { installPopovers, uninstallPopovers } from '../../../testing/fake-popovers';
+import { menuItem, openMenu } from '../../../testing/menus';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LUNA } from '../../game/grouping/break-models/luna';
@@ -13,11 +13,9 @@ import { MyGroupings, saveMyGroupings } from './my-groupings';
 describe('FitToGroupingsDialog', () => {
   beforeEach(() => {
     installDialogs();
-    installPopovers();
   });
   afterEach(() => {
     uninstallDialogs();
-    uninstallPopovers();
   });
 
   /** A run of 30 digits typed about 200 ms apart, with a long pause before every 6th and a shorter one between. */
@@ -113,13 +111,13 @@ describe('FitToGroupingsDialog', () => {
     expect(fitButton(host).getAttribute('disabled')).not.toBeNull();
   });
 
-  it('switches the break model', async () => {
+  it('switches the break model, from a menu within the dialog, outside of which it could not be used', async () => {
     const { host, detect } = await setUp(groupedBy(3));
     (field(host, '.picker') as HTMLButtonElement).click();
-    const luna = Array.from(host.querySelectorAll<HTMLButtonElement>('.model')).find((button) =>
-      button.textContent.includes(LUNA.label),
-    );
-    luna?.click();
+    detect();
+    expect(host.querySelector('dialog')?.contains(openMenu())).toBe(true);
+
+    menuItem(LUNA.label).click();
     detect();
 
     expect(TestBed.inject(Tweaks).breakModelKind()).toBe(LUNA);

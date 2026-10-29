@@ -1,12 +1,4 @@
-import {
-  Component,
-  computed,
-  DestroyRef,
-  DOCUMENT,
-  inject,
-  signal,
-  viewChild,
-} from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal, viewChild } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { touchPoint } from '../../game/layers/keypad-layout';
@@ -15,7 +7,9 @@ import { RunStore } from '../../player-data/run-store';
 import { Touch, TouchLog } from '../../player-data/touch-log';
 import { injectBackTo } from '../../ui/back-to-menu';
 import { Candy } from '../../ui/candy';
-import { DropdownMenu } from '../../ui/dropdown-menu';
+import { CdkMenuItemRadio } from '@angular/cdk/menu';
+import { Dropdown, MenuTrigger } from '../../ui/menu';
+import { OverlayHost } from '../../ui/overlay-host';
 import { KeypadMark } from '../play/keypad/keypad';
 import { SPLASH_DURATION } from '../play/keypad/keypad';
 import { Play } from '../play/play';
@@ -53,7 +47,7 @@ export const TAIL = 1500;
  */
 @Component({
   selector: 'app-replay',
-  imports: [Candy, DropdownMenu, Play],
+  imports: [Candy, CdkMenuItemRadio, Dropdown, MenuTrigger, Play],
   providers: [
     { provide: ReplayClock, useFactory: () => new ReplayClock() },
     { provide: TIMER, useExisting: ReplayClock },
@@ -65,6 +59,7 @@ export const TAIL = 1500;
       },
     },
   ],
+  hostDirectives: [OverlayHost],
   host: { class: 'screen', '(document:keydown.escape)': 'escape($event)' },
   template: `
     <button type="button" appCandy="clear" class="corner back" title="Back" (click)="back()">
@@ -134,24 +129,26 @@ export const TAIL = 1500;
         <button
           type="button"
           class="frosted pill speed"
-          aria-haspopup="true"
           [attr.aria-label]="'Speed ' + speedLabel()"
-          [attr.popovertarget]="speedMenu.id"
+          [appMenuTrigger]="speedMenu"
         >
           {{ speedLabel() }}
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6" /></svg>
         </button>
-        <app-dropdown-menu #speedMenu label="Speed" [button]="false">
-          @for (option of speeds; track option.speed) {
-            <button
-              type="button"
-              [disabled]="option.speed === speed()"
-              (click)="speed.set(option.speed)"
-            >
-              {{ option.label }}
-            </button>
-          }
-        </app-dropdown-menu>
+        <ng-template #speedMenu>
+          <div appDropdown aria-label="Speed">
+            @for (option of speeds; track option.speed) {
+              <button
+                type="button"
+                cdkMenuItemRadio
+                [cdkMenuItemChecked]="option.speed === speed()"
+                (cdkMenuItemTriggered)="speed.set(option.speed)"
+              >
+                {{ option.label }}
+              </button>
+            }
+          </div>
+        </ng-template>
       </div>
     } @else if (missing()) {
       <p class="missing">This run is no longer kept.</p>
@@ -213,7 +210,6 @@ export class Replay {
   protected readonly back = injectBackFromReplay();
   private readonly clock = inject(ReplayClock);
   private readonly play = viewChild(Play);
-  private readonly document = inject(DOCUMENT);
   private frame: number | undefined;
   /** When the last frame was drawn, on the page's clock. */
   private lastFrame = 0;
@@ -269,9 +265,9 @@ export class Replay {
     }
   }
 
-  /** Back to the player's runs, unless the Escape closes something open, as the browser does with it. */
+  /** Back to the player's runs, unless the Escape closes something open, such as a menu. */
   protected escape(event: Event): void {
-    if (!event.defaultPrevented && this.document.querySelector(':popover-open') === null) {
+    if (!event.defaultPrevented) {
       event.preventDefault();
       this.back();
     }

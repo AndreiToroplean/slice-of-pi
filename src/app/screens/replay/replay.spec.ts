@@ -8,7 +8,7 @@ import { KeypadTouch } from '../../game/layers/keypad-layout';
 import { INDEXED_DB, RunStore } from '../../player-data/run-store';
 import { addTouch, newTouchLog, TouchLog } from '../../player-data/touch-log';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
-import { installPopovers, uninstallPopovers } from '../../../testing/fake-popovers';
+import { menuItem, menuItems } from '../../../testing/menus';
 import { MARK_DURATION, Replay, TAIL } from './replay';
 
 @Component({ template: '' })
@@ -34,7 +34,6 @@ describe('Replay', () => {
   );
 
   beforeEach(() => {
-    installPopovers();
     vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
     TestBed.configureTestingModule({
       providers: [
@@ -50,7 +49,6 @@ describe('Replay', () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    uninstallPopovers();
   });
 
   async function setUp(
@@ -114,14 +112,6 @@ describe('Replay', () => {
     };
   }
 
-  /** The items of the menu of speeds, if open. */
-  function menuItems(host: HTMLElement): string[] {
-    const menu = host.querySelector('.dropdown');
-    return menu?.hasAttribute('data-popover-open') === true
-      ? Array.from(menu.children, (item) => item.textContent.trim())
-      : [];
-  }
-
   async function click(harness: RouterTestingHarness, button: HTMLButtonElement): Promise<void> {
     button.click();
     await harness.fixture.whenStable();
@@ -172,13 +162,9 @@ describe('Replay', () => {
   it('plays the touches at their time, at the speed picked, the groups ending as they did', async () => {
     const { host, harness } = await setUp();
     await click(harness, control(host, 'Speed ×1'));
-    expect(menuItems(host)).toEqual(['×⅛', '×¼', '×½', '×1', '×2', '×4', '×8']);
-    const double = Array.from(host.querySelectorAll<HTMLButtonElement>('.dropdown button')).find(
-      (item) => item.textContent.trim() === '×2',
-    );
-    if (double !== undefined) {
-      await click(harness, double);
-    }
+    expect(menuItems()).toEqual(['×⅛', '×¼', '×½', '×1', '×2', '×4', '×8']);
+    expect(menuItem('×1').getAttribute('aria-checked')).toBe('true');
+    await click(harness, menuItem('×2') as HTMLButtonElement);
     expect(control(host, 'Speed ×2')).toBeTruthy();
 
     await click(harness, control(host, 'Play'));

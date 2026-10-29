@@ -14,7 +14,9 @@ import { Background } from '../../ui/background';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { DeveloperTaps } from '../../developer-mode/developer-taps';
 import { Tweaks } from '../../developer-mode/tweaks';
-import { DropdownMenu } from '../../ui/dropdown-menu';
+import { CdkMenuGroup, CdkMenuItem } from '@angular/cdk/menu';
+import { Dropdown, MenuTrigger } from '../../ui/menu';
+import { OverlayHost } from '../../ui/overlay-host';
 import { seasonAt } from '../../game/layers/seasons';
 import { MenuAssets } from './menu-assets';
 import { ButtonList } from '../../ui/button-list';
@@ -28,7 +30,18 @@ import { Candy } from '../../ui/candy';
  */
 @Component({
   selector: 'app-menu',
-  imports: [NgOptimizedImage, RouterLink, ButtonList, Candy, DeveloperTaps, DropdownMenu],
+  imports: [
+    NgOptimizedImage,
+    RouterLink,
+    ButtonList,
+    Candy,
+    CdkMenuGroup,
+    CdkMenuItem,
+    DeveloperTaps,
+    Dropdown,
+    MenuTrigger,
+    OverlayHost,
+  ],
   host: {
     class: 'screen',
     '[class.loading]': '!assets.ready()',
@@ -93,14 +106,34 @@ import { Candy } from '../../ui/candy';
     </app-button-list>
     <!-- After the middle of the menu, for Tab to go through it from the left to the right. -->
     @if (developerMode.enabled()) {
-      <app-dropdown-menu label="Developer Pages">
-        <div class="section" role="group" aria-labelledby="developer-title">
-          <h2 id="developer-title">Developer</h2>
-          <a routerLink="/developer/model-tuning">Model Tuning</a>
-          <a routerLink="/developer/key-colors">Key Colors</a>
-          <a routerLink="/developer/season-colors">Season Colors</a>
+      <!-- Loaded only in developer mode, with the menu it opens. -->
+      @defer {
+        <div class="more" appOverlayHost>
+          <button
+            type="button"
+            appCandy="clear"
+            class="corner"
+            title="Developer Pages"
+            [appMenuTrigger]="developerMenu"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="5.5" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="12" cy="18.5" r="2" />
+            </svg>
+          </button>
         </div>
-      </app-dropdown-menu>
+        <ng-template #developerMenu>
+          <div appDropdown aria-labelledby="developer-title">
+            <div cdkMenuGroup class="section">
+              <h2 id="developer-title">Developer</h2>
+              <a cdkMenuItem routerLink="/developer/model-tuning">Model Tuning</a>
+              <a cdkMenuItem routerLink="/developer/key-colors">Key Colors</a>
+              <a cdkMenuItem routerLink="/developer/season-colors">Season Colors</a>
+            </div>
+          </div>
+        </ng-template>
+      }
     }
   `,
   styleUrl: './menu.css',
@@ -155,7 +188,7 @@ export class Menu {
    */
   protected side(event: Event, step: number): void {
     const stops = Array.from(this.host.querySelectorAll<HTMLElement>('a[href], button')).filter(
-      (stop) => stop.tabIndex >= 0 && stop.closest('[popover]') === null,
+      (stop) => stop.tabIndex >= 0,
     );
     const at = stops.findIndex((stop) => stop.matches(':focus'));
     const next = at === -1 ? undefined : stops[at + step];
