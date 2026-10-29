@@ -40,3 +40,18 @@ test('closes a menu opened from a button elsewhere when that button is pressed a
   await picker.click();
   await expect(menu).toBeHidden();
 });
+
+test('fits what a menu of links holds, without scrolling it sideways', async ({ page }) => {
+  await page.goto('/');
+  // Developer mode, which has the developer pages' menu, of links, turned on by tapping the game's icon ten times.
+  await page.getByRole('button', { name: 'Slice of Pi' }).click({ clickCount: 10 });
+  await page.getByRole('button', { name: 'Developer Pages' }).click();
+  const menu = page.getByRole('menu');
+  await expect(page.getByRole('menuitem', { name: 'Season Colors' })).toBeVisible();
+
+  const [scrolled, shown] = await menu.evaluate((element) => [
+    element.scrollWidth,
+    element.clientWidth,
+  ]);
+  expect(scrolled).toBe(shown);
+});
