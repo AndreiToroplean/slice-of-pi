@@ -23,6 +23,22 @@ class Host {
   readonly view = signal<'chart' | 'list'>('chart');
 }
 
+/** The legacy key codes of the keys pressed, which the CDK's key managers read. */
+const KEY_CODES: Readonly<Record<string, number>> = {
+  End: 35,
+  Home: 36,
+  ArrowLeft: 37,
+  ArrowRight: 39,
+  ArrowDown: 40,
+};
+
+/** Presses a key on what has the focus. */
+function arrow(key: string): void {
+  const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+  Object.defineProperty(event, 'keyCode', { value: KEY_CODES[key] });
+  document.activeElement?.dispatchEvent(event);
+}
+
 describe('Segmented', () => {
   async function setUp(): Promise<{
     sizes: HTMLElement;
@@ -96,9 +112,6 @@ describe('Segmented', () => {
   it('stops Tab on the one chosen, left and right choosing the one before or after it, round', async () => {
     const { sizes, component, stable } = await setUp();
     expect(buttons(sizes).map((button) => button.tabIndex)).toEqual([0, -1, -1]);
-    const arrow = (key: string): void => {
-      document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
-    };
     buttons(sizes)[0]?.focus();
 
     arrow('ArrowLeft');
@@ -111,6 +124,24 @@ describe('Segmented', () => {
     await stable();
     expect(component.size()).toBe('medium');
     expect(buttons(sizes).map((button) => button.tabIndex)).toEqual([-1, 0, -1]);
+  });
+
+  it('chooses the first and the last on Home and End, and leaves up and down alone', async () => {
+    const { sizes, component, stable } = await setUp();
+    buttons(sizes)[0]?.focus();
+
+    arrow('End');
+    await stable();
+    expect(component.size()).toBe('large');
+    expect(document.activeElement?.textContent.trim()).toBe('Large');
+
+    arrow('Home');
+    await stable();
+    expect(component.size()).toBe('small');
+
+    arrow('ArrowDown');
+    await stable();
+    expect(component.size()).toBe('small');
   });
 
   it('scrolls the strip to show the whole of the one pressed', async () => {
