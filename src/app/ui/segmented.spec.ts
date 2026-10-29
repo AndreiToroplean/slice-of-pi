@@ -1,5 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { pressKey } from '../../testing/keys';
 import { Segmented } from './segmented';
 
 @Component({
@@ -21,22 +22,6 @@ class Host {
   ] as const;
   readonly size = signal<'small' | 'medium' | 'large'>('small');
   readonly view = signal<'chart' | 'list'>('chart');
-}
-
-/** The legacy key codes of the keys pressed, which the CDK's key managers read. */
-const KEY_CODES: Readonly<Record<string, number>> = {
-  End: 35,
-  Home: 36,
-  ArrowLeft: 37,
-  ArrowRight: 39,
-  ArrowDown: 40,
-};
-
-/** Presses a key on what has the focus. */
-function arrow(key: string): void {
-  const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
-  Object.defineProperty(event, 'keyCode', { value: KEY_CODES[key] });
-  document.activeElement?.dispatchEvent(event);
 }
 
 describe('Segmented', () => {
@@ -114,13 +99,13 @@ describe('Segmented', () => {
     expect(buttons(sizes).map((button) => button.tabIndex)).toEqual([0, -1, -1]);
     buttons(sizes)[0]?.focus();
 
-    arrow('ArrowLeft');
+    pressKey('ArrowLeft');
     await stable();
     expect(component.size()).toBe('large');
     expect(document.activeElement?.textContent.trim()).toBe('Large');
 
-    arrow('ArrowRight');
-    arrow('ArrowRight');
+    pressKey('ArrowRight');
+    pressKey('ArrowRight');
     await stable();
     expect(component.size()).toBe('medium');
     expect(buttons(sizes).map((button) => button.tabIndex)).toEqual([-1, 0, -1]);
@@ -130,16 +115,16 @@ describe('Segmented', () => {
     const { sizes, component, stable } = await setUp();
     buttons(sizes)[0]?.focus();
 
-    arrow('End');
+    pressKey('End');
     await stable();
     expect(component.size()).toBe('large');
     expect(document.activeElement?.textContent.trim()).toBe('Large');
 
-    arrow('Home');
+    pressKey('Home');
     await stable();
     expect(component.size()).toBe('small');
 
-    arrow('ArrowDown');
+    pressKey('ArrowDown');
     await stable();
     expect(component.size()).toBe('small');
   });

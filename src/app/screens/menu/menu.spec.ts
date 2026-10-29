@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { pressKey } from '../../../testing/keys';
 import { openMenu } from '../../../testing/menus';
 import { provideRouter } from '@angular/router';
 import { routes } from '../../app.routes';
@@ -110,9 +111,7 @@ describe('Menu', () => {
     }
 
     function press(key: string): KeyboardEvent {
-      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
-      (document.activeElement ?? document).dispatchEvent(event);
-      return event;
+      return pressKey(key, document.activeElement ?? document.body);
     }
 
     const focused = (): string | null | undefined =>
