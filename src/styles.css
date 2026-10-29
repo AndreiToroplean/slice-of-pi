@@ -572,6 +572,8 @@ html:active-view-transition-type(zoom-out) {
 .dropdown button {
   display: block;
   width: 100%;
+  /* Its padding within its width, for a link as for a button, or it overflows the menu, which then scrolls sideways. */
+  box-sizing: border-box;
   padding: 0.75rem 1rem;
   border: none;
   border-radius: 0.75rem;
