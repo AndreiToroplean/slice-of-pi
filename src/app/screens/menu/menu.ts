@@ -114,6 +114,7 @@ import { Candy } from '../../ui/candy';
             appCandy="clear"
             class="corner"
             title="Developer Pages"
+            appMenuTriggerMore
             [appMenuTrigger]="developerMenu"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
