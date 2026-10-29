@@ -1,0 +1,1 @@
+import{O as Sr,ut as h,w as Or}from"./main-U6BJHHNS.js";function s(){let t=h(Or),e=h(Sr);return()=>{t.lastSuccessfulNavigation()?.previousNavigation?.finalUrl?.toString()===`/`?e.back():t.navigateByUrl(`/`,{replaceUrl:!0})}}export{s as t};

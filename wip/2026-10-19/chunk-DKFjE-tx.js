@@ -1,0 +1,1 @@
+import{Pt as h,Q as Tr,g as Fr}from"./chunk-DlTYtvWb.js";function s(){let t=h(Fr),e=h(Tr);return()=>{t.lastSuccessfulNavigation()?.previousNavigation?.finalUrl?.toString()===`/`?e.back():t.navigateByUrl(`/`,{replaceUrl:!0})}}export{s as t};
