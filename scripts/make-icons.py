@@ -41,7 +41,8 @@ for size in SIZES:
     icon(size).save(ROOT / f'public/icons/icon-{size}x{size}.png', optimize=True)
 for size in MASKABLE_SIZES:
     icon(size, visible=MASKABLE_VISIBLE).save(ROOT / f'public/icons/maskable-{size}x{size}.png', optimize=True)
-icon(272).save(ROOT / 'public/icons/icon.webp', quality=90)
+# The main menu's, with no background, to blend into the sky behind it.
+icon(272, None).save(ROOT / 'public/icons/icon.webp', quality=90)
 icon(256).save(ROOT / 'public/favicon.ico', sizes=[(16, 16), (32, 32), (48, 48)])
 # The same crop with no background, at the artwork's full resolution.
 icon(round(artwork.width / CROP['width']), None).save(ROOT / 'public/icons/icon-transparent.png', optimize=True)

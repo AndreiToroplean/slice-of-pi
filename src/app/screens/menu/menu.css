@@ -40,8 +40,8 @@
 
 .icon {
   display: block;
-  border-radius: 1.75rem;
-  box-shadow: 0 6px 24px rgb(40 20 60 / 22%);
+  /* No background of its own: it stands in the sky, its shadow following its shape. */
+  filter: drop-shadow(0 6px 18px rgb(10 10 40 / 35%));
 }
 
 h1 {

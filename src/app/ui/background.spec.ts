@@ -3,12 +3,12 @@ import { TestBed } from '@angular/core/testing';
 import { Meta } from '@angular/platform-browser';
 import { hueOf, mixGradients, shortWay } from '../game/color/color-spaces';
 import { SEASON_COLOR_SPACE, seasonAt } from '../game/layers/seasons';
-import { Background, BACKGROUND_EASE } from './background';
+import { Background, BACKGROUND_EASE, TWILIGHT } from './background';
 
 describe('Background', () => {
-  it("starts on a new game's colors", () => {
-    expect(TestBed.inject(Background).colors()).toEqual(seasonAt(0).background);
-    expect(TestBed.inject(Background).shown()).toEqual(seasonAt(0).background);
+  it("starts on the main menu's twilight, as the app opens on it", () => {
+    expect(TestBed.inject(Background).colors()).toEqual(TWILIGHT);
+    expect(TestBed.inject(Background).shown()).toEqual(TWILIGHT);
   });
 
   it("blends the browser's bars into the top of the background", async () => {
