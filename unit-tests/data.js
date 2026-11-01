@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793315941138,
+  "lastUpdate": 1793552837236,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2918,6 +2918,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 784,
+            "unit": "ms",
+            "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "2121aaa5c35f9cf763e807f65d01039d6fe3c4a4",
+          "message": "docs: draft the twilight main menu\n\nClaude-Session: https://claude.ai/code/session_01X1Xess6b1p6KqNSZreJmXf",
+          "timestamp": "2026-11-01T18:06:52+01:00",
+          "tree_id": "83926c615e86688a8d8bed4b061d8f2bcc1eae8b",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/2121aaa5c35f9cf763e807f65d01039d6fe3c4a4"
+        },
+        "date": 1793552836575,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 10371,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 21878,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 690,
             "unit": "ms",
             "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
           }
