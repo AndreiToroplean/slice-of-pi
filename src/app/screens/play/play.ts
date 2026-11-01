@@ -63,7 +63,7 @@ const TICK = 16;
  * as mistakes in their slots, and never finish the group, until backspace deletes them.
  * Backspace deletes the last digit, reopening the last word when the slots are empty. Once it empties them, the last
  * word stays on the tape, and comes back into the slots only for a next digit typed fast enough to carry it on, until
- * the player breaks there again. Developer mode counts down, left of 0, to
+ * the player breaks there again. Developer mode counts down, in the top right corner, to
  * when the group being typed ends, unless its settings hide that. Pausing offers to restart the game, stop it and
  * replay its run, or end it, back to the main menu; going back, as the browser's or the system's Back does, pauses
  * too, and resumes, and only ending the game leaves it. In developer mode, pausing also offers edit mode, which shows
@@ -123,20 +123,21 @@ const TICK = 16;
       [marks]="marks()"
       (touched)="press($event)"
     >
-      @let wait = breakWait();
-      @if (tweaks.countdown() && wait !== undefined) {
-        <app-break-countdown [wait]="wait" />
+      <!-- The pause key, in the keypad's empty corner left of 0. -->
+      @if (replay() === undefined) {
+        <app-pause
+          [paused]="paused()"
+          (pausedChange)="setPaused($event)"
+          (edit)="editedLayout.set(tweaks.layout())"
+          [replayable]="recorder.run() !== undefined"
+          (restart)="restart()"
+          (replay)="void replayRun()"
+        />
       }
     </app-keypad>
-    @if (replay() === undefined) {
-      <app-pause
-        [paused]="paused()"
-        (pausedChange)="setPaused($event)"
-        (edit)="editedLayout.set(tweaks.layout())"
-        [replayable]="recorder.run() !== undefined"
-        (restart)="restart()"
-        (replay)="void replayRun()"
-      />
+    @let wait = breakWait();
+    @if (tweaks.countdown() && wait !== undefined) {
+      <app-break-countdown [wait]="wait" />
     }
     @let edited = editedLayout();
     @if (edited !== undefined) {

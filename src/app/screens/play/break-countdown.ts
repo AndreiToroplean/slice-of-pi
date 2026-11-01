@@ -7,7 +7,7 @@ import { TIMER } from './timer';
 const TICK = 16;
 
 /**
- * Developer mode's countdown to the end of the group being typed, in the keypad's empty corner left of 0: the seconds
+ * Developer mode's countdown to the end of the group being typed, in the screen's top right corner: the seconds
  * left before the pause is long enough for the break model to end it, or `> 10⁶` if no pause up to the longest wait
  * looked at would, as it can't tell that from none ever would, over a disk that empties as they run out.
  */
@@ -17,9 +17,9 @@ const TICK = 16;
   template: `{{ text() }}`,
   styles: `
     :host {
-      grid-row: 4;
-      grid-column: 1;
-      place-self: center;
+      position: absolute;
+      top: var(--margin-top);
+      right: var(--margin-side);
       display: grid;
       place-items: center;
       width: 3.25rem;

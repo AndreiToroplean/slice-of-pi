@@ -81,7 +81,9 @@ import { YourData } from './your-data';
             <label class="setting">
               <span>
                 Countdown
-                <small>Left of 0, the seconds until the group being typed ends.</small>
+                <small
+                  >In the top right corner, the seconds until the group being typed ends.</small
+                >
               </span>
               <input
                 type="checkbox"

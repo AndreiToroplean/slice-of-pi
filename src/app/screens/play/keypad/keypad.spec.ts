@@ -124,6 +124,21 @@ describe('Keypad', () => {
     );
   }
 
+  it('leaves a button it was given, such as the pause key, and the dialog it opens, their own touches', () => {
+    const given = document.createElement('button');
+    const dialog = document.createElement('dialog');
+    host.querySelector('.grid')?.append(given, dialog);
+
+    for (const target of [given, dialog]) {
+      const down = new PointerEvent('pointerdown', { button: 0, bubbles: true, cancelable: true });
+      target.dispatchEvent(down);
+      target.dispatchEvent(new PointerEvent('pointerup', { button: 0, bubbles: true }));
+      expect(down.defaultPrevented).toBe(false);
+    }
+    expect(touches).toEqual([]);
+    expect(setPointerCapture).not.toHaveBeenCalled();
+  });
+
   describe('layout', () => {
     it('renders the keys in reading order of the calculator layout', () => {
       const labels = Array.from(host.querySelectorAll('button'), (key) => key.textContent.trim());
