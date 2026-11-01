@@ -37,8 +37,9 @@ export const routes: Routes = [
     loadComponent: () => import('./screens/tuning/key-colors').then((m) => m.KeyColors),
   },
   {
-    path: 'developer/season-colors',
-    loadComponent: () => import('./screens/tuning/season-colors').then((m) => m.SeasonColors),
+    path: 'developer/background-colors',
+    loadComponent: () =>
+      import('./screens/tuning/background-colors').then((m) => m.BackgroundColors),
   },
   {
     matcher: missingPreview,

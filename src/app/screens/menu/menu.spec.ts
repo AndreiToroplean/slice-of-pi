@@ -268,7 +268,7 @@ describe('Menu', () => {
         expect.arrayContaining([
           ['Model Tuning', '/developer/model-tuning'],
           ['Key Colors', '/developer/key-colors'],
-          ['Season Colors', '/developer/season-colors'],
+          ['Background Colors', '/developer/background-colors'],
         ]),
       );
     });

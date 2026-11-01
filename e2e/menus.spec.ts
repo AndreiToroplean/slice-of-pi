@@ -18,7 +18,7 @@ test('closes a menu when its button is pressed again', async ({ page }) => {
 test('closes a menu opened from a button elsewhere when that button is pressed again', async ({
   page,
 }) => {
-  await page.goto('/developer/season-colors');
+  await page.goto('/developer/background-colors');
   const picker = page.getByRole('button', { name: /Blend colors in/ });
   const menu = page.getByRole('menu', { name: 'Blend colors in' });
 
@@ -47,7 +47,7 @@ test('fits what a menu of links holds, without scrolling it sideways', async ({ 
   await page.getByRole('button', { name: 'Slice of Pi' }).click({ clickCount: 10 });
   await page.getByRole('button', { name: 'Developer Pages' }).click();
   const menu = page.getByRole('menu');
-  await expect(page.getByRole('menuitem', { name: 'Season Colors' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Background Colors' })).toBeVisible();
 
   const [scrolled, shown] = await menu.evaluate((element) => [
     element.scrollWidth,

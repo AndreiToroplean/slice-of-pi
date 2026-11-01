@@ -179,7 +179,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
               <h2 id="developer-title">Developer</h2>
               <a cdkMenuItem routerLink="/developer/model-tuning">Model Tuning</a>
               <a cdkMenuItem routerLink="/developer/key-colors">Key Colors</a>
-              <a cdkMenuItem routerLink="/developer/season-colors">Season Colors</a>
+              <a cdkMenuItem routerLink="/developer/background-colors">Background Colors</a>
               <!-- The pages above, an action below. -->
               <hr />
               <button cdkMenuItem type="button" (cdkMenuItemTriggered)="edit()">

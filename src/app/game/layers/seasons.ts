@@ -46,7 +46,7 @@ export interface SeasonView {
   readonly season: Season;
   /**
    * The year, starting at 0 so that it's the hundreds of the places typed: the 200th decimal starts year 2 (and before
-   * any, year -1, as developer mode's Season colors page can show).
+   * any, year -1, as developer mode's Background Colors page can show).
    */
   readonly year: number;
   /** Places typed in the current year, from 0 to 99. */

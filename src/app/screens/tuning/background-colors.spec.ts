@@ -11,11 +11,11 @@ import {
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { hexToHsl, hslToHex } from '../../game/color/color-spaces';
 import { averageHsl } from '../../game/color/color-math';
-import { SeasonColors } from './season-colors';
+import { BackgroundColors } from './background-colors';
 import { menuItem, menuItems } from '../../../testing/menus';
 import { SEASON_STARTS, Tweaks } from '../../developer-mode/tweaks';
 
-describe('SeasonColors', () => {
+describe('BackgroundColors', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [provideRouter([]), { provide: INDEXED_DB, useValue: undefined }],
@@ -23,7 +23,7 @@ describe('SeasonColors', () => {
   });
 
   async function setUp(): Promise<{ host: HTMLElement; stable: () => Promise<void> }> {
-    const fixture = TestBed.createComponent(SeasonColors);
+    const fixture = TestBed.createComponent(BackgroundColors);
     await fixture.whenStable();
     return { host: fixture.nativeElement as HTMLElement, stable: () => fixture.whenStable() };
   }

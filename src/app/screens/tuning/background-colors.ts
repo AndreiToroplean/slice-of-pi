@@ -32,7 +32,7 @@ const ENDS = [
  * the years before and after, that moves the background exactly as typing digits does.
  */
 @Component({
-  selector: 'app-season-colors',
+  selector: 'app-background-colors',
   imports: [
     Candy,
     CdkMenuItemRadio,
@@ -44,7 +44,7 @@ const ENDS = [
     SeasonHeader,
   ],
   template: `
-    <app-page heading="Season Colors">
+    <app-page heading="Background Colors">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
         Reset All
       </button>
@@ -134,9 +134,9 @@ const ENDS = [
       <app-copy-values [values]="copied()" />
     </app-page>
   `,
-  styleUrl: './season-colors.css',
+  styleUrl: './background-colors.css',
 })
-export class SeasonColors {
+export class BackgroundColors {
   protected readonly seasons = SEASONS;
   protected readonly names = SEASON_NAMES;
   protected readonly ends = ENDS;
