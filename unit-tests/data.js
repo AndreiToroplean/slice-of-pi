@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793552837236,
+  "lastUpdate": 1793576219261,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2958,6 +2958,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 690,
+            "unit": "ms",
+            "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "7c75fc7085d9211e9368c16490a9098e4eea304e",
+          "message": "fix: keep the color picker's top bar within the screen, its hex code under the color's name\n\n- With the Average button beside them, the name and the hex code side by side made the bar overflow on narrow phones.\n\nClaude-Session: https://claude.ai/code/session_01X1Xess6b1p6KqNSZreJmXf",
+          "timestamp": "2026-11-02T00:36:37+01:00",
+          "tree_id": "15a345d2008ef1e36157af11b39cc04a4a9f9d5e",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/7c75fc7085d9211e9368c16490a9098e4eea304e"
+        },
+        "date": 1793576218667,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14915,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 32491,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 894,
             "unit": "ms",
             "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
           }
