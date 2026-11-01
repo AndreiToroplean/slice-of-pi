@@ -36,13 +36,20 @@
 }
 
 .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.summary .hex {
+/* The color's name, and its hex code under it, taking the room the top bar leaves. */
+.title {
   flex: 1;
   min-width: 0;
+  display: grid;
+}
+
+.summary .hex {
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 0.8125rem;
