@@ -6,6 +6,7 @@ import {
   computed,
   DestroyRef,
   DOCUMENT,
+  effect,
   ElementRef,
   inject,
   signal,
@@ -26,12 +27,20 @@ import { Light, LightLayer } from '../../ui/light-layer';
 import { LIGHT_LAYERS, LightLayer as Layer, menuStyles, MenuLook } from './menu-look';
 import { Layout, layoutStyles } from '../../ui/layout';
 import { MenuEditor } from './menu-editor';
+import { ScreenTransitions } from '../../ui/screen-transitions';
 
 /** Which key color lights each letter of the name, from the palette, in order: every one but lime, round the wheel. */
 const LETTER_COLORS = [0, 1, 2, 4, 5, 6, 7, 8, 9];
 
 /** The seed of the rays of each layer's first light; the others' follow from it. */
 const SEEDS: Readonly<Record<Layer, number>> = { icon: 31, slice: 101, pi: 503 };
+
+/** How long each layer of light takes to fade in or out, in milliseconds. */
+export const LIGHT_FADE = 120;
+/** How long after a layer the next one starts fading, in milliseconds, from the top down: the icon, "Slice of", "Pi". */
+export const LIGHT_STAGGER = 40;
+/** How long the lights take to switch off, all of them. */
+export const LIGHTS_OFF = LIGHT_FADE + 2 * LIGHT_STAGGER;
 
 /** No lights, before the menu is measured. */
 const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], pi: [] };
@@ -41,7 +50,9 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
  * the settings behind a gear in a corner, and in developer mode, its pages in an overflow menu in the other, with its
  * editor (see `menu-editor.ts`). The name's letters are lanterns, in the key colors, and the icon is lit from behind:
  * three layers of light (see `light-layer.ts`), "Pi" nearest, then "Slice of", then the icon, each lighting everything
- * behind it. Where each part sits, always centered across, and their light, come from its look (see `menu-look.ts`). It shows
+ * behind it. Where each part sits, always centered across, and their light, come from its look (see `menu-look.ts`).
+ * The lights switch on once the menu is in place, and off before another screen comes in, both from the top down, the
+ * icon first, "Pi" last. It shows
  * once its icon and fonts have arrived, over the background alone until then. Tab, or left and right, go from one group of buttons to the next, from the left to the right, and up and
  * down between its main buttons; Play has the focus from the start, picked out, for Enter to play.
  */
@@ -65,6 +76,8 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
     class: 'screen',
     '[class.loading]': '!assets.ready()',
     '[style]': 'styles()',
+    '[style.--light-fade]': 'lightFade',
+    '[style.--light-stagger]': 'lightStagger',
     '(document:keydown.arrowup)': 'startOnPlay($event)',
     '(document:keydown.arrowdown)': 'startOnPlay($event)',
     '(document:keydown.arrowleft)': 'side($event, -1)',
@@ -73,16 +86,19 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
   template: `
     <canvas
       class="light icon-light"
+      [class.on]="lit()"
       [appLightLayer]="lights().icon"
       [settings]="look().light.icon"
     ></canvas>
     <canvas
       class="light slice-light"
+      [class.on]="lit()"
       [appLightLayer]="lights().slice"
       [settings]="look().light.slice"
     ></canvas>
     <canvas
       class="light pi-light"
+      [class.on]="lit()"
       [appLightLayer]="lights().pi"
       [settings]="look().light.pi"
     ></canvas>
@@ -228,6 +244,10 @@ export class Menu {
   protected readonly lights = signal(DARK);
   /** Bumped as the menu's size changes, for the lights to follow. */
   private readonly resized = signal(0);
+  /** Whether the lights are on: once the menu is in place, until it's left. */
+  protected readonly lit = signal(false);
+  protected readonly lightFade = `${String(LIGHT_FADE)}ms`;
+  protected readonly lightStagger = `${String(LIGHT_STAGGER)}ms`;
 
   protected readonly assets = inject(MenuAssets);
   private readonly document = inject(DOCUMENT);
@@ -239,6 +259,14 @@ export class Menu {
   constructor() {
     const fonts = this.document.fonts;
     afterNextRender(() => void this.assets.waitForFonts(fonts));
+    // The lights switch on once the menu is in place: shown, and no transition from another screen running, which would
+    // show them laid over the background rather than added to it (see `styles.css`).
+    const transitions = inject(ScreenTransitions);
+    effect(() => {
+      if (this.assets.ready() && transitions.settled()) {
+        this.lit.set(true);
+      }
+    });
     afterRenderEffect({
       read: () => {
         this.styles();
@@ -266,6 +294,22 @@ export class Menu {
 
     // A twilight sky, rather than a season's colors.
     inject(Background).colors.set(TWILIGHT);
+  }
+
+  /**
+   * Switches the lights off, from the top down, before another screen comes in, settling once they're off: at once
+   * if they weren't on.
+   */
+  switchOff(): Promise<boolean> {
+    if (!this.lit()) {
+      return Promise.resolve(true);
+    }
+    this.lit.set(false);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(true);
+      }, LIGHTS_OFF);
+    });
   }
 
   /** Opens the editor of the menu's look, from developer mode's menu. */

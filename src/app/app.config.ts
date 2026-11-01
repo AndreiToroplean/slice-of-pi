@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, inject, provideBrowserGlobalErrorListeners } from '@angular/core';
 import {
   provideRouter,
   ViewTransitionInfo,
@@ -8,6 +8,7 @@ import {
 } from '@angular/router';
 import { routes } from './app.routes';
 import { loadFailedPage } from './failed-navigation';
+import { ScreenTransitions } from './ui/screen-transitions';
 
 /** Going back cancelled, as from the play screen, which pauses instead, leaves the history as it was. */
 export const KEEP_HISTORY = withRouterConfig({ canceledNavigationResolution: 'computed' });
@@ -17,7 +18,12 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(
       routes,
-      withViewTransitions({ onViewTransitionCreated: zoom }),
+      withViewTransitions({
+        onViewTransitionCreated: (info) => {
+          zoom(info);
+          inject(ScreenTransitions).began(info.transition.finished);
+        },
+      }),
       withNavigationErrorHandler(loadFailedPage),
       KEEP_HISTORY,
     ),

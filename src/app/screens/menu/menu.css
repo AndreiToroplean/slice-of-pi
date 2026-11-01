@@ -24,17 +24,27 @@
   height: 100%;
   mix-blend-mode: plus-lighter;
   pointer-events: none;
+  /* Off until the menu is in place; switching on and off from the top down, the icon first, "Pi" last. */
+  opacity: 0;
+  transition: opacity var(--light-fade) var(--ease) calc(var(--order) * var(--light-stagger));
+}
+
+.light.on {
+  opacity: 1;
 }
 
 .icon-light {
+  --order: 0;
   z-index: 1;
 }
 
 .slice-light {
+  --order: 1;
   z-index: 3;
 }
 
 .pi-light {
+  --order: 2;
   z-index: 5;
 }
 
