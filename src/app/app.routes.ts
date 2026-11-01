@@ -42,6 +42,10 @@ export const routes: Routes = [
       import('./screens/tuning/background-colors').then((m) => m.BackgroundColors),
   },
   {
+    path: 'developer/vibrations',
+    loadComponent: () => import('./screens/tuning/vibrations').then((m) => m.Vibrations),
+  },
+  {
     matcher: missingPreview,
     loadComponent: () =>
       import('./screens/missing-preview/missing-preview').then((m) => m.MissingPreview),
