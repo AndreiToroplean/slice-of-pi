@@ -5,6 +5,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { INDEXED_DB } from '../../player-data/run-store';
+import { VibrationSetting } from '../../player-data/vibration-setting';
 import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
 import { Settings } from './settings';
 
@@ -21,9 +22,32 @@ describe('Settings', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
-  function countdown(host: HTMLElement): HTMLInputElement | null {
-    return host.querySelector<HTMLInputElement>('input[type="checkbox"]');
+  /** The checkbox whose label says this. */
+  function checkbox(host: HTMLElement, setting: string): HTMLInputElement | null {
+    return (
+      Array.from(host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')).find((input) =>
+        input.closest('label')?.textContent.includes(setting),
+      ) ?? null
+    );
   }
+
+  function countdown(host: HTMLElement): HTMLInputElement | null {
+    return checkbox(host, 'Countdown');
+  }
+
+  it('turns vibration off and on, and brings it back', async () => {
+    const host = await setUp();
+    const vibration = TestBed.inject(VibrationSetting);
+    expect(checkbox(host, 'Vibration')?.checked).toBe(true);
+    expect(backToDefault(host, 'Vibration')?.disabled).toBe(true);
+
+    checkbox(host, 'Vibration')?.click();
+    expect(vibration.enabled()).toBe(false);
+
+    await TestBed.inject(ApplicationRef).whenStable();
+    backToDefault(host, 'Vibration')?.click();
+    expect(vibration.enabled()).toBe(true);
+  });
 
   it('turns the countdown to the end of the group on and off, in developer mode', async () => {
     await TestBed.inject(DeveloperMode).set(true);
@@ -146,9 +170,11 @@ describe('Settings', () => {
     await tweaks.setChecking(false);
     await tweaks.setSolidKeys(true);
     await setting.set('telephone');
+    await TestBed.inject(VibrationSetting).set(false);
     await fixture.whenStable();
     button(host, 'Reset Settings')?.click();
 
+    expect(TestBed.inject(VibrationSetting).enabled()).toBe(true);
     expect(tweaks.solidKeys()).toBe(false);
     expect(tweaks.countdown()).toBe(false);
     expect(tweaks.checking()).toBe(true);
