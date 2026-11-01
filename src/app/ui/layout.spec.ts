@@ -4,9 +4,9 @@ describe('layout', () => {
   it('lays the play screen out up and down in hundredths of the screen’s height', () => {
     const styles = layoutStyles(LAYOUT);
 
-    expect(styles['--keypad-top']).toBe('calc(35 * var(--unit))');
-    expect(styles['--slots-bottom']).toBe('calc(37.4 * var(--unit))');
-    expect(styles['--header-height']).toBe('calc(10 * var(--unit))');
+    expect(styles['--keypad-top']).toBe(`calc(${String(LAYOUT.keypad.top)} * var(--unit))`);
+    expect(styles['--slots-bottom']).toBe(`calc(${String(LAYOUT.slots.bottom)} * var(--unit))`);
+    expect(styles['--header-height']).toBe(`calc(${String(LAYOUT.header.size)} * var(--unit))`);
   });
 
   it('keeps the margins and corner buttons in rem', () => {
@@ -15,7 +15,7 @@ describe('layout', () => {
     expect(styles['--margin-top']).toBe('1rem');
     expect(styles['--margin-side']).toBe('2rem');
     expect(styles['--margin-bottom']).toBe('3rem');
-    expect(styles['--corner-size']).toBe('2.75rem');
+    expect(styles['--corner-size']).toBe(`${String(LAYOUT.corner.size)}rem`);
   });
 
   it('gives the tape’s tiles a slot’s proportions', () => {
@@ -42,7 +42,11 @@ describe('layout', () => {
   });
 
   it('sizes the keys up and down in hundredths of the screen’s height, and across in hundredths of the column’s', () => {
-    const styles = layoutStyles(LAYOUT);
+    const styles = layoutStyles({
+      ...LAYOUT,
+      keypad: { ...LAYOUT.keypad, keyHeight: 7.4, keyWidth: 28.6, reach: 2.5, keyDepth: 0.6 },
+      slots: { ...LAYOUT.slots, depth: 0.5 },
+    });
 
     expect(styles['--keypad-key-height']).toBe('calc(7.4 * var(--unit))');
     expect(styles['--keypad-key-width']).toBe('calc(28.6 * var(--column) / 100)');

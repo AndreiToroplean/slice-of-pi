@@ -60,6 +60,7 @@
 
 - **Developer mode:** a hidden mode for tuning the game.
 - **Tweaks:** the values tuned in developer mode, which apply to the game only while it's on.
+- **Promote:** to make tweaks the game's own values, for every player: developer mode is for tuning, and every player gets one experience, the one the tweaks were tuned into.
 - **Edit mode:** developer mode's way of tuning the **layout**, where things sit on the screens, by dragging the edges of the play screen's parts: tapping a part picks it out, showing its handles alone; with none picked out, the handles are those of the page's margins.
 - **Main menu editor:** developer mode's way of tuning the main menu's look, as edit mode tunes the play screen: handles on the part picked out set its size and height, always centered, and its light; with none picked out, they set the margins every screen shares.
 - **Break model:** how the game tells breaks from the intervals of the runs. Developer mode switches between several, each named after a planet or a moon.

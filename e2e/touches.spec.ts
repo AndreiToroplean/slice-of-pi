@@ -63,8 +63,8 @@ test('records a touch slid too far off its key, and one elsewhere, as typing not
 
   await touchAlong(touches, [await center('1')]);
   await touchAlong(touches, [await center('4'), await center('6')]);
-  // Over the slots, the column of 5, half a step above where the keypad starts.
-  await touchAlong(touches, [{ x: (await center('5')).x, y: slots.y + slots.height / 2 }]);
+  // By the slots' top, the column of 5, past where the keypad's touches reach.
+  await touchAlong(touches, [{ x: (await center('5')).x, y: slots.y + 2 }]);
   await touchAlong(touches, [await center('4')]);
 
   // Where each touch started, to a hundredth of a step (-0 as 0), and what it typed.

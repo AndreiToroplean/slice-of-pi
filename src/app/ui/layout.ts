@@ -43,12 +43,12 @@ export interface Layout {
 
 /** The game's own layout. */
 export const LAYOUT: Layout = {
-  margins: { top: 0.625, side: 1.125, bottom: 1.125 },
-  corner: { size: 2.75, radius: 0.875 },
-  header: { size: 10 },
-  tape: { top: 49, bottom: 44, words: 3.2 },
-  slots: { top: 43.4, bottom: 37.4, width: 8.1, radius: 1.1, depth: 0.5 },
-  keypad: { top: 35, reach: 2.5, keyWidth: 28.6, keyHeight: 7.4, keyRadius: 2.4, keyDepth: 0.6 },
+  margins: { top: 1.125, side: 1.25, bottom: 1.9375 },
+  corner: { size: 2.875, radius: 0.875 },
+  header: { size: 13 },
+  tape: { top: 51.2, bottom: 43.2, words: 2.4 },
+  slots: { top: 44.2, bottom: 39.2, width: 8.1, radius: 1.2, depth: 0.5 },
+  keypad: { top: 37.6, reach: 4.2, keyWidth: 29, keyHeight: 7.5, keyRadius: 2.8, keyDepth: 1 },
 };
 
 /** A length of so many hundredths of the screen's height, in CSS (see `--unit` in `play.css`). */

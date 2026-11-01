@@ -68,8 +68,8 @@ import { YourData } from './your-data';
               type="button"
               class="round"
               title="Back to Default"
-              [disabled]="tweaks.solidKeys()"
-              (click)="setSolidKeys(true)"
+              [disabled]="!tweaks.solidKeys()"
+              (click)="setSolidKeys(false)"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M9 14 4 9l5-5" />
@@ -192,7 +192,7 @@ export class Settings {
       this.layoutDefault() &&
       this.countdownDefault() &&
       this.tweaks.checking() &&
-      this.tweaks.solidKeys(),
+      !this.tweaks.solidKeys(),
   );
 
   protected setCountdown(event: Event): void {
@@ -229,7 +229,7 @@ export class Settings {
   protected resetAll(): void {
     this.resetLayout();
     if (this.developerMode.enabled()) {
-      this.setSolidKeys(true);
+      this.setSolidKeys(false);
       this.resetCountdown();
       this.resetChecking();
     }

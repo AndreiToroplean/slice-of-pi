@@ -99,7 +99,10 @@ describe('LayoutEditor', () => {
     press(knob, 'PageDown');
     await stable();
 
-    const layout = { ...LAYOUT, slots: { ...LAYOUT.slots, top: LAYOUT.slots.top - 0.9 } };
+    const layout = {
+      ...LAYOUT,
+      slots: { ...LAYOUT.slots, top: Number((LAYOUT.slots.top - 0.9).toFixed(4)) },
+    };
     expect(editor.layout()).toEqual(layout);
     expect(knob?.getAttribute('aria-valuenow')).toBe(String(layout.slots.top));
     expect(TestBed.inject(Tweaks).layout()).toEqual(layout);
