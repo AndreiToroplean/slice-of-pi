@@ -62,8 +62,8 @@ export interface TweakValues {
   readonly checking?: false;
   /** `true` to show the countdown to the end of the group being typed, in developer mode, which is otherwise hidden. */
   readonly countdown?: true;
-  /** `'clear'` for see-through keys, which are otherwise solid, in their colors. */
-  readonly keys?: 'clear';
+  /** `'solid'` for keys solid, in their colors, which are otherwise see-through. */
+  readonly keys?: 'solid';
   /** `true` to count unchecked runs in the player's groups, which otherwise leave them out. */
   readonly includeUnchecked?: true;
   /** The order the game takes the runs in, and the line it plays from among them (see {@link RunOrder}). */
@@ -146,7 +146,7 @@ export class Tweaks {
 
   /** Whether the keys are solid, in their colors, rather than see-through. */
   readonly solidKeys = computed(
-    () => !this.developerMode.enabled() || this.tweaks().keys !== 'clear',
+    () => this.developerMode.enabled() && this.tweaks().keys === 'solid',
   );
 
   /** Whether the player's groups count unchecked runs, which may hold mistakes. */
@@ -252,7 +252,7 @@ export class Tweaks {
 
   /** Makes the keys solid, in their colors, or see-through. */
   setSolidKeys(solid: boolean): Promise<void> {
-    return this.save(tweakValues({ ...this.tweaks(), keys: solid ? undefined : 'clear' }));
+    return this.save(tweakValues({ ...this.tweaks(), keys: solid ? 'solid' : undefined }));
   }
 
   /** Counts unchecked runs in the player's groups, or leaves them out. */
@@ -343,7 +343,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     checking: checking === false ? checking : undefined,
     countdown: countdown === true ? countdown : undefined,
-    keys: keys === 'clear' ? keys : undefined,
+    keys: keys === 'solid' ? keys : undefined,
     includeUnchecked: includeUnchecked === true ? includeUnchecked : undefined,
     runOrder: runOrderOf(runOrder),
     layout: parseLayout(layout),

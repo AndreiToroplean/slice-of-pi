@@ -15,14 +15,24 @@ function handle(label: string): LayoutHandle {
 
 describe('layout handles', () => {
   it('follows the finger: a handle moves as far as it’s dragged, in its value’s unit', () => {
-    expect(dragged(handle('Top margin'), LAYOUT, 16, SIZES).margins.top).toBe(1.625);
-    expect(dragged(handle('Corner size'), LAYOUT, -8, SIZES).corner.size).toBe(2.25);
-    expect(dragged(handle('Slot width'), LAYOUT, 4, SIZES).slots.width).toBe(9.1);
+    expect(dragged(handle('Top margin'), LAYOUT, 16, SIZES).margins.top).toBe(
+      LAYOUT.margins.top + 1,
+    );
+    expect(dragged(handle('Corner size'), LAYOUT, -8, SIZES).corner.size).toBe(
+      LAYOUT.corner.size - 0.5,
+    );
+    expect(dragged(handle('Slot width'), LAYOUT, 4, SIZES).slots.width).toBe(
+      LAYOUT.slots.width + 1,
+    );
   });
 
   it('raises what’s measured up from the bottom when dragged up', () => {
-    expect(dragged(handle('Keypad top'), LAYOUT, -40, SIZES).keypad.top).toBe(40);
-    expect(dragged(handle('Bottom margin'), LAYOUT, 16, SIZES).margins.bottom).toBe(0.125);
+    expect(dragged(handle('Keypad top'), LAYOUT, -40, SIZES).keypad.top).toBe(
+      LAYOUT.keypad.top + 5,
+    );
+    expect(dragged(handle('Bottom margin'), LAYOUT, 16, SIZES).margins.bottom).toBe(
+      LAYOUT.margins.bottom - 1,
+    );
   });
 
   it('grows the tiles by twice as much as their top edge moves, as they stay across the tape’s middle', () => {
@@ -30,8 +40,14 @@ describe('layout handles', () => {
   });
 
   it('rounds each value to the finest step of its unit', () => {
-    expect(dragged(handle('Keypad top'), LAYOUT, -3, SIZES).keypad.top).toBe(35.4);
-    expect(dragged(handle('Side margins'), LAYOUT, 3, SIZES).margins.side).toBe(1.3125);
+    // 3 pixels: 0.375 hundredths of the height, 0.1875 rem.
+    const at = {
+      ...LAYOUT,
+      keypad: { ...LAYOUT.keypad, top: 35 },
+      margins: { ...LAYOUT.margins, side: 1 },
+    };
+    expect(dragged(handle('Keypad top'), at, -3, SIZES).keypad.top).toBe(35.4);
+    expect(dragged(handle('Side margins'), at, 3, SIZES).margins.side).toBe(1.1875);
   });
 
   it('keeps every value on the screen, and each top above its bottom', () => {
@@ -67,8 +83,13 @@ describe('layout handles', () => {
   });
 
   it('steps a value by the finest step of its unit, up or down', () => {
-    expect(stepped(handle('Keypad top'), LAYOUT, 1, SIZES).keypad.top).toBe(35.1);
-    expect(stepped(handle('Corner size'), LAYOUT, -10, SIZES).corner.size).toBe(2.125);
+    const at = {
+      ...LAYOUT,
+      keypad: { ...LAYOUT.keypad, top: 35 },
+      corner: { ...LAYOUT.corner, size: 2.75 },
+    };
+    expect(stepped(handle('Keypad top'), at, 1, SIZES).keypad.top).toBe(35.1);
+    expect(stepped(handle('Corner size'), at, -10, SIZES).corner.size).toBe(2.125);
   });
 
   it('keeps each rounding within half of what it rounds, shrinking it along with that', () => {
