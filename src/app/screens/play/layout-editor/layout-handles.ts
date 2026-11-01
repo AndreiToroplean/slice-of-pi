@@ -1,43 +1,13 @@
 import { Layout } from '../../../ui/layout';
-
-/** What a layout value is measured in (see `layout.ts`): rem, hundredths of the screen's height, or of the column's width. */
-export type LayoutUnit = 'rem' | 'height' | 'column';
-
-/** How many CSS pixels each unit is, on the screen as laid out now. */
-export type UnitSizes = Readonly<Record<LayoutUnit, number>>;
+import { Handle, rounded, STEPS } from '../../../ui/handles/handle';
 
 /**
  * A handle of edit mode, on an edge of a part of the play screen: dragging it, up and down or across, changes one value
- * of the layout. Its line lies along that edge, and its knob, which takes the drag, somewhere along the line, apart from
- * the knobs nearby.
+ * of the layout. Its line lies along that edge, with the layout's lengths (see `layoutStyles`), and its knob somewhere
+ * along the line, apart from the knobs nearby. Setting a part's bottom carries its top along, so that the part moves
+ * rather than grows.
  */
-export interface LayoutHandle {
-  readonly label: string;
-  /** Which way it's dragged: `y` up and down, along a line across; `x` across, along an upright line. */
-  readonly axis: 'x' | 'y';
-  /** Which way dragging it raises its value: `1` down or right, `-1` up or left. */
-  readonly sign: 1 | -1;
-  readonly unit: LayoutUnit;
-  /** How far the handle moves for each unit its value changes. */
-  readonly scale: number;
-  readonly get: (layout: Layout) => number;
-  /**
-   * The layout with the value set, kept within what the layout allows: a part's bottom carries its top along, so that
-   * the part moves rather than grows.
-   */
-  readonly set: (layout: Layout, value: number, sizes: UnitSizes) => Layout;
-  /** Where its line lies, in CSS, with the layout's lengths (see `layoutStyles`). */
-  readonly line: Readonly<Record<string, string>>;
-  /** Where its knob sits along the line. */
-  readonly knob: Readonly<Record<string, string>>;
-}
-
-/** The finest step of each unit: a sixteenth of a rem, a pixel at the browser's default size, and a tenth of the others. */
-export const STEPS: Readonly<Record<LayoutUnit, number>> = {
-  rem: 0.0625,
-  height: 0.1,
-  column: 0.1,
-};
+export type LayoutHandle = Handle<Layout>;
 
 /** Up from the floor (see `play.css`), as the play screen's parts are laid out. */
 const up = (length: string): Readonly<Record<string, string>> => ({
@@ -60,7 +30,7 @@ function moved<T extends { readonly top: number; readonly bottom: number }>(
 ): T {
   const height = part.top - part.bottom;
   const bottom = clamp(to, 0, 100 - height);
-  return { ...part, bottom, top: rounded(bottom + height, 'height') };
+  return { ...part, bottom, top: rounded(bottom + height, STEPS.height) };
 }
 
 /** Every handle of edit mode, from the top of the screen down. */
@@ -355,41 +325,10 @@ export const LAYOUT_HANDLES: readonly LayoutHandle[] = [
       return {
         ...layout,
         margins: { ...layout.margins, bottom },
-        keypad: { ...layout.keypad, top: clamp(rounded(layout.keypad.top + shift, 'height')) },
+        keypad: { ...layout.keypad, top: clamp(rounded(layout.keypad.top + shift, STEPS.height)) },
       };
     },
     line: up('var(--margin-bottom)'),
     knob: across('50%'),
   },
 ];
-
-/** A value rounded to the finest step of its unit, so that the values copied stay short. */
-function rounded(value: number, unit: LayoutUnit): number {
-  const step = STEPS[unit];
-  return Number((Math.round(value / step) * step).toFixed(4));
-}
-
-/** The layout once a handle has been dragged `distance` CSS pixels, down or right, from where it was in `layout`. */
-export function dragged(
-  handle: LayoutHandle,
-  layout: Layout,
-  distance: number,
-  sizes: UnitSizes,
-): Layout {
-  const change = (handle.sign * distance) / (sizes[handle.unit] * handle.scale);
-  return handle.set(layout, rounded(handle.get(layout) + change, handle.unit), sizes);
-}
-
-/** The layout once a handle's value has been stepped `steps` times, up or down, as with the arrow keys. */
-export function stepped(
-  handle: LayoutHandle,
-  layout: Layout,
-  steps: number,
-  sizes: UnitSizes,
-): Layout {
-  return handle.set(
-    layout,
-    rounded(handle.get(layout) + steps * STEPS[handle.unit], handle.unit),
-    sizes,
-  );
-}

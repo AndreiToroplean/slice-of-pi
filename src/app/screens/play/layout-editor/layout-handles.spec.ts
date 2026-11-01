@@ -1,5 +1,6 @@
 import { LAYOUT } from '../../../ui/layout';
-import { dragged, LAYOUT_HANDLES, LayoutHandle, stepped, UnitSizes } from './layout-handles';
+import { dragged, stepped, UnitSizes } from '../../../ui/handles/handle';
+import { LAYOUT_HANDLES, LayoutHandle } from './layout-handles';
 
 /** A rem of 16 pixels, a screen 800 pixels tall and a column 400 wide. */
 const SIZES: UnitSizes = { rem: 16, height: 8, column: 4 };
