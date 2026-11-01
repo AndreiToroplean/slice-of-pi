@@ -126,7 +126,7 @@ describe('MenuEditor', () => {
     await stable();
 
     const look = withLight(
-      withLayout(MENU_LOOK, 'icon', 'y', MENU_LOOK.layout.icon.y + 1),
+      withLayout(MENU_LOOK, 'icon', 'offset', MENU_LOOK.layout.icon.offset + 1),
       'icon',
       'rays',
       MENU_LOOK.light.icon.rays - 0.01,

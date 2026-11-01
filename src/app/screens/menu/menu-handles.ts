@@ -1,5 +1,6 @@
 import { Handle } from '../../ui/handles/handle';
 import {
+  LAYOUT_FIELDS,
   LIGHT_FIELDS,
   LightLayer,
   LightSettings,
@@ -32,17 +33,21 @@ export const LINE_SIZES: Readonly<Record<'slice' | 'pi', { width: number; height
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
-/** A part's height, its middle's, up from the menu's bottom, dragged up and down. */
+/**
+ * A part's height, dragged up and down: its middle's offset from the center of the icon and the name, which is all that
+ * moves, in hundredths of the column's width, as the part's size is.
+ */
 function height(part: 'icon' | 'slice' | 'pi', knob: string): Handle<MenuLook> {
+  const field = LAYOUT_FIELDS[part][1];
   return {
     label: `${PART_NAMES[part]} height`,
     text: 'Height',
     axis: 'y',
     sign: -1,
-    unit: 'height',
+    unit: 'column',
     scale: 1,
-    get: (look) => look.layout[part].y,
-    set: (look, y) => withLayout(look, part, 'y', clamp(y, 0, 100)),
+    get: (look) => look.layout[part].offset,
+    set: (look, offset) => withLayout(look, part, 'offset', clamp(offset, field.min, field.max)),
     line: { bottom: `var(--${part}-y)` },
     knob: { left: knob },
   };
