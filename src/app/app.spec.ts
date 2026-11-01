@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, provideRouter } from '@angular/router';
 import { App } from './app';
-import { Background } from './ui/background';
-import { SEASON_COLOR_SPACE, seasonAt } from './game/layers/seasons';
+import { Background, TWILIGHT } from './ui/background';
+import { SEASON_COLOR_SPACE } from './game/layers/seasons';
 import { zoom } from './app.config';
 import { routes } from './app.routes';
 
@@ -22,7 +22,7 @@ describe('App', () => {
     const main = (fixture.nativeElement as HTMLElement).querySelector('main');
     const shown = TestBed.inject(Background).shown();
 
-    expect(shown).toEqual(seasonAt(0).background);
+    expect(shown).toEqual(TWILIGHT);
     expect(main?.classList).toContain('season-background');
     expect(main?.style.getPropertyValue('--background-top')).toBe(shown[0]);
     expect(main?.style.getPropertyValue('--background-bottom')).toBe(shown[1]);

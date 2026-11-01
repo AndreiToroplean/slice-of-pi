@@ -4,20 +4,17 @@ import {
   afterRenderEffect,
   Component,
   DOCUMENT,
-  effect,
   ElementRef,
   inject,
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Background } from '../../ui/background';
+import { Background, TWILIGHT } from '../../ui/background';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { DeveloperTaps } from '../../developer-mode/developer-taps';
-import { Tweaks } from '../../developer-mode/tweaks';
 import { CdkMenuGroup, CdkMenuItem } from '@angular/cdk/menu';
 import { Dropdown, MenuTrigger } from '../../ui/menu';
 import { OverlayHost } from '../../ui/overlay-host';
-import { seasonAt } from '../../game/layers/seasons';
 import { MenuAssets } from './menu-assets';
 import { ButtonList } from '../../ui/button-list';
 import { Candy } from '../../ui/candy';
@@ -145,8 +142,6 @@ export class Menu {
   protected readonly lines = [['Slice', 'of'], ['Pi']];
   protected readonly developerMode = inject(DeveloperMode);
 
-  /** The values tuned in developer mode, the seasons' colors among them. */
-  private readonly tweaks = inject(Tweaks);
   protected readonly assets = inject(MenuAssets);
   private readonly document = inject(DOCUMENT);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
@@ -165,13 +160,8 @@ export class Menu {
       }
     });
 
-    // The background of a new game, so that playing starts on the same colors.
-    const background = inject(Background);
-    effect(() => {
-      background.colors.set(
-        seasonAt(0, this.tweaks.seasonBackgrounds(), this.tweaks.colorSpace()).background,
-      );
-    });
+    // A twilight sky, rather than a season's colors.
+    inject(Background).colors.set(TWILIGHT);
   }
 
   /** Up or down onto Play when nothing has the focus, as on touch screens, from where they move on. */

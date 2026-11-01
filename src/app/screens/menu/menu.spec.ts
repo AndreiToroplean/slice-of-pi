@@ -3,12 +3,10 @@ import { pressKey } from '../../../testing/keys';
 import { openMenu } from '../../../testing/menus';
 import { provideRouter } from '@angular/router';
 import { routes } from '../../app.routes';
-import { Background } from '../../ui/background';
+import { Background, TWILIGHT } from '../../ui/background';
 import { seasonAt } from '../../game/layers/seasons';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
-import { Tweaks } from '../../developer-mode/tweaks';
 import { INDEXED_DB } from '../../player-data/run-store';
-import { backgroundsFrom } from '../../game/layers/seasons';
 import { Menu } from './menu';
 
 describe('Menu', () => {
@@ -74,12 +72,12 @@ describe('Menu', () => {
     expect(host.classList).not.toContain('loading');
   });
 
-  it('brings back the background a new game starts on', async () => {
+  it('brings back its twilight sky, whatever season the player left', async () => {
     TestBed.inject(Background).colors.set(seasonAt(60).background);
 
     await setUp();
 
-    expect(TestBed.inject(Background).colors()).toEqual(seasonAt(0).background);
+    expect(TestBed.inject(Background).colors()).toEqual(TWILIGHT);
   });
 
   function link(host: HTMLElement, label: string): HTMLAnchorElement | undefined {
@@ -169,13 +167,6 @@ describe('Menu', () => {
   });
 
   describe('in developer mode', () => {
-    const seasons = {
-      spring: ['#000000', '#111111'],
-      summer: ['#000000', '#111111'],
-      autumn: ['#000000', '#111111'],
-      winter: ['#000000', '#111111'],
-    } as const;
-
     it('has an overflow menu of developer pages, only once developer mode is on', async () => {
       const fixture = TestBed.createComponent(Menu);
       await fixture.whenStable();
@@ -206,17 +197,6 @@ describe('Menu', () => {
           ['Key Colors', '/developer/key-colors'],
           ['Season Colors', '/developer/season-colors'],
         ]),
-      );
-    });
-
-    it('starts on the tuned background of a new game', async () => {
-      await TestBed.inject(DeveloperMode).set(true);
-      await TestBed.inject(Tweaks).setSeasons(seasons);
-
-      await setUp();
-
-      expect(TestBed.inject(Background).colors()).toEqual(
-        seasonAt(0, backgroundsFrom(seasons)).background,
       );
     });
   });
