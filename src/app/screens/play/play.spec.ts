@@ -1090,6 +1090,8 @@ describe('Play', () => {
       pauseItem(host, 'Pause').click();
       pauseItem(host, 'Edit Layout').click();
       await stable();
+      host.querySelector<HTMLButtonElement>('button.part[aria-label="Keypad"]')?.click();
+      await stable();
 
       const knob = host.querySelector<HTMLElement>('[role="slider"][aria-label="Keypad top"]');
       knob?.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageUp', bubbles: true }));
@@ -1137,6 +1139,8 @@ describe('Play', () => {
       const { host, stable } = await setUp();
       pauseItem(host, 'Pause').click();
       pauseItem(host, 'Edit Layout').click();
+      await stable();
+      host.querySelector<HTMLButtonElement>('button.part[aria-label="Keypad"]')?.click();
       await stable();
 
       host

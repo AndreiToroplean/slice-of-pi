@@ -5,7 +5,6 @@ import { DeveloperMode } from '../../../developer-mode/developer-mode';
 import { Tweaks } from '../../../developer-mode/tweaks';
 import { Layout, LAYOUT } from '../../../ui/layout';
 import { LayoutEditor } from './layout-editor';
-import { LAYOUT_HANDLES } from './layout-handles';
 
 @Component({
   imports: [LayoutEditor],
@@ -46,24 +45,54 @@ describe('LayoutEditor', () => {
     );
   }
 
+  /** Picks a part of the screen out, by its name. */
+  async function pick(host: HTMLElement, part: string, stable: () => Promise<void>): Promise<void> {
+    host.querySelector<HTMLButtonElement>(`button.part[aria-label="${part}"]`)?.click();
+    await stable();
+  }
+
   function press(knob: Element | null, key: string): void {
     knob?.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
   }
 
-  it('shows a labelled slider for each handle, at its value', async () => {
-    const { host } = await setUp();
-    const sliders = Array.from(host.querySelectorAll('[role="slider"]'));
+  it('shows the handles of the page until a part is picked out, then those of the part alone', async () => {
+    const { host, stable } = await setUp();
+    const sliders = (): (string | null)[] =>
+      Array.from(host.querySelectorAll('[role="slider"]'), (slider) =>
+        slider.getAttribute('aria-label'),
+      );
+    expect(sliders()).toEqual([
+      'Top margin',
+      'Corner size',
+      'Corner radius',
+      'Side margins',
+      'Bottom margin',
+    ]);
 
-    expect(sliders.map((slider) => slider.getAttribute('aria-label'))).toEqual(
-      LAYOUT_HANDLES.map((handle) => handle.label),
-    );
+    await pick(host, 'Keypad', stable);
+    expect(sliders()).toEqual([
+      'Touch top',
+      'Keypad top',
+      'Key width',
+      'Key height',
+      'Key radius',
+      'Key depth',
+    ]);
     expect(host.querySelector('[aria-label="Keypad top"]')?.getAttribute('aria-valuenow')).toBe(
       String(LAYOUT.keypad.top),
     );
+
+    await pick(host, 'Tape', stable);
+    expect(sliders()).toEqual(['Tape top', 'Tiles', 'Tape bottom']);
+
+    // Picked again, none is.
+    await pick(host, 'Tape', stable);
+    expect(sliders()).toContain('Top margin');
   });
 
   it('steps a value with the arrow keys and Page Up and Down, saving each step as a tweak', async () => {
     const { host, editor, stable } = await setUp();
+    await pick(host, 'Slots', stable);
     const knob = host.querySelector('[aria-label="Slots top"]');
 
     press(knob, 'ArrowUp');
@@ -77,10 +106,11 @@ describe('LayoutEditor', () => {
   });
 
   it('leaves other keys alone', async () => {
-    const { host, editor } = await setUp();
+    const { host, editor, stable } = await setUp();
+    await pick(host, 'Header', stable);
     const event = new KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true });
 
-    host.querySelector('[aria-label="Header"]')?.dispatchEvent(event);
+    host.querySelector('[role="slider"][aria-label="Header"]')?.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(false);
     expect(editor.layout()).toBe(LAYOUT);
@@ -88,7 +118,8 @@ describe('LayoutEditor', () => {
 
   it('is done on Done, keeping the changes', async () => {
     const { host, editor, stable } = await setUp();
-    press(host.querySelector('[aria-label="Header"]'), 'ArrowUp');
+    await pick(host, 'Header', stable);
+    press(host.querySelector('[role="slider"][aria-label="Header"]'), 'ArrowUp');
 
     button(host, 'Done')?.click();
     await stable();
@@ -99,8 +130,9 @@ describe('LayoutEditor', () => {
 
   it('asks on Cancel or Escape whether to cancel the changes, bringing back the layout it started with', async () => {
     const { host, editor, stable } = await setUp();
+    await pick(host, 'Header', stable);
     const dialog = host.querySelector('dialog');
-    press(host.querySelector('[aria-label="Header"]'), 'ArrowUp');
+    press(host.querySelector('[role="slider"][aria-label="Header"]'), 'ArrowUp');
 
     const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
     document.dispatchEvent(escape);
@@ -123,8 +155,9 @@ describe('LayoutEditor', () => {
 
   it('brings back the game’s own layout on Reset, offered once the layout is tuned', async () => {
     const { host, editor, stable } = await setUp();
+    await pick(host, 'Header', stable);
     expect(button(host, 'Reset')?.disabled).toBe(true);
-    press(host.querySelector('[aria-label="Header"]'), 'ArrowUp');
+    press(host.querySelector('[role="slider"][aria-label="Header"]'), 'ArrowUp');
     await stable();
     expect(button(host, 'Reset')?.disabled).toBe(false);
 
@@ -150,7 +183,7 @@ describe('LayoutEditor', () => {
     preview?.click();
     await stable();
     expect(preview?.getAttribute('aria-pressed')).toBe('false');
-    expect(host.querySelectorAll('[role="slider"]').length).toBe(LAYOUT_HANDLES.length);
+    expect(host.querySelectorAll('[role="slider"]').length).toBe(5);
   });
 
   it('offers to copy the layout', async () => {
