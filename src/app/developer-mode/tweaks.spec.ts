@@ -15,6 +15,7 @@ import { DeveloperMode } from './developer-mode';
 import { parseTweaks, SEASON_STARTS, Tweaks, TWEAKS, TWEAKS_FORMAT, tweaksBackup } from './tweaks';
 import { readBackup } from '../player-data/backup';
 import { LAYOUT } from '../ui/layout';
+import { MENU_LOOK, withLight } from '../screens/menu/menu-look';
 import { PLAY_WITH_MERCURY } from '../../testing/game-break-model';
 
 describe('Tweaks', () => {
@@ -374,6 +375,21 @@ describe('Tweaks', () => {
       breakModel: 'venus',
       grouping: { mercury: grouping },
     });
+  });
+
+  it('changes how the main menu looks only while developer mode is on, until undone', async () => {
+    const tweaks = await load();
+    const menu = withLight(MENU_LOOK, 'pi', 'falloff', 3);
+    expect(tweaks.menu()).toEqual(MENU_LOOK);
+
+    await tweaks.setMenu(menu);
+    expect(tweaks.menu()).toEqual(MENU_LOOK);
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.menu()).toEqual(menu);
+    expect((await load()).values()).toEqual({ menu });
+
+    await TestBed.inject(Tweaks).setMenu(MENU_LOOK);
+    expect((await load()).values()).toEqual({});
   });
 
   it('leaves out the layout stored before the screens were laid out by their margins', () => {

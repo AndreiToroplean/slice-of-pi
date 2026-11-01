@@ -14,4 +14,5 @@ A step toward the lake redesign ([lake-handoff.md](lake-handoff.md)), not the wh
 - Tapping Play pans the camera down: the horizon and the lake come into view, and the game starts.
 - Until the lake redesign, the menu reuses the season background's gradient with its own twilight colors, rather than a new mechanism.
 - The game's icon stands in the sky with no background of its own.
-- What changes next is how the title "Slice of Pi" and the icon look; the menu gets no new elements.
+- The title's letters are lanterns, each in a key color, giving off colored light with irregular rays. The icon is lit from behind, as by a warm source of light.
+- Light follows depth: "Pi" is nearest, then "Slice of", then the icon. Each one's light falls on everything behind it, as well as on the sky.

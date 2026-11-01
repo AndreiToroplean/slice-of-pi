@@ -1,0 +1,72 @@
+/* Over the whole menu, which still shows each change under it, and takes every touch, so that none goes to the menu. */
+:host {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+
+/* At the top, under the corner buttons, smaller candy buttons, in a row. */
+.actions {
+  --candy-font-size: 1rem;
+  --candy-padding-block: 0.5rem;
+  --candy-padding-inline: 0.625rem;
+  position: absolute;
+  inset-inline: 0;
+  top: calc(var(--margin-top) + var(--corner-size) + var(--space-2));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+/* As tall as the others, its icon as large as their text is tall. */
+.preview svg {
+  display: block;
+  width: 1.25em;
+  height: 1.25em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The sliders, in a sheet at the bottom, scrolling, so that most of the menu still shows above it. */
+.panel {
+  position: absolute;
+  inset-inline: calc(var(--margin-side) + var(--margin));
+  bottom: calc(var(--margin-bottom) + env(safe-area-inset-bottom));
+  max-height: 42%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-key);
+  background: rgb(20 18 50 / 82%);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 25%);
+  font-size: 0.875rem;
+}
+
+summary {
+  padding: var(--space-1) 0;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr 3rem;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: 0.125rem;
+}
+
+.field input {
+  width: 100%;
+  margin: 0;
+  accent-color: #ffc35a;
+}
+
+.field output {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}

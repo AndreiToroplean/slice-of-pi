@@ -3,9 +3,12 @@ import {
   afterNextRender,
   afterRenderEffect,
   Component,
+  computed,
+  DestroyRef,
   DOCUMENT,
   ElementRef,
   inject,
+  signal,
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -18,10 +21,29 @@ import { OverlayHost } from '../../ui/overlay-host';
 import { MenuAssets } from './menu-assets';
 import { ButtonList } from '../../ui/button-list';
 import { Candy } from '../../ui/candy';
+import { Tweaks } from '../../developer-mode/tweaks';
+import { Light, LightLayer } from '../../ui/light-layer';
+import { LIGHT_LAYERS, LightLayer as Layer, menuStyles, MenuLook } from './menu-look';
+import { MenuEditor } from './menu-editor';
+
+/** Which key color lights each letter of the name, from the palette, in order: every one but lime, round the wheel. */
+const LETTER_COLORS = [0, 1, 2, 4, 5, 6, 7, 8, 9];
+
+/** The color of the light behind the icon: warm, as the last of the day's. */
+const ICON_LIGHT = '#ffc780';
+
+/** The seed of the rays of each layer's first light; the others' follow from it. */
+const SEEDS: Readonly<Record<Layer, number>> = { icon: 31, slice: 101, pi: 503 };
+
+/** No lights, before the menu is measured. */
+const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], pi: [] };
 
 /**
  * The main menu, where the app opens: the game's icon and name, a button to play and one above it to the player's runs,
- * the settings behind a gear in a corner, and in developer mode, its pages in an overflow menu in the other. It shows
+ * the settings behind a gear in a corner, and in developer mode, its pages in an overflow menu in the other, with its
+ * editor (see `menu-editor.ts`). The name's letters are lanterns, in the key colors, and the icon is lit from behind:
+ * three layers of light (see `light-layer.ts`), "Pi" nearest, then "Slice of", then the icon, each lighting everything
+ * behind it. Where each part sits, always centered across, and their light, come from its look (see `menu-look.ts`). It shows
  * once its icon and fonts have arrived, over the background alone until then. Tab, or left and right, go from one group of buttons to the next, from the left to the right, and up and
  * down between its main buttons; Play has the focus from the start, picked out, for Enter to play.
  */
@@ -36,18 +58,36 @@ import { Candy } from '../../ui/candy';
     CdkMenuItem,
     DeveloperTaps,
     Dropdown,
+    LightLayer,
+    MenuEditor,
     MenuTrigger,
     OverlayHost,
   ],
   host: {
     class: 'screen',
     '[class.loading]': '!assets.ready()',
+    '[style]': 'styles()',
     '(document:keydown.arrowup)': 'startOnPlay($event)',
     '(document:keydown.arrowdown)': 'startOnPlay($event)',
     '(document:keydown.arrowleft)': 'side($event, -1)',
     '(document:keydown.arrowright)': 'side($event, 1)',
   },
   template: `
+    <canvas
+      class="light icon-light"
+      [appLightLayer]="lights().icon"
+      [settings]="look().light.icon"
+    ></canvas>
+    <canvas
+      class="light slice-light"
+      [appLightLayer]="lights().slice"
+      [settings]="look().light.slice"
+    ></canvas>
+    <canvas
+      class="light pi-light"
+      [appLightLayer]="lights().pi"
+      [settings]="look().light.pi"
+    ></canvas>
     <a appCandy="clear" class="corner settings" routerLink="/settings" title="Settings">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="3" />
@@ -56,48 +96,46 @@ import { Candy } from '../../ui/candy';
         />
       </svg>
     </a>
-    <div class="title">
-      <!-- Tapping it ten times in a row turns developer mode on or off. -->
-      <button
-        #taps="developerTaps"
-        appDeveloperTaps
-        type="button"
-        class="icon-button"
-        aria-label="Slice of Pi"
-      >
-        <img
-          class="icon"
-          ngSrc="icons/icon.webp"
-          width="136"
-          height="136"
-          alt=""
-          priority
-          (load)="assets.iconDone()"
-          (error)="assets.iconDone()"
-        />
-      </button>
-      <h1>
-        <span class="visually-hidden">{{ name }}</span>
-        <!-- The name written in tiles, like the typed digits. -->
-        <span class="lines" aria-hidden="true">
-          @for (line of lines; track $index) {
-            <span class="line">
-              @for (word of line; track $index) {
-                <span class="word">
-                  @for (letter of word; track $index) {
-                    <span class="tile">{{ letter }}</span>
-                  }
-                </span>
-              }
-            </span>
-          }
-        </span>
-      </h1>
-    </div>
+    <!-- Tapping it ten times in a row turns developer mode on or off. -->
+    <button
+      #taps="developerTaps"
+      appDeveloperTaps
+      type="button"
+      class="icon-button"
+      aria-label="Slice of Pi"
+    >
+      <img
+        class="icon"
+        ngSrc="icons/icon.webp"
+        width="136"
+        height="136"
+        alt=""
+        priority
+        (load)="assets.iconDone()"
+        (error)="assets.iconDone()"
+      />
+    </button>
+    <h1>
+      <span class="visually-hidden">{{ name }}</span>
+      <!-- The name written in lanterns, tiles like the typed digits. -->
+      <span class="lines" aria-hidden="true">
+        @for (line of title(); track $index) {
+          <span class="line" [class]="line.layer">
+            @for (word of line.words; track $index) {
+              <span class="word">
+                @for (letter of word; track $index) {
+                  <span class="tile" [style.--lantern]="letter.color">{{ letter.letter }}</span>
+                }
+              </span>
+            }
+          </span>
+        }
+      </span>
+    </h1>
     <p class="developer-message" role="status" [class.shown]="taps.shown()">
       {{ taps.message() }}
     </p>
-    <app-button-list class="actions">
+    <app-button-list class="actions" [style.gap]="'var(--buttons-gap)'">
       <a appCandy routerLink="/runs">Your Runs</a>
       <a #play appCandy="primary" routerLink="/play">Play</a>
     </app-button-list>
@@ -128,19 +166,59 @@ import { Candy } from '../../ui/candy';
               <a cdkMenuItem routerLink="/developer/model-tuning">Model Tuning</a>
               <a cdkMenuItem routerLink="/developer/key-colors">Key Colors</a>
               <a cdkMenuItem routerLink="/developer/season-colors">Season Colors</a>
+              <!-- The pages above, an action below. -->
+              <hr />
+              <button cdkMenuItem type="button" (cdkMenuItemTriggered)="edit()">
+                Edit Main Menu
+              </button>
             </div>
           </div>
         </ng-template>
       }
+    }
+    @let edited = editedLook();
+    @if (edited !== undefined) {
+      <app-menu-editor
+        [look]="edited"
+        (lookChange)="editedLook.set($event)"
+        (done)="editedLook.set(undefined)"
+      />
     }
   `,
   styleUrl: './menu.css',
 })
 export class Menu {
   protected readonly name = 'Slice of Pi';
-  /** The name's words, line by line: "Pi" stands on its own line, bigger. */
-  protected readonly lines = [['Slice', 'of'], ['Pi']];
+  /** The name's words, line by line, each line a layer of light: "Pi" stands on its own line, bigger, nearest. */
+  private readonly lines: readonly (readonly [Layer, readonly string[]])[] = [
+    ['slice', ['Slice', 'of']],
+    ['pi', ['Pi']],
+  ];
   protected readonly developerMode = inject(DeveloperMode);
+  private readonly tweaks = inject(Tweaks);
+
+  /** The look being edited, in developer mode's editor, shown as it changes. */
+  protected readonly editedLook = signal<MenuLook | undefined>(undefined);
+  protected readonly look = computed(() => this.editedLook() ?? this.tweaks.menu());
+  protected readonly styles = computed(() => menuStyles(this.look().layout));
+  /** The name's lines, each letter with the key color of its lantern. */
+  protected readonly title = computed(() => {
+    const palette = this.tweaks.palette();
+    let at = 0;
+    return this.lines.map(([layer, words]) => ({
+      layer,
+      words: words.map((word) =>
+        Array.from(word, (letter) => ({
+          letter,
+          color: palette[LETTER_COLORS[at++ % LETTER_COLORS.length] ?? 0] ?? '#ffffff',
+        })),
+      ),
+    }));
+  });
+  /** The lights of each layer, where the menu's lanterns and icon are. */
+  protected readonly lights = signal(DARK);
+  /** Bumped as the menu's size changes, for the lights to follow. */
+  private readonly resized = signal(0);
 
   protected readonly assets = inject(MenuAssets);
   private readonly document = inject(DOCUMENT);
@@ -152,6 +230,23 @@ export class Menu {
   constructor() {
     const fonts = this.document.fonts;
     afterNextRender(() => void this.assets.waitForFonts(fonts));
+    afterRenderEffect({
+      read: () => {
+        this.styles();
+        this.title();
+        this.resized();
+        this.lights.set(this.measure());
+      },
+    });
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => {
+        this.resized.update((count) => count + 1);
+      });
+      observer.observe(this.host);
+      inject(DestroyRef).onDestroy(() => {
+        observer.disconnect();
+      });
+    }
     // Once shown, as it can't take the focus before. Picked out even after a tap, on touch screens too, so that it
     // breathes and shines.
     afterRenderEffect(() => {
@@ -162,6 +257,37 @@ export class Menu {
 
     // A twilight sky, rather than a season's colors.
     inject(Background).colors.set(TWILIGHT);
+  }
+
+  /** Opens the editor of the menu's look, from developer mode's menu. */
+  protected edit(): void {
+    this.editedLook.set(this.look());
+  }
+
+  /** The lights of each layer, at the middle of each lantern, and behind the icon, a little above its middle. */
+  private measure(): Readonly<Record<Layer, readonly Light[]>> {
+    const frame = this.host.getBoundingClientRect();
+    const center = (element: Element, down = 0.5): { x: number; y: number } => {
+      const box = element.getBoundingClientRect();
+      return { x: box.x - frame.x + box.width / 2, y: box.y - frame.y + box.height * down };
+    };
+    const icon = this.host.querySelector('.icon');
+    const lanterns = (layer: Layer): Light[] =>
+      Array.from(this.host.querySelectorAll<HTMLElement>(`.${layer} .tile`), (tile, i) => ({
+        ...center(tile),
+        color: tile.style.getPropertyValue('--lantern') || '#ffffff',
+        seed: SEEDS[layer] + i * 7919,
+      }));
+    const lights: Record<Layer, readonly Light[]> = {
+      icon: icon === null ? [] : [{ ...center(icon, 0.48), color: ICON_LIGHT, seed: SEEDS.icon }],
+      slice: lanterns('slice'),
+      pi: lanterns('pi'),
+    };
+    return LIGHT_LAYERS.every(
+      (layer) => JSON.stringify(lights[layer]) === JSON.stringify(this.lights()[layer]),
+    )
+      ? this.lights()
+      : lights;
   }
 
   /** Up or down onto Play when nothing has the focus, as on touch screens, from where they move on. */

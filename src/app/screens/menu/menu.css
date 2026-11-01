@@ -2,10 +2,6 @@
   position: relative;
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-rows: 1fr auto;
-  justify-items: center;
-  padding: 2rem calc(var(--margin-side) + var(--margin)) calc(3rem + env(safe-area-inset-bottom));
   /* Fading in, but visible at once, so that Play can take the focus as it shows. */
   transition: opacity var(--duration-screen) var(--ease);
 }
@@ -16,15 +12,46 @@
   visibility: hidden;
 }
 
-.title {
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 1.5rem;
+/*
+ * From the back: the icon's light, the icon, the light of "Slice of", its lanterns, the light of "Pi", its lanterns, then
+ * the buttons. Nothing here makes a stacking context of its own, so that each layer of light adds to all that lies
+ * behind it, the background included.
+ */
+.light {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: plus-lighter;
+  pointer-events: none;
+}
+
+.icon-light {
+  z-index: 1;
+}
+
+.slice-light {
+  z-index: 3;
+}
+
+.pi-light {
+  z-index: 5;
+}
+
+/* Each part centered across, its middle at its height, up from the bottom (see `menu-look.ts`). */
+.icon-button,
+.line {
+  position: absolute;
+  left: 50%;
+  top: calc(100% - var(--y));
+  translate: -50% -50%;
 }
 
 /* The game's icon is a button only for developer mode's secret taps: it looks like the icon alone. */
 .icon-button {
+  --y: var(--icon-y);
+  z-index: 2;
+  width: var(--icon-size);
   padding: 0;
   border: none;
   border-radius: 1.75rem;
@@ -40,61 +67,84 @@
 
 .icon {
   display: block;
+  width: 100%;
+  height: auto;
   /* No background of its own: it stands in the sky, its shadow following its shape. */
-  filter: drop-shadow(0 6px 18px rgb(10 10 40 / 35%));
+  filter: drop-shadow(0 4px 10px rgb(10 10 40 / 35%));
 }
 
+/* Over the whole menu, so that its lines sit as the menu's parts do, yet in no stacking context of its own. */
 h1 {
+  position: absolute;
+  inset: 0;
   margin: 0;
   font-family: var(--font-digits);
-  /* As big as fits on narrow phones too. */
-  font-size: min(2.25rem, var(--column) * 0.09);
   font-weight: 600;
-}
-
-/* Tiles as in the typed digits (see `typed-digits.css`), bigger. */
-.lines {
-  display: grid;
-  justify-items: center;
-  gap: 0.3em;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .line {
   display: flex;
-  gap: 0.4em;
+  gap: 0.55em;
 }
 
-.line:last-child {
-  font-size: 1.35em;
+.slice {
+  --y: var(--slice-y);
+  z-index: 4;
+  font-size: var(--slice-size);
+}
+
+.pi {
+  --y: var(--pi-y);
+  z-index: 6;
+  font-size: var(--pi-size);
 }
 
 .word {
-  display: inline-flex;
-  border-radius: 0.3em;
-  overflow: hidden;
-  box-shadow: 0 0.25rem 0.875rem rgb(40 20 60 / 16%);
+  display: flex;
+  gap: 0.19em;
 }
 
+/* A lantern, as a tile of the typed digits, lit from within: brighter a little above its middle. */
 .tile {
-  width: 1.24em;
-  height: 1.65em;
-  line-height: 1.65em;
-  text-align: center;
-  background: var(--place-color);
-  color: var(--on-place-color);
+  width: 1.25em;
+  height: 1.625em;
+  display: grid;
+  place-items: center;
+  border-radius: 0.3em;
+  background: radial-gradient(
+    circle at 50% 42%,
+    oklch(from var(--lantern) calc(l + 0.1) calc(c * 0.9) h),
+    var(--lantern) 70%
+  );
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 35%),
+    inset 0 -0.12em 0 oklch(from var(--lantern) calc(l - 0.12) c h);
+  color: #ffffff;
+  text-shadow: 0 1px 0 oklch(from var(--lantern) calc(l - 0.15) c h);
 }
 
+/* Centered, standing at its height above the bottom margin, each button as tall as the others. */
 .actions {
-  width: min(100%, 16rem);
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  bottom: calc(var(--buttons-bottom) + env(safe-area-inset-bottom));
+  translate: -50% 0;
+  width: min(100% - 2 * (var(--margin-side) + var(--margin)), 16rem);
 }
 
 .candy {
+  --candy-padding-block: max(0px, (var(--buttons-height) - 1.5rem * 1.2) / 2);
   font-size: 1.5rem;
+  line-height: 1.2;
 }
 
 /* The developer pages' menu button, in the top right corner, the menu it opens within it. */
 .more {
   position: absolute;
+  z-index: 8;
   top: var(--margin-top);
   right: var(--margin-side);
 }
@@ -108,6 +158,7 @@ h1 {
 /* The settings' gear, in the top left corner, like the menu button in the other. */
 .settings {
   position: absolute;
+  z-index: 8;
   top: var(--margin-top);
   left: var(--margin-side);
 }
@@ -137,6 +188,7 @@ h1 {
 /* What developer mode's secret taps say, above the title, without covering it. */
 .developer-message {
   position: absolute;
+  z-index: 9;
   top: 16vh;
   left: var(--space-3);
   right: var(--space-3);

@@ -24,6 +24,7 @@ import {
 } from '../game/grouping/break-models/break-models';
 import { DeveloperMode } from './developer-mode';
 import { Layout, LAYOUT, parseLayout } from '../ui/layout';
+import { MENU_LOOK, MenuLook, parseMenuLook } from '../screens/menu/menu-look';
 
 /** The name of the tweaks setting in the store. */
 export const TWEAKS = 'tweaks';
@@ -69,6 +70,8 @@ export interface TweakValues {
   readonly runOrder?: RunOrder;
   /** Where things sit on the screens, for {@link LAYOUT}. */
   readonly layout?: Layout;
+  /** How the main menu looks, for {@link MENU_LOOK}. */
+  readonly menu?: MenuLook;
 }
 
 /** The game's own starting colors of each season. */
@@ -159,6 +162,11 @@ export class Tweaks {
   /** Where things sit on the screens. */
   readonly layout = computed(
     (): Layout => (this.developerMode.enabled() ? this.tweaks().layout : undefined) ?? LAYOUT,
+  );
+
+  /** How the main menu looks. */
+  readonly menu = computed(
+    (): MenuLook => (this.developerMode.enabled() ? this.tweaks().menu : undefined) ?? MENU_LOOK,
   );
 
   constructor() {
@@ -264,6 +272,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), layout }));
   }
 
+  /** Changes how the main menu looks; `undefined` brings back its own look. */
+  setMenu(menu: MenuLook | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), menu }));
+  }
+
   /** Brings back the game's own value of everything tuned. */
   reset(): Promise<void> {
     return this.save({});
@@ -315,6 +328,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     includeUnchecked,
     runOrder,
     layout,
+    menu,
   } = migrate(stored, TWEAKS_MIGRATIONS);
   if (format !== TWEAKS_FORMAT) {
     return {};
@@ -333,6 +347,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     includeUnchecked: includeUnchecked === true ? includeUnchecked : undefined,
     runOrder: runOrderOf(runOrder),
     layout: parseLayout(layout),
+    menu: parseMenuLook(menu),
   });
 }
 
@@ -341,7 +356,7 @@ export function parseTweaks(stored: unknown): TweakValues {
  * only keep the game's values from applying once those change.
  */
 export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelKind): TweakValues {
-  const { palette, seasons, breakModel, grouping, colorSpace, seasonTurn, layout } = values;
+  const { palette, seasons, breakModel, grouping, colorSpace, seasonTurn, layout, menu } = values;
   const tuned = Object.entries(grouping ?? {}).filter(([id, settings]) => {
     const defaults = breakModelKindById(id)?.defaults;
     return (
@@ -357,6 +372,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     colorSpace: colorSpace === SEASON_COLOR_SPACE ? undefined : colorSpace,
     seasonTurn: seasonTurn === SEASON_TURN ? undefined : seasonTurn,
     layout: equal(layout, LAYOUT) ? undefined : layout,
+    menu: equal(menu, MENU_LOOK) ? undefined : menu,
   });
 }
 
@@ -390,6 +406,7 @@ function tweakValues({
   includeUnchecked,
   runOrder,
   layout,
+  menu,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -407,6 +424,7 @@ function tweakValues({
     ...(includeUnchecked === undefined ? {} : { includeUnchecked }),
     ...(runOrder === undefined ? {} : { runOrder }),
     ...(layout === undefined ? {} : { layout }),
+    ...(menu === undefined ? {} : { menu }),
   };
 }
 
