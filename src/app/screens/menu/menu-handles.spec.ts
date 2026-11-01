@@ -14,10 +14,11 @@ function handle(handles: readonly Handle<MenuLook>[], label: string): Handle<Men
 }
 
 describe('menu handles', () => {
-  it('raises a part when dragged up, as heights are measured up from the bottom', () => {
+  it('raises a part when dragged up, by its offset from the center of the icon and the name, across the column', () => {
     const look = dragged(handle(PART_HANDLES.pi, '“Pi” height'), MENU_LOOK, -16, SIZES);
 
-    expect(look.layout.pi.y).toBe(MENU_LOOK.layout.pi.y + 2);
+    expect(look.layout.pi.offset).toBe(MENU_LOOK.layout.pi.offset + 4);
+    expect(look.layout.title).toEqual(MENU_LOOK.layout.title);
   });
 
   it('grows a part by its right edge, which moves half as far as it widens, as it stays centered', () => {

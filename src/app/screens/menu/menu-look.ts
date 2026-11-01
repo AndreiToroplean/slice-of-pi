@@ -1,15 +1,19 @@
 /**
  * How the main menu looks: where its parts sit, and the light its lanterns and icon give. Everything stays centered
- * across: only sizes and heights are set. Heights are hundredths of the menu's height, measured up from its bottom, and
- * sizes hundredths of the column's width (see `app.css`); the buttons, like every page's controls, are sized in rem.
+ * across: only sizes and heights are set. The icon and the name's lines are a group, kept together whatever the menu's
+ * height: only the group's center is a height of the menu, in hundredths of it, up from its bottom; each part's middle
+ * is an offset from that center, up, and each part's size, both in hundredths of the column's width (see `app.css`).
+ * The buttons, like every page's controls, are sized in rem.
  */
 export interface MenuLayout {
-  /** The icon's width, and the height of its middle. */
-  readonly icon: { readonly size: number; readonly y: number };
-  /** The size of the letters of "Slice of", and the height of their middle. */
-  readonly slice: { readonly size: number; readonly y: number };
-  /** The size of the letters of "Pi", and the height of their middle. */
-  readonly pi: { readonly size: number; readonly y: number };
+  /** The height of the center of the icon and the name, together. */
+  readonly title: { readonly y: number };
+  /** The icon's width, and how far its middle is above the center. */
+  readonly icon: { readonly size: number; readonly offset: number };
+  /** The size of the letters of "Slice of", and how far their middle is above the center. */
+  readonly slice: { readonly size: number; readonly offset: number };
+  /** The size of the letters of "Pi", and how far their middle is above the center. */
+  readonly pi: { readonly size: number; readonly offset: number };
   /** Each button's height, the gap between any two, and how far above the bottom margin the last one stands, in rem. */
   readonly buttons: { readonly height: number; readonly gap: number; readonly bottom: number };
 }
@@ -49,9 +53,10 @@ export interface MenuLook {
 /** The menu's own look. */
 export const MENU_LOOK: MenuLook = {
   layout: {
-    icon: { size: 38, y: 66 },
-    slice: { size: 8.2, y: 51 },
-    pi: { size: 11.3, y: 42.5 },
+    title: { y: 54 },
+    icon: { size: 38, offset: 26 },
+    slice: { size: 8.2, offset: -6.5 },
+    pi: { size: 11.3, offset: -24.9 },
     buttons: { height: 3.25, gap: 0.875, bottom: 1.875 },
   },
   light: {
@@ -96,17 +101,18 @@ export interface LookField<T> {
 
 /** The values of each part of the layout. */
 export const LAYOUT_FIELDS = {
+  title: [{ key: 'y', label: 'Height', min: 0, max: 100, step: 0.5 }],
   icon: [
     { key: 'size', label: 'Size', min: 5, max: 90, step: 0.5 },
-    { key: 'y', label: 'Height', min: 0, max: 100, step: 0.5 },
+    { key: 'offset', label: 'Offset', min: -150, max: 150, step: 0.1 },
   ],
   slice: [
     { key: 'size', label: 'Size', min: 2, max: 14, step: 0.1 },
-    { key: 'y', label: 'Height', min: 0, max: 100, step: 0.5 },
+    { key: 'offset', label: 'Offset', min: -150, max: 150, step: 0.1 },
   ],
   pi: [
     { key: 'size', label: 'Size', min: 2, max: 20, step: 0.1 },
-    { key: 'y', label: 'Height', min: 0, max: 100, step: 0.5 },
+    { key: 'offset', label: 'Offset', min: -150, max: 150, step: 0.1 },
   ],
   buttons: [
     { key: 'height', label: 'Height', min: 2, max: 6, step: 0.0625 },
@@ -153,20 +159,22 @@ export function withLight(
 
 /**
  * The layout as the CSS lengths the menu lays out with: `--icon-size` and `--icon-y`, `--slice-size` and `--slice-y`,
- * `--pi-size` and `--pi-y`, `--buttons-height`, `--buttons-gap` and `--buttons-bottom`.
+ * `--pi-size` and `--pi-y`, `--buttons-height`, `--buttons-gap` and `--buttons-bottom`. Each `-y` is the height of a
+ * part's middle, up from the menu's bottom, as a percentage of the menu's height plus a length.
  */
 export function menuStyles(layout: MenuLayout): Readonly<Record<string, string>> {
-  const { icon, slice, pi, buttons } = layout;
+  const { title, icon, slice, pi, buttons } = layout;
   const across = (value: number): string => `calc(${String(value)} * var(--column) / 100)`;
-  const up = (value: number): string => `${String(value)}%`;
+  const up = (offset: number): string =>
+    `calc(${String(title.y)}% + ${String(offset)} * var(--column) / 100)`;
   const rem = (value: number): string => `${String(value)}rem`;
   return {
     '--icon-size': across(icon.size),
-    '--icon-y': up(icon.y),
+    '--icon-y': up(icon.offset),
     '--slice-size': across(slice.size),
-    '--slice-y': up(slice.y),
+    '--slice-y': up(slice.offset),
     '--pi-size': across(pi.size),
-    '--pi-y': up(pi.y),
+    '--pi-y': up(pi.offset),
     '--buttons-height': rem(buttons.height),
     '--buttons-gap': rem(buttons.gap),
     '--buttons-bottom': rem(buttons.bottom),
@@ -185,6 +193,7 @@ export function parseMenuLook(value: unknown): MenuLook | undefined {
   const light = isRecord(value['light']) ? value['light'] : {};
   return {
     layout: {
+      title: parsed(MENU_LOOK.layout.title, LAYOUT_FIELDS.title, layout['title']),
       icon: parsed(MENU_LOOK.layout.icon, LAYOUT_FIELDS.icon, layout['icon']),
       slice: parsed(MENU_LOOK.layout.slice, LAYOUT_FIELDS.slice, layout['slice']),
       pi: parsed(MENU_LOOK.layout.pi, LAYOUT_FIELDS.pi, layout['pi']),
