@@ -7,7 +7,8 @@ import { Background, TWILIGHT } from '../../ui/background';
 import { seasonAt } from '../../game/layers/seasons';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { INDEXED_DB } from '../../player-data/run-store';
-import { Menu } from './menu';
+import { LIGHTS_OFF, Menu } from './menu';
+import { ScreenTransitions } from '../../ui/screen-transitions';
 import { PALETTE } from '../../game/layers/place-colors';
 import { MenuEditor } from './menu-editor';
 
@@ -66,6 +67,66 @@ describe('Menu', () => {
         tile.style.getPropertyValue('--lantern'),
       ),
     ).toEqual([0, 1, 2, 4, 5, 6, 7, 8, 9].map((at) => PALETTE[at]));
+  });
+
+  describe('light', () => {
+    const lit = (host: HTMLElement): boolean[] =>
+      Array.from(host.querySelectorAll('canvas.light'), (canvas) =>
+        canvas.classList.contains('on'),
+      );
+
+    async function shown(): Promise<{
+      host: HTMLElement;
+      menu: Menu;
+      stable: () => Promise<void>;
+    }> {
+      const fixture = TestBed.createComponent(Menu);
+      await fixture.whenStable();
+      const host = fixture.nativeElement as HTMLElement;
+      host.querySelector('img')?.dispatchEvent(new Event('load'));
+      await fixture.whenStable();
+      return { host, menu: fixture.componentInstance, stable: () => fixture.whenStable() };
+    }
+
+    it('switches on once the menu shows, every layer', async () => {
+      const fixture = TestBed.createComponent(Menu);
+      await fixture.whenStable();
+      const host = fixture.nativeElement as HTMLElement;
+      expect(lit(host)).toEqual([false, false, false]);
+
+      host.querySelector('img')?.dispatchEvent(new Event('load'));
+      await fixture.whenStable();
+      expect(lit(host)).toEqual([true, true, true]);
+    });
+
+    it('waits for the transition from another screen to finish', async () => {
+      let finish = (): void => undefined;
+      TestBed.inject(ScreenTransitions).began(new Promise<void>((resolve) => (finish = resolve)));
+      const { host, stable } = await shown();
+      expect(lit(host)).toEqual([false, false, false]);
+
+      finish();
+      await vi.waitFor(async () => {
+        await stable();
+        expect(lit(host)).toEqual([true, true, true]);
+      });
+    });
+
+    it('switches off before another screen comes in, letting it come once they are off', async () => {
+      const { host, menu } = await shown();
+      vi.useFakeTimers();
+      onTestFinished(() => {
+        vi.useRealTimers();
+      });
+      let off = false;
+
+      void menu.switchOff().then(() => (off = true));
+      await vi.advanceTimersByTimeAsync(LIGHTS_OFF - 1);
+      expect(lit(host)).toEqual([false, false, false]);
+      expect(off).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(off).toBe(true);
+    });
   });
 
   it('leads to the settings', async () => {

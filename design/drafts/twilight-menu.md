@@ -16,3 +16,4 @@ A step toward the lake redesign ([lake-handoff.md](lake-handoff.md)), not the wh
 - The game's icon stands in the sky with no background of its own.
 - The title's letters are lanterns, each in a key color, giving off colored light with irregular rays. The icon is lit from behind, as by a warm source of light.
 - Light follows depth: "Pi" is nearest, then "Slice of", then the icon. Each one's light falls on everything behind it, as well as on the sky.
+- The lanterns light up once the menu is there, and go out before the game starts, one after the other from the top down: the icon's light first, "Pi" last.

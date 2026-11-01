@@ -8,6 +8,8 @@ export const routes: Routes = [
     path: '',
     // Where the app opens: loaded with the app rather than after it, so that it can show at once.
     component: Menu,
+    // Its light switches off before another screen comes in.
+    canDeactivate: [(menu: Menu) => menu.switchOff()],
   },
   {
     path: 'play',
