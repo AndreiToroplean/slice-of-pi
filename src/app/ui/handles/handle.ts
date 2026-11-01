@@ -22,7 +22,9 @@ export interface Handle<T> extends HandleShape {
 
 /** A handle, but for what it edits: how it looks and moves. */
 export interface HandleShape {
+  /** What it's called, for assistive technologies, and on its knob, unless it has a shorter `text` there. */
   readonly label: string;
+  readonly text?: string;
   /** Which way it's dragged: `y` up and down, along a line across; `x` across, along an upright line or a ring. */
   readonly axis: 'x' | 'y';
   /** Which way dragging it raises its value: `1` down or right, `-1` up or left. */

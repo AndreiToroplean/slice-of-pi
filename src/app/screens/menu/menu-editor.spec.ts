@@ -3,15 +3,32 @@ import { TestBed } from '@angular/core/testing';
 import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
+import { Layout, LAYOUT } from '../../ui/layout';
+import { Light } from '../../ui/light-layer';
 import { MenuEditor } from './menu-editor';
-import { MENU_LOOK, MenuLook, withLayout, withLight } from './menu-look';
+import { LightLayer, MENU_LOOK, MenuLook, withLayout, withLight } from './menu-look';
 
 @Component({
   imports: [MenuEditor],
-  template: `<app-menu-editor [(look)]="look" (done)="done = done + 1" />`,
+  template: `<app-menu-editor
+    [(look)]="look"
+    [(layout)]="layout"
+    [lights]="lights"
+    (done)="done = done + 1"
+  />`,
 })
 class Host {
   readonly look = signal<MenuLook>(MENU_LOOK);
+  /** The play screen's layout tuned, which the menu's editor leaves alone. */
+  readonly layout = signal<Layout>({ ...LAYOUT, keypad: { ...LAYOUT.keypad, top: 40 } });
+  readonly lights: Readonly<Record<LightLayer, readonly Light[]>> = {
+    icon: [{ x: 195, y: 300, color: '#ffc780', seed: 1 }],
+    slice: [
+      { x: 100, y: 400, color: '#e3402f', seed: 2 },
+      { x: 200, y: 400, color: '#fd7225', seed: 3 },
+    ],
+    pi: [],
+  };
   done = 0;
 }
 
@@ -45,54 +62,87 @@ describe('MenuEditor', () => {
     );
   }
 
-  /** The slider of a group, by the group's title and its own label. */
-  function slider(host: HTMLElement, group: string, label: string): HTMLInputElement | undefined {
-    const details = Array.from(host.querySelectorAll('details')).find(
-      (each) => each.querySelector('summary')?.textContent.trim() === group,
+  const sliders = (host: HTMLElement): (string | null)[] =>
+    Array.from(host.querySelectorAll('[role="slider"]'), (slider) =>
+      slider.getAttribute('aria-label'),
     );
-    return (
-      Array.from(details?.querySelectorAll('label') ?? [])
-        .find((each) => each.querySelector('span')?.textContent.trim() === label)
-        ?.querySelector('input') ?? undefined
-    );
+
+  function press(host: HTMLElement, label: string, key: string): void {
+    host
+      .querySelector(`[role="slider"][aria-label="${label}"]`)
+      ?.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
   }
 
-  /** Drags a slider to a value, then lets it go. */
-  function slide(input: HTMLInputElement | undefined, value: number): void {
-    if (input === undefined) {
-      throw new Error('No such slider');
-    }
-    input.value = String(value);
-    input.dispatchEvent(new Event('input'));
-    input.dispatchEvent(new Event('change'));
+  async function pick(host: HTMLElement, part: string, stable: () => Promise<void>): Promise<void> {
+    host.querySelector<HTMLButtonElement>(`button.part[aria-label="${part}"]`)?.click();
+    await stable();
   }
 
-  it('shows each value of the layout and of each layer’s light on a slider', async () => {
+  it('shows the handles of the margins and corner buttons until a part is picked out', async () => {
     const { host } = await setUp();
 
-    expect(Array.from(host.querySelectorAll('summary'), (each) => each.textContent.trim())).toEqual(
-      ['Icon', '“Slice of”', '“Pi”', 'Buttons', 'Icon Light', '“Slice of” Light', '“Pi” Light'],
-    );
-    expect(slider(host, '“Pi” Light', 'Falloff')?.valueAsNumber).toBe(MENU_LOOK.light.pi.falloff);
-    expect(slider(host, 'Buttons', 'Gap')?.valueAsNumber).toBe(MENU_LOOK.layout.buttons.gap);
+    expect(sliders(host)).toEqual([
+      'Top margin',
+      'Corner size',
+      'Corner radius',
+      'Side margins',
+      'Bottom margin',
+    ]);
   });
 
-  it('changes the look as a slider moves, saving it as a tweak once let go', async () => {
-    const { host, editor, stable } = await setUp();
+  it('shows the handles of the part picked out, with those of its light, until tapped again', async () => {
+    const { host, stable } = await setUp();
 
-    slide(slider(host, 'Icon', 'Height'), 75);
-    slide(slider(host, '“Slice of” Light', 'Rays'), 0.25);
+    await pick(host, '“Slice of”', stable);
+    expect(sliders(host)).toEqual([
+      'Intensity',
+      'Falloff',
+      'Reach',
+      'Rays',
+      'Ray count',
+      'Saturation',
+      '“Slice of” height',
+      '“Slice of” size',
+      'Light core',
+    ]);
+    expect(host.querySelector('.picked')?.textContent).toBe('“Slice of”');
+    // Its core, round the middle of its lights.
+    const core = host.querySelector<HTMLElement>('[aria-label="Light core"]')?.parentElement;
+    expect([core?.style.left, core?.style.top]).toEqual(['150px', '400px']);
+
+    await pick(host, 'Buttons', stable);
+    expect(sliders(host)).toEqual(['Buttons bottom', 'Button height', 'Button gap']);
+
+    await pick(host, 'Buttons', stable);
+    expect(sliders(host)).toContain('Top margin');
+  });
+
+  it('saves each change as a tweak: the look, and the margins in the layout of every screen', async () => {
+    const { host, editor, stable } = await setUp();
+    press(host, 'Top margin', 'ArrowUp');
+    await pick(host, 'Icon', stable);
+    press(host, 'Icon height', 'PageUp');
+    press(host, 'Rays', 'ArrowDown');
     await stable();
 
-    const look = withLight(withLayout(MENU_LOOK, 'icon', 'y', 75), 'slice', 'rays', 0.25);
+    const look = withLight(
+      withLayout(MENU_LOOK, 'icon', 'y', MENU_LOOK.layout.icon.y + 1),
+      'icon',
+      'rays',
+      MENU_LOOK.light.icon.rays - 0.01,
+    );
     expect(editor.look()).toEqual(look);
     expect(TestBed.inject(Tweaks).menu()).toEqual(look);
+    expect(TestBed.inject(Tweaks).layout().margins.top).toBe(LAYOUT.margins.top + 0.0625);
   });
 
-  it('asks on Cancel or Escape whether to cancel the changes, bringing back the look it started with', async () => {
+  it('asks on Cancel or Escape whether to cancel the changes, bringing back what it started with', async () => {
     const { host, editor, stable } = await setUp();
+    const started = editor.layout();
     const dialog = host.querySelector('dialog');
-    slide(slider(host, 'Icon', 'Size'), 50);
+    press(host, 'Side margins', 'ArrowUp');
+    await pick(host, '“Pi”', stable);
+    press(host, '“Pi” size', 'ArrowUp');
 
     const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
     document.dispatchEvent(escape);
@@ -106,44 +156,50 @@ describe('MenuEditor', () => {
 
     expect(editor.done).toBe(1);
     expect(editor.look()).toEqual(MENU_LOOK);
-    expect(TestBed.inject(Tweaks).menu()).toEqual(MENU_LOOK);
+    expect(editor.layout()).toEqual(started);
   });
 
-  it('brings back the menu’s own look on Reset, offered once the look is tuned', async () => {
+  it('brings back the menu’s own look and the game’s own margins on Reset, leaving the play screen’s layout', async () => {
     const { host, editor, stable } = await setUp();
     expect(button(host, 'Reset')?.disabled).toBe(true);
-    slide(slider(host, '“Pi”', 'Size'), 15);
+    press(host, 'Bottom margin', 'ArrowDown');
     await stable();
+    expect(button(host, 'Reset')?.disabled).toBe(false);
 
     button(host, 'Reset')?.click();
     await stable();
 
     expect(editor.look()).toEqual(MENU_LOOK);
-    expect(TestBed.inject(Tweaks).menu()).toEqual(MENU_LOOK);
+    expect(editor.layout().margins).toEqual(LAYOUT.margins);
+    expect(editor.layout().keypad.top).toBe(40);
     expect(button(host, 'Reset')?.disabled).toBe(true);
   });
 
-  it('hides the sliders while previewing, and shows them again', async () => {
+  it('hides its handles while previewing, and shows them again', async () => {
     const { host, stable } = await setUp();
     const preview = host.querySelector<HTMLButtonElement>('button[title="Preview"]');
 
     preview?.click();
     await stable();
-    expect(host.querySelector('input[type="range"]')).toBeNull();
+    expect(sliders(host)).toEqual([]);
+    expect(host.querySelector('button.part')).toBeNull();
 
     preview?.click();
     await stable();
-    expect(host.querySelector('input[type="range"]')).not.toBeNull();
+    expect(sliders(host)).toContain('Top margin');
   });
 
   it('is done on Done, keeping the changes', async () => {
     const { host, editor, stable } = await setUp();
-    slide(slider(host, 'Buttons', 'Height'), 4);
+    await pick(host, 'Buttons', stable);
+    press(host, 'Button gap', 'ArrowUp');
 
     button(host, 'Done')?.click();
     await stable();
 
     expect(editor.done).toBe(1);
-    expect(TestBed.inject(Tweaks).menu().layout.buttons.height).toBe(4);
+    expect(TestBed.inject(Tweaks).menu().layout.buttons.gap).toBe(
+      MENU_LOOK.layout.buttons.gap + 0.0625,
+    );
   });
 });

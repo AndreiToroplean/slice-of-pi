@@ -1,18 +1,32 @@
-/* Over the whole menu, which still shows each change under it, and takes every touch, so that none goes to the menu. */
+/*
+ * Over the whole menu, which still shows each change under it, taking every touch, so that none goes to the menu. Its
+ * height is the menu's, which the rings of light are sized in (`cqh`), and the buttons stand on `--floor`, the top of
+ * the navigation bar.
+ */
 :host {
   position: absolute;
   inset: 0;
   z-index: 10;
+  container-type: size;
+  --floor: env(safe-area-inset-bottom);
 }
 
-/* At the top, under the corner buttons, smaller candy buttons, in a row. */
+/* At the top, under the corner buttons: smaller candy buttons in a row, then the inspector. */
+.top {
+  position: absolute;
+  z-index: 2;
+  inset-inline: 0;
+  top: calc(var(--margin-top) + var(--corner-size) + var(--space-2));
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding-inline: var(--margin-side);
+}
+
 .actions {
   --candy-font-size: 1rem;
   --candy-padding-block: 0.5rem;
   --candy-padding-inline: 0.625rem;
-  position: absolute;
-  inset-inline: 0;
-  top: calc(var(--margin-top) + var(--corner-size) + var(--space-2));
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -31,42 +45,72 @@
   stroke-linejoin: round;
 }
 
-/* The sliders, in a sheet at the bottom, scrolling, so that most of the menu still shows above it. */
-.panel {
-  position: absolute;
-  inset-inline: calc(var(--margin-side) + var(--margin));
-  bottom: calc(var(--margin-bottom) + env(safe-area-inset-bottom));
-  max-height: 42%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-key);
-  background: rgb(20 18 50 / 82%);
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 25%);
-  font-size: 0.875rem;
-}
-
-summary {
-  padding: var(--space-1) 0;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.field {
+.inspector {
   display: grid;
-  grid-template-columns: 5.5rem 1fr 3rem;
-  align-items: center;
-  gap: var(--space-2);
-  padding-block: 0.125rem;
+  justify-items: center;
+  gap: var(--space-1);
 }
 
-.field input {
-  width: 100%;
+.picked {
   margin: 0;
-  accent-color: #ffc35a;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-shadow: var(--text-shadow);
 }
 
-.field output {
-  text-align: end;
-  font-variant-numeric: tabular-nums;
+/* A dashed box round each part, which tapping picks out, solid once picked out. */
+.part {
+  position: absolute;
+  left: 50%;
+  translate: -50% 50%;
+  padding: 0;
+  border: 1px dashed rgb(255 255 255 / 60%);
+  border-radius: 0.5rem;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &[aria-pressed='true'] {
+    border: 2px solid rgb(255 255 255 / 90%);
+    background: rgb(255 255 255 / 6%);
+  }
+
+  &:focus-visible {
+    outline: 0.1875rem solid var(--focus-ring);
+  }
+}
+
+/* Each as large as what it shows (see `menu.css` and `LINE_SIZES` in `menu-handles.ts`), centered on its middle. */
+.part.icon {
+  bottom: var(--icon-y);
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+.part.slice {
+  bottom: var(--slice-y);
+  width: calc(10.25 * var(--slice-size));
+  height: calc(1.625 * var(--slice-size));
+}
+
+.part.pi {
+  bottom: var(--pi-y);
+  width: calc(2.69 * var(--pi-size));
+  height: calc(1.625 * var(--pi-size));
+}
+
+.part.buttons {
+  bottom: calc(var(--floor) + var(--margin-bottom) + var(--buttons-bottom));
+  translate: -50% 0;
+  width: min(100% - 2 * (var(--margin-side) + var(--margin)), 16rem);
+  height: calc(2 * var(--buttons-height) + var(--buttons-gap));
+}
+
+/* How far the light of the part picked out reaches, round where its lights are. */
+.reach {
+  position: absolute;
+  translate: -50% -50%;
+  border: 1px dotted rgb(255 255 255 / 55%);
+  border-radius: 50%;
+  pointer-events: none;
 }
