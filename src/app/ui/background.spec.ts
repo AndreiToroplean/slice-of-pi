@@ -3,7 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { Meta } from '@angular/platform-browser';
 import { hueOf, mixGradients, shortWay } from '../game/color/color-spaces';
 import { SEASON_COLOR_SPACE, seasonAt } from '../game/layers/seasons';
-import { Background, BACKGROUND_EASE, TWILIGHT } from './background';
+import { Background, BACKGROUND_EASE } from './background';
+import { TWILIGHT } from '../screens/menu/menu-look';
 
 describe('Background', () => {
   it("starts on the main menu's twilight, as the app opens on it", () => {

@@ -15,7 +15,7 @@ import { DeveloperMode } from './developer-mode';
 import { parseTweaks, SEASON_STARTS, Tweaks, TWEAKS, TWEAKS_FORMAT, tweaksBackup } from './tweaks';
 import { readBackup } from '../player-data/backup';
 import { LAYOUT } from '../ui/layout';
-import { MENU_LOOK, withLight } from '../screens/menu/menu-look';
+import { MENU_LOOK, TWILIGHT, withLight } from '../screens/menu/menu-look';
 import { PLAY_WITH_MERCURY } from '../../testing/game-break-model';
 
 describe('Tweaks', () => {
@@ -375,6 +375,22 @@ describe('Tweaks', () => {
       breakModel: 'venus',
       grouping: { mercury: grouping },
     });
+  });
+
+  it('tunes the main menu’s background colors only while developer mode is on, until undone', async () => {
+    const tweaks = await load();
+    const twilight = ['#000000', '#ffffff'] as const;
+    expect(tweaks.twilight()).toEqual(TWILIGHT);
+
+    await tweaks.setTwilight(twilight);
+    expect(tweaks.twilight()).toEqual(TWILIGHT);
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.twilight()).toEqual(twilight);
+    expect((await load()).values()).toEqual({ twilight });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, twilight: ['#000000'] })).toEqual({});
+
+    await TestBed.inject(Tweaks).setTwilight(TWILIGHT);
+    expect((await load()).values()).toEqual({});
   });
 
   it('changes how the main menu looks only while developer mode is on, until undone', async () => {

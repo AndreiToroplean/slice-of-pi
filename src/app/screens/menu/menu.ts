@@ -13,7 +13,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Background, TWILIGHT } from '../../ui/background';
+import { Background } from '../../ui/background';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { DeveloperTaps } from '../../developer-mode/developer-taps';
 import { CdkMenuGroup, CdkMenuItem } from '@angular/cdk/menu';
@@ -293,7 +293,10 @@ export class Menu {
     });
 
     // A twilight sky, rather than a season's colors.
-    inject(Background).colors.set(TWILIGHT);
+    const background = inject(Background);
+    effect(() => {
+      background.colors.set(this.tweaks.twilight());
+    });
   }
 
   /**

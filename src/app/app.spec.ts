@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, provideRouter } from '@angular/router';
 import { App } from './app';
-import { Background, TWILIGHT } from './ui/background';
+import { Background } from './ui/background';
+import { TWILIGHT } from './screens/menu/menu-look';
 import { SEASON_COLOR_SPACE } from './game/layers/seasons';
 import { zoom } from './app.config';
 import { routes } from './app.routes';
