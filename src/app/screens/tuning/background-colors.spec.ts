@@ -12,6 +12,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { hexToHsl, hslToHex } from '../../game/color/color-spaces';
 import { averageHsl } from '../../game/color/color-math';
 import { BackgroundColors } from './background-colors';
+import { TWILIGHT } from '../menu/menu-look';
 import { menuItem, menuItems } from '../../../testing/menus';
 import { SEASON_STARTS, Tweaks } from '../../developer-mode/tweaks';
 
@@ -64,10 +65,10 @@ describe('BackgroundColors', () => {
     await stable();
   }
 
-  it('has a top and a bottom color for each season, starting with the top of spring in the picker', async () => {
+  it('has a top and a bottom color for each season, and the main menu’s, starting with the top of spring in the picker', async () => {
     const { host } = await setUp();
 
-    expect(host.querySelectorAll('button.swatch')).toHaveLength(8);
+    expect(host.querySelectorAll('button.swatch')).toHaveLength(10);
     expect(swatch(host, 'Winter bottom').style.background).toBe('rgb(70, 89, 143)');
     expect(swatch(host, 'Spring top').getAttribute('aria-pressed')).toBe('true');
     expect(host.querySelector('app-color-picker .name')?.textContent).toBe('Spring top');
@@ -125,6 +126,37 @@ describe('BackgroundColors', () => {
     expect(TestBed.inject(Tweaks).values()).toEqual({});
     expect(background()).toEqual(seasonAt(30).background);
     expect(host.querySelector('app-color-picker .hex')?.textContent).toBe(SEASON_STARTS.summer[1]);
+  });
+
+  it('shows and tunes the main menu’s colors while one is selected, then brings back the game’s', async () => {
+    const { host, stable } = await setUp();
+    const background = TestBed.inject(Background).colors;
+    swatch(host, 'Main menu bottom').click();
+    await stable();
+    expect(host.querySelector('app-color-picker .name')?.textContent).toBe('Main menu bottom');
+    expect(background()).toEqual(TWILIGHT);
+    // No seasons on either side to average with.
+    expect(host.querySelector('app-color-picker .average')).toBeNull();
+
+    const lightness = host.querySelector<HTMLInputElement>(
+      'input[aria-label="Main menu bottom lightness"]',
+    );
+    if (lightness === null) {
+      throw new Error('No lightness slider');
+    }
+    await set(lightness, '0', stable);
+
+    const twilight = [TWILIGHT[0], '#000000'];
+    expect(TestBed.inject(Tweaks).values().twilight).toEqual(twilight);
+    expect(background()).toEqual(twilight);
+
+    swatch(host, 'Spring top').click();
+    await stable();
+    expect(background()).toEqual(seasonAt(0).background);
+
+    reset(host).click();
+    await stable();
+    expect(TestBed.inject(Tweaks).values()).toEqual({});
   });
 
   it('turns the seasons over as many places as selected, and brings back the game’s on reset', async () => {

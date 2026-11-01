@@ -3,12 +3,7 @@ import { Meta } from '@angular/platform-browser';
 import { ColorSpace, mixGradients } from '../game/color/color-spaces';
 import { Tweaks } from '../developer-mode/tweaks';
 import { BackgroundColors } from '../game/layers/seasons';
-
-/**
- * The main menu's background, a sky at twilight: deep blue at the top, the last of the light at the bottom. The
- * background starts on it, as the app opens on the menu.
- */
-export const TWILIGHT: BackgroundColors = ['#18214f', '#f2a073'];
+import { TWILIGHT } from '../screens/menu/menu-look';
 
 /** How long the background takes to ease to new colors, in milliseconds. */
 export const BACKGROUND_EASE = 800;
@@ -19,7 +14,7 @@ export const BACKGROUND_EASE = 800;
  */
 @Service()
 export class Background {
-  /** The background's colors, top then bottom: the main menu's by default. */
+  /** The background's colors, top then bottom: the main menu's by default, as the app opens on it. */
   readonly colors = signal<BackgroundColors>(TWILIGHT);
   /** The color space the background blends its colors in, from top to bottom as through the seasons. */
   readonly colorSpace = inject(Tweaks).colorSpace;

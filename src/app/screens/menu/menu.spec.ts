@@ -3,11 +3,13 @@ import { pressKey } from '../../../testing/keys';
 import { openMenu } from '../../../testing/menus';
 import { provideRouter } from '@angular/router';
 import { routes } from '../../app.routes';
-import { Background, TWILIGHT } from '../../ui/background';
+import { Background } from '../../ui/background';
+import { TWILIGHT } from './menu-look';
 import { seasonAt } from '../../game/layers/seasons';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { INDEXED_DB } from '../../player-data/run-store';
 import { LIGHTS_OFF, Menu } from './menu';
+import { Tweaks } from '../../developer-mode/tweaks';
 import { ScreenTransitions } from '../../ui/screen-transitions';
 import { PALETTE } from '../../game/layers/place-colors';
 import { MenuEditor } from './menu-editor';
@@ -127,6 +129,15 @@ describe('Menu', () => {
       await vi.advanceTimersByTimeAsync(1);
       expect(off).toBe(true);
     });
+  });
+
+  it('shows the background colors tuned for it in developer mode', async () => {
+    await TestBed.inject(DeveloperMode).set(true);
+    await TestBed.inject(Tweaks).setTwilight(['#000000', '#ffffff']);
+
+    await setUp();
+
+    expect(TestBed.inject(Background).colors()).toEqual(['#000000', '#ffffff']);
   });
 
   it('leads to the settings', async () => {

@@ -24,7 +24,7 @@ import {
 } from '../game/grouping/break-models/break-models';
 import { DeveloperMode } from './developer-mode';
 import { Layout, LAYOUT, parseLayout } from '../ui/layout';
-import { MENU_LOOK, MenuLook, parseMenuLook } from '../screens/menu/menu-look';
+import { MENU_LOOK, MenuLook, parseMenuLook, TWILIGHT } from '../screens/menu/menu-look';
 
 /** The name of the tweaks setting in the store. */
 export const TWEAKS = 'tweaks';
@@ -48,6 +48,8 @@ export interface TweakValues {
   readonly palette?: Palette;
   /** The seasons' starting colors, for {@link SEASON_BACKGROUNDS}. */
   readonly seasons?: SeasonStarts;
+  /** The main menu's background colors, top then bottom, for {@link TWILIGHT}. */
+  readonly twilight?: BackgroundColors;
   /** The name of the break model the groups come from, for the game's own (`BREAK_MODEL` in `break-models.ts`). */
   readonly breakModel?: string;
   /** The hyperparameters tuned for each break model, by its id, for its defaults: each keeps its own. */
@@ -109,6 +111,11 @@ export class Tweaks {
       ? backgroundsFrom(seasons)
       : SEASON_BACKGROUNDS;
   });
+  /** The main menu's background colors. */
+  readonly twilight = computed(
+    (): BackgroundColors =>
+      (this.developerMode.enabled() ? this.tweaks().twilight : undefined) ?? TWILIGHT,
+  );
   /** The break model the groups come from. */
   readonly breakModelKind = computed(
     (): BreakModelKind =>
@@ -191,6 +198,11 @@ export class Tweaks {
   /** Tunes the seasons' starting colors; `undefined` brings back the game's. */
   setSeasons(seasons: SeasonStarts | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), seasons }));
+  }
+
+  /** Tunes the main menu's background colors; `undefined` brings back the game's. */
+  setTwilight(twilight: BackgroundColors | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), twilight }));
   }
 
   /** Picks the break model the groups come from, with the hyperparameters tuned for it, if any. */
@@ -317,6 +329,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     format,
     palette,
     seasons,
+    twilight,
     breakModel,
     grouping,
     pins,
@@ -336,6 +349,7 @@ export function parseTweaks(stored: unknown): TweakValues {
   return tweakValues({
     palette: isPalette(palette) ? palette : undefined,
     seasons: isSeasonStarts(seasons) ? seasons : undefined,
+    twilight: isColorPair(twilight) ? twilight : undefined,
     breakModel: breakModelKindById(breakModel)?.id,
     grouping: groupingOf(grouping),
     pins: pinsOf(pins),
@@ -356,7 +370,8 @@ export function parseTweaks(stored: unknown): TweakValues {
  * only keep the game's values from applying once those change.
  */
 export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelKind): TweakValues {
-  const { palette, seasons, breakModel, grouping, colorSpace, seasonTurn, layout, menu } = values;
+  const { palette, seasons, twilight, breakModel, grouping, colorSpace, seasonTurn, layout, menu } =
+    values;
   const tuned = Object.entries(grouping ?? {}).filter(([id, settings]) => {
     const defaults = breakModelKindById(id)?.defaults;
     return (
@@ -367,6 +382,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     ...values,
     palette: equal(palette, PALETTE) ? undefined : palette,
     seasons: equal(seasons, SEASON_STARTS) ? undefined : seasons,
+    twilight: equal(twilight, TWILIGHT) ? undefined : twilight,
     breakModel: breakModel === gameBreakModel.id ? undefined : breakModel,
     grouping: tuned.length === 0 ? undefined : Object.fromEntries(tuned),
     colorSpace: colorSpace === SEASON_COLOR_SPACE ? undefined : colorSpace,
@@ -395,6 +411,7 @@ function equal(a: unknown, b: unknown): boolean {
 function tweakValues({
   palette,
   seasons,
+  twilight,
   breakModel,
   grouping,
   pins,
@@ -413,6 +430,7 @@ function tweakValues({
   return {
     ...(palette === undefined ? {} : { palette }),
     ...(seasons === undefined ? {} : { seasons }),
+    ...(twilight === undefined ? {} : { twilight }),
     ...(breakModel === undefined ? {} : { breakModel }),
     ...(grouping === undefined ? {} : { grouping }),
     ...(pins === undefined ? {} : { pins }),
@@ -518,6 +536,10 @@ function isColor(value: unknown): value is string {
 
 function isPalette(value: unknown): value is Palette {
   return Array.isArray(value) && value.length === PALETTE.length && value.every(isColor);
+}
+
+function isColorPair(value: unknown): value is BackgroundColors {
+  return Array.isArray(value) && value.length === 2 && value.every(isColor);
 }
 
 function isSeasonStarts(value: unknown): value is SeasonStarts {

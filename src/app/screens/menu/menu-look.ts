@@ -1,3 +1,8 @@
+import { BackgroundColors } from '../../game/layers/seasons';
+
+/** The main menu's background, a sky at twilight: deep blue at the top, the last of the light at the bottom. */
+export const TWILIGHT: BackgroundColors = ['#18214f', '#f2a073'];
+
 /**
  * How the main menu looks: where its parts sit, and the light its lanterns and icon give. Everything stays centered
  * across: only sizes and heights are set. The icon and the name's lines are a group, kept together whatever the menu's

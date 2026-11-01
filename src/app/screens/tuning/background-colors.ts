@@ -6,7 +6,9 @@ import { Candy } from '../../ui/candy';
 import { Dropdown, MenuTrigger } from '../../ui/menu';
 import { Page } from '../../ui/page';
 import { SEASON_NAMES, SeasonHeader } from '../play/season-header/season-header';
+import { TWILIGHT } from '../menu/menu-look';
 import {
+  BackgroundColors as Gradient,
   backgroundsFrom,
   PLACES_PER_SEASON,
   PLACES_PER_YEAR,
@@ -26,9 +28,13 @@ const ENDS = [
   { index: 1, label: 'bottom' },
 ] as const;
 
+/** What a color is of: a season, or the main menu. */
+type Owner = Season | 'menu';
+
 /**
- * Developer mode's page to tune the seasons' colors: the top and bottom colors each season starts on, each selected
- * then tuned in the color picker under them, the color space they blend in, how long they take to turn, and a slider through the year, and into
+ * Developer mode's page to tune the background's colors: the top and bottom colors each season starts on, and apart
+ * from them, the main menu's, each selected then tuned in the color picker under them, the background showing the
+ * menu's while one of them is selected, the color space they blend in, how long they take to turn, and a slider through the year, and into
  * the years before and after, that moves the background exactly as typing digits does.
  */
 @Component({
@@ -71,6 +77,26 @@ const ENDS = [
             }
           </div>
         }
+        <span class="divider" aria-hidden="true"></span>
+        <div
+          class="season"
+          role="group"
+          aria-label="Main menu"
+          [style.--top]="twilight()[0]"
+          [style.--bottom]="twilight()[1]"
+        >
+          <span class="name">Menu</span>
+          @for (end of ends; track end.index) {
+            <button
+              type="button"
+              [class]="'swatch ' + end.label"
+              [style.background]="twilight()[end.index]"
+              [title]="'Main menu ' + end.label"
+              [attr.aria-pressed]="isSelected('menu', end.index)"
+              (click)="selected.set({ season: 'menu', end: end.index })"
+            ></button>
+          }
+        </div>
       </div>
       <app-color-picker
         [color]="selectedColor()"
@@ -154,6 +180,8 @@ export class BackgroundColors {
   private readonly tweaks = inject(Tweaks);
   /** The colors being tuned. */
   protected readonly starts = signal<SeasonStarts>(this.tweaks.values().seasons ?? SEASON_STARTS);
+  /** The main menu's colors being tuned. */
+  protected readonly twilight = signal<Gradient>(this.tweaks.values().twilight ?? TWILIGHT);
   private edited = false;
   /**
    * The place shown, as if that many digits were typed: a whole year, marked at its start and its end, and a season
@@ -161,19 +189,23 @@ export class BackgroundColors {
    */
   protected readonly place = signal(0);
   /** The color being tuned in the picker: the top of spring at first. */
-  protected readonly selected = signal<{ season: Season; end: 0 | 1 }>({
+  protected readonly selected = signal<{ season: Owner; end: 0 | 1 }>({
     season: 'spring',
     end: 0,
   });
   protected readonly selectedColor = computed(
-    () => this.starts()[this.selected().season][this.selected().end],
+    () => this.colorsOf(this.selected().season)[this.selected().end],
   );
-  protected readonly selectedName = computed(
-    () => `${this.names[this.selected().season]} ${ENDS[this.selected().end].label}`,
-  );
-  /** The same end of the seasons before and after. */
-  protected readonly neighbors = computed((): readonly [string, string] => {
+  protected readonly selectedName = computed(() => {
     const { season, end } = this.selected();
+    return `${season === 'menu' ? 'Main menu' : this.names[season]} ${ENDS[end].label}`;
+  });
+  /** The same end of the seasons before and after; none for the main menu's. */
+  protected readonly neighbors = computed((): readonly [string, string] | undefined => {
+    const { season, end } = this.selected();
+    if (season === 'menu') {
+      return undefined;
+    }
     const index = SEASONS.indexOf(season);
     const around = (offset: number): string =>
       this.starts()[SEASONS[(index + offset + SEASONS.length) % SEASONS.length] ?? season][end];
@@ -202,12 +234,14 @@ export class BackgroundColors {
   protected readonly tuned = computed(
     () =>
       this.colorsTuned() ||
+      this.twilight().some((color, k) => color !== TWILIGHT[k]) ||
       this.colorSpace() !== SEASON_COLOR_SPACE ||
       this.seasonTurn() !== SEASON_TURN,
   );
   /** The colors, and how they blend and turn, tuned or not, to hand back so they go into the code. */
   protected readonly copied = computed((): TweakValues => ({
     seasons: this.starts(),
+    twilight: this.twilight(),
     colorSpace: this.colorSpace(),
     seasonTurn: this.seasonTurn(),
   }));
@@ -219,23 +253,37 @@ export class BackgroundColors {
     void this.tweaks.loaded.then(() => {
       if (!this.edited) {
         this.starts.set(this.tweaks.values().seasons ?? SEASON_STARTS);
+        this.twilight.set(this.tweaks.values().twilight ?? TWILIGHT);
       }
     });
-    // As in the game: the background eases to the colors of the place shown.
+    // As in the game: the background eases to the colors of the place shown, or the main menu's, while one of them is
+    // selected.
     const background = inject(Background);
     effect(() => {
-      background.colors.set(this.view().background);
+      background.colors.set(
+        this.selected().season === 'menu' ? this.twilight() : this.view().background,
+      );
     });
   }
 
-  protected isSelected(season: Season, end: 0 | 1): boolean {
+  protected isSelected(season: Owner, end: 0 | 1): boolean {
     return this.selected().season === season && this.selected().end === end;
+  }
+
+  /** The colors of a season, or of the main menu, top then bottom. */
+  private colorsOf(owner: Owner): Gradient {
+    return owner === 'menu' ? this.twilight() : this.starts()[owner];
   }
 
   /** Sets the color selected. */
   protected pick(color: string): void {
     const { season, end } = this.selected();
     this.edited = true;
+    if (season === 'menu') {
+      this.twilight.update(([top, bottom]) => (end === 0 ? [color, bottom] : [top, color]));
+      void this.tweaks.setTwilight(this.twilight());
+      return;
+    }
     this.starts.update((starts) => ({
       ...starts,
       [season]: end === 0 ? [color, starts[season][1]] : [starts[season][0], color],
@@ -269,7 +317,9 @@ export class BackgroundColors {
   protected reset(): void {
     this.edited = true;
     this.starts.set(SEASON_STARTS);
+    this.twilight.set(TWILIGHT);
     void this.tweaks.setSeasons(undefined);
+    void this.tweaks.setTwilight(undefined);
     void this.tweaks.setColorSpace(undefined);
     void this.tweaks.setSeasonTurn(undefined);
   }
