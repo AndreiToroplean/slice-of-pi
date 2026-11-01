@@ -103,7 +103,6 @@ describe('BackgroundColors', () => {
   it('tunes the selected color, keeping it, and shows it in the background, then brings back the game’s', async () => {
     const { host, stable } = await setUp();
     const background = TestBed.inject(Background).colors;
-    await set(slider(host), '30', stable);
     swatch(host, 'Summer bottom').click();
     await stable();
     expect(host.querySelector('app-color-picker .name')?.textContent).toBe('Summer bottom');
@@ -118,14 +117,28 @@ describe('BackgroundColors', () => {
 
     const tuned = { ...SEASON_STARTS, summer: [SEASON_STARTS.summer[0], '#000000'] as const };
     expect(TestBed.inject(Tweaks).values().seasons).toEqual(tuned);
-    expect(background()).toEqual(seasonAt(30, backgroundsFrom(tuned)).background);
+    expect(background()).toEqual(seasonAt(25, backgroundsFrom(tuned)).background);
 
     reset(host).click();
     await stable();
 
     expect(TestBed.inject(Tweaks).values()).toEqual({});
-    expect(background()).toEqual(seasonAt(30).background);
+    expect(background()).toEqual(seasonAt(25).background);
     expect(host.querySelector('app-color-picker .hex')?.textContent).toBe(SEASON_STARTS.summer[1]);
+  });
+
+  it('moves to where a season starts as one of its colors is selected, at the colors tuned', async () => {
+    const { host, stable } = await setUp();
+    const background = TestBed.inject(Background).colors;
+
+    swatch(host, 'Summer top').click();
+    await stable();
+
+    expect(slider(host).value).toBe('25');
+    expect(background()).toEqual(SEASON_STARTS.summer);
+    swatch(host, 'Winter bottom').click();
+    await stable();
+    expect(slider(host).value).toBe('75');
   });
 
   it('shows and tunes the main menu’s colors while one is selected, then brings back the game’s', async () => {
