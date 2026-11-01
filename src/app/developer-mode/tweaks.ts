@@ -25,6 +25,14 @@ import {
 import { DeveloperMode } from './developer-mode';
 import { Layout, LAYOUT, parseLayout } from '../ui/layout';
 import { MENU_LOOK, MenuLook, parseMenuLook, TWILIGHT } from '../screens/menu/menu-look';
+import {
+  parsePattern,
+  Vibration,
+  VIBRATION_PATTERNS,
+  VibrationPattern,
+  VibrationPatterns,
+  VIBRATIONS,
+} from '../feedback/vibrations';
 
 /** The name of the tweaks setting in the store. */
 export const TWEAKS = 'tweaks';
@@ -74,6 +82,8 @@ export interface TweakValues {
   readonly layout?: Layout;
   /** How the main menu looks, for {@link MENU_LOOK}. */
   readonly menu?: MenuLook;
+  /** The patterns the phone vibrates in, those tuned, for theirs in {@link VIBRATION_PATTERNS}. */
+  readonly vibrations?: Partial<VibrationPatterns>;
 }
 
 /** The game's own starting colors of each season. */
@@ -174,6 +184,13 @@ export class Tweaks {
   /** How the main menu looks. */
   readonly menu = computed(
     (): MenuLook => (this.developerMode.enabled() ? this.tweaks().menu : undefined) ?? MENU_LOOK,
+  );
+
+  /** The patterns the phone vibrates in. */
+  readonly vibrationPatterns = computed((): VibrationPatterns =>
+    this.developerMode.enabled()
+      ? { ...VIBRATION_PATTERNS, ...this.tweaks().vibrations }
+      : VIBRATION_PATTERNS,
   );
 
   constructor() {
@@ -289,6 +306,23 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), menu }));
   }
 
+  /** Tunes the pattern the phone vibrates in on an event; `undefined` brings back the game's. The others keep theirs. */
+  setVibration(vibration: Vibration, pattern: VibrationPattern | undefined): Promise<void> {
+    const others = Object.entries(this.tweaks().vibrations ?? {}).filter(
+      ([key]) => key !== vibration,
+    );
+    const vibrations = [
+      ...others,
+      ...(pattern === undefined ? [] : [[vibration, pattern] as const]),
+    ];
+    return this.save(
+      tweakValues({
+        ...this.tweaks(),
+        vibrations: vibrations.length === 0 ? undefined : Object.fromEntries(vibrations),
+      }),
+    );
+  }
+
   /** Brings back the game's own value of everything tuned. */
   reset(): Promise<void> {
     return this.save({});
@@ -342,6 +376,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     runOrder,
     layout,
     menu,
+    vibrations,
   } = migrate(stored, TWEAKS_MIGRATIONS);
   if (format !== TWEAKS_FORMAT) {
     return {};
@@ -362,6 +397,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     runOrder: runOrderOf(runOrder),
     layout: parseLayout(layout),
     menu: parseMenuLook(menu),
+    vibrations: vibrationsOf(vibrations),
   });
 }
 
@@ -370,8 +406,18 @@ export function parseTweaks(stored: unknown): TweakValues {
  * only keep the game's values from applying once those change.
  */
 export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelKind): TweakValues {
-  const { palette, seasons, twilight, breakModel, grouping, colorSpace, seasonTurn, layout, menu } =
-    values;
+  const {
+    palette,
+    seasons,
+    twilight,
+    breakModel,
+    grouping,
+    colorSpace,
+    seasonTurn,
+    layout,
+    menu,
+    vibrations,
+  } = values;
   const tuned = Object.entries(grouping ?? {}).filter(([id, settings]) => {
     const defaults = breakModelKindById(id)?.defaults;
     return (
@@ -389,6 +435,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     seasonTurn: seasonTurn === SEASON_TURN ? undefined : seasonTurn,
     layout: equal(layout, LAYOUT) ? undefined : layout,
     menu: equal(menu, MENU_LOOK) ? undefined : menu,
+    vibrations: vibrationsOf(vibrations),
   });
 }
 
@@ -424,6 +471,7 @@ function tweakValues({
   runOrder,
   layout,
   menu,
+  vibrations,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -443,7 +491,26 @@ function tweakValues({
     ...(runOrder === undefined ? {} : { runOrder }),
     ...(layout === undefined ? {} : { layout }),
     ...(menu === undefined ? {} : { menu }),
+    ...(vibrations === undefined ? {} : { vibrations }),
   };
+}
+
+/**
+ * The vibration patterns tuned, read from untrusted data, leaving out those of no event, those not valid and those at
+ * the game's own.
+ */
+function vibrationsOf(value: unknown): Partial<VibrationPatterns> | undefined {
+  if (typeof value !== 'object' || value === null) {
+    return undefined;
+  }
+  const stored = value as Record<string, unknown>;
+  const kept = VIBRATIONS.flatMap((vibration) => {
+    const pattern = parsePattern(stored[vibration]);
+    return pattern === undefined || equal(pattern, VIBRATION_PATTERNS[vibration])
+      ? []
+      : [[vibration, pattern] as const];
+  });
+  return kept.length === 0 ? undefined : Object.fromEntries(kept);
 }
 
 /** The order of the runs, read from untrusted data, or `undefined` if invalid. */

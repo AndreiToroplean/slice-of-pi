@@ -21,6 +21,7 @@ import {
   boxIn,
   FIRST_LANDING,
   flyIntoWord,
+  landsAt,
   leavesAt,
   slideDuration,
   SlotSnapshot,
@@ -49,6 +50,11 @@ import { LayoutEditor } from './layout-editor/layout-editor';
 import { Slots } from './slots/slots';
 import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { TIMER } from './timer';
+import { Vibrator } from '../../feedback/vibrator';
+import { LONGEST_STEP, MOST_STEPS, Vibration } from '../../feedback/vibrations';
+
+/** How long a vibration can last at most, in ms. */
+const LONGEST_VIBRATION = LONGEST_STEP * MOST_STEPS;
 
 /** How often what shows the wait for the group being typed running out is redrawn, in milliseconds: about every frame. */
 const TICK = 16;
@@ -59,6 +65,8 @@ const TICK = 16;
  * The groups follow the player's timings, over all their runs and this one: the slots show the
  * player's own group where it's trusted, up to the trust horizon the earlier runs give, else 5 slots that grow until the
  * player pauses.
+ * The phone vibrates on each digit typed, each mistake and each backspace, and as each slot's digit plucks itself off it
+ * and lands on the tape, unless replaying a run.
  * Every digit is checked against π, unless developer mode turns that off: a wrong one, and any typed on after it, show
  * as mistakes in their slots, and never finish the group, until backspace deletes them.
  * Backspace deletes the last digit, reopening the last word when the slots are empty. Once it empties them, the last
@@ -295,6 +303,12 @@ export class Play implements PausesOnBack {
   protected readonly handover = signal<SlotHandover | undefined>(undefined);
   /** Slots flying into their word. */
   private flights: Animation[] = [];
+  private readonly vibrator = inject(Vibrator);
+  /**
+   * The vibrations of the slots flying, as they pluck themselves off and land: when the last one ends, on the run's
+   * clock, and what stops those yet to start.
+   */
+  private flightVibrations: { readonly until: number; readonly stop: () => void }[] = [];
   /** Whether backspace has emptied the slots, since the last digit, so that the next one may carry the last word on. */
   private reopenable = false;
   /** Stops the timers of the wait for the player's pause to end the group: its end, and its ticks. */
@@ -429,9 +443,11 @@ export class Play implements PausesOnBack {
     this.typedDigits().scrollToEnd(SCROLL_BACK_DURATION);
     if (this.mistakes() !== '') {
       if (key === 'backspace') {
+        this.vibrate('backspace');
         this.mistakes.update((mistakes) => mistakes.slice(0, -1));
         this.afterBackspace();
       } else {
+        this.vibrate('mistake');
         this.mistakes.update((mistakes) => mistakes + key);
       }
       return;
@@ -439,9 +455,11 @@ export class Play implements PausesOnBack {
     if (key !== 'backspace' && this.checking() && !isPiDecimal(this.digits().length + 1, key)) {
       // A group never finishes on a mistake.
       this.stopWatching();
+      this.vibrate('mistake');
       this.mistakes.set(key);
       return;
     }
+    this.vibrate(key === 'backspace' ? 'backspace' : 'digit');
     if (key === 'backspace') {
       this.landFlights();
       // On empty slots, it reopens the last word.
@@ -604,6 +622,7 @@ export class Play implements PausesOnBack {
               ...this.flights.filter((flight) => flight.playState === 'running'),
               ...flyIntoWord(this.host, slots, word, shift),
             ];
+            this.vibrateFlights(slots.length, slide);
           }
         },
       },
@@ -639,8 +658,46 @@ export class Play implements PausesOnBack {
     return slid.map((box, i) => ({ ...(slots[i] ?? { ...first, box }), slid: box }));
   }
 
+  /** Vibrates on an event of the game, unless replaying a run. */
+  private vibrate(vibration: Vibration): void {
+    if (this.replay() === undefined) {
+      this.vibrator.play(vibration);
+    }
+  }
+
+  /** Vibrates as each of `length` slots flying, after they slide for `slide` ms, plucks itself off, then lands. */
+  private vibrateFlights(length: number, slide: number): void {
+    if (this.replay() !== undefined) {
+      return;
+    }
+    const indices = Array.from({ length }, (_, i) => i);
+    const stopPlucks = this.vibrator.play(
+      'pluck',
+      indices.map((i) => leavesAt(i, slide)),
+    );
+    const stopLandings = this.vibrator.play(
+      'landing',
+      indices.map((i) => landsAt(i, slide)),
+    );
+    const now = this.clock.now();
+    this.flightVibrations = [
+      ...this.flightVibrations.filter(({ until }) => until > now),
+      {
+        until: now + landsAt(length - 1, slide) + LONGEST_VIBRATION,
+        stop: () => {
+          stopPlucks();
+          stopLandings();
+        },
+      },
+    ];
+  }
+
   /** Ends the flights at once, before a word they fly into may be reopened, and the slots' handover with them. */
   private landFlights(): void {
+    for (const { stop } of this.flightVibrations) {
+      stop();
+    }
+    this.flightVibrations = [];
     for (const flight of this.flights) {
       flight.cancel();
     }

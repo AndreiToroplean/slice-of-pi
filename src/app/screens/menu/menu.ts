@@ -151,7 +151,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
     </p>
     <app-button-list class="actions" [style.gap]="'var(--buttons-gap)'">
       <a appCandy routerLink="/runs">Your Runs</a>
-      <a #play appCandy="primary" routerLink="/play">Play</a>
+      <a #play appCandy="primary" routerLink="/play" data-vibration="play">Play</a>
     </app-button-list>
     <!-- After the middle of the menu, for Tab to go through it from the left to the right. -->
     @if (developerMode.enabled()) {

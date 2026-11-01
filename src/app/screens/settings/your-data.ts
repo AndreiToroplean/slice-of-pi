@@ -4,6 +4,7 @@ import { Tweaks } from '../../developer-mode/tweaks';
 import { ButtonList } from '../../ui/button-list';
 import { backupFileName, readBackup, writeBackup } from '../../player-data/backup';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
+import { VibrationSetting } from '../../player-data/vibration-setting';
 import { RUN_CLOCK, RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { plural } from '../../ui/plural';
@@ -108,6 +109,7 @@ export class YourData {
   private readonly developer = inject(DeveloperMode);
   private readonly tweaks = inject(Tweaks);
   private readonly keypadLayout = inject(KeypadLayoutSetting);
+  private readonly vibration = inject(VibrationSetting);
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
   private readonly clock = inject(RUN_CLOCK);
@@ -160,6 +162,7 @@ export class YourData {
       this.developer.reload(),
       this.tweaks.reload(),
       this.keypadLayout.reload(),
+      this.vibration.reload(),
       this.refresh(),
     ]);
   }

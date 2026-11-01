@@ -13,7 +13,8 @@ import {
 import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
 import { FakeTime } from '../../../testing/fake-time';
 import { Background } from '../../ui/background';
-import { FIRST_LANDING } from './flight/flight';
+import { FIRST_LANDING, landsAt, leavesAt } from './flight/flight';
+import { Vibrator } from '../../feedback/vibrator';
 import { routes } from '../../app.routes';
 import { KEEP_HISTORY } from '../../app.config';
 import { Menu } from '../menu/menu';
@@ -948,6 +949,43 @@ describe('Play', () => {
       expect(slots(host)).toEqual(['1', '4', '1', '5', '']);
     });
 
+    it('vibrates as each slot plucks itself off, then as it lands on the tape', async () => {
+      stubAnimations();
+      const play = vi.spyOn(TestBed.inject(Vibrator), 'play');
+      const { type } = await setUp();
+
+      await typeAll(type, '14159 ');
+
+      const indices = [0, 1, 2, 3, 4];
+      expect(play).toHaveBeenCalledWith(
+        'pluck',
+        indices.map((i) => leavesAt(i, 0)),
+      );
+      expect(play).toHaveBeenCalledWith(
+        'landing',
+        indices.map((i) => landsAt(i, 0)),
+      );
+    });
+
+    it('stops the vibrations of the flights yet to come as they land at once, on backspace', async () => {
+      stubAnimations();
+      const stops: ReturnType<typeof vi.fn>[] = [];
+      vi.spyOn(TestBed.inject(Vibrator), 'play').mockImplementation(() => {
+        const stop = vi.fn();
+        stops.push(stop);
+        return stop;
+      });
+      const { type } = await setUp();
+      await typeAll(type, '14159 ');
+      // The digits', then the plucks' and the landings'.
+      const [plucks, landings] = stops.slice(5);
+
+      await typeAll(type, '<');
+
+      expect(plucks).toHaveBeenCalled();
+      expect(landings).toHaveBeenCalled();
+    });
+
     it("doesn't fly when the player prefers reduced motion", async () => {
       const animations = stubAnimations();
       vi.stubGlobal('matchMedia', () => ({ matches: true }));
@@ -957,6 +995,38 @@ describe('Play', () => {
 
       expect(animations).toEqual([]);
       expect(shownTiles(host)).toBe('14159');
+    });
+  });
+
+  describe('vibrations', () => {
+    it('vibrates on each digit, mistake and backspace', async () => {
+      const play = vi.spyOn(TestBed.inject(Vibrator), 'play');
+      const { type } = await setUp();
+
+      await typeAll(type, '1499<<');
+
+      expect(play.mock.calls.map(([vibration]) => vibration)).toEqual([
+        'digit',
+        'digit',
+        'mistake',
+        'mistake',
+        'backspace',
+        'backspace',
+      ]);
+    });
+
+    it("doesn't vibrate replaying a run", async () => {
+      const play = vi.spyOn(TestBed.inject(Vibrator), 'play');
+      const fixture = TestBed.createComponent(Play);
+      fixture.componentRef.setInput('replay', newTouchLog('run', 0));
+      await fixture.whenStable();
+
+      fixture.componentInstance.replayTouch({ key: '1' });
+      fixture.componentInstance.replayTouch({ key: '9' });
+      fixture.componentInstance.replayTouch({ key: 'backspace' });
+      await fixture.whenStable();
+
+      expect(play).not.toHaveBeenCalled();
     });
   });
 

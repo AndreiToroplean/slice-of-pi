@@ -15,6 +15,7 @@ import { DeveloperMode } from './developer-mode';
 import { parseTweaks, SEASON_STARTS, Tweaks, TWEAKS, TWEAKS_FORMAT, tweaksBackup } from './tweaks';
 import { readBackup } from '../player-data/backup';
 import { LAYOUT } from '../ui/layout';
+import { VIBRATION_PATTERNS } from '../feedback/vibrations';
 import { MENU_LOOK, TWILIGHT, withLight } from '../screens/menu/menu-look';
 import { PLAY_WITH_MERCURY } from '../../testing/game-break-model';
 
@@ -282,6 +283,26 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({});
   });
 
+  it('vibrates in the patterns tuned only while developer mode is on, each kept until undone', async () => {
+    const tweaks = await load();
+    expect(tweaks.vibrationPatterns()).toEqual(VIBRATION_PATTERNS);
+
+    await tweaks.setVibration('digit', [20, 10, 20]);
+    await tweaks.setVibration('pluck', [6]);
+    expect(tweaks.vibrationPatterns()).toEqual(VIBRATION_PATTERNS);
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.vibrationPatterns()).toEqual({
+      ...VIBRATION_PATTERNS,
+      digit: [20, 10, 20],
+      pluck: [6],
+    });
+    expect((await load()).values()).toEqual({ vibrations: { digit: [20, 10, 20], pluck: [6] } });
+
+    await TestBed.inject(Tweaks).setVibration('digit', undefined);
+    await TestBed.inject(Tweaks).setVibration('pluck', VIBRATION_PATTERNS.pluck);
+    expect((await load()).values()).toEqual({});
+  });
+
   it('reads the stored tweaks again once something else changed them', async () => {
     const tweaks = await load();
     await TestBed.inject(RunStore).saveSetting(TWEAKS, {
@@ -471,6 +492,21 @@ describe('Tweaks', () => {
     expect(parseTweaks({ format: TWEAKS_FORMAT, runOrder: 'a' })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 0 })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, seasonTurn: 26 })).toEqual({});
+    expect(
+      parseTweaks({
+        format: TWEAKS_FORMAT,
+        vibrations: {
+          play: [10, 20],
+          button: [],
+          digit: [1.5],
+          mistake: [-1],
+          backspace: [301],
+          landing: VIBRATION_PATTERNS.landing,
+          purr: [10],
+        },
+      }),
+    ).toEqual({ vibrations: { play: [10, 20] } });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, vibrations: { digit: 'buzz' } })).toEqual({});
     expect(parseTweaks(null)).toEqual({});
 
     const store = (await load(), TestBed.inject(RunStore));
