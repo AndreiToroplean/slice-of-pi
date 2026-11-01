@@ -33,9 +33,10 @@ type Owner = Season | 'menu';
 
 /**
  * Developer mode's page to tune the background's colors: the top and bottom colors each season starts on, and apart
- * from them, the main menu's, each selected then tuned in the color picker under them, the background showing the
- * menu's while one of them is selected, the color space they blend in, how long they take to turn, and a slider through the year, and into
- * the years before and after, that moves the background exactly as typing digits does.
+ * from them, the main menu's, each selected then tuned in the color picker under them. Selecting a season's color moves
+ * to where the season starts; selecting one of the menu's shows the menu's colors in the background. Under them, the
+ * color space they blend in, how long they take to turn, and a slider through the year, and into the years before and
+ * after, that moves the background exactly as typing digits does.
  */
 @Component({
   selector: 'app-background-colors',
@@ -72,7 +73,7 @@ type Owner = Season | 'menu';
                 [style.background]="starts()[season][end.index]"
                 [title]="names[season] + ' ' + end.label"
                 [attr.aria-pressed]="isSelected(season, end.index)"
-                (click)="selected.set({ season, end: end.index })"
+                (click)="select(season, end.index)"
               ></button>
             }
           </div>
@@ -268,6 +269,15 @@ export class BackgroundColors {
 
   protected isSelected(season: Owner, end: 0 | 1): boolean {
     return this.selected().season === season && this.selected().end === end;
+  }
+
+  /**
+   * Selects a season's color, moving to where the season starts, at the colors tuned, as the season before has turned
+   * into it.
+   */
+  protected select(season: Season, end: 0 | 1): void {
+    this.selected.set({ season, end });
+    this.place.set(SEASONS.indexOf(season) * PLACES_PER_SEASON);
   }
 
   /** The colors of a season, or of the main menu, top then bottom. */
