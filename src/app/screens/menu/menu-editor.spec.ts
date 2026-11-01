@@ -6,6 +6,7 @@ import { Tweaks } from '../../developer-mode/tweaks';
 import { Layout, LAYOUT } from '../../ui/layout';
 import { Light } from '../../ui/light-layer';
 import { MenuEditor } from './menu-editor';
+import { hexToHsl, hslToHex } from '../../game/color/color-spaces';
 import { LightLayer, MENU_LOOK, MenuLook, withLayout, withLight } from './menu-look';
 
 @Component({
@@ -105,7 +106,7 @@ describe('MenuEditor', () => {
       '“Slice of” size',
       'Light core',
     ]);
-    expect(host.querySelector('input[type="color"]')).toBeNull();
+    expect(button(host, 'Light color')).toBeUndefined();
     expect(host.querySelector('.picked')?.textContent).toBe('“Slice of”');
     // Its core, round the middle of its lights.
     const core = host.querySelector<HTMLElement>('[aria-label="Light core"]')?.parentElement;
@@ -137,22 +138,32 @@ describe('MenuEditor', () => {
     expect(TestBed.inject(Tweaks).layout().margins.top).toBe(LAYOUT.margins.top + 0.0625);
   });
 
-  it('moves the icon’s light, and colors it, once the icon is picked out', async () => {
+  it('moves the icon’s light, and colors it with the color picker, closed again once the icon is not picked out', async () => {
     const { host, editor, stable } = await setUp();
     await pick(host, 'Icon', stable);
     press(host, 'Icon light height', 'ArrowUp');
-    const color = host.querySelector<HTMLInputElement>('input[type="color"]');
-    if (color === null) {
+    const swatch = button(host, 'Light color');
+    expect(host.querySelector('app-color-picker')).toBeNull();
+
+    swatch?.click();
+    await stable();
+    const hue = host.querySelector<HTMLInputElement>(
+      'app-color-picker input[aria-label="Icon light hue"]',
+    );
+    if (hue === null) {
       throw new Error('No color picker');
     }
-    color.value = '#88ccff';
-    color.dispatchEvent(new Event('input'));
-    color.dispatchEvent(new Event('change'));
+    hue.value = '200';
+    hue.dispatchEvent(new Event('input'));
     await stable();
 
-    const iconLight = { offset: MENU_LOOK.iconLight.offset + 0.1, color: '#88ccff' };
+    const color = hslToHex({ ...hexToHsl(MENU_LOOK.iconLight.color), hue: 200 });
+    const iconLight = { offset: MENU_LOOK.iconLight.offset + 0.1, color };
     expect(editor.look().iconLight).toEqual(iconLight);
     expect(TestBed.inject(Tweaks).menu().iconLight).toEqual(iconLight);
+
+    await pick(host, 'Icon', stable);
+    expect(host.querySelector('app-color-picker')).toBeNull();
   });
 
   it('asks on Cancel or Escape whether to cancel the changes, bringing back what it started with', async () => {
