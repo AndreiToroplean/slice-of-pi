@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { Background } from './ui/background';
 import { Tweaks } from './developer-mode/tweaks';
 import { layoutStyles } from './ui/layout';
+import { Vibrator } from './feedback/vibrator';
 
 @Component({
   imports: [RouterOutlet],
@@ -16,11 +17,14 @@ import { layoutStyles } from './ui/layout';
     // Nor can links and images be dragged away with the mouse, as a button slid on would be.
     '(document:dragstart)': '$event.preventDefault()',
     '(document:pointerover)': 'hover($event)',
+    // Every button vibrates as it's clicked.
+    '(document:click)': 'vibrator.clicked($event)',
   },
 })
 export class App {
   protected readonly background = inject(Background);
   private readonly tweaks = inject(Tweaks);
+  protected readonly vibrator = inject(Vibrator);
   /** The margins and corner buttons of every screen (see `layout.ts`). */
   protected readonly layout = computed(() => layoutStyles(this.tweaks.layout()));
 

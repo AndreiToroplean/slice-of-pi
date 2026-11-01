@@ -74,6 +74,11 @@ export function leavesAt(index: number, slide: number): number {
   return slide + flightStagger(index) + PRESS_DURATION;
 }
 
+/** When the `index`-th slot lands in its tile, in ms after the slots start to slide. */
+export function landsAt(index: number, slide: number): number {
+  return leavesAt(index, slide) + FLIGHT_DURATION;
+}
+
 /**
  * The flight of a slot, from `from`, into its tile, at `to`, once it has waited its turn, `wait` ms. First it presses in
  * like a button: its face, its digit in the middle of it, moves down over its thickness, the dark band along its bottom,

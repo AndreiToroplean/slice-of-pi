@@ -6,6 +6,8 @@ import { TWILIGHT } from './screens/menu/menu-look';
 import { SEASON_COLOR_SPACE } from './game/layers/seasons';
 import { zoom } from './app.config';
 import { routes } from './app.routes';
+import { VIBRATE } from './feedback/vibrator';
+import { VIBRATION_PATTERNS } from './feedback/vibrations';
 
 describe('App', () => {
   beforeEach(() => {
@@ -28,6 +30,26 @@ describe('App', () => {
     expect(main?.style.getPropertyValue('--background-top')).toBe(shown[0]);
     expect(main?.style.getPropertyValue('--background-bottom')).toBe(shown[1]);
     expect(main?.style.getPropertyValue('--background-space')).toBe(SEASON_COLOR_SPACE);
+  });
+
+  it('vibrates as a button anywhere is clicked', async () => {
+    const vibrated: (number | number[])[] = [];
+    TestBed.overrideProvider(VIBRATE, {
+      useValue: (pattern: number | number[]) => {
+        vibrated.push(pattern);
+      },
+    });
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const button = document.createElement('button');
+    document.body.append(button);
+    onTestFinished(() => {
+      button.remove();
+    });
+
+    button.click();
+
+    expect(vibrated).toEqual([[...VIBRATION_PATTERNS.button]]);
   });
 
   it('gives a solid candy button the focus under the mouse, and only a solid one that takes it', async () => {

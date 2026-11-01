@@ -38,6 +38,8 @@
 - **Trust horizon:** how far the game trusts the player's usual break spots, and so follows their groups.
 - **Trusted groups:** the player's groups the game follows, those ending within the trust horizon.
 - **Synthetic run:** a run the game counts as if the player had played it, before their own runs say enough.
+- **Pluck / landing:** as a group ends, each of its digits plucks itself off its slot, then lands on the tape, in its tile.
+- **Vibration:** how the phone buzzes on an event of the game, such as a digit typed, a mistake or a landing. Its **pattern** is the durations of its buzzes and of the pauses between them, in turn.
 - **Milestone:** a number of places reached that gets celebrated.
 - **Streak:** consecutive days the player came back.
 
