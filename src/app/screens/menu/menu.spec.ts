@@ -8,6 +8,8 @@ import { seasonAt } from '../../game/layers/seasons';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { INDEXED_DB } from '../../player-data/run-store';
 import { Menu } from './menu';
+import { PALETTE } from '../../game/layers/place-colors';
+import { MenuEditor } from './menu-editor';
 
 describe('Menu', () => {
   beforeEach(() => {
@@ -54,6 +56,16 @@ describe('Menu', () => {
     const again = TestBed.createComponent(Menu);
     await again.whenStable();
     expect((again.nativeElement as HTMLElement).classList).not.toContain('loading');
+  });
+
+  it('lights each letter of the name as a lantern in a key color, every one but lime', async () => {
+    const host = await setUp();
+
+    expect(
+      Array.from(host.querySelectorAll<HTMLElement>('.tile'), (tile) =>
+        tile.style.getPropertyValue('--lantern'),
+      ),
+    ).toEqual([0, 1, 2, 4, 5, 6, 7, 8, 9].map((at) => PALETTE[at]));
   });
 
   it('leads to the settings', async () => {
@@ -198,6 +210,32 @@ describe('Menu', () => {
           ['Season Colors', '/developer/season-colors'],
         ]),
       );
+    });
+
+    it('opens the editor of its look from the overflow menu, and closes it once done', async () => {
+      await TestBed.inject(DeveloperMode).set(true);
+      const fixture = TestBed.createComponent(Menu);
+      const host = fixture.nativeElement as HTMLElement;
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(host.querySelector('button[title="Developer Pages"]')).not.toBeNull();
+      });
+      host.querySelector<HTMLButtonElement>('button[title="Developer Pages"]')?.click();
+      await fixture.whenStable();
+
+      Array.from(openMenu()?.querySelectorAll('button') ?? [])
+        .find((each) => each.textContent.trim() === 'Edit Main Menu')
+        ?.click();
+      await fixture.whenStable();
+      expect(
+        fixture.debugElement.query((each) => each.componentInstance instanceof MenuEditor),
+      ).not.toBeNull();
+
+      Array.from(host.querySelectorAll('app-menu-editor button'))
+        .find((each) => each.textContent.trim() === 'Done')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await fixture.whenStable();
+      expect(host.querySelector('app-menu-editor')).toBeNull();
     });
   });
 });
