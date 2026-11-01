@@ -8,24 +8,14 @@ import {
   output,
   viewChild,
 } from '@angular/core';
+import { bind } from '../../../ui/handles/handle';
+import { Handles } from '../../../ui/handles/handles';
 import { Tweaks } from '../../../developer-mode/tweaks';
 import { Layout, LAYOUT } from '../../../ui/layout';
 import { ButtonList } from '../../../ui/button-list';
 import { Candy } from '../../../ui/candy';
 import { CopyValues } from '../../tuning/copy-values';
-import { dragged, LAYOUT_HANDLES, LayoutHandle, stepped, UnitSizes } from './layout-handles';
-
-/** A handle being dragged: by which pointer, from where, and the layout and sizes it started from. */
-interface Drag {
-  readonly handle: LayoutHandle;
-  readonly pointerId: number;
-  readonly start: number;
-  readonly from: Layout;
-  readonly sizes: UnitSizes;
-}
-
-/** How many steps Page Up and Page Down take a handle's value, as against one for the arrow keys. */
-const PAGE = 10;
+import { LAYOUT_HANDLES } from './layout-handles';
 
 /**
  * Developer mode's edit mode, over the play screen, which it covers to take every touch: a handle on each edge the
@@ -37,38 +27,11 @@ const PAGE = 10;
  */
 @Component({
   selector: 'app-layout-editor',
-  imports: [ButtonList, Candy, CopyValues],
+  imports: [ButtonList, Candy, CopyValues, Handles],
   host: { '(document:keydown.escape)': 'escape($event)' },
   template: `
-    <div #probe class="probe"></div>
     @if (!previewing()) {
-      @for (handle of handles; track handle.label) {
-        <div
-          class="line"
-          [class.across]="handle.axis === 'y'"
-          [class.upright]="handle.axis === 'x'"
-          [style]="handle.line"
-        >
-          <div
-            class="knob"
-            role="slider"
-            tabindex="0"
-            [style]="handle.knob"
-            [attr.aria-label]="handle.label"
-            [attr.aria-orientation]="handle.axis === 'y' ? 'vertical' : 'horizontal'"
-            [attr.aria-valuenow]="handle.get(layout())"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            (pointerdown)="grab(handle, $event)"
-            (pointermove)="move($event)"
-            (pointerup)="release($event)"
-            (pointercancel)="release($event)"
-            (keydown)="key(handle, $event)"
-          >
-            {{ handle.label }}
-          </div>
-        </div>
-      }
+      <app-handles [handles]="handles" (released)="save()" />
     }
     <div class="actions">
       <button
@@ -113,67 +76,18 @@ export class LayoutEditor implements OnInit {
   /** Whether the handles are hidden, for the play screen to show as in the game. */
   readonly previewing = model(false);
 
-  protected readonly handles = LAYOUT_HANDLES;
+  protected readonly handles = LAYOUT_HANDLES.map((handle) => bind(handle, this.layout));
   /** Whether the layout is the game's own. */
   protected readonly untuned = computed(
     () => JSON.stringify(this.layout()) === JSON.stringify(LAYOUT),
   );
   private readonly tweaks = inject(Tweaks);
-  private readonly probe = viewChild.required<ElementRef<HTMLElement>>('probe');
   private readonly cancelDialog = viewChild.required<ElementRef<HTMLDialogElement>>('cancelDialog');
-  private drag: Drag | undefined;
   /** The layout edit mode started with, to bring back if the changes are cancelled. */
   private original: Layout | undefined;
 
   ngOnInit(): void {
     this.original = this.layout();
-  }
-
-  protected grab(handle: LayoutHandle, event: PointerEvent): void {
-    if (event.button !== 0 || this.drag !== undefined) {
-      return;
-    }
-    (event.currentTarget as Element).setPointerCapture(event.pointerId);
-    this.drag = {
-      handle,
-      pointerId: event.pointerId,
-      start: handle.axis === 'y' ? event.clientY : event.clientX,
-      from: this.layout(),
-      sizes: this.sizes(),
-    };
-  }
-
-  protected move(event: PointerEvent): void {
-    const drag = this.drag;
-    if (drag?.pointerId !== event.pointerId) {
-      return;
-    }
-    const at = drag.handle.axis === 'y' ? event.clientY : event.clientX;
-    this.layout.set(dragged(drag.handle, drag.from, at - drag.start, drag.sizes));
-  }
-
-  protected release(event: PointerEvent): void {
-    if (this.drag?.pointerId === event.pointerId) {
-      this.drag = undefined;
-      this.save();
-    }
-  }
-
-  protected key(handle: LayoutHandle, event: KeyboardEvent): void {
-    const steps = {
-      ArrowUp: 1,
-      ArrowRight: 1,
-      ArrowDown: -1,
-      ArrowLeft: -1,
-      PageUp: PAGE,
-      PageDown: -PAGE,
-    }[event.key];
-    if (steps === undefined) {
-      return;
-    }
-    event.preventDefault();
-    this.layout.set(stepped(handle, this.layout(), steps, this.sizes()));
-    this.save();
   }
 
   /** Asks whether to cancel the changes, as going back does; going back from the question goes on editing. */
@@ -210,17 +124,7 @@ export class LayoutEditor implements OnInit {
     }
   }
 
-  private save(): void {
+  protected save(): void {
     void this.tweaks.setLayout(this.layout());
-  }
-
-  /** How many CSS pixels each unit of the layout is, measured from the probe, a column wide and the screen tall. */
-  private sizes(): UnitSizes {
-    const { width, height } = this.probe().nativeElement.getBoundingClientRect();
-    return {
-      rem: parseFloat(getComputedStyle(document.documentElement).fontSize) || 16,
-      height: height / 100 || 1,
-      column: width / 100 || 1,
-    };
   }
 }

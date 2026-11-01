@@ -1,0 +1,98 @@
+/* Over all it edits, the handles, but not the space between them, taking touches. */
+:host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Alone, in a row that wraps, centered. */
+:host(.inline) {
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+/* As tall as the 100 hundredths of what the handles cover, and as wide as the column, to measure them. */
+.probe {
+  position: absolute;
+  visibility: hidden;
+  width: var(--column);
+  height: var(--handles-height, 100%);
+}
+
+/* Each handle's line, dashed, along its edge, or its ring. */
+.line {
+  position: absolute;
+  --line: 1px dashed rgb(255 255 255 / 85%);
+}
+
+.line.across {
+  inset-inline: 0;
+  height: 0;
+  border-top: var(--line);
+}
+
+.line.upright {
+  width: 0;
+  border-left: var(--line);
+}
+
+/* Centered on its point, as wide and tall as its line's box says. */
+.line.ring {
+  translate: -50% -50%;
+  border: var(--line);
+  border-radius: 50%;
+}
+
+/* Its knob, centered on the line, takes the drags. */
+.knob {
+  position: absolute;
+  translate: -50% -50%;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 1rem;
+  background: rgb(30 20 60 / 78%);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 70%);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: grab;
+  touch-action: none;
+  pointer-events: auto;
+
+  &:focus-visible {
+    outline: 0.1875rem solid var(--focus-ring);
+  }
+}
+
+.across > .knob {
+  top: 0;
+}
+
+/* Beside an upright line, which may lie by the screen's edge. */
+.upright > .knob {
+  left: 0;
+  translate: 0.25rem -50%;
+}
+
+/* On the right of its ring. */
+.ring > .knob {
+  left: 100%;
+  top: 50%;
+}
+
+/* Alone, dragged across, with its value. */
+:host(.inline) .knob {
+  position: static;
+  translate: none;
+  padding: 0.3125rem 0.625rem;
+  font-size: 0.8125rem;
+  cursor: ew-resize;
+}
+
+.value {
+  margin-inline-start: 0.375em;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
