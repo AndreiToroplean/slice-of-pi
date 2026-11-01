@@ -7,7 +7,7 @@ import { LightDismiss } from '../../../ui/light-dismiss';
 
 /**
  * The pause key, a see-through key of the keypad, in its corner left of 0 (see `Keypad`), and the dialog it opens over
- * the game: resume, restart the game, or end it, back to the main menu;
+ * the game, two thirds of the way down the screen, within the thumb's reach: resume, restart the game, or end it, back to the main menu;
  * a button in the dialog's left corner also stops the game and replays the run, once there's one and the player has
  * confirmed it, warned that the game can't be resumed then. Escape pauses too, as going back does (see `Play`), and
  * resumes, or goes back from the confirmation, as do going back and a click outside the dialog; up and down move between a dialog's
