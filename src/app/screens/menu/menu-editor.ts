@@ -3,132 +3,125 @@ import {
   computed,
   ElementRef,
   inject,
+  input,
   model,
   OnInit,
   output,
+  signal,
   viewChild,
 } from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { ButtonList } from '../../ui/button-list';
 import { Candy } from '../../ui/candy';
+import { bind, UnitSizes } from '../../ui/handles/handle';
+import { Handles } from '../../ui/handles/handles';
+import { Layout, LAYOUT } from '../../ui/layout';
+import { Light } from '../../ui/light-layer';
+import { LAYOUT_HANDLES } from '../play/layout-editor/layout-handles';
 import { CopyValues } from '../tuning/copy-values';
 import {
-  LAYOUT_FIELDS,
-  LIGHT_FIELDS,
-  LightLayer,
-  LookField,
-  MENU_LOOK,
-  MenuLayout,
-  MenuLook,
-  withLayout,
-  withLight,
-} from './menu-look';
+  coreHandle,
+  lightKnobs,
+  MenuPart,
+  PART_HANDLES,
+  PART_LIGHTS,
+  PART_NAMES,
+  Point,
+} from './menu-handles';
+import { LightLayer, MENU_LOOK, MenuLook } from './menu-look';
 
-/** A group of sliders: what it's called, and what each of its sliders reads and sets. */
-interface Group {
-  readonly title: string;
-  readonly fields: readonly Slider[];
-}
+/** The handles of edit mode that set the margins round every screen, and its corner buttons, which the menu has too. */
+const MARGIN_HANDLES = LAYOUT_HANDLES.filter((handle) =>
+  ['Top margin', 'Corner size', 'Corner radius', 'Side margins', 'Bottom margin'].includes(
+    handle.label,
+  ),
+);
 
-/** A slider: the value it shows, and how it reads and sets it. */
-interface Slider {
-  readonly field: Omit<LookField<object>, 'key'> & { readonly key: string };
-  readonly get: (look: MenuLook) => number;
-  readonly set: (look: MenuLook, value: number) => MenuLook;
-}
-
-const PARTS: readonly (readonly [keyof MenuLayout, string])[] = [
-  ['icon', 'Icon'],
-  ['slice', '“Slice of”'],
-  ['pi', '“Pi”'],
-  ['buttons', 'Buttons'],
-];
-
-const LAYERS: readonly (readonly [LightLayer, string])[] = [
-  ['icon', 'Icon Light'],
-  ['slice', '“Slice of” Light'],
-  ['pi', '“Pi” Light'],
-];
-
-/** Every slider of the editor, the layout's first, then each layer's light, from the back. */
-const GROUPS: readonly Group[] = [
-  ...PARTS.map(([part, title]): Group => ({
-    title,
-    fields: LAYOUT_FIELDS[part].map((field: Slider['field']): Slider => ({
-      field,
-      get: (look) => (look.layout[part] as Readonly<Record<string, number>>)[field.key] ?? 0,
-      set: (look, value) =>
-        withLayout(look, part, field.key as keyof MenuLayout[typeof part], value),
-    })),
-  })),
-  ...LAYERS.map(([layer, title]): Group => ({
-    title,
-    fields: LIGHT_FIELDS.map((field) => ({
-      field,
-      get: (look) => look.light[layer][field.key],
-      set: (look, value) => withLight(look, layer, field.key, value),
-    })),
-  })),
-];
+/** The menu's parts, from the top. */
+const PARTS: readonly MenuPart[] = ['icon', 'slice', 'pi', 'buttons'];
 
 /**
- * Developer mode's editor of the main menu, over it: a slider for each size and height of its parts, which always stay
- * centered across, and for each value of the light of each of its layers. The menu shows each change at once, and it's
- * saved, as a tweak, as each slider is let go. Done ends it; Cancel, or Escape, asks whether to cancel the changes,
- * bringing back the look it started with, or to go on editing. Reset brings back the menu's own look, and Copy copies
- * the look, to go into the code. A toggle hides the sliders, to preview the menu as it is, and shows them again.
+ * The layout with the margins and corner buttons of the game's own, the rest as it is: the bottom margin set as its
+ * handle sets it, given the screen's sizes, so that the play screen's keypad, which stands on it, follows it back.
+ */
+function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
+  const bottom = MARGIN_HANDLES.find((handle) => handle.label === 'Bottom margin');
+  const standing =
+    bottom === undefined || sizes === undefined
+      ? layout
+      : bottom.set(layout, LAYOUT.margins.bottom, sizes);
+  return { ...standing, margins: LAYOUT.margins, corner: LAYOUT.corner };
+}
+
+/**
+ * Developer mode's editor of the main menu, over it, as edit mode is over the play screen. A dashed box shows each part
+ * of the menu; tapping one picks it out, showing its handles: its height and size, as it stays centered across, or for
+ * the buttons, where they stand, their height and the gap between them; for a part that gives off light, its core, as
+ * a ring round it, and its reach, as a wider one; and in a row at the top, knobs dragged across for the other values of
+ * its light. With no part picked out, as on tapping elsewhere, the handles are those of the margins and corner buttons,
+ * which every screen shares. The menu shows each change at once, and it's saved, as tweaks, as each drag or key ends.
+ * Done ends it; Cancel, or Escape, asks whether to cancel the changes, bringing back what it started with, or to go on
+ * editing. Reset brings back the menu's own look and the game's own margins, and Copy copies both, to go into the code.
+ * A toggle hides the handles, to preview the menu as in the game, and shows them again.
  */
 @Component({
   selector: 'app-menu-editor',
-  imports: [ButtonList, Candy, CopyValues],
-  host: { '(document:keydown.escape)': 'escape($event)' },
+  imports: [ButtonList, Candy, CopyValues, Handles],
+  host: {
+    '(document:keydown.escape)': 'escape($event)',
+    '(click)': 'unpick($event)',
+  },
   template: `
-    <div class="actions">
-      <button
-        type="button"
-        appCandy
-        class="preview"
-        title="Preview"
-        [attr.aria-pressed]="previewing()"
-        (click)="previewing.set(!previewing())"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      </button>
-      <button type="button" appCandy="danger" aria-haspopup="dialog" (click)="askToCancel()">
-        Cancel
-      </button>
-      <button type="button" appCandy="danger" [disabled]="untuned()" (click)="reset()">
-        Reset
-      </button>
-      <app-copy-values label="Copy" [values]="{ menu: look() }" />
-      <button type="button" appCandy="primary" (click)="done.emit()">Done</button>
+    <div class="top">
+      <div class="actions">
+        <button
+          type="button"
+          appCandy
+          class="preview"
+          title="Preview"
+          [attr.aria-pressed]="previewing()"
+          (click)="previewing.set(!previewing())"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+        <button type="button" appCandy="danger" aria-haspopup="dialog" (click)="askToCancel()">
+          Cancel
+        </button>
+        <button type="button" appCandy="danger" [disabled]="untuned()" (click)="reset()">
+          Reset
+        </button>
+        <app-copy-values label="Copy" [values]="{ layout: layout(), menu: look() }" />
+        <button type="button" appCandy="primary" (click)="done.emit()">Done</button>
+      </div>
+      @if (!previewing()) {
+        <!-- The inspector: what's picked out, and the knobs of its light. -->
+        <div class="inspector">
+          <p class="picked">{{ pickedName() }}</p>
+          @if (knobs().length > 0) {
+            <app-handles [handles]="knobs()" [inline]="true" (released)="save()" />
+          }
+        </div>
+      }
     </div>
     @if (!previewing()) {
-      <div class="panel">
-        @for (group of groups; track group.title; let first = $first) {
-          <details [open]="first">
-            <summary>{{ group.title }}</summary>
-            @for (each of group.fields; track each.field.key) {
-              <label class="field">
-                <span>{{ each.field.label }}</span>
-                <input
-                  type="range"
-                  [min]="each.field.min"
-                  [max]="each.field.max"
-                  [step]="each.field.step"
-                  [value]="each.get(look())"
-                  (input)="set(each, $event)"
-                  (change)="save()"
-                />
-                <output>{{ each.get(look()) }}</output>
-              </label>
-            }
-          </details>
-        }
-      </div>
+      @for (part of parts; track part) {
+        <button
+          type="button"
+          class="part"
+          [class]="part"
+          [attr.aria-pressed]="picked() === part"
+          [attr.aria-label]="names[part]"
+          (click)="pick(part, $event)"
+        ></button>
+      }
+      @let ring = reachRing();
+      @if (ring !== undefined) {
+        <div class="reach" aria-hidden="true" [style]="ring"></div>
+      }
+      <app-handles #onMenu [handles]="handles()" (released)="save()" />
     }
     <dialog #cancelDialog class="card" closedby="any" aria-labelledby="cancel-title">
       <h2 id="cancel-title">Cancel Your Tweaks?</h2>
@@ -145,23 +138,112 @@ const GROUPS: readonly Group[] = [
 export class MenuEditor implements OnInit {
   /** The look edited, shown on the menu as it changes. */
   readonly look = model.required<MenuLook>();
+  /** The layout of every screen, edited for its margins and corner buttons, shown on the menu as it changes. */
+  readonly layout = model.required<Layout>();
+  /** Where the lights of each layer are, for the rings of the light of the part picked out. */
+  readonly lights = input.required<Readonly<Record<LightLayer, readonly Light[]>>>();
   /** The player is done editing, keeping the changes or cancelling them. */
   readonly done = output();
-  /** Whether the sliders are hidden, for the menu to show as it is. */
+  /** Whether the handles are hidden, for the menu to show as in the game. */
   readonly previewing = model(false);
 
-  protected readonly groups = GROUPS;
-  /** Whether the look is the menu's own. */
+  protected readonly parts = PARTS;
+  protected readonly names = PART_NAMES;
+  /** The part picked out, if any. */
+  protected readonly picked = signal<MenuPart | undefined>(undefined);
+  protected readonly pickedName = computed(() => {
+    const part = this.picked();
+    return part === undefined ? 'Margins: tap a part to edit it' : PART_NAMES[part];
+  });
+
+  private readonly marginHandles = MARGIN_HANDLES.map((handle) => bind(handle, this.layout));
+  private readonly partHandles = Object.fromEntries(
+    PARTS.map((part) => [part, PART_HANDLES[part].map((handle) => bind(handle, this.look))]),
+  ) as Record<MenuPart, ReturnType<typeof bind>[]>;
+  private readonly lightHandles = Object.fromEntries(
+    (['icon', 'slice', 'pi'] as const).map((layer) => [
+      layer,
+      lightKnobs(layer).map((handle) => bind(handle, this.look)),
+    ]),
+  ) as Record<LightLayer, ReturnType<typeof bind>[]>;
+
+  /** The layer of light of the part picked out, if it gives off light. */
+  private readonly layer = computed(() => {
+    const part = this.picked();
+    return part === undefined ? undefined : PART_LIGHTS[part];
+  });
+  /** Where the lights of that layer are, on average. */
+  private readonly center = computed((): Point | undefined => {
+    const layer = this.layer();
+    const lights = layer === undefined ? [] : this.lights()[layer];
+    return lights.length === 0
+      ? undefined
+      : {
+          x: lights.reduce((sum, light) => sum + light.x, 0) / lights.length,
+          y: lights.reduce((sum, light) => sum + light.y, 0) / lights.length,
+        };
+  });
+  /** The handles on the menu: the margins', or those of the part picked out, with its light's core. */
+  protected readonly handles = computed(() => {
+    const part = this.picked();
+    if (part === undefined) {
+      return this.marginHandles;
+    }
+    const layer = this.layer();
+    const center = this.center();
+    return layer === undefined || center === undefined
+      ? this.partHandles[part]
+      : [...this.partHandles[part], bind(coreHandle(layer, center, this.look()), this.look)];
+  });
+  /** The knobs of the light of the part picked out, if it gives off light. */
+  protected readonly knobs = computed(() => {
+    const layer = this.layer();
+    return layer === undefined ? [] : this.lightHandles[layer];
+  });
+  /** The ring its light reaches to, round where its lights are. */
+  protected readonly reachRing = computed(() => {
+    const layer = this.layer();
+    const center = this.center();
+    if (layer === undefined || center === undefined) {
+      return undefined;
+    }
+    const diameter = `calc(2 * ${String(this.look().light[layer].reach)}cqh)`;
+    return {
+      left: `${String(center.x)}px`,
+      top: `${String(center.y)}px`,
+      width: diameter,
+      height: diameter,
+    };
+  });
+
+  /** Whether the look is the menu's own, and the margins the game's own. */
   protected readonly untuned = computed(
-    () => JSON.stringify(this.look()) === JSON.stringify(MENU_LOOK),
+    () =>
+      JSON.stringify(this.look()) === JSON.stringify(MENU_LOOK) &&
+      JSON.stringify(this.layout()) === JSON.stringify(untunedMargins(this.layout())),
   );
   private readonly tweaks = inject(Tweaks);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly cancelDialog = viewChild.required<ElementRef<HTMLDialogElement>>('cancelDialog');
-  /** The look the editor started with, to bring back if the changes are cancelled. */
-  private original: MenuLook | undefined;
+  private readonly handlesView = viewChild('onMenu', { read: Handles });
+  /** What the editor started with, to bring back if the changes are cancelled. */
+  private original: { readonly look: MenuLook; readonly layout: Layout } | undefined;
 
   ngOnInit(): void {
-    this.original = this.look();
+    this.original = { look: this.look(), layout: this.layout() };
+  }
+
+  /** Picks no part out, on a tap on none, nor on any of the editor's buttons. */
+  protected unpick(event: Event): void {
+    if (event.target === this.host) {
+      this.picked.set(undefined);
+    }
+  }
+
+  /** Picks a part out, or none, on tapping it again. */
+  protected pick(part: MenuPart, event: Event): void {
+    event.stopPropagation();
+    this.picked.set(this.picked() === part ? undefined : part);
   }
 
   /** Asks whether to cancel the changes; asked already, goes on editing. */
@@ -174,25 +256,24 @@ export class MenuEditor implements OnInit {
     }
   }
 
-  protected set(slider: Slider, event: Event): void {
-    this.look.set(slider.set(this.look(), (event.target as HTMLInputElement).valueAsNumber));
-  }
-
   protected save(): void {
     void this.tweaks.setMenu(this.look());
+    void this.tweaks.setLayout(this.layout());
   }
 
-  /** Brings back the menu's own look, which cancelling the changes undoes, as any change. */
+  /** Brings back the menu's own look and the game's own margins, which cancelling the changes undoes, as any change. */
   protected reset(): void {
     this.look.set(MENU_LOOK);
+    this.layout.set(untunedMargins(this.layout(), this.handlesView()?.sizes()));
     this.save();
   }
 
-  /** Brings back the look the editor started with, and is done. */
+  /** Brings back what the editor started with, and is done. */
   protected cancel(): void {
     this.cancelDialog().nativeElement.close();
     if (this.original !== undefined) {
-      this.look.set(this.original);
+      this.look.set(this.original.look);
+      this.layout.set(this.original.layout);
       this.save();
     }
     this.done.emit();

@@ -125,12 +125,12 @@ h1 {
   text-shadow: 0 1px 0 oklch(from var(--lantern) calc(l - 0.15) c h);
 }
 
-/* Centered, standing at its height above the bottom margin, each button as tall as the others. */
+/* Centered, standing as high above the bottom margin as the look says, each button as tall as the others. */
 .actions {
   position: absolute;
   z-index: 7;
   left: 50%;
-  bottom: calc(var(--buttons-bottom) + env(safe-area-inset-bottom));
+  bottom: calc(env(safe-area-inset-bottom) + var(--margin-bottom) + var(--buttons-bottom));
   translate: -50% 0;
   width: min(100% - 2 * (var(--margin-side) + var(--margin)), 16rem);
 }

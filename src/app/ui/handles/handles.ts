@@ -56,7 +56,7 @@ interface Drag {
         (pointercancel)="release($event)"
         (keydown)="key(bound, $event)"
       >
-        {{ bound.handle.label }}
+        {{ bound.handle.text ?? bound.handle.label }}
         @if (inline()) {
           <span class="value">{{ bound.value() }}</span>
         }
@@ -123,7 +123,7 @@ export class Handles {
   }
 
   /** How many CSS pixels each unit is, measured from the probe, a column wide and `--handles-height` tall. */
-  private sizes(): UnitSizes {
+  sizes(): UnitSizes {
     const { width, height } = this.probe().nativeElement.getBoundingClientRect();
     return {
       rem: parseFloat(getComputedStyle(document.documentElement).fontSize) || 16,

@@ -52,7 +52,7 @@ export const MENU_LOOK: MenuLook = {
     icon: { size: 38, y: 66 },
     slice: { size: 8.2, y: 51 },
     pi: { size: 11.3, y: 42.5 },
-    buttons: { height: 3.25, gap: 0.875, bottom: 3 },
+    buttons: { height: 3.25, gap: 0.875, bottom: 1.875 },
   },
   light: {
     icon: {

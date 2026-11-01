@@ -24,6 +24,7 @@ import { Candy } from '../../ui/candy';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { Light, LightLayer } from '../../ui/light-layer';
 import { LIGHT_LAYERS, LightLayer as Layer, menuStyles, MenuLook } from './menu-look';
+import { Layout, layoutStyles } from '../../ui/layout';
 import { MenuEditor } from './menu-editor';
 
 /** Which key color lights each letter of the name, from the palette, in order: every one but lime, round the wheel. */
@@ -181,7 +182,10 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
       <app-menu-editor
         [look]="edited"
         (lookChange)="editedLook.set($event)"
-        (done)="editedLook.set(undefined)"
+        [layout]="editedLayout() ?? tweaks.layout()"
+        (layoutChange)="editedLayout.set($event)"
+        [lights]="lights()"
+        (done)="editedLook.set(undefined); editedLayout.set(undefined)"
       />
     }
   `,
@@ -195,12 +199,20 @@ export class Menu {
     ['pi', ['Pi']],
   ];
   protected readonly developerMode = inject(DeveloperMode);
-  private readonly tweaks = inject(Tweaks);
+  protected readonly tweaks = inject(Tweaks);
 
   /** The look being edited, in developer mode's editor, shown as it changes. */
   protected readonly editedLook = signal<MenuLook | undefined>(undefined);
+  /** The margins and corner buttons being edited there, in the layout of every screen, shown as they change. */
+  protected readonly editedLayout = signal<Layout | undefined>(undefined);
   protected readonly look = computed(() => this.editedLook() ?? this.tweaks.menu());
-  protected readonly styles = computed(() => menuStyles(this.look().layout));
+  protected readonly styles = computed(() => {
+    const layout = this.editedLayout();
+    return {
+      ...(layout === undefined ? {} : layoutStyles(layout)),
+      ...menuStyles(this.look().layout),
+    };
+  });
   /** The name's lines, each letter with the key color of its lantern. */
   protected readonly title = computed(() => {
     const palette = this.tweaks.palette();
