@@ -25,12 +25,12 @@ describe('menu handles', () => {
     const pi = dragged(handle(PART_HANDLES.pi, '“Pi” height'), MENU_LOOK, -16, SIZES).layout;
 
     // The offsets in hundredths of the column's width, 4 pixels each.
-    expect(icon).toEqual({ ...MENU_LOOK.layout, icon: { ...MENU_LOOK.layout.icon, offset: 30 } });
-    expect(slice).toEqual({
-      ...MENU_LOOK.layout,
-      icon: { ...MENU_LOOK.layout.icon, offset: 30 },
-      slice: { ...MENU_LOOK.layout.slice, offset: -2.5 },
+    const raised = (part: 'icon' | 'slice'): Record<string, number> => ({
+      ...MENU_LOOK.layout[part],
+      offset: Number((MENU_LOOK.layout[part].offset + 4).toFixed(4)),
     });
+    expect(icon).toEqual({ ...MENU_LOOK.layout, icon: raised('icon') });
+    expect(slice).toEqual({ ...MENU_LOOK.layout, icon: raised('icon'), slice: raised('slice') });
     // The group's center, in hundredths of the menu's height, 8 pixels each.
     expect(pi).toEqual({ ...MENU_LOOK.layout, title: { y: MENU_LOOK.layout.title.y + 2 } });
   });
@@ -93,8 +93,12 @@ describe('menu handles', () => {
       'Ray count',
       'Saturation',
     ]);
-    expect(dragged(handle(knobs, 'Intensity'), MENU_LOOK, 10, SIZES).light.pi.intensity).toBe(0.9);
-    expect(dragged(handle(knobs, 'Ray count'), MENU_LOOK, 16, SIZES).light.pi.rayCount).toBe(16);
+    expect(dragged(handle(knobs, 'Intensity'), MENU_LOOK, 10, SIZES).light.pi.intensity).toBe(
+      MENU_LOOK.light.pi.intensity + 0.1,
+    );
+    expect(dragged(handle(knobs, 'Ray count'), MENU_LOOK, 16, SIZES).light.pi.rayCount).toBe(
+      MENU_LOOK.light.pi.rayCount + 2,
+    );
     expect(dragged(handle(knobs, 'Rays'), MENU_LOOK, 1000, SIZES).light.pi.rays).toBe(1);
   });
 });
