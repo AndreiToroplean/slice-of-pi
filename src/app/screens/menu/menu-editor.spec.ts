@@ -201,11 +201,27 @@ describe('MenuEditor', () => {
     preview?.click();
     await stable();
     expect(sliders(host)).toEqual([]);
-    expect(host.querySelector('button.part')).toBeNull();
+    expect(host.querySelector('app-parts')?.classList).toContain('unseen');
 
     preview?.click();
     await stable();
     expect(sliders(host)).toContain('Top margin');
+  });
+
+  it('stops previewing on a tap on a part, picking it out', async () => {
+    const { host, stable } = await setUp();
+    host.querySelector<HTMLButtonElement>('button[title="Preview"]')?.click();
+    await stable();
+    expect(host.querySelector('[role="slider"]')).toBeNull();
+
+    await pick(host, 'Icon', stable);
+
+    expect(host.querySelector('button[title="Preview"]')?.getAttribute('aria-pressed')).toBe(
+      'false',
+    );
+    expect(
+      host.querySelector(`[role="slider"][aria-label=${JSON.stringify('Icon height')}]`),
+    ).not.toBeNull();
   });
 
   it('is done on Done, keeping the changes', async () => {
