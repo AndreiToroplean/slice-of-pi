@@ -8,11 +8,20 @@ app-page {
 
 /*
  * Four seasons side by side, each a little screen from its top color to its bottom one, then, apart from them past a
- * line, the main menu's.
+ * line, the main menu's. They take the height the rest of the page leaves, their swatches as large as fits in it, so
+ * that the page fits on the screen without scrolling.
  */
 .seasons {
+  --name-height: 1.25rem;
+  /* Each swatch's size: half of what the season's name, its padding and the gaps leave, within reason. */
+  --swatch: clamp(
+    1.25rem,
+    (100cqh - var(--name-height) - 2 * var(--space-2) - 3 * var(--space-1)) / 2,
+    2.75rem
+  );
   flex: 1;
-  min-height: 9rem;
+  min-height: 5.5rem;
+  container-type: size;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr)) auto minmax(0, 1fr);
   gap: var(--space-2);
@@ -37,14 +46,15 @@ app-page {
 
 .name {
   font-size: 0.875rem;
+  line-height: var(--name-height);
   font-weight: 500;
   text-shadow: var(--text-shadow);
 }
 
 /* The colors to select, as round swatches with a white ring, thicker on the one selected. */
 .swatch {
-  width: 2.75rem;
-  height: 2.75rem;
+  width: var(--swatch);
+  height: var(--swatch);
   padding: 0;
   border: 0.1875rem solid var(--on-background);
   border-radius: 50%;
