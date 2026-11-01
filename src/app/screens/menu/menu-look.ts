@@ -3,7 +3,8 @@
  * across: only sizes and heights are set. The icon and the name's lines are a group, kept together whatever the menu's
  * height: only the group's center is a height of the menu, in hundredths of it, up from its bottom; each part's middle
  * is an offset from that center, up, and each part's size, both in hundredths of the column's width (see `app.css`).
- * The buttons, like every page's controls, are sized in rem.
+ * The buttons are a group too: its middle is a height of the menu, as the title's is, and each button's height, and the
+ * gap between any two, are in rem, as every page's controls are sized.
  */
 export interface MenuLayout {
   /** The height of the center of the icon and the name, together. */
@@ -15,7 +16,7 @@ export interface MenuLayout {
   /** The size of the letters of "Pi", and how far their middle is above the center. */
   readonly pi: { readonly size: number; readonly offset: number };
   /** Each button's height, the gap between any two, and how far above the bottom margin the last one stands, in rem. */
-  readonly buttons: { readonly height: number; readonly gap: number; readonly bottom: number };
+  readonly buttons: { readonly y: number; readonly height: number; readonly gap: number };
 }
 
 /**
@@ -48,7 +49,12 @@ export type LightLayer = (typeof LIGHT_LAYERS)[number];
 export interface MenuLook {
   readonly layout: MenuLayout;
   readonly light: Readonly<Record<LightLayer, LightSettings>>;
+  /** Where the light behind the icon is, how far above the icon's middle, as the icon's offset is, and its color. */
+  readonly iconLight: { readonly offset: number; readonly color: string };
 }
+
+/** How many buttons the menu has, one above the other. */
+export const BUTTON_COUNT = 2;
 
 /** The menu's own look. */
 export const MENU_LOOK: MenuLook = {
@@ -57,7 +63,7 @@ export const MENU_LOOK: MenuLook = {
     icon: { size: 38, offset: 26 },
     slice: { size: 8.2, offset: -6.5 },
     pi: { size: 11.3, offset: -24.9 },
-    buttons: { height: 3.25, gap: 0.875, bottom: 1.875 },
+    buttons: { y: 12.7, height: 3.25, gap: 0.875 },
   },
   light: {
     icon: {
@@ -88,6 +94,7 @@ export const MENU_LOOK: MenuLook = {
       saturation: 1.6,
     },
   },
+  iconLight: { offset: 0.8, color: '#ffc780' },
 };
 
 /** A value of the look, as the editor shows it: what it's called, its range, and how finely it moves. */
@@ -117,7 +124,7 @@ export const LAYOUT_FIELDS = {
   buttons: [
     { key: 'height', label: 'Height', min: 2, max: 6, step: 0.0625 },
     { key: 'gap', label: 'Gap', min: 0, max: 4, step: 0.0625 },
-    { key: 'bottom', label: 'Bottom', min: 0, max: 20, step: 0.0625 },
+    { key: 'y', label: 'Height', min: 0, max: 100, step: 0.1 },
   ],
 } as const satisfies {
   readonly [K in keyof MenuLayout]: readonly LookField<MenuLayout[K]>[];
@@ -147,6 +154,20 @@ export function withLayout<K extends keyof MenuLayout>(
   };
 }
 
+/** The offset of the icon's light, from the icon's middle. */
+export const ICON_LIGHT_OFFSET: LookField<{ offset: number }> = {
+  key: 'offset',
+  label: 'Light height',
+  min: -60,
+  max: 60,
+  step: 0.1,
+};
+
+/** The look with the icon's light moved, or of another color. */
+export function withIconLight(look: MenuLook, iconLight: Partial<MenuLook['iconLight']>): MenuLook {
+  return { ...look, iconLight: { ...look.iconLight, ...iconLight } };
+}
+
 /** The look with one value of a layer's light set. */
 export function withLight(
   look: MenuLook,
@@ -158,12 +179,13 @@ export function withLight(
 }
 
 /**
- * The layout as the CSS lengths the menu lays out with: `--icon-size` and `--icon-y`, `--slice-size` and `--slice-y`,
- * `--pi-size` and `--pi-y`, `--buttons-height`, `--buttons-gap` and `--buttons-bottom`. Each `-y` is the height of a
- * part's middle, up from the menu's bottom, as a percentage of the menu's height plus a length.
+ * The look as the CSS lengths the menu lays out with: `--icon-size` and `--icon-y`, `--icon-light-y`, `--slice-size`
+ * and `--slice-y`, `--pi-size` and `--pi-y`, `--buttons-y`, `--buttons-height`, `--buttons-gap`, and `--buttons-span`,
+ * how tall the buttons are together. Each `-y` is the height of a middle, up from the menu's bottom, as a percentage of
+ * the menu's height plus a length.
  */
-export function menuStyles(layout: MenuLayout): Readonly<Record<string, string>> {
-  const { title, icon, slice, pi, buttons } = layout;
+export function menuStyles(look: MenuLook): Readonly<Record<string, string>> {
+  const { title, icon, slice, pi, buttons } = look.layout;
   const across = (value: number): string => `calc(${String(value)} * var(--column) / 100)`;
   const up = (offset: number): string =>
     `calc(${String(title.y)}% + ${String(offset)} * var(--column) / 100)`;
@@ -171,13 +193,15 @@ export function menuStyles(layout: MenuLayout): Readonly<Record<string, string>>
   return {
     '--icon-size': across(icon.size),
     '--icon-y': up(icon.offset),
+    '--icon-light-y': up(icon.offset + look.iconLight.offset),
     '--slice-size': across(slice.size),
     '--slice-y': up(slice.offset),
     '--pi-size': across(pi.size),
     '--pi-y': up(pi.offset),
+    '--buttons-y': `${String(buttons.y)}%`,
     '--buttons-height': rem(buttons.height),
     '--buttons-gap': rem(buttons.gap),
-    '--buttons-bottom': rem(buttons.bottom),
+    '--buttons-span': rem(BUTTON_COUNT * buttons.height + (BUTTON_COUNT - 1) * buttons.gap),
   };
 }
 
@@ -191,6 +215,7 @@ export function parseMenuLook(value: unknown): MenuLook | undefined {
   }
   const layout = isRecord(value['layout']) ? value['layout'] : {};
   const light = isRecord(value['light']) ? value['light'] : {};
+  const iconLight = value['iconLight'];
   return {
     layout: {
       title: parsed(MENU_LOOK.layout.title, LAYOUT_FIELDS.title, layout['title']),
@@ -204,7 +229,18 @@ export function parseMenuLook(value: unknown): MenuLook | undefined {
       slice: parsed(MENU_LOOK.light.slice, LIGHT_FIELDS, light['slice']),
       pi: parsed(MENU_LOOK.light.pi, LIGHT_FIELDS, light['pi']),
     },
+    iconLight: {
+      ...parsed({ offset: MENU_LOOK.iconLight.offset }, [ICON_LIGHT_OFFSET], iconLight),
+      color:
+        isRecord(iconLight) && isColor(iconLight['color'])
+          ? iconLight['color']
+          : MENU_LOOK.iconLight.color,
+    },
   };
+}
+
+function isColor(value: unknown): value is string {
+  return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
 }
 
 /** `value`'s fields, each in its range, or else the one in `defaults`. */

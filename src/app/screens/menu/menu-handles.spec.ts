@@ -14,11 +14,25 @@ function handle(handles: readonly Handle<MenuLook>[], label: string): Handle<Men
 }
 
 describe('menu handles', () => {
-  it('raises a part when dragged up, by its offset from the center of the icon and the name, across the column', () => {
-    const look = dragged(handle(PART_HANDLES.pi, '“Pi” height'), MENU_LOOK, -16, SIZES);
+  it('raises a part with those above it, as they stand on one another: "Pi" the whole group', () => {
+    const icon = dragged(handle(PART_HANDLES.icon, 'Icon height'), MENU_LOOK, -16, SIZES).layout;
+    const slice = dragged(
+      handle(PART_HANDLES.slice, '“Slice of” height'),
+      MENU_LOOK,
+      -16,
+      SIZES,
+    ).layout;
+    const pi = dragged(handle(PART_HANDLES.pi, '“Pi” height'), MENU_LOOK, -16, SIZES).layout;
 
-    expect(look.layout.pi.offset).toBe(MENU_LOOK.layout.pi.offset + 4);
-    expect(look.layout.title).toEqual(MENU_LOOK.layout.title);
+    // The offsets in hundredths of the column's width, 4 pixels each.
+    expect(icon).toEqual({ ...MENU_LOOK.layout, icon: { ...MENU_LOOK.layout.icon, offset: 30 } });
+    expect(slice).toEqual({
+      ...MENU_LOOK.layout,
+      icon: { ...MENU_LOOK.layout.icon, offset: 30 },
+      slice: { ...MENU_LOOK.layout.slice, offset: -2.5 },
+    });
+    // The group's center, in hundredths of the menu's height, 8 pixels each.
+    expect(pi).toEqual({ ...MENU_LOOK.layout, title: { y: MENU_LOOK.layout.title.y + 2 } });
   });
 
   it('grows a part by its right edge, which moves half as far as it widens, as it stays centered', () => {
@@ -32,19 +46,30 @@ describe('menu handles', () => {
     ).toBe(MENU_LOOK.layout.pi.size + 1);
   });
 
-  it('sets where the buttons stand, their height and the gap between them, in rem', () => {
+  it('sets the buttons’ middle as a height of the menu, and their size and gap in rem, round it', () => {
     const { buttons } = PART_HANDLES;
     const look = [
-      dragged(handle(buttons, 'Buttons bottom'), MENU_LOOK, -16, SIZES),
-      dragged(handle(buttons, 'Button height'), MENU_LOOK, -8, SIZES),
-      dragged(handle(buttons, 'Button gap'), MENU_LOOK, 400, SIZES),
+      dragged(handle(buttons, 'Buttons height'), MENU_LOOK, -16, SIZES),
+      // The group's top, which moves as much as a button grows, half on each side for both.
+      dragged(handle(buttons, 'Button size'), MENU_LOOK, -8, SIZES),
+      // The bottom of the first, which moves half as much as the gap grows.
+      dragged(handle(buttons, 'Button gap'), MENU_LOOK, -4, SIZES),
     ].map((each) => each.layout.buttons);
 
     expect(look).toEqual([
-      { ...MENU_LOOK.layout.buttons, bottom: MENU_LOOK.layout.buttons.bottom + 1 },
+      { ...MENU_LOOK.layout.buttons, y: MENU_LOOK.layout.buttons.y + 2 },
       { ...MENU_LOOK.layout.buttons, height: MENU_LOOK.layout.buttons.height + 0.5 },
-      { ...MENU_LOOK.layout.buttons, gap: 0 },
+      { ...MENU_LOOK.layout.buttons, gap: MENU_LOOK.layout.buttons.gap + 0.5 },
     ]);
+  });
+
+  it('moves the icon’s light up and down, by its offset from the icon’s middle', () => {
+    const look = dragged(handle(PART_HANDLES.icon, 'Icon light height'), MENU_LOOK, -8, SIZES);
+
+    expect(look.iconLight).toEqual({
+      ...MENU_LOOK.iconLight,
+      offset: MENU_LOOK.iconLight.offset + 2,
+    });
   });
 
   it('widens the core of a light by as much as its ring is dragged out, round where its lights are', () => {

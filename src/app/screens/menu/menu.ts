@@ -30,9 +30,6 @@ import { MenuEditor } from './menu-editor';
 /** Which key color lights each letter of the name, from the palette, in order: every one but lime, round the wheel. */
 const LETTER_COLORS = [0, 1, 2, 4, 5, 6, 7, 8, 9];
 
-/** The color of the light behind the icon: warm, as the last of the day's. */
-const ICON_LIGHT = '#ffc780';
-
 /** The seed of the rays of each layer's first light; the others' follow from it. */
 const SEEDS: Readonly<Record<Layer, number>> = { icon: 31, slice: 101, pi: 503 };
 
@@ -210,7 +207,7 @@ export class Menu {
     const layout = this.editedLayout();
     return {
       ...(layout === undefined ? {} : layoutStyles(layout)),
-      ...menuStyles(this.look().layout),
+      ...menuStyles(this.look()),
     };
   });
   /** The name's lines, each letter with the key color of its lantern. */
@@ -276,13 +273,14 @@ export class Menu {
     this.editedLook.set(this.look());
   }
 
-  /** The lights of each layer, at the middle of each lantern, and behind the icon, a little above its middle. */
+  /** The lights of each layer, at the middle of each lantern, and behind the icon, at the height its look says. */
   private measure(): Readonly<Record<Layer, readonly Light[]>> {
     const frame = this.host.getBoundingClientRect();
-    const center = (element: Element, down = 0.5): { x: number; y: number } => {
+    const center = (element: Element): { x: number; y: number } => {
       const box = element.getBoundingClientRect();
-      return { x: box.x - frame.x + box.width / 2, y: box.y - frame.y + box.height * down };
+      return { x: box.x - frame.x + box.width / 2, y: box.y - frame.y + box.height / 2 };
     };
+    const look = this.look();
     const icon = this.host.querySelector('.icon');
     const lanterns = (layer: Layer): Light[] =>
       Array.from(this.host.querySelectorAll<HTMLElement>(`.${layer} .tile`), (tile, i) => ({
@@ -291,7 +289,7 @@ export class Menu {
         seed: SEEDS[layer] + i * 7919,
       }));
     const lights: Record<Layer, readonly Light[]> = {
-      icon: icon === null ? [] : [{ ...center(icon, 0.48), color: ICON_LIGHT, seed: SEEDS.icon }],
+      icon: icon === null ? [] : [this.iconLight(center(icon), icon.clientWidth, look)],
       slice: lanterns('slice'),
       pi: lanterns('pi'),
     };
@@ -300,6 +298,20 @@ export class Menu {
     )
       ? this.lights()
       : lights;
+  }
+
+  /**
+   * The light behind the icon, whose middle is at `at`, and which is `width` pixels wide: its offset from the icon's
+   * middle is in hundredths of the column's width, as the icon's size is, which gives the column's width.
+   */
+  private iconLight(at: { x: number; y: number }, width: number, look: MenuLook): Light {
+    const column = (width * 100) / look.layout.icon.size;
+    return {
+      x: at.x,
+      y: at.y - (look.iconLight.offset * column) / 100,
+      color: look.iconLight.color,
+      seed: SEEDS.icon,
+    };
   }
 
   /** Up or down onto Play when nothing has the focus, as on touch screens, from where they move on. */

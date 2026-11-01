@@ -15,6 +15,7 @@ import { ButtonList } from '../../ui/button-list';
 import { Candy } from '../../ui/candy';
 import { bind, UnitSizes } from '../../ui/handles/handle';
 import { Handles } from '../../ui/handles/handles';
+import { Parts } from '../../ui/handles/parts';
 import { Layout, LAYOUT } from '../../ui/layout';
 import { Light } from '../../ui/light-layer';
 import { LAYOUT_HANDLES } from '../play/layout-editor/layout-handles';
@@ -23,12 +24,13 @@ import {
   coreHandle,
   lightKnobs,
   MenuPart,
+  PART_BOXES,
   PART_HANDLES,
   PART_LIGHTS,
   PART_NAMES,
   Point,
 } from './menu-handles';
-import { LightLayer, MENU_LOOK, MenuLook } from './menu-look';
+import { LightLayer, MENU_LOOK, MenuLook, withIconLight } from './menu-look';
 
 /** The handles of edit mode that set the margins round every screen, and its corner buttons, which the menu has too. */
 const MARGIN_HANDLES = LAYOUT_HANDLES.filter((handle) =>
@@ -55,18 +57,20 @@ function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
 
 /**
  * Developer mode's editor of the main menu, over it, as edit mode is over the play screen. A dashed box shows each part
- * of the menu; tapping one picks it out, showing its handles: its height and size, as it stays centered across, or for
- * the buttons, where they stand, their height and the gap between them; for a part that gives off light, its core, as
- * a ring round it, and its reach, as a wider one; and in a row at the top, knobs dragged across for the other values of
- * its light. With no part picked out, as on tapping elsewhere, the handles are those of the margins and corner buttons,
- * which every screen shares. The menu shows each change at once, and it's saved, as tweaks, as each drag or key ends.
- * Done ends it; Cancel, or Escape, asks whether to cancel the changes, bringing back what it started with, or to go on
- * editing. Reset brings back the menu's own look and the game's own margins, and Copy copies both, to go into the code.
- * A toggle hides the handles, to preview the menu as in the game, and shows them again.
+ * of the menu; tapping one picks it out, showing its handles. The icon and the name's lines have their height, carrying
+ * along those above them, as they stand on one another, "Pi" the whole group, and their size, as they stay centered
+ * across; the buttons, where they stand, their size and the gap between them. A part that gives off light has its core,
+ * as a ring round it, its reach, as a wider one, and in a row at the top, knobs dragged across for the other values of
+ * its light; the icon, the height of its light, and its color. With no part picked out, as on tapping elsewhere, the
+ * handles are those of the margins and corner buttons, which every screen shares. The menu shows each change at once,
+ * and it's saved, as tweaks, as each drag or key ends. Done ends it; Cancel, or Escape, asks whether to cancel the
+ * changes, bringing back what it started with, or to go on editing. Reset brings back the menu's own look and the
+ * game's own margins, and Copy copies both, to go into the code. A toggle hides the handles, to preview the menu as in
+ * the game, and shows them again.
  */
 @Component({
   selector: 'app-menu-editor',
-  imports: [ButtonList, Candy, CopyValues, Handles],
+  imports: [ButtonList, Candy, CopyValues, Handles, Parts],
   host: {
     '(document:keydown.escape)': 'escape($event)',
     '(click)': 'unpick($event)',
@@ -103,20 +107,22 @@ function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
           @if (knobs().length > 0) {
             <app-handles [handles]="knobs()" [inline]="true" (released)="save()" />
           }
+          @if (picked() === 'icon') {
+            <label class="color">
+              Light color
+              <input
+                type="color"
+                [value]="look().iconLight.color"
+                (input)="setIconLightColor($event)"
+                (change)="save()"
+              />
+            </label>
+          }
         </div>
       }
     </div>
     @if (!previewing()) {
-      @for (part of parts; track part) {
-        <button
-          type="button"
-          class="part"
-          [class]="part"
-          [attr.aria-pressed]="picked() === part"
-          [attr.aria-label]="names[part]"
-          (click)="pick(part, $event)"
-        ></button>
-      }
+      <app-parts [parts]="parts" [(picked)]="picked" />
       @let ring = reachRing();
       @if (ring !== undefined) {
         <div class="reach" aria-hidden="true" [style]="ring"></div>
@@ -147,12 +153,11 @@ export class MenuEditor implements OnInit {
   /** Whether the handles are hidden, for the menu to show as in the game. */
   readonly previewing = model(false);
 
-  protected readonly parts = PARTS;
-  protected readonly names = PART_NAMES;
+  protected readonly parts = PART_BOXES;
   /** The part picked out, if any. */
-  protected readonly picked = signal<MenuPart | undefined>(undefined);
+  protected readonly picked = signal<string | undefined>(undefined);
   protected readonly pickedName = computed(() => {
-    const part = this.picked();
+    const part = this.part();
     return part === undefined ? 'Margins: tap a part to edit it' : PART_NAMES[part];
   });
 
@@ -167,9 +172,11 @@ export class MenuEditor implements OnInit {
     ]),
   ) as Record<LightLayer, ReturnType<typeof bind>[]>;
 
+  /** The part picked out, as one of the menu's. */
+  private readonly part = computed(() => PART_BOXES.find((each) => each.id === this.picked())?.id);
   /** The layer of light of the part picked out, if it gives off light. */
   private readonly layer = computed(() => {
-    const part = this.picked();
+    const part = this.part();
     return part === undefined ? undefined : PART_LIGHTS[part];
   });
   /** Where the lights of that layer are, on average. */
@@ -185,7 +192,7 @@ export class MenuEditor implements OnInit {
   });
   /** The handles on the menu: the margins', or those of the part picked out, with its light's core. */
   protected readonly handles = computed(() => {
-    const part = this.picked();
+    const part = this.part();
     if (part === undefined) {
       return this.marginHandles;
     }
@@ -240,10 +247,8 @@ export class MenuEditor implements OnInit {
     }
   }
 
-  /** Picks a part out, or none, on tapping it again. */
-  protected pick(part: MenuPart, event: Event): void {
-    event.stopPropagation();
-    this.picked.set(this.picked() === part ? undefined : part);
+  protected setIconLightColor(event: Event): void {
+    this.look.set(withIconLight(this.look(), { color: (event.target as HTMLInputElement).value }));
   }
 
   /** Asks whether to cancel the changes; asked already, goes on editing. */

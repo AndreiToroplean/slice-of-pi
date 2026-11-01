@@ -105,13 +105,14 @@ describe('MenuEditor', () => {
       '“Slice of” size',
       'Light core',
     ]);
+    expect(host.querySelector('input[type="color"]')).toBeNull();
     expect(host.querySelector('.picked')?.textContent).toBe('“Slice of”');
     // Its core, round the middle of its lights.
     const core = host.querySelector<HTMLElement>('[aria-label="Light core"]')?.parentElement;
     expect([core?.style.left, core?.style.top]).toEqual(['150px', '400px']);
 
     await pick(host, 'Buttons', stable);
-    expect(sliders(host)).toEqual(['Buttons bottom', 'Button height', 'Button gap']);
+    expect(sliders(host)).toEqual(['Buttons height', 'Button size', 'Button gap']);
 
     await pick(host, 'Buttons', stable);
     expect(sliders(host)).toContain('Top margin');
@@ -134,6 +135,24 @@ describe('MenuEditor', () => {
     expect(editor.look()).toEqual(look);
     expect(TestBed.inject(Tweaks).menu()).toEqual(look);
     expect(TestBed.inject(Tweaks).layout().margins.top).toBe(LAYOUT.margins.top + 0.0625);
+  });
+
+  it('moves the icon’s light, and colors it, once the icon is picked out', async () => {
+    const { host, editor, stable } = await setUp();
+    await pick(host, 'Icon', stable);
+    press(host, 'Icon light height', 'ArrowUp');
+    const color = host.querySelector<HTMLInputElement>('input[type="color"]');
+    if (color === null) {
+      throw new Error('No color picker');
+    }
+    color.value = '#88ccff';
+    color.dispatchEvent(new Event('input'));
+    color.dispatchEvent(new Event('change'));
+    await stable();
+
+    const iconLight = { offset: MENU_LOOK.iconLight.offset + 0.1, color: '#88ccff' };
+    expect(editor.look().iconLight).toEqual(iconLight);
+    expect(TestBed.inject(Tweaks).menu().iconLight).toEqual(iconLight);
   });
 
   it('asks on Cancel or Escape whether to cancel the changes, bringing back what it started with', async () => {
