@@ -6,7 +6,8 @@ import { Candy } from '../../../ui/candy';
 import { LightDismiss } from '../../../ui/light-dismiss';
 
 /**
- * The pause button, and the dialog it opens over the game: resume, restart the game, or end it, back to the main menu;
+ * The pause key, a see-through key of the keypad, in its corner left of 0 (see `Keypad`), and the dialog it opens over
+ * the game: resume, restart the game, or end it, back to the main menu;
  * a button in the dialog's left corner also stops the game and replays the run, once there's one and the player has
  * confirmed it, warned that the game can't be resumed then. Escape pauses too, as going back does (see `Play`), and
  * resumes, or goes back from the confirmation, as do going back and a click outside the dialog; up and down move between a dialog's
@@ -18,13 +19,7 @@ import { LightDismiss } from '../../../ui/light-dismiss';
   imports: [ButtonList, Candy, LightDismiss],
   host: { '(document:keydown.escape)': 'escape($event)' },
   template: `
-    <button
-      type="button"
-      appCandy="clear"
-      class="corner pause-button"
-      title="Pause"
-      (click)="pause()"
-    >
+    <button type="button" appCandy="clear" class="pause-button" title="Pause" (click)="pause()">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="6" y="5" width="4" height="14" rx="1.5" />
         <rect x="14" y="5" width="4" height="14" rx="1.5" />

@@ -3,16 +3,20 @@
   display: contents;
 }
 
-/* The pause button, in the top right corner. */
+/* The pause key, in the keypad's corner left of 0, a see-through key as the delete key is (see `keypad.css`). */
 .pause-button {
-  position: absolute;
-  top: var(--margin-top);
-  right: var(--margin-side);
+  --candy-depth: var(--key-depth);
+  grid-row: 4;
+  grid-column: 1;
+  min-height: var(--key-height);
+  padding: 0;
+  font-size: calc(var(--key-height) * 0.45);
 }
 
 .pause-button svg {
   width: 1em;
   height: 1em;
+  vertical-align: middle;
   fill: currentColor;
 }
 

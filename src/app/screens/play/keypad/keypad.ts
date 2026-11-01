@@ -84,7 +84,8 @@ interface Press {
  * The keys don't take the focus, being typed from the keyboard's own keys, but the buttons still work with assistive
  * technology.
  *
- * What it's given goes in its grid with the keys, placing itself, such as in the empty corner left of 0.
+ * What it's given goes in its grid with the keys, placing itself, such as the pause key in the empty corner left of 0.
+ * The buttons it's given, and the dialogs they open, take their own touches, which aren't the keypad's.
  *
  * In developer mode, it can show the area of each key, where touches type it.
  *
@@ -242,8 +243,15 @@ export class Keypad {
     return (this.shownPressed(key) ? this.splashColors()[key] : undefined) ?? this.colors()[key];
   }
 
+  /** Whether a touch is on a button the keypad was given, or a dialog it opened, rather than on the keypad. */
+  private givenTouch(event: PointerEvent): boolean {
+    return (
+      event.target instanceof Element && event.target.closest('dialog, button:not(.key)') !== null
+    );
+  }
+
   protected onPointerDown(event: PointerEvent): void {
-    if (event.button !== 0 || this.disabled()) {
+    if (event.button !== 0 || this.disabled() || this.givenTouch(event)) {
       return;
     }
     const { key, point } = this.touchAt(event);
