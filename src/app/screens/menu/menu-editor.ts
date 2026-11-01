@@ -7,6 +7,7 @@ import {
   model,
   OnInit,
   output,
+  linkedSignal,
   signal,
   viewChild,
 } from '@angular/core';
@@ -19,6 +20,7 @@ import { Parts } from '../../ui/handles/parts';
 import { Layout, LAYOUT } from '../../ui/layout';
 import { Light } from '../../ui/light-layer';
 import { LAYOUT_HANDLES } from '../play/layout-editor/layout-handles';
+import { ColorPicker } from '../tuning/color-picker';
 import { CopyValues } from '../tuning/copy-values';
 import {
   coreHandle,
@@ -61,16 +63,16 @@ function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
  * along those above them, as they stand on one another, "Pi" the whole group, and their size, as they stay centered
  * across; the buttons, where they stand, their size and the gap between them. A part that gives off light has its core,
  * as a ring round it, its reach, as a wider one, and in a row at the top, knobs dragged across for the other values of
- * its light; the icon, the height of its light, and its color. With no part picked out, as on tapping elsewhere, the
- * handles are those of the margins and corner buttons, which every screen shares. The menu shows each change at once,
- * and it's saved, as tweaks, as each drag or key ends. Done ends it; Cancel, or Escape, asks whether to cancel the
- * changes, bringing back what it started with, or to go on editing. Reset brings back the menu's own look and the
- * game's own margins, and Copy copies both, to go into the code. A toggle hides the handles, to preview the menu as in
- * the game, and shows them again, as does tapping a part, which picks it out.
+ * its light; the icon, the height of its light, and its color, with the game's color picker, at the bottom. With no
+ * part picked out, as on tapping elsewhere, the handles are those of the margins and corner buttons, which every screen
+ * shares. The menu shows each change at once, and it's saved, as tweaks, as each drag or key ends. Done ends it;
+ * Cancel, or Escape, asks whether to cancel the changes, bringing back what it started with, or to go on editing. Reset
+ * brings back the menu's own look and the game's own margins, and Copy copies both, to go into the code. A toggle hides
+ * the handles, to preview the menu as in the game, and shows them again, as does tapping a part, which picks it out.
  */
 @Component({
   selector: 'app-menu-editor',
-  imports: [ButtonList, Candy, CopyValues, Handles, Parts],
+  imports: [ButtonList, Candy, ColorPicker, CopyValues, Handles, Parts],
   host: {
     '(document:keydown.escape)': 'escape($event)',
     '(click)': 'unpick($event)',
@@ -108,19 +110,28 @@ function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
             <app-handles [handles]="knobs()" [inline]="true" (released)="save()" />
           }
           @if (picked() === 'icon') {
-            <label class="color">
+            <button
+              type="button"
+              class="frosted color"
+              [attr.aria-pressed]="coloring()"
+              (click)="coloring.set(!coloring())"
+            >
               Light color
-              <input
-                type="color"
-                [value]="look().iconLight.color"
-                (input)="setIconLightColor($event)"
-                (change)="save()"
-              />
-            </label>
+              <span class="swatch" [style.background]="look().iconLight.color"></span>
+            </button>
           }
         </div>
       }
     </div>
+    @if (coloring() && !previewing()) {
+      <!-- The color of the icon's light, at the bottom, within the thumb's reach. -->
+      <app-color-picker
+        class="picker"
+        name="Icon light"
+        [color]="look().iconLight.color"
+        (colorChange)="setIconLightColor($event)"
+      />
+    }
     <app-parts
       [parts]="parts"
       [(picked)]="picked"
@@ -179,6 +190,11 @@ export class MenuEditor implements OnInit {
 
   /** The part picked out, as one of the menu's. */
   private readonly part = computed(() => PART_BOXES.find((each) => each.id === this.picked())?.id);
+  /** Whether the color picker of the icon's light shows: closed again as another part, or none, is picked out. */
+  protected readonly coloring = linkedSignal({
+    source: () => this.part(),
+    computation: () => false,
+  });
   /** The layer of light of the part picked out, if it gives off light. */
   private readonly layer = computed(() => {
     const part = this.part();
@@ -252,8 +268,10 @@ export class MenuEditor implements OnInit {
     }
   }
 
-  protected setIconLightColor(event: Event): void {
-    this.look.set(withIconLight(this.look(), { color: (event.target as HTMLInputElement).value }));
+  /** Colors the icon's light, saving each change, as the color picker moves. */
+  protected setIconLightColor(color: string): void {
+    this.look.set(withIconLight(this.look(), { color }));
+    this.save();
   }
 
   /** Asks whether to cancel the changes; asked already, goes on editing. */
