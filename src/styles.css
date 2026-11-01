@@ -418,9 +418,11 @@ dialog.card[open]::backdrop {
 
 /*
  * Going between the main menu and the game (see `app.config.ts`), the screens cross-fade while zooming: in when a game
- * starts, out when it ends. The background stays in place, only easing its colors.
+ * starts, out when it ends. The background stays in place, only easing its colors. A screen is named only during the
+ * transition, as a name makes it a layer of its own, which would keep what it shows from blending with the background,
+ * as the main menu's light adds to it (see `light-layer.ts`).
  */
-.screen {
+html:active-view-transition .screen {
   view-transition-name: screen;
 }
 
