@@ -82,7 +82,7 @@ const PAGE_HANDLES = [
  * screen shows each change at once, and it's saved, as a tweak, as each drag or key ends. Done ends it; Cancel, or
  * Escape, asks whether to cancel the changes, bringing back the layout it started with, or to go on editing. Reset
  * brings back the game's own layout, and Copy copies the layout, to go into the code. A toggle hides the handles, to
- * preview the layout as in the game, and shows them again.
+ * preview the layout as in the game, and shows them again, as does tapping a part, which picks it out.
  */
 @Component({
   selector: 'app-layout-editor',
@@ -92,8 +92,13 @@ const PAGE_HANDLES = [
     '(click)': 'unpick($event)',
   },
   template: `
+    <app-parts
+      [parts]="parts"
+      [(picked)]="picked"
+      [unseen]="previewing()"
+      (revealed)="previewing.set(false)"
+    />
     @if (!previewing()) {
-      <app-parts [parts]="parts" [(picked)]="picked" />
       <app-handles [handles]="handles()" (released)="save()" />
     }
     <div class="actions">

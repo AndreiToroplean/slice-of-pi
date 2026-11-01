@@ -66,7 +66,7 @@ function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
  * and it's saved, as tweaks, as each drag or key ends. Done ends it; Cancel, or Escape, asks whether to cancel the
  * changes, bringing back what it started with, or to go on editing. Reset brings back the menu's own look and the
  * game's own margins, and Copy copies both, to go into the code. A toggle hides the handles, to preview the menu as in
- * the game, and shows them again.
+ * the game, and shows them again, as does tapping a part, which picks it out.
  */
 @Component({
   selector: 'app-menu-editor',
@@ -121,8 +121,13 @@ function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
         </div>
       }
     </div>
+    <app-parts
+      [parts]="parts"
+      [(picked)]="picked"
+      [unseen]="previewing()"
+      (revealed)="previewing.set(false)"
+    />
     @if (!previewing()) {
-      <app-parts [parts]="parts" [(picked)]="picked" />
       @let ring = reachRing();
       @if (ring !== undefined) {
         <div class="reach" aria-hidden="true" [style]="ring"></div>

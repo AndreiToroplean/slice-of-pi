@@ -119,6 +119,22 @@ describe('LayoutEditor', () => {
     expect(editor.layout()).toBe(LAYOUT);
   });
 
+  it('stops previewing on a tap on a part, picking it out', async () => {
+    const { host, stable } = await setUp();
+    host.querySelector<HTMLButtonElement>('button[title="Preview"]')?.click();
+    await stable();
+    expect(host.querySelector('[role="slider"]')).toBeNull();
+
+    await pick(host, 'Keypad', stable);
+
+    expect(host.querySelector('button[title="Preview"]')?.getAttribute('aria-pressed')).toBe(
+      'false',
+    );
+    expect(
+      host.querySelector(`[role="slider"][aria-label=${JSON.stringify('Keypad top')}]`),
+    ).not.toBeNull();
+  });
+
   it('is done on Done, keeping the changes', async () => {
     const { host, editor, stable } = await setUp();
     await pick(host, 'Header', stable);

@@ -1,4 +1,4 @@
-import { Component, input, model } from '@angular/core';
+import { Component, input, model, output } from '@angular/core';
 
 /** A part of a screen an editor picks out, to show its handles alone: what it's called, and its box, in CSS. */
 export interface EditedPart<P extends string = string> {
@@ -9,10 +9,13 @@ export interface EditedPart<P extends string = string> {
 
 /**
  * The parts of a screen an editor edits, each in a dashed box: tapping one picks it out, solid, for the editor to show
- * its handles alone, and tapping it again picks none, for the editor to show those of the screen as a whole.
+ * its handles alone, and tapping it again picks none, for the editor to show those of the screen as a whole. While the
+ * editor previews the screen, the boxes are there unseen: tapping one picks it out all the same, and asks the editor to
+ * show itself again.
  */
 @Component({
   selector: 'app-parts',
+  host: { '[class.unseen]': 'unseen()' },
   template: `
     @for (part of parts(); track part.id) {
       <button
@@ -52,15 +55,29 @@ export interface EditedPart<P extends string = string> {
         outline: 0.1875rem solid var(--focus-ring);
       }
     }
+
+    :host(.unseen) .part {
+      border-color: transparent;
+      background: none;
+    }
   `,
 })
 export class Parts {
   readonly parts = input.required<readonly EditedPart[]>();
   /** The part picked out, if any. */
   readonly picked = model<string | undefined>(undefined);
+  /** Whether the boxes are there unseen, as the editor previews the screen. */
+  readonly unseen = input(false);
+  /** A part was picked out while the boxes were unseen: the editor should show itself again. */
+  readonly revealed = output();
 
   protected pick(id: string, event: Event): void {
     event.stopPropagation();
-    this.picked.set(this.picked() === id ? undefined : id);
+    if (this.unseen()) {
+      this.picked.set(id);
+      this.revealed.emit();
+    } else {
+      this.picked.set(this.picked() === id ? undefined : id);
+    }
   }
 }
