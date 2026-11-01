@@ -12,6 +12,7 @@ test('drags a handle of edit mode with a finger, the keypad following it, and ke
   await page.goto('/play');
   await page.getByRole('button', { name: 'Pause' }).click();
   await page.getByRole('button', { name: 'Edit Layout' }).click();
+  await page.getByRole('button', { name: 'Keypad', exact: true }).click();
   const knob = page.getByRole('slider', { name: 'Keypad top' });
   await expect(knob).toHaveAttribute('aria-valuenow', '35');
   const keyTop = async (): Promise<number> =>
