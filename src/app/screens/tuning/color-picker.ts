@@ -11,16 +11,18 @@ const SLIDERS = [
 
 /**
  * A color picker as wide as the screen: hue, saturation and lightness sliders, each track showing the colors it goes
- * through, under a top bar with the color and its hex code. With the colors around it, the top bar can also set the
- * color halfway between them.
+ * through, under a top bar with the color, its name and, under it, its hex code, so that the bar stays narrow. With the
+ * colors around it, the top bar can also set the color halfway between them.
  */
 @Component({
   selector: 'app-color-picker',
   template: `
     <div class="summary">
       <span class="swatch" [style.background]="color()"></span>
-      <span class="name">{{ name() }}</span>
-      <span class="hex">{{ color() }}</span>
+      <span class="title">
+        <span class="name">{{ name() }}</span>
+        <span class="hex">{{ color() }}</span>
+      </span>
       @if (neighbors(); as around) {
         <button
           type="button"
