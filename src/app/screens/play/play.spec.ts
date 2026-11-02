@@ -3,6 +3,7 @@ import { Location } from '@angular/common';
 import { provideLocationMocks, SpyLocation } from '@angular/common/testing';
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import {
@@ -15,6 +16,10 @@ import { FakeTime } from '../../../testing/fake-time';
 import { Background } from '../../ui/background';
 import { FIRST_LANDING, landsAt, leavesAt } from './flight/flight';
 import { Vibrator } from '../../feedback/vibrator';
+import { Speaker } from '../../feedback/speaker';
+import { ARIA } from '../../game/layers/sound/aria';
+import { momentAt } from '../../../testing/sound-moments';
+import { SoundModel } from '../../game/layers/sound/sound-model';
 import { routes } from '../../app.routes';
 import { KEEP_HISTORY } from '../../app.config';
 import { Menu } from '../menu/menu';
@@ -995,6 +1000,81 @@ describe('Play', () => {
 
       expect(animations).toEqual([]);
       expect(shownTiles(host)).toBe('14159');
+    });
+
+    it('plays the landing of the word as its last slot lands', async () => {
+      stubAnimations();
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const { type } = await setUp();
+
+      await typeAll(type, '14159 ');
+
+      expect(play).toHaveBeenLastCalledWith(ARIA.create().landing('14159', [5]), landsAt(4, 0));
+    });
+
+    it('plays the landing at once when the word does not fly', async () => {
+      stubAnimations();
+      vi.stubGlobal('matchMedia', () => ({ matches: true }));
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const { type } = await setUp();
+
+      await typeAll(type, '14159 ');
+
+      expect(play).toHaveBeenLastCalledWith(ARIA.create().landing('14159', [5]));
+    });
+  });
+
+  describe('sounds', () => {
+    it('plays what the sound model says each key plays at its place, right digits and mistakes alike', async () => {
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const { type } = await setUp();
+
+      await typeAll(type, '149<');
+
+      const keys = (place: number): ReturnType<SoundModel['keys']> =>
+        ARIA.create().keys(momentAt(place, [], 5));
+      expect(play.mock.calls.map(([chime]) => chime)).toEqual([
+        keys(1)['1'],
+        keys(2)['4'],
+        keys(3)['9'],
+      ]);
+    });
+
+    it('plays a key as soon as the touch lands on it, before it is typed, and not again once typed', async () => {
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const fixture = TestBed.createComponent(Play);
+      await fixture.whenStable();
+      const keypad = fixture.debugElement.query(By.directive(Keypad)).componentInstance as Keypad;
+
+      keypad.pressed.emit('7');
+      expect(play).toHaveBeenLastCalledWith(ARIA.create().keys(momentAt(1, [], 5))['7']);
+
+      keypad.touched.emit({ key: '7', x: 0.5, y: 0.5 });
+      expect(play).toHaveBeenCalledTimes(1);
+
+      keypad.pressed.emit('backspace');
+      expect(play).toHaveBeenCalledTimes(1);
+    });
+
+    it('plays the next words in their own place in the song', async () => {
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const { type } = await setUp();
+
+      await typeAll(type, '141 5');
+
+      expect(play).toHaveBeenLastCalledWith(ARIA.create().keys(momentAt(4, [3], 5))['5']);
+    });
+
+    it("doesn't play replaying a run", async () => {
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const fixture = TestBed.createComponent(Play);
+      fixture.componentRef.setInput('replay', newTouchLog('run', 0));
+      await fixture.whenStable();
+
+      fixture.componentInstance.replayTouch({ key: '1' });
+      await fixture.whenStable();
+
+      expect(play).not.toHaveBeenCalled();
     });
   });
 

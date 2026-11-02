@@ -56,6 +56,12 @@ export interface SeasonView {
   readonly background: BackgroundColors;
 }
 
+/** The season after typing `places` places: the one the screen shows. */
+export function seasonOf(places: number): Season {
+  const placeInYear = ((places % PLACES_PER_YEAR) + PLACES_PER_YEAR) % PLACES_PER_YEAR;
+  return seasonByIndex(Math.floor(placeInYear / PLACES_PER_SEASON));
+}
+
 /**
  * The season and background after typing `places` places.
  *
@@ -71,8 +77,8 @@ export function seasonAt(
   turn = SEASON_TURN,
 ): SeasonView {
   const placeInYear = ((places % PLACES_PER_YEAR) + PLACES_PER_YEAR) % PLACES_PER_YEAR;
-  const index = Math.floor(placeInYear / PLACES_PER_SEASON);
-  const season = seasonByIndex(index);
+  const season = seasonOf(places);
+  const index = SEASONS.indexOf(season);
   const next = seasonByIndex((index + 1) % SEASONS.length);
   const t = (placeInYear % PLACES_PER_SEASON) / PLACES_PER_SEASON;
   const turnStart = 1 - turn / PLACES_PER_SEASON;

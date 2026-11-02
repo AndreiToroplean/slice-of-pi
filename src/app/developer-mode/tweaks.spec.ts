@@ -16,6 +16,8 @@ import { parseTweaks, SEASON_STARTS, Tweaks, TWEAKS, TWEAKS_FORMAT, tweaksBackup
 import { readBackup } from '../player-data/backup';
 import { LAYOUT } from '../ui/layout';
 import { VIBRATION_PATTERNS } from '../feedback/vibrations';
+import { SOUND_MIX } from '../feedback/sound-mix';
+import { SOUND_MODEL } from '../game/layers/sound/sound-models';
 import { MENU_LOOK, TWILIGHT, withLight } from '../screens/menu/menu-look';
 import { PLAY_WITH_MERCURY } from '../../testing/game-break-model';
 
@@ -303,6 +305,23 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({});
   });
 
+  it('plays the sound model and mix tuned only while developer mode is on, kept until undone', async () => {
+    const tweaks = await load();
+    const mix = { chords: 0.3 };
+    expect(tweaks.soundModelKind()).toBe(SOUND_MODEL);
+    expect(tweaks.soundMix()).toEqual(SOUND_MIX);
+
+    await tweaks.setSoundMix(mix);
+    expect(tweaks.soundMix()).toEqual(SOUND_MIX);
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.soundMix()).toEqual(mix);
+    expect((await load()).values()).toEqual({ sound: mix });
+
+    await TestBed.inject(Tweaks).setSoundMix(SOUND_MIX);
+    await TestBed.inject(Tweaks).setSoundModel(SOUND_MODEL);
+    expect((await load()).values()).toEqual({});
+  });
+
   it('reads the stored tweaks again once something else changed them', async () => {
     const tweaks = await load();
     await TestBed.inject(RunStore).saveSetting(TWEAKS, {
@@ -507,6 +526,14 @@ describe('Tweaks', () => {
       }),
     ).toEqual({ vibrations: { play: [10, 20] } });
     expect(parseTweaks({ format: TWEAKS_FORMAT, vibrations: { digit: 'buzz' } })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, soundModel: 'aria' })).toEqual({
+      soundModel: 'aria',
+    });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, soundModel: 'kazoo' })).toEqual({});
+    expect(
+      parseTweaks({ format: TWEAKS_FORMAT, sound: { chords: 0.4, volume: 0.5, length: 'long' } }),
+    ).toEqual({ sound: { ...SOUND_MIX, chords: 0.4 } });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, sound: { chords: -1 } })).toEqual({});
     expect(parseTweaks(null)).toEqual({});
 
     const store = (await load(), TestBed.inject(RunStore));
