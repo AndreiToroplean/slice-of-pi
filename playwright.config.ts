@@ -7,6 +7,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: 'e2e',
   forbidOnly: process.env['CI'] !== undefined,
+  // Tests on trial, thought not worth their time, only run with `npm run test:e2e:all` (see CLAUDE.md).
+  ...(process.env['npm_lifecycle_event'] === 'test:e2e:all' ? {} : { grepInvert: /@disabled/ }),
   reporter: process.env['CI'] === undefined ? 'list' : [['github'], ['list']],
   use: { baseURL: 'http://localhost:4200', trace: 'retain-on-failure' },
   projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'] } }],
