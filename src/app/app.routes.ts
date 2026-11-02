@@ -42,6 +42,10 @@ export const routes: Routes = [
       import('./screens/tuning/background-colors').then((m) => m.BackgroundColors),
   },
   {
+    path: 'developer/sounds',
+    loadComponent: () => import('./screens/tuning/sounds').then((m) => m.Sounds),
+  },
+  {
     path: 'developer/vibrations',
     loadComponent: () => import('./screens/tuning/vibrations').then((m) => m.Vibrations),
   },

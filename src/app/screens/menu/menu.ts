@@ -180,6 +180,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
               <a cdkMenuItem routerLink="/developer/model-tuning">Model Tuning</a>
               <a cdkMenuItem routerLink="/developer/key-colors">Key Colors</a>
               <a cdkMenuItem routerLink="/developer/background-colors">Background Colors</a>
+              <a cdkMenuItem routerLink="/developer/sounds">Sounds</a>
               <a cdkMenuItem routerLink="/developer/vibrations">Vibrations</a>
               <!-- The pages above, an action below. -->
               <hr />
