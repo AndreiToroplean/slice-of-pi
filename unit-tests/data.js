@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793576219261,
+  "lastUpdate": 1793578017165,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -2998,6 +2998,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 894,
+            "unit": "ms",
+            "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "72edc1dcd77e92cc42bc55a154ff602b6dd2f670",
+          "message": "feat: tune the vibration patterns on a developer page\n\n- Each pattern shows as its steps in order, buzzes solid and pauses outlined; a step selected is set on the one slider, which stays at the bottom of the screen.\n- The slider is squared, for finer control over the short durations, which the taps take.\n- Plus adds a step to the end, a pause after a buzz or a buzz like the last after a pause; minus removes the last, never the only one.\n\nClaude-Session: https://claude.ai/code/session_01X1XesqnHfKBGDZiDdJRN1n",
+          "timestamp": "2026-11-02T01:06:33+01:00",
+          "tree_id": "dbb34c50629550cff18fe1e875b118e5cd450222",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/72edc1dcd77e92cc42bc55a154ff602b6dd2f670"
+        },
+        "date": 1793578016351,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 15640,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 34271,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 884,
             "unit": "ms",
             "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
           }
