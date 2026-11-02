@@ -54,7 +54,6 @@ import { Vibrator } from '../../feedback/vibrator';
 import { Speaker } from '../../feedback/speaker';
 import { Chime, Moment, SoundNotes } from '../../game/layers/sound/sound-model';
 import { SoundNotesView } from './sound-notes/sound-notes';
-import { Digit } from '../../game/pi/digit';
 import { LONGEST_STEP, MOST_STEPS, Vibration } from '../../feedback/vibrations';
 
 /** How long a vibration can last at most, in ms. */
@@ -143,6 +142,7 @@ const TICK = 16;
       [shown]="shownKey()"
       [marks]="marks()"
       (touched)="press($event)"
+      (pressed)="sound($event)"
     >
       <!-- The pause key, in the keypad's empty corner left of 0. -->
       @if (replay() === undefined) {
@@ -391,18 +391,19 @@ export class Play implements PausesOnBack {
       return;
     }
     if (this.tryingKeys()) {
-      this.tryKey(touch.key);
+      this.tryKey(touch);
     } else if (!this.paused()) {
       this.play(touch);
     }
   }
 
   /** Plays a key as it would be typed now, the game staying paused, typing nothing. */
-  private tryKey(key: KeypadKey | null): void {
+  private tryKey(touch: KeypadTouch): void {
+    const key = touch.key;
     if (key === 'backspace') {
       this.vibrate('backspace');
     } else if (key !== null) {
-      this.sound(key);
+      this.soundTyped(touch);
       this.vibrate(
         this.mistakes() === '' && (!this.checking() || isPiDecimal(this.digits().length + 1, key))
           ? 'digit'
@@ -483,9 +484,7 @@ export class Play implements PausesOnBack {
     if (key === null) {
       return;
     }
-    if (key !== 'backspace') {
-      this.sound(key, carriesOn);
-    }
+    this.soundTyped(touch);
     // Keys are typed into the game, not into what has the focus, such as the typed digits once clicked or the pause
     // button once the game resumes: it gives the focus up rather than showing its ring as if typed into.
     if (document.activeElement instanceof HTMLElement) {
@@ -717,18 +716,19 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Plays the sound of a digit typed now, at the place of the next right one, unless replaying a run: as the sound model
-   * says, in the word being typed, or in the last one, if the digit carries it on.
+   * Plays the sound of a digit key touched, as soon as the touch lands on it, before it's typed, if it is, unless
+   * replaying a run or paused, but for trying the keys: the sound model knows the digits typed so far, never the next,
+   * so the sound gives nothing away, and the player can listen to it before committing to it.
    */
-  private sound(key: Digit, carriesOn = false): void {
-    if (this.replay() !== undefined) {
+  protected sound(key: KeypadKey): void {
+    if (
+      key === 'backspace' ||
+      this.replay() !== undefined ||
+      (this.paused() && !this.tryingKeys())
+    ) {
       return;
     }
-    const sizes = this.sizes();
-    const last = sizes.at(-1) ?? 0;
-    const moment: Moment = carriesOn
-      ? { place: this.digits().length + 1, words: sizes.slice(0, -1), slots: last + 1 }
-      : { place: this.digits().length + 1, words: sizes, slots: this.size() };
+    const moment: Moment = { typed: this.digits(), words: this.sizes(), slots: this.size() };
     const model = this.tweaks.soundModel();
     this.speaker.play(model.keys(moment)[key]);
     if (this.tweaks.soundNotes()) {
@@ -736,6 +736,13 @@ export class Play implements PausesOnBack {
         id: (shown?.id ?? 0) + 1,
         notes: model.describe(moment, key),
       }));
+    }
+  }
+
+  /** Plays the sound of a key typed without touching the keypad, as on a keyboard, which is never pressed first. */
+  private soundTyped(touch: KeypadTouch): void {
+    if (touch.key !== null && !('x' in touch)) {
+      this.sound(touch.key);
     }
   }
 

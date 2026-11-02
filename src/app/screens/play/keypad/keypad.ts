@@ -181,6 +181,11 @@ export class Keypad {
   readonly marks = input<readonly KeypadMark[]>([]);
   /** A touch on the keypad, or a key typed: what it typed, if anything, and where it was. */
   readonly touched = output<KeypadTouch>();
+  /**
+   * A key touched, as the touch lands on it, before it's typed, if it is: the player can listen to it before they commit
+   * to it. Keys typed on a keyboard, or by assistive technology, are typed at once, and never pressed first.
+   */
+  readonly pressed = output<KeypadKey>();
 
   protected readonly keys = computed(() => KEY_POSITIONS[this.layout()]);
 
@@ -276,6 +281,7 @@ export class Keypad {
     this.updateTouchedKeys();
     if (key !== null) {
       this.splash(key);
+      this.pressed.emit(key);
     }
   }
 

@@ -51,12 +51,13 @@ export function* song(
   while (place <= KNOWN_DECIMALS) {
     const size = Math.min(groups[words.length] ?? LISTENED_WORD, KNOWN_DECIMALS - place + 1);
     const before = [...words];
-    for (let digit = 0; digit < size; digit++, place++) {
-      const typed = PI_DECIMALS.charAt(place - 1);
-      if (isDigit(typed)) {
-        yield { at, chime: model.keys({ place, words: before, slots: size })[typed] };
+    for (let index = 0; index < size; index++, place++) {
+      const digit = PI_DECIMALS.charAt(place - 1);
+      if (isDigit(digit)) {
+        const typed = PI_DECIMALS.slice(0, place - 1);
+        yield { at, chime: model.keys({ typed, words: before, slots: size })[digit] };
       }
-      at += digit === size - 1 ? 0 : LISTENED_DIGIT;
+      at += index === size - 1 ? 0 : LISTENED_DIGIT;
     }
     words.push(size);
     if (landings) {
