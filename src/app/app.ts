@@ -4,6 +4,7 @@ import { Background } from './ui/background';
 import { Tweaks } from './developer-mode/tweaks';
 import { layoutStyles } from './ui/layout';
 import { Vibrator } from './feedback/vibrator';
+import { Speaker } from './feedback/speaker';
 
 @Component({
   imports: [RouterOutlet],
@@ -19,12 +20,16 @@ import { Vibrator } from './feedback/vibrator';
     '(document:pointerover)': 'hover($event)',
     // Every button vibrates as it's clicked.
     '(document:click)': 'vibrator.clicked($event)',
+    // The audio gets ready on the first tap or key, those browsers let it start on, before the first sound.
+    '(document:pointerup)': 'speaker.warmUp()',
+    '(document:keydown)': 'speaker.warmUp()',
   },
 })
 export class App {
   protected readonly background = inject(Background);
   private readonly tweaks = inject(Tweaks);
   protected readonly vibrator = inject(Vibrator);
+  protected readonly speaker = inject(Speaker);
   /** The margins and corner buttons of every screen (see `layout.ts`). */
   protected readonly layout = computed(() => layoutStyles(this.tweaks.layout()));
 

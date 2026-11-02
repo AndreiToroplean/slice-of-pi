@@ -227,6 +227,30 @@ describe('Keypad', () => {
       expect(typed).toEqual(['3']);
     });
 
+    it('tells a key is pressed as the touch lands on it, once, even if it then slides off and types nothing', () => {
+      const pressed: KeypadKey[] = [];
+      fixture.componentInstance.pressed.subscribe((key) => pressed.push(key));
+
+      down('5');
+      expect(pressed).toEqual(['5']);
+      pointer('pointermove', CENTERS['0']);
+      pointer('pointermove', [301, 150]);
+      pointer('pointerup', [301, 150]);
+
+      expect(pressed).toEqual(['5']);
+      expect(typed).toEqual([]);
+    });
+
+    it('tells no key is pressed for keys typed on a keyboard', () => {
+      const pressed: KeypadKey[] = [];
+      fixture.componentInstance.pressed.subscribe((key) => pressed.push(key));
+
+      keyboard('keydown', { key: '7' });
+
+      expect(pressed).toEqual([]);
+      expect(typed).toEqual(['7']);
+    });
+
     it('types every key, backspace included', () => {
       for (const key of Object.keys(CENTERS) as KeypadKey[]) {
         tap(key);

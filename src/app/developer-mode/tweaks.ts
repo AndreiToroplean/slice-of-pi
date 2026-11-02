@@ -33,6 +33,9 @@ import {
   VibrationPatterns,
   VIBRATIONS,
 } from '../feedback/vibrations';
+import { MIX_SLIDERS, SOUND_MIX, SoundMix } from '../feedback/sound-mix';
+import { SoundModel, SoundModelKind } from '../game/layers/sound/sound-model';
+import { SOUND_MODEL, soundModelKindById } from '../game/layers/sound/sound-models';
 
 /** The name of the tweaks setting in the store. */
 export const TWEAKS = 'tweaks';
@@ -84,6 +87,10 @@ export interface TweakValues {
   readonly menu?: MenuLook;
   /** The patterns the phone vibrates in, those tuned, for theirs in {@link VIBRATION_PATTERNS}. */
   readonly vibrations?: Partial<VibrationPatterns>;
+  /** The name of the sound model the keys are played with, for {@link SOUND_MODEL}. */
+  readonly soundModel?: string;
+  /** How loud the sounds are, and how long they ring, for {@link SOUND_MIX}. */
+  readonly sound?: SoundMix;
 }
 
 /** The game's own starting colors of each season. */
@@ -191,6 +198,19 @@ export class Tweaks {
     this.developerMode.enabled()
       ? { ...VIBRATION_PATTERNS, ...this.tweaks().vibrations }
       : VIBRATION_PATTERNS,
+  );
+
+  /** The sound model the keys are played with. */
+  readonly soundModelKind = computed(
+    (): SoundModelKind =>
+      (this.developerMode.enabled() ? soundModelKindById(this.tweaks().soundModel) : undefined) ??
+      SOUND_MODEL,
+  );
+  /** That sound model, made once for each pick, as it keeps the song it works out. */
+  readonly soundModel = computed((): SoundModel => this.soundModelKind().create());
+  /** How loud the sounds are, and how long they ring. */
+  readonly soundMix = computed(
+    (): SoundMix => (this.developerMode.enabled() ? this.tweaks().sound : undefined) ?? SOUND_MIX,
   );
 
   constructor() {
@@ -323,6 +343,16 @@ export class Tweaks {
     );
   }
 
+  /** Picks the sound model the keys are played with; `undefined` brings back the game's. */
+  setSoundModel(kind: SoundModelKind | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), soundModel: kind?.id }));
+  }
+
+  /** Sets how loud the sounds are and how long they ring; `undefined` brings back the game's mix. */
+  setSoundMix(sound: SoundMix | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), sound }));
+  }
+
   /** Brings back the game's own value of everything tuned. */
   reset(): Promise<void> {
     return this.save({});
@@ -377,6 +407,8 @@ export function parseTweaks(stored: unknown): TweakValues {
     layout,
     menu,
     vibrations,
+    soundModel,
+    sound,
   } = migrate(stored, TWEAKS_MIGRATIONS);
   if (format !== TWEAKS_FORMAT) {
     return {};
@@ -398,6 +430,8 @@ export function parseTweaks(stored: unknown): TweakValues {
     layout: parseLayout(layout),
     menu: parseMenuLook(menu),
     vibrations: vibrationsOf(vibrations),
+    soundModel: soundModelKindById(soundModel)?.id,
+    sound: soundMixOf(sound),
   });
 }
 
@@ -417,6 +451,8 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     layout,
     menu,
     vibrations,
+    soundModel,
+    sound,
   } = values;
   const tuned = Object.entries(grouping ?? {}).filter(([id, settings]) => {
     const defaults = breakModelKindById(id)?.defaults;
@@ -436,6 +472,8 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     layout: equal(layout, LAYOUT) ? undefined : layout,
     menu: equal(menu, MENU_LOOK) ? undefined : menu,
     vibrations: vibrationsOf(vibrations),
+    soundModel: soundModel === SOUND_MODEL.id ? undefined : soundModel,
+    sound: equal(sound, SOUND_MIX) ? undefined : sound,
   });
 }
 
@@ -472,6 +510,8 @@ function tweakValues({
   layout,
   menu,
   vibrations,
+  soundModel,
+  sound,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -492,6 +532,8 @@ function tweakValues({
     ...(layout === undefined ? {} : { layout }),
     ...(menu === undefined ? {} : { menu }),
     ...(vibrations === undefined ? {} : { vibrations }),
+    ...(soundModel === undefined ? {} : { soundModel }),
+    ...(sound === undefined ? {} : { sound }),
   };
 }
 
@@ -511,6 +553,21 @@ function vibrationsOf(value: unknown): Partial<VibrationPatterns> | undefined {
       : [[vibration, pattern] as const];
   });
   return kept.length === 0 ? undefined : Object.fromEntries(kept);
+}
+
+/** The mix stored, each setting missing or out of its slider's range at the game's own. `undefined` if none is kept. */
+function soundMixOf(value: unknown): SoundMix | undefined {
+  if (typeof value !== 'object' || value === null) {
+    return undefined;
+  }
+  const stored = value as Record<string, unknown>;
+  const kept = MIX_SLIDERS.flatMap(({ key, min, max }) => {
+    const setting = stored[key];
+    return typeof setting === 'number' && setting >= min && setting <= max
+      ? [[key, setting] as const]
+      : [];
+  });
+  return kept.length === 0 ? undefined : { ...SOUND_MIX, ...Object.fromEntries(kept) };
 }
 
 /** The order of the runs, read from untrusted data, or `undefined` if invalid. */

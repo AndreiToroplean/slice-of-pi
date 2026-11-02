@@ -8,6 +8,7 @@ import { zoom } from './app.config';
 import { routes } from './app.routes';
 import { VIBRATE } from './feedback/vibrator';
 import { VIBRATION_PATTERNS } from './feedback/vibrations';
+import { FakeAudio } from '../testing/fake-audio';
 
 describe('App', () => {
   beforeEach(() => {
@@ -30,6 +31,18 @@ describe('App', () => {
     expect(main?.style.getPropertyValue('--background-top')).toBe(shown[0]);
     expect(main?.style.getPropertyValue('--background-bottom')).toBe(shown[1]);
     expect(main?.style.getPropertyValue('--background-space')).toBe(SEASON_COLOR_SPACE);
+  });
+
+  it('gets the audio ready on the first tap anywhere, before any sound', async () => {
+    const audio = new FakeAudio();
+    TestBed.configureTestingModule({ providers: audio.providers });
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    expect(audio.made).toBe(0);
+
+    document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+
+    expect(audio.made).toBe(1);
   });
 
   it('vibrates as a button anywhere is clicked', async () => {
