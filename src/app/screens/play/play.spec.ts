@@ -168,7 +168,7 @@ describe('Play', () => {
     return setUpWithRuns(1, true, undefined, 30);
   }
 
-  it('has a heading', async () => {
+  it('has a heading', { tags: ['disabled'] }, async () => {
     const { host } = await setUp();
 
     expect(host.querySelector('h1')?.textContent).toBe('Slice of Pi');

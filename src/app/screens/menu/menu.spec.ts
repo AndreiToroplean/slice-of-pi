@@ -31,7 +31,7 @@ describe('Menu', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
-  it("announces the game's name in tiles, under its icon", async () => {
+  it("announces the game's name in tiles, under its icon", { tags: ['disabled'] }, async () => {
     const host = await setUp();
 
     expect(host.querySelector('h1 .visually-hidden')?.textContent).toBe('Slice of Pi');

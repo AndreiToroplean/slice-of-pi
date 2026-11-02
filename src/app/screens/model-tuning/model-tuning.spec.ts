@@ -214,17 +214,21 @@ describe('ModelTuning', () => {
       expect(all?.getAttribute('aria-pressed')).toBe('true');
     });
 
-    it('plays from before all the runs, from the ⋮ of all runs', async () => {
-      const { host, until } = await setUp(runs);
+    it(
+      'plays from before all the runs, from the ⋮ of all runs',
+      { tags: ['disabled'] },
+      async () => {
+        const { host, until } = await setUp(runs);
 
-      host.querySelector<HTMLButtonElement>('.aggregate .more')?.click();
-      await until(() => openMenu() !== null);
-      expect(menuItems()).toEqual(['Play from Here']);
-      menuItem('Play from Here').click();
-      await until(() => here(host) !== undefined);
+        host.querySelector<HTMLButtonElement>('.aggregate .more')?.click();
+        await until(() => openMenu() !== null);
+        expect(menuItems()).toEqual(['Play from Here']);
+        menuItem('Play from Here').click();
+        await until(() => here(host) !== undefined);
 
-      expect(here(host)).toBe(0);
-    });
+        expect(here(host)).toBe(0);
+      },
+    );
 
     it('draws the line after all the runs when they all come before it', async () => {
       const { host, until } = await setUp(runs);

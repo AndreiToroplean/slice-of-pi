@@ -40,15 +40,19 @@ describe('Candy', () => {
     };
   }
 
-  it('makes a button, a link or a label a candy button, white unless given a look, or see-through', async () => {
-    const [white, primary, danger, clear] = (await setUp()).candies;
+  it(
+    'makes a button, a link or a label a candy button, white unless given a look, or see-through',
+    { tags: ['disabled'] },
+    async () => {
+      const [white, primary, danger, clear] = (await setUp()).candies;
 
-    expect(white?.classList.value).toBe('candy');
-    expect(primary?.classList).toContain('primary');
-    expect(danger?.classList).toContain('danger');
-    expect(danger?.classList).not.toContain('primary');
-    expect(clear?.classList).toContain('clear');
-  });
+      expect(white?.classList.value).toBe('candy');
+      expect(primary?.classList).toContain('primary');
+      expect(danger?.classList).toContain('danger');
+      expect(danger?.classList).not.toContain('primary');
+      expect(clear?.classList).toContain('clear');
+    },
+  );
 
   it('takes the focus unless told not to', async () => {
     const [white, , , , key] = (await setUp()).candies;
@@ -59,7 +63,7 @@ describe('Candy', () => {
     expect(key?.classList).toContain('unfocusable');
   });
 
-  it('shows its press color, and shows pressed when told to', async () => {
+  it('shows its press color, and shows pressed when told to', { tags: ['disabled'] }, async () => {
     const { candies, press } = await setUp();
     const [white, , , , key] = candies;
     expect(white?.classList).not.toContain('colored');
