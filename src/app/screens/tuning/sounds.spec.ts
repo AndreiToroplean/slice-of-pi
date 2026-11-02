@@ -58,9 +58,9 @@ describe('Sounds', () => {
     );
   });
 
-  it("plays each word's digits, then its landing", () => {
+  it("plays each word's digits, then its landing, unless words land silently", () => {
     const model = ARIA.create();
-    const song = listening(model, [3, 2]);
+    const song = listening(model, [3, 2], true);
 
     expect(song.map(({ at }) => at)).toEqual([
       0,
@@ -74,6 +74,7 @@ describe('Sounds', () => {
     expect(song[0]?.chime).toEqual(model.keys({ place: 1, words: [], slots: 3 })['1']);
     expect(song[3]?.chime).toEqual(model.landing([3]));
     expect(song[4]?.chime).toEqual(model.keys({ place: 4, words: [3], slots: 2 })['5']);
+    expect(listening(model, [3, 2], false)).toHaveLength(5);
   });
 
   it('tunes the mix, applied to the whole game while developer mode is on', async () => {
@@ -102,7 +103,7 @@ describe('Sounds', () => {
 
     button(host, 'Play the Song of π').click();
     await stable();
-    const song = listening(ARIA.create(), listenedWords([]));
+    const song = listening(ARIA.create(), listenedWords([]), true);
     expect(play).toHaveBeenCalledTimes(song.length);
 
     button(host, 'Stop').click();
@@ -138,6 +139,21 @@ describe('Sounds', () => {
     const model = ARIA.create();
     expect(play.mock.calls[3]?.[0]).toEqual(model.landing([3]));
     expect(play.mock.calls[4]?.[0]).toEqual(model.keys({ place: 4, words: [3], slots: 3 })['5']);
+  });
+
+  it('lands words with a chord unless told not to', async () => {
+    const { host, stable } = await setUp();
+    const landings = Array.from(
+      host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+    ).find((input) => input.closest('label')?.textContent.includes('Landing Chords'));
+    expect(landings?.checked).toBe(true);
+    expect(host.textContent).toContain('in words of 5, until you have groups');
+
+    landings?.click();
+    await stable();
+
+    expect(TestBed.inject(Tweaks).landings()).toBe(false);
+    expect(button(host, 'Reset All').disabled).toBe(false);
   });
 
   it('shows the sound model picked, and what it does', async () => {

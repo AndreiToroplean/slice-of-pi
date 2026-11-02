@@ -1010,6 +1010,18 @@ describe('Play', () => {
       expect(play).toHaveBeenLastCalledWith(ARIA.create().landing([5]), landsAt(4, 0));
     });
 
+    it('lands words silently when developer mode says so', async () => {
+      stubAnimations();
+      await TestBed.inject(DeveloperMode).set(true);
+      await TestBed.inject(Tweaks).setLandings(false);
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const { type } = await setUp();
+
+      await typeAll(type, '14159 ');
+
+      expect(play).toHaveBeenCalledTimes(5);
+    });
+
     it('plays the landing at once when the word does not fly', async () => {
       stubAnimations();
       vi.stubGlobal('matchMedia', () => ({ matches: true }));

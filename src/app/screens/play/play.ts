@@ -658,11 +658,11 @@ export class Play implements PausesOnBack {
       slots.length === 0 ? undefined : { from: length, leftAt: (index) => leavesAt(index, slide) },
     );
     this.sizes.update((sizes) => [...sizes, length]);
-    const landing = this.tweaks.soundModel().landing(this.sizes());
+    const landing = this.tweaks.landings() ? this.tweaks.soundModel().landing(this.sizes()) : [];
     if (slots.length === 0) {
       // Words that don't fly, as when the player prefers reduced motion, land at once; a word ending again at once,
       // reopened and finished as it was, never left.
-      if (fly && this.replay() === undefined) {
+      if (fly && landing.length > 0 && this.replay() === undefined) {
         this.speaker.play(landing);
       }
       return;
@@ -754,7 +754,8 @@ export class Play implements PausesOnBack {
     if (this.replay() !== undefined) {
       return;
     }
-    const stopLanding = this.speaker.play(landing, landsAt(length - 1, slide));
+    const stopLanding =
+      landing.length > 0 ? this.speaker.play(landing, landsAt(length - 1, slide)) : () => undefined;
     const indices = Array.from({ length }, (_, i) => i);
     const stopPlucks = this.vibrator.play(
       'pluck',
