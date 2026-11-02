@@ -1,7 +1,7 @@
 import { DIGITS, Digit } from '../../pi/digit';
 import { PI_DECIMALS } from '../../pi/pi-decimals';
 import { PLACES_PER_SEASON } from '../seasons';
-import { Chime, Moment, Note, SoundModel, SoundModelKind } from './sound-model';
+import { Chime, Moment, Note, SoundModel, SoundModelKind, SoundNotes } from './sound-model';
 
 /** The major scale, as semitones above its tonic. */
 const MAJOR = [0, 2, 4, 5, 7, 9, 11] as const;
@@ -229,6 +229,44 @@ function rootBetween(key: number, root: number, low: number, high: number): numb
   return pitch;
 }
 
+/** How the chord under a digit is shaped by its place in its word: see {@link Aria}. */
+function shapeOf(
+  place: number,
+  words: readonly number[],
+  slots: number,
+): { index: number; size: number; fullness: number; count: number } {
+  const index = place - 1 - sum(words);
+  const size = Math.max(slots, index + 1);
+  const fullness = size <= 1 ? 1 : 1 - index / (size - 1);
+  return {
+    index,
+    size,
+    fullness,
+    count: index === 0 ? CHORD_TONES : Math.round(CHORD_TONES * fullness),
+  };
+}
+
+/** The names of the notes, by pitch class, from C. */
+const NAMES = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'] as const;
+/** The chords' numerals, by the degree of their root: upper case for major chords, lower case for minor ones. */
+const NUMERALS = ['I', 'ii', 'iii', 'IV', 'V', 'vi'] as const;
+
+/** A pitch's name, with its octave, as C4 for middle C. */
+export function nameOf(pitch: number): string {
+  return `${NAMES[mod(pitch, 12)] ?? ''}${String(Math.floor(pitch / 12) - 1)}`;
+}
+
+/** A chord's numeral and name, with its notes, as "vi · A minor (A C E)". */
+function chordName(key: number, root: number): string {
+  const notes = [0, 2, 4].map((above) => NAMES[mod(pitchOf(key, root + above), 12)] ?? '');
+  const minor = NUMERALS[root] === NUMERALS[root]?.toLowerCase();
+  return `${NUMERALS[root] ?? ''} · ${notes[0] ?? ''} ${minor ? 'minor' : 'major'} (${notes.join(' ')})`;
+}
+
+function plural(count: number, noun: string): string {
+  return `${String(count)} ${noun}${count === 1 ? '' : 's'}`;
+}
+
 function sum(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0);
 }
@@ -279,10 +317,7 @@ class Aria implements SoundModel {
 
   /** What sounds under the right note of a place, the same whatever key is typed: the chord, thinning over the word. */
   private texture(place: number, words: readonly number[], slots: number, step: Step): Note[] {
-    const index = place - 1 - sum(words);
-    const size = Math.max(slots, index + 1);
-    const fullness = size <= 1 ? 1 : 1 - index / (size - 1);
-    const count = index === 0 ? CHORD_TONES : Math.round(CHORD_TONES * fullness);
+    const { index, fullness, count } = shapeOf(place, words, slots);
     const chord: Note[] = chordUnder(step.key, step.chord, pitchOf(step.key, step.degree))
       .slice(CHORD_TONES - count)
       .map((pitch) => ({
@@ -293,6 +328,51 @@ class Aria implements SoundModel {
     return index === 0
       ? [{ pitch: this.bass(words), gain: BASS_GAIN, accompaniment: true }, ...chord]
       : chord;
+  }
+
+  describe(moment: Moment, digit: Digit): SoundNotes {
+    const { place, words, slots } = moment;
+    const step = this.song.at(place);
+    const right = digitAt(place);
+    const offset = Number(digit) - right;
+    const pitch = pitchOf(step.key, step.degree + offset);
+    const note =
+      offset === 0
+        ? `${nameOf(pitch)}, right`
+        : `${nameOf(pitch)}, wrong: ${plural(Math.abs(offset), 'step')} ${offset > 0 ? 'above' : 'below'} ${nameOf(pitchOf(step.key, step.degree))}`;
+    const before = place > 1 ? this.song.at(place - 1) : undefined;
+    const move =
+      before === undefined
+        ? 'first note'
+        : before.key !== step.key
+          ? 'into a new key'
+          : step.degree === before.degree
+            ? 'same note, same digit'
+            : `${step.degree > before.degree ? 'up' : 'down'} ${plural(Math.abs(step.degree - before.degree), 'step')}, as π goes ${step.degree > before.degree ? 'up' : 'down'}`;
+    const { index, size, count } = shapeOf(place, words, slots);
+    const under =
+      index === 0
+        ? `whole chord, low ${nameOf(this.bass(words))}`
+        : count === 0
+          ? 'the note alone'
+          : plural(count, 'chord note');
+    const lands = words.length % 2 === 0 ? QUESTION : ANSWER;
+    return {
+      pi: [
+        { label: 'Note', value: note },
+        { label: 'Melody', value: move },
+        { label: 'Chord', value: chordName(step.key, step.chord) },
+        { label: 'Key', value: `${NAMES[mod(step.key, 12)] ?? ''} major` },
+      ],
+      word: [
+        { label: 'Digit', value: `${String(index + 1)} of ${String(size)}` },
+        { label: 'Under it', value: under },
+        {
+          label: 'Lands on',
+          value: `${chordName(step.key, lands)}, ${lands === QUESTION ? 'open, a question' : 'closed, an answer'}`,
+        },
+      ],
+    };
   }
 
   /** The low note opening the word after `words`: see {@link Aria}. */

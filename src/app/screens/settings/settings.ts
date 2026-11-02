@@ -14,7 +14,7 @@ import { YourData } from './your-data';
 /**
  * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout, whether the game
  * plays sounds and the phone vibrates, and in developer mode,
- * whether the keys are solid or see-through, whether to count down to the end of each group and whether to leave the
+ * whether the keys are solid or see-through, whether to count down to the end of each group, whether to show what each key typed played, and whether to leave the
  * digits typed unchecked. Each setting has a button to
  * bring back its default value, and the top bar one to bring them all back. In developer mode, a last button brings back
  * the game's own value of every tweak, once confirmed.
@@ -159,6 +159,31 @@ import { YourData } from './your-data';
           <div class="row">
             <label class="setting">
               <span>
+                Sound Notes
+                <small>As each key plays, what it played: from π, and from its word.</small>
+              </span>
+              <input
+                type="checkbox"
+                [checked]="tweaks.soundNotes()"
+                (change)="setSoundNotes($event)"
+              />
+            </label>
+            <button
+              type="button"
+              class="round"
+              title="Back to Default"
+              [disabled]="!tweaks.soundNotes()"
+              (click)="resetSoundNotes()"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 14 4 9l5-5" />
+                <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+              </svg>
+            </button>
+          </div>
+          <div class="row">
+            <label class="setting">
+              <span>
                 Don’t Check Digits
                 <small
                   >Any digit goes, to try things out; otherwise a wrong digit is a mistake.</small
@@ -249,6 +274,7 @@ export class Settings {
       this.vibration.enabled() &&
       this.sound.enabled() &&
       this.countdownDefault() &&
+      !this.tweaks.soundNotes() &&
       this.tweaks.checking() &&
       !this.tweaks.solidKeys(),
   );
@@ -285,6 +311,14 @@ export class Settings {
     void this.keypadLayout.set(DEFAULT_KEYPAD_LAYOUT);
   }
 
+  protected setSoundNotes(event: Event): void {
+    void this.tweaks.setSoundNotes((event.target as HTMLInputElement).checked);
+  }
+
+  protected resetSoundNotes(): void {
+    void this.tweaks.setSoundNotes(false);
+  }
+
   protected resetCountdown(): void {
     void this.tweaks.setCountdown(false);
   }
@@ -307,6 +341,7 @@ export class Settings {
     if (this.developerMode.enabled()) {
       this.setSolidKeys(false);
       this.resetCountdown();
+      this.resetSoundNotes();
       this.resetChecking();
     }
   }

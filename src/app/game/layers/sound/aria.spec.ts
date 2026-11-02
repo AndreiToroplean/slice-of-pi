@@ -1,7 +1,7 @@
 import { DIGITS, Digit } from '../../pi/digit';
 import { PI_DECIMALS } from '../../pi/pi-decimals';
 import { PLACES_PER_SEASON } from '../seasons';
-import { ARIA, keyAt, pitchOf } from './aria';
+import { ARIA, keyAt, nameOf, pitchOf } from './aria';
 import { Chime } from './sound-model';
 
 describe('Aria', () => {
@@ -120,5 +120,40 @@ describe('Aria', () => {
     expect(root([3, 4])).toBe(0);
     expect(root([3, 4, 2])).toBe(7);
     expect(model.landing([3]).every((note) => note.accompaniment === true)).toBe(true);
+  });
+
+  it('tells what a key played, from π and from its word, in words', () => {
+    const model = ARIA.create();
+    const notes = model.describe({ place: 4, words: [3], slots: 2 }, '5');
+    const value = (facts: readonly { label: string; value: string }[], label: string): string =>
+      facts.find((fact) => fact.label === label)?.value ?? '';
+
+    expect(notes.pi.map(({ label }) => label)).toEqual(['Note', 'Melody', 'Chord', 'Key']);
+    expect(value(notes.pi, 'Note')).toMatch(/^[A-G][♯♭]?\d, right$/);
+    expect(value(notes.pi, 'Melody')).toMatch(/^up \d steps?, as π goes up$/);
+    expect(value(notes.pi, 'Key')).toBe('C major');
+    expect(value(notes.word, 'Digit')).toBe('1 of 2');
+    expect(value(notes.word, 'Under it')).toMatch(/^whole chord, low [A-G]/);
+    expect(value(notes.word, 'Lands on')).toBe('I · C major (C E G), closed, an answer');
+    expect(value(model.describe({ place: 1, words: [], slots: 3 }, '1').pi, 'Melody')).toBe(
+      'first note',
+    );
+  });
+
+  it('tells a wrong key how far from the right note it played, and how thin the chord under it is', () => {
+    const model = ARIA.create();
+    const notes = model.describe({ place: 5, words: [3], slots: 2 }, '7');
+    const value = (label: string): string =>
+      [...notes.pi, ...notes.word].find((fact) => fact.label === label)?.value ?? '';
+
+    expect(value('Note')).toMatch(/wrong: 2 steps below/);
+    expect(value('Digit')).toBe('2 of 2');
+    expect(value('Under it')).toBe('the note alone');
+  });
+
+  it('names notes with their octave, middle C as C4', () => {
+    expect(nameOf(60)).toBe('C4');
+    expect(nameOf(70)).toBe('B♭4');
+    expect(nameOf(59)).toBe('B3');
   });
 });

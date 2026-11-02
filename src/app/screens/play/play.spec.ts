@@ -1049,6 +1049,33 @@ describe('Play', () => {
       );
     });
 
+    it('shows what each key typed played, in developer mode once told to, the next key replacing it', async () => {
+      await TestBed.inject(DeveloperMode).set(true);
+      await TestBed.inject(Tweaks).setSoundNotes(true);
+      const { host, type } = await setUp();
+      expect(host.querySelector('app-sound-notes')).toBeNull();
+
+      await type('1');
+      const first = host.querySelector('app-sound-notes');
+      expect(first?.textContent).toContain('1 of 5');
+      expect(first?.textContent).toContain('right');
+
+      await type('7');
+      const notes = host.querySelectorAll('app-sound-notes');
+      expect(notes).toHaveLength(1);
+      expect(notes[0]).not.toBe(first);
+      expect(notes[0]?.textContent).toContain('wrong');
+    });
+
+    it("doesn't show what keys played unless told to, nor outside developer mode", async () => {
+      await TestBed.inject(Tweaks).setSoundNotes(true);
+      const { host, type } = await setUp();
+
+      await type('1');
+
+      expect(host.querySelector('app-sound-notes')).toBeNull();
+    });
+
     it("doesn't play replaying a run", async () => {
       const play = vi.spyOn(TestBed.inject(Speaker), 'play');
       const fixture = TestBed.createComponent(Play);

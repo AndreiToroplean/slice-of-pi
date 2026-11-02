@@ -31,10 +31,27 @@ export interface Moment {
   readonly slots: number;
 }
 
+/** One thing about what a key played, in words, such as the chord under it. */
+export interface SoundFact {
+  readonly label: string;
+  readonly value: string;
+}
+
+/**
+ * What a key played, in words, for developer mode to show as it's typed: what comes from π, the same for every player,
+ * and what comes from the player's word, its place in it.
+ */
+export interface SoundNotes {
+  readonly pi: readonly SoundFact[];
+  readonly word: readonly SoundFact[];
+}
+
 /** A sound model, as the game sees it. */
 export interface SoundModel {
   /** What each digit key plays when typed at that moment, the right one and the others. */
   keys(moment: Moment): Readonly<Record<Digit, Chime>>;
+  /** What a digit key plays when typed at that moment, in words. */
+  describe(moment: Moment, digit: Digit): SoundNotes;
   /** What a word plays as it lands on the tape: `words` are the sizes of the words up to it, its own last. */
   landing(words: readonly number[]): Chime;
 }

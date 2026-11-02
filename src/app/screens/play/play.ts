@@ -52,7 +52,8 @@ import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { TIMER } from './timer';
 import { Vibrator } from '../../feedback/vibrator';
 import { Speaker } from '../../feedback/speaker';
-import { Chime, Moment } from '../../game/layers/sound/sound-model';
+import { Chime, Moment, SoundNotes } from '../../game/layers/sound/sound-model';
+import { SoundNotesView } from './sound-notes/sound-notes';
 import { Digit } from '../../game/pi/digit';
 import { LONGEST_STEP, MOST_STEPS, Vibration } from '../../feedback/vibrations';
 
@@ -90,7 +91,16 @@ const TICK = 16;
  */
 @Component({
   selector: 'app-play',
-  imports: [BreakCountdown, Keypad, LayoutEditor, Pause, SeasonHeader, Slots, TypedDigits],
+  imports: [
+    BreakCountdown,
+    Keypad,
+    LayoutEditor,
+    Pause,
+    SeasonHeader,
+    Slots,
+    SoundNotesView,
+    TypedDigits,
+  ],
   // Replaying, within the replay's screen, which is the one that comes and goes.
   host: {
     '[class.screen]': 'replay() === undefined',
@@ -152,6 +162,13 @@ const TICK = 16;
         Trying the keys: nothing is typed. Pause to go back.
       </p>
     }
+    @let notes = soundNotes();
+    @if (tweaks.soundNotes() && notes !== undefined) {
+      <!-- Made anew for each key typed, so that it shows again before it fades. -->
+      @for (shown of [notes]; track shown.id) {
+        <app-sound-notes [notes]="shown.notes" />
+      }
+    }
     @let wait = breakWait();
     @if (tweaks.countdown() && wait !== undefined) {
       <app-break-countdown [wait]="wait" />
@@ -188,6 +205,8 @@ export class Play implements PausesOnBack {
 
   /** The colors tuned in developer mode, or the game's own, and whether to count down to the end of the group. */
   protected readonly tweaks = inject(Tweaks);
+  /** What the last key typed played, in words, to show in developer mode, numbered to show each anew. */
+  protected readonly soundNotes = signal<{ id: number; notes: SoundNotes } | undefined>(undefined);
   /** Whether the player is trying the keys, from the pause dialog in developer mode, the game staying paused. */
   protected readonly tryingKeys = signal(false);
   /** The layout being edited, in developer mode's edit mode, while the game stays paused. */
@@ -710,7 +729,14 @@ export class Play implements PausesOnBack {
     const moment: Moment = carriesOn
       ? { place: this.digits().length + 1, words: sizes.slice(0, -1), slots: last + 1 }
       : { place: this.digits().length + 1, words: sizes, slots: this.size() };
-    this.speaker.play(this.tweaks.soundModel().keys(moment)[key]);
+    const model = this.tweaks.soundModel();
+    this.speaker.play(model.keys(moment)[key]);
+    if (this.tweaks.soundNotes()) {
+      this.soundNotes.update((shown) => ({
+        id: (shown?.id ?? 0) + 1,
+        notes: model.describe(moment, key),
+      }));
+    }
   }
 
   /** Vibrates on an event of the game, unless replaying a run. */
