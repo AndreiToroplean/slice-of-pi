@@ -178,6 +178,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
             <div cdkMenuGroup class="section">
               <h2 id="developer-title">Developer</h2>
               <a cdkMenuItem routerLink="/developer/break-models">Break Models</a>
+              <a cdkMenuItem routerLink="/developer/sound-models">Sound Models</a>
               <a cdkMenuItem routerLink="/developer/key-colors">Key Colors</a>
               <a cdkMenuItem routerLink="/developer/background-colors">Background Colors</a>
               <a cdkMenuItem routerLink="/developer/vibrations">Vibrations</a>

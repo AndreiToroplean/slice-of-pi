@@ -322,6 +322,19 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({});
   });
 
+  it('lands words silently only in developer mode, once told to, kept until undone', async () => {
+    const tweaks = await load();
+    await tweaks.setLandings(false);
+    expect(tweaks.landings()).toBe(true);
+
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.landings()).toBe(false);
+    expect((await load()).values()).toEqual({ landings: false });
+
+    await TestBed.inject(Tweaks).setLandings(true);
+    expect((await load()).values()).toEqual({});
+  });
+
   it('shows what keys played only in developer mode, once told to, kept until undone', async () => {
     const tweaks = await load();
     await tweaks.setSoundNotes(true);
@@ -549,6 +562,8 @@ describe('Tweaks', () => {
     expect(parseTweaks({ format: TWEAKS_FORMAT, sound: { chords: -1 } })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, soundNotes: true })).toEqual({ soundNotes: true });
     expect(parseTweaks({ format: TWEAKS_FORMAT, soundNotes: 'yes' })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, landings: false })).toEqual({ landings: false });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, landings: true })).toEqual({});
     expect(parseTweaks(null)).toEqual({});
 
     const store = (await load(), TestBed.inject(RunStore));
