@@ -13,19 +13,25 @@ import { RunStore } from '../../player-data/run-store';
 import { newTouchLog } from '../../player-data/touch-log';
 import { typeKey } from '../../../testing/touch-logs';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
+import { FakeTime } from '../../../testing/fake-time';
 import {
+  LISTEN_AHEAD,
   LISTENED_BREAK,
   LISTENED_DIGIT,
   LISTENED_WORD,
-  listenedWords,
-  listening,
+  Played,
+  song,
   Sounds,
 } from './sounds';
 
 describe('Sounds', () => {
+  let time: FakeTime;
+
   beforeEach(() => {
+    time = new FakeTime();
     TestBed.configureTestingModule({
       providers: [
+        ...time.providers,
         PLAY_WITH_MERCURY,
         provideRouter([]),
         { provide: INDEXED_DB, useValue: undefined },
@@ -50,19 +56,23 @@ describe('Sounds', () => {
     return found;
   }
 
-  it("plays in the player's groups as many as fit, then in words of 5 up to the places it plays at least", () => {
-    expect(listenedWords([])).toEqual(Array.from({ length: 8 }, () => LISTENED_WORD));
-    expect(listenedWords([3, 4])).toEqual([3, 4, 5, 5, 5, 5, 5, 5, 5]);
-    expect(listenedWords(Array.from({ length: 40 }, () => 3))).toEqual(
-      Array.from({ length: 33 }, () => 3),
-    );
-  });
+  /** The first `count` chimes of a song. */
+  function first(chimes: Generator<Played, void, undefined>, count: number): Played[] {
+    const taken: Played[] = [];
+    for (const played of chimes) {
+      if (taken.length === count) {
+        break;
+      }
+      taken.push(played);
+    }
+    return taken;
+  }
 
-  it("plays each word's digits, then its landing, unless words land silently", () => {
+  it("plays each word's digits, then its landing, in the player's groups, unless words land silently", () => {
     const model = ARIA.create();
-    const song = listening(model, [3, 2], true);
+    const played = first(song(model, [3, 2], true), 7);
 
-    expect(song.map(({ at }) => at)).toEqual([
+    expect(played.map(({ at }) => at)).toEqual([
       0,
       LISTENED_DIGIT,
       2 * LISTENED_DIGIT,
@@ -71,10 +81,29 @@ describe('Sounds', () => {
       3 * LISTENED_DIGIT + LISTENED_BREAK,
       4 * LISTENED_DIGIT + LISTENED_BREAK,
     ]);
-    expect(song[0]?.chime).toEqual(model.keys({ place: 1, words: [], slots: 3 })['1']);
-    expect(song[3]?.chime).toEqual(model.landing([3]));
-    expect(song[4]?.chime).toEqual(model.keys({ place: 4, words: [3], slots: 2 })['5']);
-    expect(listening(model, [3, 2], false)).toHaveLength(5);
+    expect(played[0]?.chime).toEqual(model.keys({ place: 1, words: [], slots: 3 })['1']);
+    expect(played[3]?.chime).toEqual(model.landing([3]));
+    expect(played[4]?.chime).toEqual(model.keys({ place: 4, words: [3], slots: 2 })['5']);
+    expect(first(song(model, [3, 2], false), 5).map(({ chime }) => chime)).toEqual(
+      played.filter((_, index) => index !== 3 && index !== 6).map(({ chime }) => chime),
+    );
+  });
+
+  it('plays on past the groups in words of 5, as far into π as asked', () => {
+    const model = ARIA.create();
+    const played = first(song(model, [3], false), 1000);
+
+    expect(played).toHaveLength(1000);
+    expect(played[3]?.chime).toEqual(
+      model.keys({ place: 4, words: [3], slots: LISTENED_WORD })['5'],
+    );
+    expect(played[999]?.chime).toEqual(
+      model.keys({
+        place: 1000,
+        words: [3, ...Array.from({ length: 199 }, () => LISTENED_WORD)],
+        slots: LISTENED_WORD,
+      })[PI_DECIMALS.charAt(999) as Digit],
+    );
   });
 
   it('tunes the mix, applied to the whole game while developer mode is on', async () => {
@@ -96,19 +125,31 @@ describe('Sounds', () => {
     expect(TestBed.inject(Tweaks).values()).toEqual({});
   });
 
-  it('plays the song of π, and stops it', async () => {
-    const stop = vi.fn();
-    const play = vi.spyOn(TestBed.inject(Speaker), 'play').mockReturnValue(stop);
+  it('plays the song of π a little ahead at a time, until stopped', async () => {
+    const stops: ReturnType<typeof vi.fn>[] = [];
+    const play = vi.spyOn(TestBed.inject(Speaker), 'play').mockImplementation(() => {
+      const stop = vi.fn();
+      stops.push(stop);
+      return stop;
+    });
     const { host, stable } = await setUp();
+    const ahead = (time: number): number =>
+      first(song(ARIA.create(), [], true), 1000).filter(({ at }) => at < time + LISTEN_AHEAD)
+        .length;
 
     button(host, 'Play the Song of π').click();
     await stable();
-    const song = listening(ARIA.create(), listenedWords([]), true);
-    expect(play).toHaveBeenCalledTimes(song.length);
+    expect(play).toHaveBeenCalledTimes(ahead(0));
+    expect(play.mock.calls[1]?.[1]).toBe(LISTENED_DIGIT);
+
+    time.advance(10_000);
+    expect(play).toHaveBeenCalledTimes(ahead(10_000));
 
     button(host, 'Stop').click();
     await stable();
-    expect(stop).toHaveBeenCalledTimes(song.length);
+    expect(stops.at(-1)).toHaveBeenCalled();
+    time.advance(10_000);
+    expect(play).toHaveBeenCalledTimes(ahead(10_000));
     expect(button(host, 'Play the Song of π')).toBeDefined();
   });
 
@@ -132,7 +173,7 @@ describe('Sounds', () => {
     const { host, stable } = await setUp();
     await store.runs();
     await stable();
-    expect(host.textContent).toContain('in your groups, then words of 5');
+    expect(host.textContent).toContain('in your 4 groups, then in words of 5, until you stop it');
 
     button(host, 'Play the Song of π').click();
 
@@ -147,7 +188,7 @@ describe('Sounds', () => {
       host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
     ).find((input) => input.closest('label')?.textContent.includes('Landing Chords'));
     expect(landings?.checked).toBe(true);
-    expect(host.textContent).toContain('in words of 5, until you have groups');
+    expect(host.textContent).toContain('in words of 5 until you stop it');
 
     landings?.click();
     await stable();

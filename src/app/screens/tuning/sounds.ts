@@ -9,6 +9,9 @@ import {
   soundModelKindById,
 } from '../../game/layers/sound/sound-models';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
+import { KNOWN_DECIMALS } from '../../game/pi/pi';
+import { RUN_CLOCK } from '../../player-data/run-recorder';
+import { TIMER } from '../play/timer';
 import { isDigit } from '../../game/pi/digit';
 import { groupRuns, Run } from '../../player-data/run';
 import { RunStore } from '../../player-data/run-store';
@@ -17,67 +20,56 @@ import { Page } from '../../ui/page';
 import { Segment, Segmented } from '../../ui/segmented';
 import { CopyValues } from './copy-values';
 
-/** How many of π's places the page plays at least, and at most. */
-export const LISTENED_PLACES = 40;
-export const MOST_LISTENED = 100;
-/** The words it plays past the player's groups, as the slots of a new player do. */
+/** The words the page plays past the player's groups, as the slots of a new player do. */
 export const LISTENED_WORD = 5;
 /** How long from one digit to the next, in ms, and from a word's last digit to the next word's first. */
 export const LISTENED_DIGIT = 260;
 export const LISTENED_BREAK = 700;
+/** How far ahead the page hands the notes to the speaker, in ms, and how often it does, so that none is late. */
+export const LISTEN_AHEAD = 1500;
+export const LISTEN_PERIOD = 500;
 
-/**
- * The sizes of the words the page plays π's first places in: the player's groups, as many as fit in
- * {@link MOST_LISTENED} places, then words of {@link LISTENED_WORD} up to {@link LISTENED_PLACES} places, if the
- * groups don't reach that far.
- */
-export function listenedWords(groups: readonly number[]): number[] {
-  const words: number[] = [];
-  let places = 0;
-  for (const size of groups) {
-    if (places + size > MOST_LISTENED) {
-      break;
-    }
-    words.push(size);
-    places += size;
-  }
-  while (places < LISTENED_PLACES) {
-    words.push(LISTENED_WORD);
-    places += LISTENED_WORD;
-  }
-  return words;
+/** A chime of the song, and when it plays, in ms from the start. */
+export interface Played {
+  readonly at: number;
+  readonly chime: Chime;
 }
 
-/** When each digit of the words plays, in ms from the start, and what, each word landing after its last, if `landings`. */
-export function listening(
+/**
+ * The song of π from its first place to the last the game knows, as the page plays it, one chime after the other: in
+ * the player's `groups`, then in words of {@link LISTENED_WORD}, each word landing after its last digit, if
+ * `landings`. Worked out as it's played, as there's far too much of it to work out at once.
+ */
+export function* song(
   model: SoundModel,
-  words: readonly number[],
+  groups: readonly number[],
   landings: boolean,
-): { readonly at: number; readonly chime: Chime }[] {
-  const played: { at: number; chime: Chime }[] = [];
+): Generator<Played, void, undefined> {
+  const words: number[] = [];
   let at = 0;
   let place = 1;
-  for (const [index, size] of words.entries()) {
-    const before = words.slice(0, index);
+  while (place <= KNOWN_DECIMALS) {
+    const size = Math.min(groups[words.length] ?? LISTENED_WORD, KNOWN_DECIMALS - place + 1);
+    const before = [...words];
     for (let digit = 0; digit < size; digit++, place++) {
       const typed = PI_DECIMALS.charAt(place - 1);
       if (isDigit(typed)) {
-        played.push({ at, chime: model.keys({ place, words: before, slots: size })[typed] });
+        yield { at, chime: model.keys({ place, words: before, slots: size })[typed] };
       }
       at += digit === size - 1 ? 0 : LISTENED_DIGIT;
     }
+    words.push(size);
     if (landings) {
-      played.push({ at: at + LISTENED_DIGIT, chime: model.landing(words.slice(0, index + 1)) });
+      yield { at: at + LISTENED_DIGIT, chime: model.landing([...words]) };
     }
     at += LISTENED_BREAK;
   }
-  return played;
 }
 
 /**
  * Developer mode's page to tune the sounds: the sound model the keys are played with, and the mix, how loud the melody
- * and its chords are and how long notes ring, and whether words land with a chord. A button plays the start of the song
- * of π, in the player's groups as the break model finds them, to hear it without typing; trying the keys at a place, from the pause dialog, plays them there.
+ * and its chords are and how long notes ring, and whether words land with a chord. A button plays the song of π from its
+ * start, in the player's groups as the break model finds them, until stopped, to hear it without typing; trying the keys at a place, from the pause dialog, plays them there.
  */
 @Component({
   selector: 'app-sounds',
@@ -146,6 +138,8 @@ export class Sounds {
 
   private readonly tweaks = inject(Tweaks);
   private readonly speaker = inject(Speaker);
+  private readonly clock = inject(RUN_CLOCK);
+  private readonly timer = inject(TIMER);
   /** The sound model picked, and the mix being tuned. */
   protected readonly kind = signal<SoundModelKind>(this.storedKind());
   protected readonly mix = signal<SoundMix>(this.tweaks.values().sound ?? SOUND_MIX);
@@ -176,16 +170,11 @@ export class Sounds {
       .groups.filter((group) => !group.open)
       .map((group) => group.size),
   );
-  /** The words the song plays in. */
-  protected readonly words = computed(() => listenedWords(this.groups()));
-  protected readonly wordsShown = computed(() => {
-    const places = this.groups().reduce((total, size) => total + size, 0);
-    const words = this.words();
-    const played = words.reduce((total, size) => total + size, 0);
-    return places === 0
-      ? `Plays π's first ${String(played)} places in words of ${String(LISTENED_WORD)}, until you have groups.`
-      : `Plays π's first ${String(played)} places in your groups${places < LISTENED_PLACES ? `, then words of ${String(LISTENED_WORD)}` : ''}.`;
-  });
+  protected readonly wordsShown = computed(() =>
+    this.groups().length === 0
+      ? `Plays π in words of ${String(LISTENED_WORD)} until you stop it, as you have no groups yet.`
+      : `Plays π in your ${String(this.groups().length)} groups, then in words of ${String(LISTENED_WORD)}, until you stop it.`,
+  );
 
   protected readonly tuned = computed(
     () =>
@@ -244,20 +233,37 @@ export class Sounds {
   }
 
   /** Plays the start of the song of π, as the model picked plays it, in words of 5, landing as they end. */
+  /**
+   * Plays the song of π, as the model picked plays it, in the player's groups, then in words of 5, landing as they end,
+   * until stopped: a little at a time, handing the notes to the speaker a little ahead.
+   */
   protected listen(): void {
-    const song = listening(this.kind().create(), this.words(), this.landings());
-    const stops = song.map(({ at, chime }) => this.speaker.play(chime, at));
-    const played = song.at(-1)?.at ?? 0;
-    const timer = setTimeout(() => {
-      this.listening.set(false);
-    }, played + 1000);
+    const chimes = song(this.kind().create(), this.groups(), this.landings());
+    const start = this.clock.now();
+    let next = chimes.next();
+    let stops: (() => void)[] = [];
+    const schedule = (): void => {
+      const now = this.clock.now() - start;
+      while (!next.done && next.value.at < now + LISTEN_AHEAD) {
+        stops.push(this.speaker.play(next.value.chime, Math.max(0, next.value.at - now)));
+        next = chimes.next();
+      }
+      // Those handed over long ago have started, past stopping.
+      stops = stops.slice(-64);
+      if (next.done) {
+        cancel();
+        this.listening.set(false);
+      }
+    };
+    const cancel = this.timer.every(LISTEN_PERIOD, schedule);
     this.stopSong = () => {
-      clearTimeout(timer);
+      cancel();
       for (const stop of stops) {
         stop();
       }
     };
     this.listening.set(true);
+    schedule();
   }
 
   protected stop(): void {
