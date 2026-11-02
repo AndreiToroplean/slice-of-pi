@@ -6,6 +6,7 @@ import { Tweaks } from '../../developer-mode/tweaks';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { INDEXED_DB } from '../../player-data/run-store';
 import { VibrationSetting } from '../../player-data/vibration-setting';
+import { SoundSetting } from '../../player-data/sound-setting';
 import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
 import { Settings } from './settings';
 
@@ -34,6 +35,20 @@ describe('Settings', () => {
   function countdown(host: HTMLElement): HTMLInputElement | null {
     return checkbox(host, 'Countdown');
   }
+
+  it('turns sounds off and on, and brings them back', async () => {
+    const host = await setUp();
+    const sound = TestBed.inject(SoundSetting);
+    expect(checkbox(host, 'Sound')?.checked).toBe(true);
+    expect(backToDefault(host, 'Sound')?.disabled).toBe(true);
+
+    checkbox(host, 'Sound')?.click();
+    expect(sound.enabled()).toBe(false);
+
+    await TestBed.inject(ApplicationRef).whenStable();
+    backToDefault(host, 'Sound')?.click();
+    expect(sound.enabled()).toBe(true);
+  });
 
   it('turns vibration off and on, and brings it back', async () => {
     const host = await setUp();
@@ -171,10 +186,12 @@ describe('Settings', () => {
     await tweaks.setSolidKeys(true);
     await setting.set('telephone');
     await TestBed.inject(VibrationSetting).set(false);
+    await TestBed.inject(SoundSetting).set(false);
     await fixture.whenStable();
     button(host, 'Reset Settings')?.click();
 
     expect(TestBed.inject(VibrationSetting).enabled()).toBe(true);
+    expect(TestBed.inject(SoundSetting).enabled()).toBe(true);
     expect(tweaks.solidKeys()).toBe(false);
     expect(tweaks.countdown()).toBe(false);
     expect(tweaks.checking()).toBe(true);
