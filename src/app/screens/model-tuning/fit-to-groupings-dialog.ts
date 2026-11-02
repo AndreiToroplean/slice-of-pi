@@ -38,8 +38,8 @@ export const FIT_TO_GROUPINGS = new InjectionToken<typeof fitToGroupings>('FIT_T
 
 /**
  * Developer mode's dialog that fits a break model's hyperparameters to the player's own groups, opened from the overflow
- * menu of Model Tuning: pick the model and fit it to the groups typed in the Group tab of Model Tuning. Groups that aren't π
- * show as an error, saying where. The search, which leaves the hyperparameters pinned on Model Tuning where they are, runs while the dialog stays open, showing how well the model matches the groups
+ * menu of Break Models: pick the model and fit it to the groups typed in the Group tab of Break Models. Groups that aren't π
+ * show as an error, saying where. The search, which leaves the hyperparameters pinned on Break Models where they are, runs while the dialog stays open, showing how well the model matches the groups
  * as an F1 score, which tells models apart on the same groups, with all the runs or, fitting the run-count curve, with
  * fewer too; then the sliders are set to the best values found. It
  * stays open, so as to fit again once the model or the groups change. It draws the run-count curve of the model as set,
@@ -364,7 +364,7 @@ export class FitToGroupingsDialog {
       return '';
     }
     if (this.groups().length === 0) {
-      return 'Type or paste the decimals of π as you group them in the Group tab on top of Model Tuning.';
+      return 'Type or paste the decimals of π as you group them in the Group tab on top of Break Models.';
     }
     if (this.runs().length === 0) {
       return 'No runs to fit to.';

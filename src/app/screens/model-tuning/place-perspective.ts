@@ -11,7 +11,7 @@ const CONTEXT = 6;
 
 /**
  * What the break model makes of one place across the runs (`place-views.ts`), beside what it makes of
- * the runs along the places on top of Model Tuning: the place, between two digits of π, stepped through one at a time or
+ * the runs along the places on top of Break Models: the place, between two digits of π, stepped through one at a time or
  * from one usual break spot to the next, then, one after the other, whether it's a break and why, what each run says
  * there, step by step, and every run there in a table. Tapping a chart along the places picks the place too.
  */

@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 test('closes a menu when its button is pressed again', async ({ page }) => {
-  // Model Tuning has tabs, and their menu.
-  await page.goto('/developer/model-tuning');
+  // Break Models has tabs, and their menu.
+  await page.goto('/developer/break-models');
   const more = page.locator('.bar').getByRole('button', { name: 'More' });
   const menu = page.getByRole('menu');
 

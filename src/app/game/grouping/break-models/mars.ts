@@ -388,7 +388,7 @@ export const MARS: BreakModelKind = {
           step: 0.01,
           format: (value) => value.toFixed(2),
           help: {
-            what: 'The recency decay from the run you’re typing to your newest recorded run, where the recency decay above is between recorded runs: the run you’re typing counts 1, your newest recorded run this much, and each one before it the recency decay times the one after it. It only counts as you play: on Model Tuning, no run is being typed.',
+            what: 'The recency decay from the run you’re typing to your newest recorded run, where the recency decay above is between recorded runs: the run you’re typing counts 1, your newest recorded run this much, and each one before it the recency decay times the one after it. It only counts as you play: on Break Models, no run is being typed.',
             why: 'The run you’re typing tells best how you group right now, so a pause in it can count for more than one in any run before, while how much is tuned apart from how your recorded runs fade.',
             moving:
               'Lower lets the run you’re typing count for more, so a pause ends a group sooner where your earlier runs carried on, and a run-through undoes a usual break spot sooner. At the recency decay, it counts just as a run newer than the newest would; at 1, as much as the newest.',

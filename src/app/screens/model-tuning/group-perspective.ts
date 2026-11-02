@@ -7,7 +7,7 @@ import { PlotView } from '../your-runs/views/plot-view';
 
 /**
  * The groups the break model makes of the runs, beside what it makes of them along the places and at
- * one place on top of Model Tuning, one after the other: the game's groups, the player's own as they type them, which the
+ * one place on top of Break Models, one after the other: the game's groups, the player's own as they type them, which the
  * break model is fitted to, then the views along the digits of a group (`group-views.ts`).
  */
 @Component({

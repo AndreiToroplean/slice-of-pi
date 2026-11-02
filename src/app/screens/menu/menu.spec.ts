@@ -277,7 +277,7 @@ describe('Menu', () => {
         ]),
       ).toEqual(
         expect.arrayContaining([
-          ['Model Tuning', '/developer/model-tuning'],
+          ['Break Models', '/developer/break-models'],
           ['Key Colors', '/developer/key-colors'],
           ['Background Colors', '/developer/background-colors'],
         ]),
