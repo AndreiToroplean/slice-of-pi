@@ -52,8 +52,8 @@ test('opens a page from the overflow menu, and goes back on Escape', async ({ pa
 
   await page.keyboard.press('Enter');
   await expect(first).toBeFocused();
-  // Down to Model Tuning, wherever it is among them.
-  const modelTuning = page.getByRole('menuitem', { name: 'Model Tuning' });
+  // Down to Break Models, wherever it is among them.
+  const modelTuning = page.getByRole('menuitem', { name: 'Break Models' });
   for (
     let step = 0;
     step < 10 && !(await modelTuning.evaluate((link) => link === document.activeElement));
@@ -63,7 +63,7 @@ test('opens a page from the overflow menu, and goes back on Escape', async ({ pa
   }
   await expect(modelTuning).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL('/developer/model-tuning');
+  await expect(page).toHaveURL('/developer/break-models');
   await page.keyboard.press('Escape');
   await expect(page).toHaveURL('/');
 });

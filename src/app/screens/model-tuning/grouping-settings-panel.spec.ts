@@ -19,7 +19,7 @@ import { GroupingSettingsPanel, nameOf, rowsOf } from './grouping-settings-panel
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 import { Dropdown } from '../../ui/menu';
 
-/** The panel, given an overflow menu copying its values, as Model Tuning gives it one. */
+/** The panel, given an overflow menu copying its values, as Break Models gives it one. */
 @Component({
   imports: [CdkMenuItem, Dropdown, GroupingSettingsPanel],
   template: `

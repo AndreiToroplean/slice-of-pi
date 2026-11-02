@@ -19,7 +19,7 @@ import { Key, Range } from './views/plot';
  * groups, and under it a card for each run, scrolling, in the order the game takes them, and the line it plays from
  * among them, if any. A long press on a run opens its context menu, to watch its replay or delete it, and in developer
  * mode to play from after it. Its layout is the same in developer mode, the tweaks applying to it as to the whole game:
- * Model Tuning is where they're tuned.
+ * Break Models is where they're tuned.
  */
 @Component({
   selector: 'app-your-runs',

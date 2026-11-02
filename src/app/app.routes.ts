@@ -29,7 +29,7 @@ export const routes: Routes = [
     loadComponent: () => import('./screens/settings/settings').then((m) => m.Settings),
   },
   {
-    path: 'developer/model-tuning',
+    path: 'developer/break-models',
     loadComponent: () => import('./screens/model-tuning/model-tuning').then((m) => m.ModelTuning),
   },
   {

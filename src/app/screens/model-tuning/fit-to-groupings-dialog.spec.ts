@@ -112,7 +112,7 @@ describe('FitToGroupingsDialog', () => {
     return field(host, 'button.end-fit') as HTMLButtonElement;
   }
 
-  /** Types the groupings, as the Group tab of Model Tuning takes them. */
+  /** Types the groupings, as the Group tab of Break Models takes them. */
   function type(text: string): void {
     TestBed.inject(MyGroupings).set(text);
   }
@@ -220,7 +220,7 @@ describe('FitToGroupingsDialog', () => {
       expect(curveButton.disabled).toBe(true);
       expect(fitButton(host).disabled).toBe(false);
       expect(fitButton(host).textContent.trim()).toBe('Fit');
-      // Pinned on Model Tuning, so left where it was.
+      // Pinned on Break Models, so left where it was.
       expect(TestBed.inject(Tweaks).grouping()['window']).toBe(LUNA.defaults['window']);
     },
   );

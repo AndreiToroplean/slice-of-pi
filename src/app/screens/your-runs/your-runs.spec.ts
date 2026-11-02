@@ -313,7 +313,7 @@ describe('YourRuns', () => {
     ).toEqual(['Place 1', 'Place 16']);
   });
 
-  it('keeps its layout in developer mode, which has Model Tuning for the rest', async () => {
+  it('keeps its layout in developer mode, which has Break Models for the rest', async () => {
     const unchecked = { ...grouped, id: 'unchecked', checked: false };
     const { host } = await setUp([first, unchecked], false, false, undefined, true);
 
