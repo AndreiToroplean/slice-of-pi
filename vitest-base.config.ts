@@ -6,6 +6,8 @@ const script = process.env['npm_lifecycle_event'];
 
 export default defineConfig({
   test: {
+    // About 5% quicker than the default of a process per worker.
+    pool: 'threads',
     tags: [
       {
         name: 'manual',
