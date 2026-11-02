@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, InjectionToken, Signal, signal } from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
-import { groupRuns, orderRuns, Run, RunOrder } from '../../player-data/run';
+import { groupRuns, moveRun, orderRuns, Run, RunOrder } from '../../player-data/run';
 import { RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { CONFIRM } from '../../ui/confirm';
@@ -111,6 +111,12 @@ export class RunsState {
     const ids = runs.map((run) => run.id);
     return line === undefined ? { ids } : { ids, line };
   });
+  /** Whether the runs are shown in the order they were played in. */
+  readonly chronological = computed(() =>
+    this.order().runs.every(
+      (run, i, runs) => i === 0 || (runs[i - 1]?.startedAt ?? 0) <= run.startedAt,
+    ),
+  );
   /** What the runs counted are called, as a whole. */
   readonly aggregateTitle = computed(() =>
     this.order().line === undefined ? 'All runs' : 'Runs before here',
@@ -135,6 +141,20 @@ export class RunsState {
   /** Plays from after all the runs again, keeping them in the order shown. */
   undoPlayFrom(): void {
     void this.tweaks.setRunOrder({ ids: this.shownOrder().ids });
+  }
+
+  /** Moves the run or the line shown at one place among the rows to another. */
+  move(from: number, to: number): void {
+    if (from !== to) {
+      void this.tweaks.setRunOrder(moveRun(this.shownOrder(), from, to));
+    }
+  }
+
+  /** Puts the runs back in the order they were played in, the line staying where it is, under as many runs. */
+  reorderChronologically(): void {
+    const { runs, line } = this.order();
+    const ids = [...runs].sort((a, b) => a.startedAt - b.startedAt).map((run) => run.id);
+    void this.tweaks.setRunOrder(line === undefined ? undefined : { ids, line });
   }
 
   /** Deletes every run kept, once the player confirms. */

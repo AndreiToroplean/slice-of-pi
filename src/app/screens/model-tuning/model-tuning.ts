@@ -14,7 +14,6 @@ import { Carousel } from '../../ui/carousel';
 import { Router } from '@angular/router';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { Page } from '../../ui/page';
-import { moveRun } from '../../player-data/run';
 import { FitToGroupingsDialog } from './fit-to-groupings-dialog';
 import { GroupingSettingsPanel } from './grouping-settings-panel';
 import { CdkMenuItem, CdkMenuItemCheckbox } from '@angular/cdk/menu';
@@ -236,8 +235,8 @@ import { TIMES, TimesView } from '../your-runs/times-view';
           <button
             type="button"
             cdkMenuItem
-            [cdkMenuItemDisabled]="chronological()"
-            (cdkMenuItemTriggered)="reorderChronologically()"
+            [cdkMenuItemDisabled]="state.chronological()"
+            (cdkMenuItemTriggered)="state.reorderChronologically()"
           >
             Reorder Runs Chronologically
           </button>
@@ -360,13 +359,6 @@ export class ModelTuning {
   });
 
   protected readonly rows = this.state.rows;
-  /** Whether the runs are shown in the order they were played in. */
-  protected readonly chronological = computed(() =>
-    this.state
-      .order()
-      .runs.every((run, i, runs) => i === 0 || (runs[i - 1]?.startedAt ?? 0) <= run.startedAt),
-  );
-  private readonly shownOrder = this.state.shownOrder;
   protected readonly ALL = ALL;
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
@@ -419,16 +411,9 @@ export class ModelTuning {
     this.state.playFrom(id === ALL ? undefined : id);
   }
 
-  /** Puts the runs back in the order they were played in, the line staying where it is, under as many runs. */
-  protected reorderChronologically(): void {
-    const { runs, line } = this.state.order();
-    const ids = [...runs].sort((a, b) => a.startedAt - b.startedAt).map((run) => run.id);
-    void this.tweaks.setRunOrder(line === undefined ? undefined : { ids, line });
-  }
-
   /** Moves a run dropped somewhere else among the runs and the line. */
   protected dropped({ previousIndex, currentIndex }: CdkDragDrop<unknown>): void {
-    this.move(previousIndex, currentIndex);
+    this.state.move(previousIndex, currentIndex);
     // The drop has just put the rows back in their old places and stopped them making room for the run: show them in
     // their new order at once, before the page is drawn, or they jump back and forth for a frame.
     this.changeDetector.detectChanges();
@@ -440,7 +425,7 @@ export class ModelTuning {
     if (to < 0 || to >= this.rows().length) {
       return;
     }
-    this.move(index, to);
+    this.state.move(index, to);
     afterNextRender(
       {
         write: () => {
@@ -449,12 +434,6 @@ export class ModelTuning {
       },
       { injector: this.injector },
     );
-  }
-
-  private move(from: number, to: number): void {
-    if (from !== to) {
-      void this.tweaks.setRunOrder(moveRun(this.shownOrder(), from, to));
-    }
   }
 }
 
