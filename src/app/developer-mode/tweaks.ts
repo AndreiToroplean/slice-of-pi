@@ -91,6 +91,8 @@ export interface TweakValues {
   readonly soundModel?: string;
   /** How loud the sounds are, and how long they ring, for {@link SOUND_MIX}. */
   readonly sound?: SoundMix;
+  /** `false` for words to land on the tape without a chord, which they otherwise play. */
+  readonly landings?: false;
   /** `true` to show, in developer mode, what each key typed played, in words, which is otherwise hidden. */
   readonly soundNotes?: true;
 }
@@ -215,6 +217,10 @@ export class Tweaks {
     (): SoundMix => (this.developerMode.enabled() ? this.tweaks().sound : undefined) ?? SOUND_MIX,
   );
 
+  /** Whether each word plays a chord as it lands on the tape. */
+  readonly landings = computed(
+    () => !this.developerMode.enabled() || this.tweaks().landings !== false,
+  );
   /** Whether the play screen shows what each key typed played, which only developer mode does, once told to. */
   readonly soundNotes = computed(
     () => this.developerMode.enabled() && this.tweaks().soundNotes === true,
@@ -360,6 +366,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), sound }));
   }
 
+  /** Has words play a chord as they land on the tape, or land silently. */
+  setLandings(landings: boolean): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), landings: landings ? undefined : false }));
+  }
+
   /** Shows what each key typed played, in words, or hides it. */
   setSoundNotes(soundNotes: boolean): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), soundNotes: soundNotes ? true : undefined }));
@@ -421,6 +432,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     vibrations,
     soundModel,
     sound,
+    landings,
     soundNotes,
   } = migrate(stored, TWEAKS_MIGRATIONS);
   if (format !== TWEAKS_FORMAT) {
@@ -445,6 +457,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     vibrations: vibrationsOf(vibrations),
     soundModel: soundModelKindById(soundModel)?.id,
     sound: soundMixOf(sound),
+    landings: landings === false ? landings : undefined,
     soundNotes: soundNotes === true ? soundNotes : undefined,
   });
 }
@@ -526,6 +539,7 @@ function tweakValues({
   vibrations,
   soundModel,
   sound,
+  landings,
   soundNotes,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
@@ -549,6 +563,7 @@ function tweakValues({
     ...(vibrations === undefined ? {} : { vibrations }),
     ...(soundModel === undefined ? {} : { soundModel }),
     ...(sound === undefined ? {} : { sound }),
+    ...(landings === undefined ? {} : { landings }),
     ...(soundNotes === undefined ? {} : { soundNotes }),
   };
 }

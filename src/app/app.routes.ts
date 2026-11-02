@@ -33,6 +33,10 @@ export const routes: Routes = [
     loadComponent: () => import('./screens/model-tuning/model-tuning').then((m) => m.ModelTuning),
   },
   {
+    path: 'developer/sound-models',
+    loadComponent: () => import('./screens/tuning/sounds').then((m) => m.Sounds),
+  },
+  {
     path: 'developer/key-colors',
     loadComponent: () => import('./screens/tuning/key-colors').then((m) => m.KeyColors),
   },
