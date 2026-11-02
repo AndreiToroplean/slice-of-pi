@@ -78,6 +78,21 @@ describe('Settings', () => {
     expect(tweaks.countdown()).toBe(false);
   });
 
+  it('shows what each key typed played, in developer mode, and hides it again', async () => {
+    await TestBed.inject(DeveloperMode).set(true);
+    const host = await setUp();
+    const tweaks = TestBed.inject(Tweaks);
+    expect(checkbox(host, 'Sound Notes')?.checked).toBe(false);
+    expect(backToDefault(host, 'Sound Notes')?.disabled).toBe(true);
+
+    checkbox(host, 'Sound Notes')?.click();
+    expect(tweaks.soundNotes()).toBe(true);
+
+    await TestBed.inject(ApplicationRef).whenStable();
+    backToDefault(host, 'Sound Notes')?.click();
+    expect(tweaks.soundNotes()).toBe(false);
+  });
+
   it('turns checking the digits off, in developer mode, and brings it back', async () => {
     await TestBed.inject(DeveloperMode).set(true);
     const host = await setUp();

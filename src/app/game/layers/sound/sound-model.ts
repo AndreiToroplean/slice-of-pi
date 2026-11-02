@@ -6,7 +6,8 @@ import type { Season } from '../seasons';
  * digit, its key's color index, the season, the digits typed before, the place they lead to, and the word being typed, its slots
  * and the digit's place in it, and what a word plays as it lands on the tape, so that π's digits, typed one after the
  * other, sound as melodious as they can: the song of π. It says what to play as notes, a description the speaker plays
- * (see `Speaker`), never as sound itself. How it picks the notes is its own: models are plugged in and out in `sound-models.ts`, and developer mode picks one.
+ * (see `Speaker`), never as sound itself, and tells what it plays in a line, for developer mode to show. How it picks
+ * the notes is its own: models are plugged in and out in `sound-models.ts`, and developer mode picks one.
  */
 
 /** A note to play, as a description the speaker plays. */
@@ -56,8 +57,12 @@ export interface Moment {
 export interface SoundModel {
   /** What each digit key plays when typed at that moment. */
   keys(moment: Moment): Readonly<Record<Digit, Chime>>;
+  /** What a digit key plays when typed at that moment, in a short line. */
+  describe(moment: Moment, digit: Digit): string;
   /** What a word plays as it lands on the tape: `words` are the sizes of the words up to it, its own last. */
   landing(typed: string, words: readonly number[]): Chime;
+  /** What a word plays as it lands on the tape, in a short line. */
+  describeLanding(typed: string, words: readonly number[]): string;
 }
 
 /** A sound model as developer mode sees it: what it's called, how it works, and how to make it. */

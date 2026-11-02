@@ -322,6 +322,19 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({});
   });
 
+  it('shows what keys played only in developer mode, once told to, kept until undone', async () => {
+    const tweaks = await load();
+    await tweaks.setSoundNotes(true);
+    expect(tweaks.soundNotes()).toBe(false);
+
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.soundNotes()).toBe(true);
+    expect((await load()).values()).toEqual({ soundNotes: true });
+
+    await TestBed.inject(Tweaks).setSoundNotes(false);
+    expect((await load()).values()).toEqual({});
+  });
+
   it('reads the stored tweaks again once something else changed them', async () => {
     const tweaks = await load();
     await TestBed.inject(RunStore).saveSetting(TWEAKS, {
@@ -534,6 +547,8 @@ describe('Tweaks', () => {
       parseTweaks({ format: TWEAKS_FORMAT, sound: { chords: 0.4, volume: 0.5, length: 'long' } }),
     ).toEqual({ sound: { ...SOUND_MIX, chords: 0.4 } });
     expect(parseTweaks({ format: TWEAKS_FORMAT, sound: { chords: -1 } })).toEqual({});
+    expect(parseTweaks({ format: TWEAKS_FORMAT, soundNotes: true })).toEqual({ soundNotes: true });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, soundNotes: 'yes' })).toEqual({});
     expect(parseTweaks(null)).toEqual({});
 
     const store = (await load(), TestBed.inject(RunStore));

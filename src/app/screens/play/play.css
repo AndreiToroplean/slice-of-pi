@@ -59,3 +59,12 @@ app-typed-digits {
   bottom: 0;
   height: var(--keys-height);
 }
+
+/* Developer mode's log of what the keys played, from under the season header down to the tape. */
+app-sound-log {
+  position: absolute;
+  z-index: 1;
+  inset-inline: calc(var(--margin) + var(--margin-side));
+  top: calc(var(--margin-top) + var(--header-height));
+  bottom: calc(var(--floor) + var(--tape-top));
+}

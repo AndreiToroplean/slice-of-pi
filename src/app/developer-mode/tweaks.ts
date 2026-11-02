@@ -91,6 +91,8 @@ export interface TweakValues {
   readonly soundModel?: string;
   /** How loud the sounds are, and how long they ring, for {@link SOUND_MIX}. */
   readonly sound?: SoundMix;
+  /** `true` to show, in developer mode, what each key typed played, in words, which is otherwise hidden. */
+  readonly soundNotes?: true;
 }
 
 /** The game's own starting colors of each season. */
@@ -211,6 +213,11 @@ export class Tweaks {
   /** How loud the sounds are, and how long they ring. */
   readonly soundMix = computed(
     (): SoundMix => (this.developerMode.enabled() ? this.tweaks().sound : undefined) ?? SOUND_MIX,
+  );
+
+  /** Whether the play screen shows what each key typed played, which only developer mode does, once told to. */
+  readonly soundNotes = computed(
+    () => this.developerMode.enabled() && this.tweaks().soundNotes === true,
   );
 
   constructor() {
@@ -353,6 +360,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), sound }));
   }
 
+  /** Shows what each key typed played, in words, or hides it. */
+  setSoundNotes(soundNotes: boolean): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), soundNotes: soundNotes ? true : undefined }));
+  }
+
   /** Brings back the game's own value of everything tuned. */
   reset(): Promise<void> {
     return this.save({});
@@ -409,6 +421,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     vibrations,
     soundModel,
     sound,
+    soundNotes,
   } = migrate(stored, TWEAKS_MIGRATIONS);
   if (format !== TWEAKS_FORMAT) {
     return {};
@@ -432,6 +445,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     vibrations: vibrationsOf(vibrations),
     soundModel: soundModelKindById(soundModel)?.id,
     sound: soundMixOf(sound),
+    soundNotes: soundNotes === true ? soundNotes : undefined,
   });
 }
 
@@ -512,6 +526,7 @@ function tweakValues({
   vibrations,
   soundModel,
   sound,
+  soundNotes,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -534,6 +549,7 @@ function tweakValues({
     ...(vibrations === undefined ? {} : { vibrations }),
     ...(soundModel === undefined ? {} : { soundModel }),
     ...(sound === undefined ? {} : { sound }),
+    ...(soundNotes === undefined ? {} : { soundNotes }),
   };
 }
 
