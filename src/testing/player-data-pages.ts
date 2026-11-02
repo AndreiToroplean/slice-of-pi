@@ -1,4 +1,4 @@
-import { Type } from '@angular/core';
+import { Provider, Type } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { IDBFactory } from 'fake-indexeddb';
@@ -49,6 +49,29 @@ export interface OpenPage {
 export async function openPage(
   component: Type<unknown>,
   ready: (host: HTMLElement) => boolean,
+  setUp: PageSetUp = {},
+): Promise<OpenPage> {
+  await setUpPlayerData(setUp);
+  const fixture = TestBed.createComponent(component);
+  await fixture.whenStable();
+  const host = fixture.nativeElement as HTMLElement;
+  const until = (isReady: () => boolean): Promise<void> =>
+    vi.waitFor(async () => {
+      await fixture.whenStable();
+      if (!isReady()) {
+        throw new Error('Not ready yet');
+      }
+    });
+  await until(() => ready(host));
+  return { host, until };
+}
+
+/**
+ * Sets the player's data up as {@link openPage} does, with no page, for the services that work on it to be tested on
+ * their own, which is far quicker than through a page: these runs and settings, in a database of its own, at noon on
+ * 10 October 2026, and these providers too.
+ */
+export async function setUpPlayerData(
   {
     runs = [],
     persisted = false,
@@ -58,7 +81,8 @@ export async function openPage(
     confirm = () => true,
     saveFile = () => undefined,
   }: PageSetUp = {},
-): Promise<OpenPage> {
+  providers: readonly Provider[] = [],
+): Promise<void> {
   const indexedDb = new IDBFactory();
   if (mainFormat !== undefined) {
     await noteMainFormat(indexedDb, mainFormat);
@@ -83,6 +107,7 @@ export async function openPage(
       },
       { provide: CONFIRM, useValue: confirm },
       { provide: SAVE_FILE, useValue: saveFile },
+      ...providers,
     ],
   });
   for (const run of runs) {
@@ -91,18 +116,6 @@ export async function openPage(
   if (developer) {
     await TestBed.inject(DeveloperMode).set(true);
   }
-  const fixture = TestBed.createComponent(component);
-  await fixture.whenStable();
-  const host = fixture.nativeElement as HTMLElement;
-  const until = (isReady: () => boolean): Promise<void> =>
-    vi.waitFor(async () => {
-      await fixture.whenStable();
-      if (!isReady()) {
-        throw new Error('Not ready yet');
-      }
-    });
-  await until(() => ready(host));
-  return { host, until };
 }
 
 /** Notes the main game's run format, as the main game does when it opens the database. */
