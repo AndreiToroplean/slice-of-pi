@@ -140,12 +140,18 @@ const TICK = 16;
           [paused]="paused()"
           (pausedChange)="setPaused($event)"
           (edit)="editedLayout.set(tweaks.layout())"
+          [(trying)]="tryingKeys"
           [replayable]="recorder.run() !== undefined"
           (restart)="restart()"
           (replay)="void replayRun()"
         />
       }
     </app-keypad>
+    @if (tryingKeys()) {
+      <p class="trying frosted" role="status">
+        Trying the keys: nothing is typed. Pause to go back.
+      </p>
+    }
     @let wait = breakWait();
     @if (tweaks.countdown() && wait !== undefined) {
       <app-break-countdown [wait]="wait" />
@@ -182,6 +188,8 @@ export class Play implements PausesOnBack {
 
   /** The colors tuned in developer mode, or the game's own, and whether to count down to the end of the group. */
   protected readonly tweaks = inject(Tweaks);
+  /** Whether the player is trying the keys, from the pause dialog in developer mode, the game staying paused. */
+  protected readonly tryingKeys = signal(false);
   /** The layout being edited, in developer mode's edit mode, while the game stays paused. */
   protected readonly editedLayout = signal<Layout | undefined>(undefined);
   /** Whether edit mode hides its handles, the screen showing as in the game. */
@@ -363,8 +371,24 @@ export class Play implements PausesOnBack {
     if (this.replay() !== undefined) {
       return;
     }
-    if (!this.paused()) {
+    if (this.tryingKeys()) {
+      this.tryKey(touch.key);
+    } else if (!this.paused()) {
       this.play(touch);
+    }
+  }
+
+  /** Plays a key as it would be typed now, the game staying paused, typing nothing. */
+  private tryKey(key: KeypadKey | null): void {
+    if (key === 'backspace') {
+      this.vibrate('backspace');
+    } else if (key !== null) {
+      this.sound(key);
+      this.vibrate(
+        this.mistakes() === '' && (!this.checking() || isPiDecimal(this.digits().length + 1, key))
+          ? 'digit'
+          : 'mistake',
+      );
     }
   }
 

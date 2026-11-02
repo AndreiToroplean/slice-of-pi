@@ -67,6 +67,7 @@
 - **Edit mode:** developer mode's way of tuning the **layout**, where things sit on the screens, by dragging the edges of the play screen's parts: tapping a part picks it out, showing its handles alone; with none picked out, the handles are those of the page's margins.
 - **Main menu editor:** developer mode's way of tuning the main menu's look, as edit mode tunes the play screen: handles on the part picked out set its size and height, always centered, and its light; with none picked out, they set the margins every screen shares.
 - **Sound model:** how the game composes the song of π: the notes each key plays at each place, and how words phrase it. Developer mode switches between several.
+- **Trying the keys:** developer mode's way of playing the keys at a place, from the pause dialog, typing nothing, the game staying paused.
 - **Break model:** how the game tells breaks from the intervals of the runs. Developer mode switches between several, each named after a planet or a moon.
 - **Group-size envelope:** a factor from 0 to 1 for each size of group, by which a break model weighs how likely a grouping is: groups of sizes near 0 are rare, and those at 0 never happen. Its **strength** raises every factor to a power, so that it can weigh as much as many runs. At 1 for every size, it changes nothing.
 - **Hyperparameter:** a value of a break model set by hand or by a fit, as opposed to what the model works out from the runs (baselines, breaks). A full set of values for a model is a **configuration**.

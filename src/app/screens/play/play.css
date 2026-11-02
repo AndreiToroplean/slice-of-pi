@@ -59,3 +59,20 @@ app-typed-digits {
   bottom: 0;
   height: var(--keys-height);
 }
+
+/* While trying the keys, what's going on, over the season header. */
+.trying {
+  position: absolute;
+  top: var(--margin-top);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 1;
+  width: max-content;
+  max-width: calc(100% - 2 * var(--margin-side) - 2 * var(--margin));
+  margin: 0;
+  padding: 0.5rem 0.875rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  text-align: center;
+  cursor: default;
+}

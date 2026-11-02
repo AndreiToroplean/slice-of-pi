@@ -12,7 +12,9 @@ import { LightDismiss } from '../../../ui/light-dismiss';
  * confirmed it, warned that the game can't be resumed then. Escape pauses too, as going back does (see `Play`), and
  * resumes, or goes back from the confirmation, as do going back and a click outside the dialog; up and down move between a dialog's
  * buttons, and Enter chooses one, as on any button. In developer mode, a button in its right corner also puts the play screen
- * in edit mode, the game staying paused until it's done.
+ * in edit mode, the game staying paused until it's done, and a button lets the player try the keys: the dialog closes,
+ * the game staying paused, and the keys play as they would at this place, typing nothing, until the pause key, going
+ * back or Escape brings the dialog back.
  */
 @Component({
   selector: 'app-pause',
@@ -59,6 +61,9 @@ import { LightDismiss } from '../../../ui/light-dismiss';
       <app-button-list>
         <button type="button" appCandy="primary" autofocus (click)="resume()">Resume</button>
         <button type="button" appCandy (click)="restart.emit(); resume()">Restart</button>
+        @if (developerMode.enabled()) {
+          <button type="button" appCandy (click)="tryKeys()">Try the Keys</button>
+        }
         <button type="button" appCandy="danger" (click)="void endGame()">End Game</button>
       </app-button-list>
     </dialog>
@@ -92,6 +97,8 @@ export class Pause {
   readonly replay = output();
   /** The player chose to edit the layout, once the dialog has closed: the game stays paused meanwhile. */
   readonly edit = output();
+  /** Whether the player is trying the keys, the dialog closed, the game staying paused. */
+  readonly trying = model(false);
 
   protected readonly developerMode = inject(DeveloperMode);
 
@@ -99,6 +106,8 @@ export class Pause {
   ending = false;
   /** Whether the player chose to edit the layout, as the dialog closes. */
   private editing = false;
+  /** Whether the player chose to try the keys, as the dialog closes. */
+  private choseToTry = false;
 
   private readonly backToMenu = injectBackToMenu();
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
@@ -106,6 +115,7 @@ export class Pause {
 
   /** Pauses, opening the dialog, as the pause button does. */
   pause(): void {
+    this.trying.set(false);
     this.dialog().nativeElement.showModal();
     this.paused.set(true);
   }
@@ -113,7 +123,9 @@ export class Pause {
   /** Going back: pauses, or resumes, or goes back from the confirmation, as Escape does. */
   back(): void {
     const replayDialog = this.replayDialog().nativeElement;
-    if (replayDialog.open) {
+    if (this.trying()) {
+      this.pause();
+    } else if (replayDialog.open) {
       replayDialog.close();
     } else if (this.paused()) {
       this.resume();
@@ -124,7 +136,7 @@ export class Pause {
 
   /** Pauses, unless already paused: the dialog then closes on Escape by itself. */
   protected escape(event: Event): void {
-    if (!this.paused()) {
+    if (!this.paused() || this.trying()) {
       // So that the browser doesn't take the same Escape to close the dialog just opened.
       event.preventDefault();
       this.pause();
@@ -136,11 +148,19 @@ export class Pause {
     this.resume();
   }
 
-  /** The dialog closed: the game resumes, unless the player chose to edit the layout. */
+  protected tryKeys(): void {
+    this.choseToTry = true;
+    this.resume();
+  }
+
+  /** The dialog closed: the game resumes, unless the player chose to edit the layout or to try the keys. */
   protected closed(): void {
     if (this.editing) {
       this.editing = false;
       this.edit.emit();
+    } else if (this.choseToTry) {
+      this.choseToTry = false;
+      this.trying.set(true);
     } else {
       this.paused.set(false);
     }

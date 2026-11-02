@@ -1214,6 +1214,79 @@ describe('Play', () => {
       expect(slots(host)).toEqual(['1', '4', '1', '', '']);
     });
 
+    it('tries the keys from the pause dialog in developer mode: they play as typed here, typing nothing', async () => {
+      await TestBed.inject(DeveloperMode).set(true);
+      const sound = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const vibrate = vi.spyOn(TestBed.inject(Vibrator), 'play');
+      const { host, type, stable } = await setUp();
+      await typeAll(type, '14');
+      sound.mockClear();
+      vibrate.mockClear();
+
+      pauseItem(host, 'Pause').click();
+      pauseItem(host, 'Try the Keys').click();
+      await stable();
+      expect(host.querySelector('app-pause dialog')?.hasAttribute('open')).toBe(false);
+      expect(host.querySelector('.trying')?.textContent).toContain('nothing is typed');
+
+      await type('1');
+      await type('7');
+      await type('backspace');
+      time.advance(10 * PAUSE);
+      await stable();
+      expect(slots(host)).toEqual(['1', '4', '', '', '']);
+      expect(words(host)).toEqual([]);
+      const keys = ARIA.create().keys({ place: 3, words: [], slots: 5 });
+      expect(sound.mock.calls.map(([chime]) => chime)).toEqual([keys['1'], keys['7']]);
+      expect(vibrate.mock.calls.map(([vibration]) => vibration)).toEqual([
+        'digit',
+        'mistake',
+        'backspace',
+      ]);
+
+      pauseItem(host, 'Pause').click();
+      await stable();
+      expect(host.querySelector('app-pause dialog')?.hasAttribute('open')).toBe(true);
+      expect(host.querySelector('.trying')).toBeNull();
+      pauseItem(host, 'Resume').click();
+      await type('1');
+      expect(slots(host)).toEqual(['1', '4', '1', '', '']);
+    });
+
+    it('goes back from trying the keys to the pause dialog', async () => {
+      await TestBed.inject(DeveloperMode).set(true);
+      const { host, play, stable } = await setUp();
+      pauseItem(host, 'Pause').click();
+      pauseItem(host, 'Try the Keys').click();
+      await stable();
+
+      expect(play.leaveOnBack()).toBe(false);
+      await stable();
+
+      expect(host.querySelector('app-pause dialog')?.hasAttribute('open')).toBe(true);
+      expect(host.querySelector('.trying')).toBeNull();
+    });
+
+    it('comes back to the pause dialog from trying the keys on Escape', async () => {
+      await TestBed.inject(DeveloperMode).set(true);
+      const { host, stable } = await setUp();
+      pauseItem(host, 'Pause').click();
+      pauseItem(host, 'Try the Keys').click();
+      await stable();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+      await stable();
+
+      expect(host.querySelector('app-pause dialog')?.hasAttribute('open')).toBe(true);
+    });
+
+    it('offers to try the keys only in developer mode', async () => {
+      const { host } = await setUp();
+      pauseItem(host, 'Pause').click();
+
+      expect(() => pauseItem(host, 'Try the Keys')).toThrow();
+    });
+
     it('shows the layout as it’s edited, and on going back, asks whether to cancel the changes', async () => {
       await TestBed.inject(DeveloperMode).set(true);
       const { host, play, stable } = await setUp();
