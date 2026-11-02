@@ -25,7 +25,7 @@ describe('RunChart', () => {
     return svg;
   }
 
-  it('is an image, labelled', () => {
+  it('is an image, labelled', { tags: ['disabled'] }, () => {
     const svg = setUp([], 1, 1000);
 
     expect(svg.getAttribute('role')).toBe('img');

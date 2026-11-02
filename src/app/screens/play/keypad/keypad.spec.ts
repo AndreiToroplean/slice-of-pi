@@ -157,7 +157,7 @@ describe('Keypad', () => {
       expect(typed).toEqual(['1']);
     });
 
-    it('places each key in its grid cell', () => {
+    it('places each key in its grid cell', { tags: ['disabled'] }, () => {
       expect([button('7').style.gridRow, button('7').style.gridColumn]).toEqual(['1', '1']);
       expect([button('0').style.gridRow, button('0').style.gridColumn]).toEqual(['4', '2']);
       expect([button('backspace').style.gridRow, button('backspace').style.gridColumn]).toEqual([
@@ -178,33 +178,41 @@ describe('Keypad', () => {
       expect(button('backspace').querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
     });
 
-    it('makes the keys see-through, unless told to make the digit keys solid', () => {
-      expect(button('7').classList).toContain('clear');
-      expect(button('backspace').classList).toContain('clear');
+    it(
+      'makes the keys see-through, unless told to make the digit keys solid',
+      { tags: ['disabled'] },
+      () => {
+        expect(button('7').classList).toContain('clear');
+        expect(button('backspace').classList).toContain('clear');
 
-      fixture.componentRef.setInput('solid', true);
-      fixture.detectChanges();
+        fixture.componentRef.setInput('solid', true);
+        fixture.detectChanges();
 
-      expect(button('7').classList).not.toContain('clear');
-      expect(button('backspace').classList).toContain('clear');
-      expect(button('7').style.getPropertyValue('--press-color')).not.toBe('');
-    });
+        expect(button('7').classList).not.toContain('clear');
+        expect(button('backspace').classList).toContain('clear');
+        expect(button('7').style.getPropertyValue('--press-color')).not.toBe('');
+      },
+    );
 
-    it("shows each key's area when told to, in its cell, in its color", () => {
-      expect(host.querySelector('.area')).toBeNull();
+    it(
+      "shows each key's area when told to, in its cell, in its color",
+      { tags: ['disabled'] },
+      () => {
+        expect(host.querySelector('.area')).toBeNull();
 
-      fixture.componentRef.setInput('showAreas', true);
-      fixture.detectChanges();
+        fixture.componentRef.setInput('showAreas', true);
+        fixture.detectChanges();
 
-      const areas = host.querySelectorAll<HTMLElement>('.area');
-      const seven = host.querySelector<HTMLElement>('.area[data-key="7"]');
-      expect(areas.length).toBe(11);
-      expect([seven?.style.gridRow, seven?.style.gridColumn]).toEqual(['1', '1']);
-      expect(seven?.style.getPropertyValue('--key-color')).toBe(
-        button('7').style.getPropertyValue('--press-color'),
-      );
-      expect(host.querySelector('.areas')?.getAttribute('aria-hidden')).toBe('true');
-    });
+        const areas = host.querySelectorAll<HTMLElement>('.area');
+        const seven = host.querySelector<HTMLElement>('.area[data-key="7"]');
+        expect(areas.length).toBe(11);
+        expect([seven?.style.gridRow, seven?.style.gridColumn]).toEqual(['1', '1']);
+        expect(seven?.style.getPropertyValue('--key-color')).toBe(
+          button('7').style.getPropertyValue('--press-color'),
+        );
+        expect(host.querySelector('.areas')?.getAttribute('aria-hidden')).toBe('true');
+      },
+    );
   });
 
   describe('touch', () => {

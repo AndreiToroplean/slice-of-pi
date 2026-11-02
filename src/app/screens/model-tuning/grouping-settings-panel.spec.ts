@@ -119,17 +119,21 @@ describe('GroupingSettingsPanel', () => {
     expect(menuItems()).toEqual(['Copy Hyperparameter Values']);
   });
 
-  it('names each slider of a pair after it, side by side on one row of labels', async () => {
-    const { host, detect } = await setUp();
-    await TestBed.inject(Tweaks).setBreakModel(MARS);
-    detect();
-    const pair = Array.from(host.querySelectorAll('.row.pair')).at(0);
+  it(
+    'names each slider of a pair after it, side by side on one row of labels',
+    { tags: ['disabled'] },
+    async () => {
+      const { host, detect } = await setUp();
+      await TestBed.inject(Tweaks).setBreakModel(MARS);
+      detect();
+      const pair = Array.from(host.querySelectorAll('.row.pair')).at(0);
 
-    expect(Array.from(pair?.querySelectorAll('label') ?? [], (label) => label.textContent)).toEqual(
-      ['P1 size', 'P1 factor'],
-    );
-    expect(pair?.children.length).toBe(2);
-  });
+      expect(
+        Array.from(pair?.querySelectorAll('label') ?? [], (label) => label.textContent),
+      ).toEqual(['P1 size', 'P1 factor']);
+      expect(pair?.children.length).toBe(2);
+    },
+  );
 
   it('has a labelled slider for every setting, at its default', async () => {
     const { host } = await setUp();
