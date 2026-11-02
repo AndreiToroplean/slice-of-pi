@@ -4,6 +4,7 @@ import { Tweaks } from '../../developer-mode/tweaks';
 import { DEFAULT_KEYPAD_LAYOUT, KeypadLayout } from '../../game/layers/keypad-layout';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { VibrationSetting } from '../../player-data/vibration-setting';
+import { SoundSetting } from '../../player-data/sound-setting';
 import { Page } from '../../ui/page';
 import { Segment, Segmented } from '../../ui/segmented';
 import { ButtonList } from '../../ui/button-list';
@@ -11,8 +12,8 @@ import { Candy } from '../../ui/candy';
 import { YourData } from './your-data';
 
 /**
- * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout, whether the phone
- * vibrates, and in developer mode,
+ * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout, whether the game
+ * plays sounds and the phone vibrates, and in developer mode,
  * whether the keys are solid or see-through, whether to count down to the end of each group and whether to leave the
  * digits typed unchecked. Each setting has a button to
  * bring back its default value, and the top bar one to bring them all back. In developer mode, a last button brings back
@@ -58,6 +59,27 @@ import { YourData } from './your-data';
       </section>
       <section class="panel" aria-labelledby="feel-title">
         <h2 id="feel-title">Feel</h2>
+        <div class="row">
+          <label class="setting">
+            <span>
+              Sound
+              <small>A note for each digit typed, and a chord as each word lands.</small>
+            </span>
+            <input type="checkbox" [checked]="sound.enabled()" (change)="setSound($event)" />
+          </label>
+          <button
+            type="button"
+            class="round"
+            title="Back to Default"
+            [disabled]="sound.enabled()"
+            (click)="resetSound()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 14 4 9l5-5" />
+              <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+            </svg>
+          </button>
+        </div>
         <div class="row">
           <label class="setting">
             <span>
@@ -198,6 +220,7 @@ import { YourData } from './your-data';
 export class Settings {
   protected readonly keypadLayout = inject(KeypadLayoutSetting);
   protected readonly vibration = inject(VibrationSetting);
+  protected readonly sound = inject(SoundSetting);
   protected readonly layouts: readonly Segment<KeypadLayout>[] = [
     { value: 'calculator', label: 'Calculator' },
     { value: 'telephone', label: 'Telephone' },
@@ -224,6 +247,7 @@ export class Settings {
     () =>
       this.layoutDefault() &&
       this.vibration.enabled() &&
+      this.sound.enabled() &&
       this.countdownDefault() &&
       this.tweaks.checking() &&
       !this.tweaks.solidKeys(),
@@ -249,6 +273,14 @@ export class Settings {
     void this.vibration.set(true);
   }
 
+  protected setSound(event: Event): void {
+    void this.sound.set((event.target as HTMLInputElement).checked);
+  }
+
+  protected resetSound(): void {
+    void this.sound.set(true);
+  }
+
   protected resetLayout(): void {
     void this.keypadLayout.set(DEFAULT_KEYPAD_LAYOUT);
   }
@@ -271,6 +303,7 @@ export class Settings {
   protected resetAll(): void {
     this.resetLayout();
     this.resetVibration();
+    this.resetSound();
     if (this.developerMode.enabled()) {
       this.setSolidKeys(false);
       this.resetCountdown();
