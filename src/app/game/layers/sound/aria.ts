@@ -52,6 +52,8 @@ const NEXT: Readonly<Record<number, readonly number[]>> = {
   4: [0, 5, 3],
   5: [1, 3, 4, 2],
 };
+/** The minor chords, the others being major. */
+const MINOR_CHORDS = [1, 2, 5] as const;
 /**
  * The chords words land on, by how well they end: the open ones first for a question, the first word of a pair, and
  * the closed ones first for its answer.
@@ -170,6 +172,19 @@ function shapeOf(
   };
 }
 
+/** The names of the notes, by pitch class, from C. */
+const NAMES = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'] as const;
+
+/** A pitch's name, with its octave, as C4 for middle C. */
+export function nameOf(pitch: number): string {
+  return `${NAMES[mod(pitch, 12)] ?? ''}${String(Math.floor(pitch / 12) - 1)}`;
+}
+
+/** A chord's symbol, as C for C major and Am for A minor. */
+function chordSymbol(root: number): string {
+  return `${NAMES[mod(pitchOf(root), 12)] ?? ''}${(MINOR_CHORDS as readonly number[]).includes(root) ? 'm' : ''}`;
+}
+
 function sum(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0);
 }
@@ -200,6 +215,18 @@ class Aria implements SoundModel {
     ) as Record<Digit, Chime>;
   }
 
+  describe({ typed, words, slots, colors }: Moment, digit: Digit): string {
+    const root = this.chords.of(typed, typed.length + 1);
+    const { index, count, length } = shapeOf(typed, words, slots);
+    const under =
+      index === 0
+        ? `strum + low ${nameOf(this.bass(typed, words))}`
+        : count === 0
+          ? 'alone'
+          : `${String(count)} chord note${count === 1 ? '' : 's'}`;
+    return `${digit} ${nameOf(DIGIT_PITCHES[Number(digit)] ?? 60)} on ${chordSymbol(root)} · tone ${String(colors[digit])} · ${under} · ${length.toFixed(1)}s`;
+  }
+
   landing(typed: string, words: readonly number[]): Chime {
     const root = this.landed(typed, words);
     const [first, second, third] = chordFrom(root, 60);
@@ -215,6 +242,10 @@ class Aria implements SoundModel {
       accompaniment: true as const,
       delay: i * ROLL,
     }));
+  }
+
+  describeLanding(typed: string, words: readonly number[]): string {
+    return `lands on ${chordSymbol(this.landed(typed, words))} · ${words.length % 2 === 1 ? 'open' : 'closed'}`;
   }
 
   /** The chord a word lands on: see {@link landingChord}. */

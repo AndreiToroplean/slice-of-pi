@@ -1,0 +1,21 @@
+/* The lines going up from its bottom, the older ones scrolling away; whoever shows it gives it its size. */
+:host {
+  display: flex;
+  flex-direction: column-reverse;
+  overflow-y: auto;
+  color: var(--on-background);
+  font-family: ui-monospace, monospace;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  text-shadow: var(--text-shadow);
+  scrollbar-width: none;
+}
+
+/* Each line its own height, never squeezed to make room: the log scrolls instead. */
+p {
+  flex: none;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

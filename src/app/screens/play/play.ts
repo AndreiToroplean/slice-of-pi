@@ -53,7 +53,11 @@ import { TIMER } from './timer';
 import { Vibrator } from '../../feedback/vibrator';
 import { Speaker } from '../../feedback/speaker';
 import { Chime, Moment } from '../../game/layers/sound/sound-model';
+import { SoundLog } from './sound-log/sound-log';
 import { LONGEST_STEP, MOST_STEPS, Vibration } from '../../feedback/vibrations';
+
+/** How many lines of what the keys played developer mode keeps. */
+const SOUND_LOG_LINES = 200;
 
 /** How long a vibration can last at most, in ms. */
 const LONGEST_VIBRATION = LONGEST_STEP * MOST_STEPS;
@@ -89,7 +93,16 @@ const TICK = 16;
  */
 @Component({
   selector: 'app-play',
-  imports: [BreakCountdown, Keypad, LayoutEditor, Pause, SeasonHeader, Slots, TypedDigits],
+  imports: [
+    BreakCountdown,
+    Keypad,
+    LayoutEditor,
+    Pause,
+    SeasonHeader,
+    Slots,
+    SoundLog,
+    TypedDigits,
+  ],
   // Replaying, within the replay's screen, which is the one that comes and goes.
   host: {
     '[class.screen]': 'replay() === undefined',
@@ -147,6 +160,9 @@ const TICK = 16;
         />
       }
     </app-keypad>
+    @if (tweaks.soundNotes()) {
+      <app-sound-log [lines]="soundLog()" />
+    }
     @let wait = breakWait();
     @if (tweaks.countdown() && wait !== undefined) {
       <app-break-countdown [wait]="wait" />
@@ -183,6 +199,8 @@ export class Play implements PausesOnBack {
 
   /** The colors tuned in developer mode, or the game's own, and whether to count down to the end of the group. */
   protected readonly tweaks = inject(Tweaks);
+  /** What the keys played, and the words as they landed, one line each, oldest first, for developer mode to show. */
+  protected readonly soundLog = signal<readonly string[]>([]);
   /** The layout being edited, in developer mode's edit mode, while the game stays paused. */
   protected readonly editedLayout = signal<Layout | undefined>(undefined);
   /** Whether edit mode hides its handles, the screen showing as in the game. */
@@ -619,6 +637,9 @@ export class Play implements PausesOnBack {
     this.sizes.update((sizes) => [...sizes, length]);
     const model = this.tweaks.soundModel();
     const landing = model.landing(this.digits(), this.sizes());
+    if (fly && this.replay() === undefined) {
+      this.log(model.describeLanding(this.digits(), this.sizes()));
+    }
     if (slots.length === 0) {
       // Words that don't fly, as when the player prefers reduced motion, land at once; a word ending again at once,
       // reopened and finished as it was, never left.
@@ -694,6 +715,14 @@ export class Play implements PausesOnBack {
     };
     const model = this.tweaks.soundModel();
     this.speaker.play(model.keys(moment)[key]);
+    this.log(model.describe(moment, key));
+  }
+
+  /** Adds a line to what the keys played, for developer mode to show, if it does. */
+  private log(line: string): void {
+    if (this.tweaks.soundNotes()) {
+      this.soundLog.update((lines) => [...lines.slice(1 - SOUND_LOG_LINES), line]);
+    }
   }
 
   /** Vibrates on an event of the game, unless replaying a run. */

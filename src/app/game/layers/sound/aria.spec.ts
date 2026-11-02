@@ -1,7 +1,7 @@
 import { DIGITS } from '../../pi/digit';
 import { SEASONS } from '../seasons';
 import { momentAt } from '../../../../testing/sound-moments';
-import { DIGIT_PITCHES, ARIA, timbreOf } from './aria';
+import { DIGIT_PITCHES, ARIA, nameOf, timbreOf } from './aria';
 import { Chime } from './sound-model';
 
 describe('Aria', () => {
@@ -77,11 +77,24 @@ describe('Aria', () => {
     expect(model.landing('141', [3]).every((each) => each.accompaniment === true)).toBe(true);
   });
 
+  it('tells what a key plays in a line, starting with the digit and its note', () => {
+    const model = ARIA.create();
+
+    expect(model.describe(momentAt(5, [4], 3), '9')).toMatch(
+      new RegExp(`^9 ${nameOf(DIGIT_PITCHES[9] ?? 0)} `),
+    );
+  });
+
   it('plays the same song every time', () => {
     const a = ARIA.create();
     const b = ARIA.create();
     for (const place of [1, 50, 10, 300]) {
       expect(a.keys(momentAt(place, [], place))).toEqual(b.keys(momentAt(place, [], place)));
     }
+  });
+
+  it('names notes with their octave, middle C as C4', () => {
+    expect(nameOf(60)).toBe('C4');
+    expect(nameOf(70)).toBe('B♭4');
   });
 });

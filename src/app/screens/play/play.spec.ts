@@ -1065,6 +1065,37 @@ describe('Play', () => {
       expect(play).toHaveBeenLastCalledWith(ARIA.create().keys(momentAt(4, [3], 5))['5']);
     });
 
+    it('logs a line for each key typed, and each word landing, in developer mode once told to', async () => {
+      await TestBed.inject(DeveloperMode).set(true);
+      await TestBed.inject(Tweaks).setSoundNotes(true);
+      const { host, type } = await setUp();
+      const lines = (): string[] =>
+        Array.from(host.querySelectorAll('app-sound-log p'), (line) => line.textContent);
+      expect(lines()).toEqual([]);
+
+      await typeAll(type, '14159 ');
+
+      const model = ARIA.create();
+      // Newest first.
+      expect(lines()).toEqual(
+        [
+          ...Array.from('14159', (digit, i) =>
+            model.describe(momentAt(i + 1, [], 5), digit as Digit),
+          ),
+          model.describeLanding('14159', [5]),
+        ].reverse(),
+      );
+    });
+
+    it("doesn't show what keys played unless told to, nor outside developer mode", async () => {
+      await TestBed.inject(Tweaks).setSoundNotes(true);
+      const { host, type } = await setUp();
+
+      await type('1');
+
+      expect(host.querySelector('app-sound-log')).toBeNull();
+    });
+
     it("doesn't play replaying a run", async () => {
       const play = vi.spyOn(TestBed.inject(Speaker), 'play');
       const fixture = TestBed.createComponent(Play);
