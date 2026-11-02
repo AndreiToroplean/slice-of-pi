@@ -44,7 +44,7 @@ Seasons are only colors for now ([`vision.md` §5.4](vision.md#54-seasons)). The
 
 ## 7. Sounds
 
-The keys get sounds, yet another memory layer ([`vision.md` §5.5](vision.md#55-sound)). Each keypad row could be an instrument and each column a note, so we get many combinations. Maybe 0 is something special, like a triangle (the instrument). To be play tested.
+The keys get sounds, yet another memory layer ([`vision.md` §5.5](vision.md#55-sound)). At each place, the keys play notes going up from 0 to 9, remapped so that π's right digits play the song of π, as melodious as music theory can make it, and wrong ones sound a little off; the player's words phrase it. Sound models, swapped in developer mode, try different ways to compose it, to be play tested by ear.
 
 ## 8. Your Data
 

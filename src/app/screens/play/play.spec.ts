@@ -15,6 +15,9 @@ import { FakeTime } from '../../../testing/fake-time';
 import { Background } from '../../ui/background';
 import { FIRST_LANDING, landsAt, leavesAt } from './flight/flight';
 import { Vibrator } from '../../feedback/vibrator';
+import { Speaker } from '../../feedback/speaker';
+import { ARIA } from '../../game/layers/sound/aria';
+import { SoundModel } from '../../game/layers/sound/sound-model';
 import { routes } from '../../app.routes';
 import { KEEP_HISTORY } from '../../app.config';
 import { Menu } from '../menu/menu';
@@ -995,6 +998,67 @@ describe('Play', () => {
 
       expect(animations).toEqual([]);
       expect(shownTiles(host)).toBe('14159');
+    });
+
+    it('plays the landing of the word as its last slot lands', async () => {
+      stubAnimations();
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const { type } = await setUp();
+
+      await typeAll(type, '14159 ');
+
+      expect(play).toHaveBeenLastCalledWith(ARIA.create().landing([5]), landsAt(4, 0));
+    });
+
+    it('plays the landing at once when the word does not fly', async () => {
+      stubAnimations();
+      vi.stubGlobal('matchMedia', () => ({ matches: true }));
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const { type } = await setUp();
+
+      await typeAll(type, '14159 ');
+
+      expect(play).toHaveBeenLastCalledWith(ARIA.create().landing([5]));
+    });
+  });
+
+  describe('sounds', () => {
+    it('plays what the sound model says each key plays at its place, right digits and mistakes alike', async () => {
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const { type } = await setUp();
+
+      await typeAll(type, '149<');
+
+      const keys = (place: number): ReturnType<SoundModel['keys']> =>
+        ARIA.create().keys({ place, words: [], slots: 5 });
+      expect(play.mock.calls.map(([chime]) => chime)).toEqual([
+        keys(1)['1'],
+        keys(2)['4'],
+        keys(3)['9'],
+      ]);
+    });
+
+    it('plays the next words in their own place in the song', async () => {
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const { type } = await setUp();
+
+      await typeAll(type, '141 5');
+
+      expect(play).toHaveBeenLastCalledWith(
+        ARIA.create().keys({ place: 4, words: [3], slots: 5 })['5'],
+      );
+    });
+
+    it("doesn't play replaying a run", async () => {
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const fixture = TestBed.createComponent(Play);
+      fixture.componentRef.setInput('replay', newTouchLog('run', 0));
+      await fixture.whenStable();
+
+      fixture.componentInstance.replayTouch({ key: '1' });
+      await fixture.whenStable();
+
+      expect(play).not.toHaveBeenCalled();
     });
   });
 

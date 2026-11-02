@@ -51,6 +51,9 @@ import { Slots } from './slots/slots';
 import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { TIMER } from './timer';
 import { Vibrator } from '../../feedback/vibrator';
+import { Speaker } from '../../feedback/speaker';
+import { Chime, Moment } from '../../game/layers/sound/sound-model';
+import { Digit } from '../../game/pi/digit';
 import { LONGEST_STEP, MOST_STEPS, Vibration } from '../../feedback/vibrations';
 
 /** How long a vibration can last at most, in ms. */
@@ -304,6 +307,7 @@ export class Play implements PausesOnBack {
   /** Slots flying into their word. */
   private flights: Animation[] = [];
   private readonly vibrator = inject(Vibrator);
+  private readonly speaker = inject(Speaker);
   /**
    * The vibrations of the slots flying, as they pluck themselves off and land: when the last one ends, on the run's
    * clock, and what stops those yet to start.
@@ -356,10 +360,12 @@ export class Play implements PausesOnBack {
   }
 
   protected press(touch: KeypadTouch): void {
-    if (this.paused() || this.replay() !== undefined) {
+    if (this.replay() !== undefined) {
       return;
     }
-    this.play(touch);
+    if (!this.paused()) {
+      this.play(touch);
+    }
   }
 
   /**
@@ -433,6 +439,9 @@ export class Play implements PausesOnBack {
     const key = touch.key;
     if (key === null) {
       return;
+    }
+    if (key !== 'backspace') {
+      this.sound(key, carriesOn);
     }
     // Keys are typed into the game, not into what has the focus, such as the typed digits once clicked or the pause
     // button once the game resumes: it gives the focus up rather than showing its ring as if typed into.
@@ -606,7 +615,13 @@ export class Play implements PausesOnBack {
       slots.length === 0 ? undefined : { from: length, leftAt: (index) => leavesAt(index, slide) },
     );
     this.sizes.update((sizes) => [...sizes, length]);
+    const landing = this.tweaks.soundModel().landing(this.sizes());
     if (slots.length === 0) {
+      // Words that don't fly, as when the player prefers reduced motion, land at once; a word ending again at once,
+      // reopened and finished as it was, never left.
+      if (fly && this.replay() === undefined) {
+        this.speaker.play(landing);
+      }
       return;
     }
     // Measured once the new word is laid out. The tape finishes making room for it as the first slot lands.
@@ -622,7 +637,7 @@ export class Play implements PausesOnBack {
               ...this.flights.filter((flight) => flight.playState === 'running'),
               ...flyIntoWord(this.host, slots, word, shift),
             ];
-            this.vibrateFlights(slots.length, slide);
+            this.vibrateFlights(slots.length, slide, landing);
           }
         },
       },
@@ -658,6 +673,22 @@ export class Play implements PausesOnBack {
     return slid.map((box, i) => ({ ...(slots[i] ?? { ...first, box }), slid: box }));
   }
 
+  /**
+   * Plays the sound of a digit typed now, at the place of the next right one, unless replaying a run: as the sound model
+   * says, in the word being typed, or in the last one, if the digit carries it on.
+   */
+  private sound(key: Digit, carriesOn = false): void {
+    if (this.replay() !== undefined) {
+      return;
+    }
+    const sizes = this.sizes();
+    const last = sizes.at(-1) ?? 0;
+    const moment: Moment = carriesOn
+      ? { place: this.digits().length + 1, words: sizes.slice(0, -1), slots: last + 1 }
+      : { place: this.digits().length + 1, words: sizes, slots: this.size() };
+    this.speaker.play(this.tweaks.soundModel().keys(moment)[key]);
+  }
+
   /** Vibrates on an event of the game, unless replaying a run. */
   private vibrate(vibration: Vibration): void {
     if (this.replay() === undefined) {
@@ -665,11 +696,15 @@ export class Play implements PausesOnBack {
     }
   }
 
-  /** Vibrates as each of `length` slots flying, after they slide for `slide` ms, plucks itself off, then lands. */
-  private vibrateFlights(length: number, slide: number): void {
+  /**
+   * Vibrates as each of `length` slots flying, after they slide for `slide` ms, plucks itself off, then lands, and plays
+   * the word's `landing` as the last one lands.
+   */
+  private vibrateFlights(length: number, slide: number, landing: Chime): void {
     if (this.replay() !== undefined) {
       return;
     }
+    const stopLanding = this.speaker.play(landing, landsAt(length - 1, slide));
     const indices = Array.from({ length }, (_, i) => i);
     const stopPlucks = this.vibrator.play(
       'pluck',
@@ -687,6 +722,7 @@ export class Play implements PausesOnBack {
         stop: () => {
           stopPlucks();
           stopLandings();
+          stopLanding();
         },
       },
     ];
