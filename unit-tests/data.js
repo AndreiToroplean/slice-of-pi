@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793689972255,
+  "lastUpdate": 1793741027550,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3160,6 +3160,46 @@ window.BENCHMARK_DATA = {
             "value": 1056,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs counts unchecked runs in the groups when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "5fb70b930e4410c75ac3d0897e93dae93adb64f9",
+          "message": "feat: lay the Sound Models page out in cards\n\n- The page now comes in cards, as Settings does: the model, with its chords and landings; the souring, two sliders to a row, with its button to try it; and the song of π.\n- The song's log shows framed even before anything plays, so that it's clear where what plays will show.\n- For now, the page scrolls when it doesn't fit the screen, as few phones would fit it all.\n\nClaude-Session: https://claude.ai/code/session_01X1XesqnHfKBGDZiDdJRN1n",
+          "timestamp": "2026-11-03T22:22:36+01:00",
+          "tree_id": "9ea17896f7e7469a198ce52bfd79cfd6513027c3",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/5fb70b930e4410c75ac3d0897e93dae93adb64f9"
+        },
+        "date": 1793741005543,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 12939,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 26774,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1506,
+            "unit": "ms",
+            "extra": "MissingPreview opens the preview as soon as it is published"
           }
         ]
       }
