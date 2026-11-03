@@ -33,7 +33,8 @@ import {
   VibrationPatterns,
   VIBRATIONS,
 } from '../feedback/vibrations';
-import { MIX_SLIDERS, SOUND_MIX, SoundMix } from '../feedback/sound-mix';
+import { MIX_SLIDERS, SOUND_MIX, SoundMix, SoundSlider } from '../feedback/sound-mix';
+import { Souring, SOURING, SOURING_SLIDERS } from '../feedback/souring';
 import { SoundModel, SoundModelKind } from '../game/layers/sound/sound-model';
 import { SOUND_MODEL, soundModelKindById } from '../game/layers/sound/sound-models';
 
@@ -91,6 +92,8 @@ export interface TweakValues {
   readonly soundModel?: string;
   /** How loud the sounds are, and how long they ring, for {@link SOUND_MIX}. */
   readonly sound?: SoundMix;
+  /** How a wrong key's note goes off, for {@link SOURING}. */
+  readonly souring?: Souring;
   /** `false` for words to land on the tape without a chord, which they otherwise play. */
   readonly landings?: false;
   /** `true` to show, in developer mode, what each key typed played, in words, which is otherwise hidden. */
@@ -215,6 +218,11 @@ export class Tweaks {
   /** How loud the sounds are, and how long they ring. */
   readonly soundMix = computed(
     (): SoundMix => (this.developerMode.enabled() ? this.tweaks().sound : undefined) ?? SOUND_MIX,
+  );
+
+  /** How a wrong key's note goes off as it rings. */
+  readonly souring = computed(
+    (): Souring => (this.developerMode.enabled() ? this.tweaks().souring : undefined) ?? SOURING,
   );
 
   /** Whether each word plays a chord as it lands on the tape. */
@@ -366,6 +374,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), sound }));
   }
 
+  /** Sets how a wrong key's note goes off; `undefined` brings back the game's souring. */
+  setSouring(souring: Souring | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), souring }));
+  }
+
   /** Has words play a chord as they land on the tape, or land silently. */
   setLandings(landings: boolean): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), landings: landings ? undefined : false }));
@@ -432,6 +445,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     vibrations,
     soundModel,
     sound,
+    souring,
     landings,
     soundNotes,
   } = migrate(stored, TWEAKS_MIGRATIONS);
@@ -456,7 +470,8 @@ export function parseTweaks(stored: unknown): TweakValues {
     menu: parseMenuLook(menu),
     vibrations: vibrationsOf(vibrations),
     soundModel: soundModelKindById(soundModel)?.id,
-    sound: soundMixOf(sound),
+    sound: slidValues(sound, MIX_SLIDERS, SOUND_MIX),
+    souring: slidValues(souring, SOURING_SLIDERS, SOURING),
     landings: landings === false ? landings : undefined,
     soundNotes: soundNotes === true ? soundNotes : undefined,
   });
@@ -480,6 +495,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     vibrations,
     soundModel,
     sound,
+    souring,
   } = values;
   const tuned = Object.entries(grouping ?? {}).filter(([id, settings]) => {
     const defaults = breakModelKindById(id)?.defaults;
@@ -501,6 +517,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     vibrations: vibrationsOf(vibrations),
     soundModel: soundModel === SOUND_MODEL.id ? undefined : soundModel,
     sound: equal(sound, SOUND_MIX) ? undefined : sound,
+    souring: equal(souring, SOURING) ? undefined : souring,
   });
 }
 
@@ -539,6 +556,7 @@ function tweakValues({
   vibrations,
   soundModel,
   sound,
+  souring,
   landings,
   soundNotes,
 }: {
@@ -563,6 +581,7 @@ function tweakValues({
     ...(vibrations === undefined ? {} : { vibrations }),
     ...(soundModel === undefined ? {} : { soundModel }),
     ...(sound === undefined ? {} : { sound }),
+    ...(souring === undefined ? {} : { souring }),
     ...(landings === undefined ? {} : { landings }),
     ...(soundNotes === undefined ? {} : { soundNotes }),
   };
@@ -586,19 +605,23 @@ function vibrationsOf(value: unknown): Partial<VibrationPatterns> | undefined {
   return kept.length === 0 ? undefined : Object.fromEntries(kept);
 }
 
-/** The mix stored, each setting missing or out of its slider's range at the game's own. `undefined` if none is kept. */
-function soundMixOf(value: unknown): SoundMix | undefined {
+/** Values set by sliders, as stored, each missing or out of its slider's range at its default. `undefined` if none is kept. */
+function slidValues<T>(
+  value: unknown,
+  sliders: readonly SoundSlider<T>[],
+  defaults: T,
+): T | undefined {
   if (typeof value !== 'object' || value === null) {
     return undefined;
   }
   const stored = value as Record<string, unknown>;
-  const kept = MIX_SLIDERS.flatMap(({ key, min, max }) => {
+  const kept = sliders.flatMap(({ key, min, max }) => {
     const setting = stored[key];
     return typeof setting === 'number' && setting >= min && setting <= max
       ? [[key, setting] as const]
       : [];
   });
-  return kept.length === 0 ? undefined : { ...SOUND_MIX, ...Object.fromEntries(kept) };
+  return kept.length === 0 ? undefined : { ...defaults, ...Object.fromEntries(kept) };
 }
 
 /** The order of the runs, read from untrusted data, or `undefined` if invalid. */

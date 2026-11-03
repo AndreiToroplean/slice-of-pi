@@ -307,7 +307,7 @@ describe('Tweaks', () => {
 
   it('plays the sound model and mix tuned only while developer mode is on, kept until undone', async () => {
     const tweaks = await load();
-    const mix = { chords: 0.3 };
+    const mix = { ...SOUND_MIX, chords: 0.3 };
     expect(tweaks.soundModelKind()).toBe(SOUND_MODEL);
     expect(tweaks.soundMix()).toEqual(SOUND_MIX);
 
