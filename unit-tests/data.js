@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793688032695,
+  "lastUpdate": 1793688624039,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3078,6 +3078,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 630,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs counts unchecked runs in the groups when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "c13842336c96f0a3bcba728680034911dd962e63",
+          "message": "feat: bring back one color's default from the color picker\n\n- The color picker takes the game's own color and shows a round \"Back to Default\" button at the end of its top bar, like the vibrations page's, disabled while the color is already the default.\n- The background colors, key colors and menu editor pages each pass it theirs.\n\nClaude-Session: https://claude.ai/code/session_01X1Xeso4Y7yQZ2fpnzAViZQ",
+          "timestamp": "2026-11-03T07:49:54+01:00",
+          "tree_id": "a64322cf7c11446553144a7ad4271944500aaae5",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/c13842336c96f0a3bcba728680034911dd962e63"
+        },
+        "date": 1793688623174,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 12999,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 27070,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1010,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs counts unchecked runs in the groups when told to"
           }
