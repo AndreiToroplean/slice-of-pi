@@ -5,9 +5,20 @@ import { SoundSetting } from '../player-data/sound-setting';
 import { SoundMix } from './sound-mix';
 import { Souring } from './souring';
 
+/**
+ * How long a stretch of sound the audio works out at a time, in seconds, as a hint the browser follows as it can. Its
+ * smallest, the default, crackles on phones: when the phone doesn't let the audio work out the next stretch in time,
+ * the speakers get nothing to play. Tried on a phone, 10 ms still did now and then, 20 ms never, adding about 25 ms
+ * between a tap and its sound, unnoticed.
+ */
+const LATENCY_HINT = 0.02;
+
 /** Makes the audio context the game plays in, once it first plays; none where the browser has no Web Audio API. */
 export const AUDIO = new InjectionToken<() => AudioContext | undefined>('AUDIO', {
-  factory: () => () => (typeof AudioContext === 'function' ? new AudioContext() : undefined),
+  factory: () => () =>
+    typeof AudioContext === 'function'
+      ? new AudioContext({ latencyHint: LATENCY_HINT })
+      : undefined,
 });
 
 /** How many partials a note has: its frequency, and as many times it as their rank. */
