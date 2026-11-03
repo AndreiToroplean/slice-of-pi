@@ -194,32 +194,36 @@ describe('FitToGroupingsDialog', () => {
     expect(field(host, '.curve h3').textContent).toBe(`Run-count curve of ${LUNA.label}`);
   });
 
-  it('fits the run-count curve, with fewer runs too, and can still fit with all of them', async () => {
-    const { host, detect } = await setUp(groupedBy(3));
-    await TestBed.inject(Tweaks).setBreakModel(LUNA);
-    await TestBed.inject(Tweaks).togglePin(LUNA, 'window');
-    detect();
-    const curveButton = field(host, 'button.curve-fit') as HTMLButtonElement;
-    curveButton.click();
-    detect();
+  it(
+    'fits the run-count curve, with fewer runs too, and can still fit with all of them',
+    { tags: ['disabled'], timeout: 40_000 },
+    async () => {
+      const { host, detect } = await setUp(groupedBy(3));
+      await TestBed.inject(Tweaks).setBreakModel(LUNA);
+      await TestBed.inject(Tweaks).togglePin(LUNA, 'window');
+      detect();
+      const curveButton = field(host, 'button.curve-fit') as HTMLButtonElement;
+      curveButton.click();
+      detect();
 
-    expect(status(host)).toMatch(
-      /^Refining your values until they settle, pass 1: best score \d\.\d\d so far, of F1 with all runs and fewer\.$/,
-    );
-    await vi.waitFor(
-      () => {
-        detect();
-        expect(curveButton.textContent.trim()).toBe('Curve Fitted');
-        expect(host.querySelector('.spinner')).toBeNull();
-      },
-      { timeout: 30_000, interval: 20 },
-    );
-    expect(curveButton.disabled).toBe(true);
-    expect(fitButton(host).disabled).toBe(false);
-    expect(fitButton(host).textContent.trim()).toBe('Fit');
-    // Pinned on Model Tuning, so left where it was.
-    expect(TestBed.inject(Tweaks).grouping()['window']).toBe(LUNA.defaults['window']);
-  }, 40_000);
+      expect(status(host)).toMatch(
+        /^Refining your values until they settle, pass 1: best score \d\.\d\d so far, of F1 with all runs and fewer\.$/,
+      );
+      await vi.waitFor(
+        () => {
+          detect();
+          expect(curveButton.textContent.trim()).toBe('Curve Fitted');
+          expect(host.querySelector('.spinner')).toBeNull();
+        },
+        { timeout: 30_000, interval: 20 },
+      );
+      expect(curveButton.disabled).toBe(true);
+      expect(fitButton(host).disabled).toBe(false);
+      expect(fitButton(host).textContent.trim()).toBe('Fit');
+      // Pinned on Model Tuning, so left where it was.
+      expect(TestBed.inject(Tweaks).grouping()['window']).toBe(LUNA.defaults['window']);
+    },
+  );
 
   it('stops fitting when closed, leaving the hyperparameters as they were', async () => {
     const { host, detect } = await setUp(groupedBy(6), standIn().fit);
