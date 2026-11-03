@@ -103,6 +103,7 @@ type Owner = Season | 'menu';
         [color]="selectedColor()"
         [name]="selectedName()"
         [neighbors]="neighbors()"
+        [defaultColor]="defaultColor()"
         (colorChange)="pick($event)"
       />
       <div class="space">
@@ -200,6 +201,11 @@ export class BackgroundColors {
   protected readonly selectedName = computed(() => {
     const { season, end } = this.selected();
     return `${season === 'menu' ? 'Main menu' : this.names[season]} ${ENDS[end].label}`;
+  });
+  /** The game's own color for the one selected. */
+  protected readonly defaultColor = computed(() => {
+    const { season, end } = this.selected();
+    return (season === 'menu' ? TWILIGHT : SEASON_STARTS[season])[end];
   });
   /** The same end of the seasons before and after; none for the main menu's. */
   protected readonly neighbors = computed((): readonly [string, string] | undefined => {

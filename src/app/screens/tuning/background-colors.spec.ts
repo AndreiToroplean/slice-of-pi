@@ -244,6 +244,24 @@ describe('BackgroundColors', () => {
     expect(TestBed.inject(Tweaks).values().seasons?.autumn[0]).toBe(expected);
   });
 
+  it('brings back the game’s own selected color alone', async () => {
+    const { host, stable } = await setUp();
+    swatch(host, 'Autumn top').click();
+    await stable();
+    host.querySelector<HTMLButtonElement>('button.average')?.click();
+    swatch(host, 'Winter bottom').click();
+    await stable();
+    host.querySelector<HTMLButtonElement>('button.average')?.click();
+    await stable();
+
+    host.querySelector<HTMLButtonElement>('button[title="Back to Default"]')?.click();
+    await stable();
+
+    const seasons = TestBed.inject(Tweaks).values().seasons;
+    expect(seasons?.winter[1]).toBe(SEASON_STARTS.winter[1]);
+    expect(seasons?.autumn[0]).not.toBe(SEASON_STARTS.autumn[0]);
+  });
+
   it('starts on the colors tuned before', async () => {
     const tuned = { ...SEASON_STARTS, spring: ['#000000', '#ffffff'] as const };
     await TestBed.inject(Tweaks).setSeasons(tuned);

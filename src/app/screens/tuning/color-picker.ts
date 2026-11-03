@@ -12,7 +12,7 @@ const SLIDERS = [
 /**
  * A color picker as wide as the screen: hue, saturation and lightness sliders, each track showing the colors it goes
  * through, under a top bar with the color, its name and, under it, its hex code, so that the bar stays narrow. With the
- * colors around it, the top bar can also set the color halfway between them.
+ * colors around it, the top bar can also set the color halfway between them, and bring back the game's own.
  */
 @Component({
   selector: 'app-color-picker',
@@ -35,6 +35,18 @@ const SLIDERS = [
           <span class="swatch small" [style.background]="around[1]"></span>
         </button>
       }
+      <button
+        type="button"
+        class="round"
+        title="Back to Default"
+        [disabled]="color() === defaultColor()"
+        (click)="update(hexToHsl(defaultColor()))"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 14 4 9l5-5" />
+          <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+        </svg>
+      </button>
     </div>
     @for (slider of sliders; track slider.key) {
       <label class="slider">
@@ -64,9 +76,12 @@ export class ColorPicker {
   readonly name = input.required<string>();
   /** The colors around this one, to set it halfway between them. */
   readonly neighbors = input<readonly [string, string]>();
+  /** The game's own color, to bring it back. */
+  readonly defaultColor = input.required<string>();
 
   protected readonly sliders = SLIDERS;
   protected readonly Math = Math;
+  protected readonly hexToHsl = hexToHsl;
 
   /**
    * The sliders' values. They follow the color when it's set from outside, and keep their exact values while the
@@ -102,7 +117,7 @@ export class ColorPicker {
     this.update(averageHsl(hexToHsl(first), hexToHsl(second)));
   }
 
-  private update(hsl: Hsl): void {
+  protected update(hsl: Hsl): void {
     this.hsl.set(hsl);
     this.color.set(hslToHex(hsl));
   }
