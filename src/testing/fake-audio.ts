@@ -1,5 +1,5 @@
 import { Provider } from '@angular/core';
-import { AUDIO, PARTIALS } from '../app/feedback/speaker';
+import { AUDIO } from '../app/feedback/speaker';
 
 /**
  * A tone started on the fake audio context: when, whether its sound still reaches the speakers, and where its pitch is
@@ -8,6 +8,8 @@ import { AUDIO, PARTIALS } from '../app/feedback/speaker';
 export interface PlayedTone {
   /** Its wave: a note's own partials are sine waves. */
   readonly type: OscillatorType;
+  /** Whether it's a note's first partial, the first oscillator started after its envelope. */
+  readonly first: boolean;
   readonly start: number;
   connected: () => boolean;
   readonly bends: { readonly to: number; readonly by: number }[];
@@ -37,6 +39,8 @@ export class FakeAudio {
   made = 0;
   /** Resolves once the browser lets the audio run: at once, unless {@link block}ed. */
   private allowed = Promise.resolve();
+  /** Whether the next oscillator started is a note's first, its envelope having just started. */
+  private noteStarting = false;
   private allowing: (() => void) | undefined;
 
   readonly providers: Provider[] = [
@@ -66,7 +70,7 @@ export class FakeAudio {
 
   /** The notes played, each as its first partial. */
   notes(): PlayedTone[] {
-    return this.partials().filter((_, i) => i % PARTIALS === 0);
+    return this.partials().filter(({ first }) => first);
   }
 
   /** The notes' own partials, in order, leaving out what's added to sour them. */
@@ -119,6 +123,7 @@ export class FakeAudio {
           buffer: null as { duration: number } | null,
           start: (when: number) => {
             audio.envelopes.push({ start: when, length: source.buffer?.duration ?? 0 });
+            audio.noteStarting = true;
           },
         };
         return source;
@@ -145,10 +150,12 @@ export class FakeAudio {
           start: (when: number) => {
             audio.tones.push({
               type: made.type,
+              first: audio.noteStarting,
               start: when,
               connected: oscillator.connected,
               bends,
             });
+            audio.noteStarting = false;
           },
           stop: () => undefined,
           get frequency() {

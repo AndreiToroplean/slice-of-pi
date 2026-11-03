@@ -48,7 +48,7 @@ const NOTHING: Playing = { stop: () => undefined, sour: () => undefined };
 
 /**
  * A note being played: its pitch, when it starts and ends, whether it's the melody, what all its sound goes through,
- * its tone before the envelope, and its partials' pitches, lowest first.
+ * its tone before the envelope, and the pitches of its partials sounding, by their rank, lowest first.
  */
 interface Voice {
   readonly pitch: number;
@@ -57,7 +57,7 @@ interface Voice {
   readonly melody: boolean;
   readonly envelope: GainNode;
   readonly tone: GainNode;
-  readonly partials: readonly AudioParam[];
+  readonly partials: readonly { readonly rank: number; readonly detune: AudioParam }[];
 }
 
 /**
@@ -259,7 +259,12 @@ export class Speaker {
     curve.start(start);
     const tone = context.createGain();
     tone.connect(envelope);
-    const partials = partialLevels(note.timbre).map((level, i) => {
+    // Silent partials, as a plain pluck's highest, are left out: each would be an oscillator the device works out for
+    // nothing.
+    const partials = partialLevels(note.timbre).flatMap((level, i) => {
+      if (level === 0) {
+        return [];
+      }
       const oscillator = context.createOscillator();
       oscillator.frequency.value = frequencyOf(note.pitch) * (i + 1);
       const partial = context.createGain();
@@ -268,7 +273,7 @@ export class Speaker {
       partial.connect(tone);
       oscillator.start(start);
       oscillator.stop(end + TAIL);
-      return oscillator.detune;
+      return [{ rank: i + 1, detune: oscillator.detune }];
     });
     return {
       pitch: note.pitch,
@@ -288,9 +293,9 @@ export class Speaker {
  */
 function sour(context: AudioContext, voice: Voice, souring: Souring, from: number): void {
   const to = from + souring.speed;
-  for (const [i, detune] of voice.partials.entries()) {
+  for (const { rank, detune } of voice.partials) {
     detune.setValueAtTime(0, from);
-    detune.linearRampToValueAtTime(souring.bend + i * souring.drift, to);
+    detune.linearRampToValueAtTime(souring.bend + (rank - 1) * souring.drift, to);
   }
   const buzz = context.createOscillator();
   buzz.type = 'square';
