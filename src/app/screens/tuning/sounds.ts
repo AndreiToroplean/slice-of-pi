@@ -128,6 +128,7 @@ export function* song(
           [max]="slider.max"
           [step]="slider.step"
           [valueText]="slider.format(mix()[slider.key])"
+          [defaultValue]="defaultMix[slider.key]"
           (changed)="set(slider.key, $event)"
         />
       }
@@ -154,6 +155,7 @@ export function* song(
             [max]="slider.max"
             [step]="slider.step"
             [valueText]="slider.format(souring()[slider.key])"
+            [defaultValue]="defaultSouring[slider.key]"
             (changed)="setSouring(slider.key, $event)"
           />
         }
@@ -188,6 +190,8 @@ export function* song(
 export class Sounds {
   protected readonly sliders = MIX_SLIDERS;
   protected readonly souringSliders = SOURING_SLIDERS;
+  protected readonly defaultMix = SOUND_MIX;
+  protected readonly defaultSouring = SOURING;
   protected readonly models: readonly Segment<string>[] = SOUND_MODELS.map(({ id, label }) => ({
     value: id,
     label,
