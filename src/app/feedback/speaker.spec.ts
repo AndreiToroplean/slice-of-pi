@@ -43,6 +43,15 @@ describe('Speaker', () => {
     ]);
   });
 
+  it("starts no oscillator for a silent partial, as a plain pluck's highest", () => {
+    TestBed.inject(Speaker).play([
+      { pitch: 60, gain: 1, length: 1 },
+      { pitch: 64, gain: 1, length: 1, timbre: 0.3 },
+    ]);
+
+    expect(audio.partials()).toHaveLength(3 + 6);
+  });
+
   it('makes its audio context once, as it first plays', () => {
     const speaker = TestBed.inject(Speaker);
     expect(audio.made).toBe(0);
