@@ -10,6 +10,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { Digit, isDigit } from '../../../game/pi/digit';
+import { PALETTE, Palette } from '../../../game/layers/place-colors';
 import {
   DEFAULT_KEYPAD_LAYOUT,
   KEY_POSITIONS,
@@ -165,8 +166,10 @@ interface Press {
   styleUrl: './keypad.css',
 })
 export class Keypad {
-  /** Each digit key's color: the color its digit takes when typed next. */
-  readonly colors = input.required<Readonly<Record<Digit, string>>>();
+  /** Each digit key's color index: where the color its digit takes when typed next is in the palette. */
+  readonly colorIndices = input.required<Readonly<Record<Digit, number>>>();
+  /** The palette the keys take their colors from. */
+  readonly palette = input<Palette>(PALETTE);
   /** Where the keys sit. */
   readonly layout = input<KeypadLayout>(DEFAULT_KEYPAD_LAYOUT);
   /** Whether the digit keys are solid, each in its color, rather than see-through. */
@@ -222,7 +225,7 @@ export class Keypad {
    */
   noteColor(key: KeypadKey | null): void {
     if (key !== null && key !== 'backspace') {
-      const color = this.colors()[key];
+      const color = this.colorOf(key);
       this.splashColors.update((colors) => ({ ...colors, [key]: color }));
     }
   }
@@ -240,7 +243,12 @@ export class Keypad {
     if (key === 'backspace') {
       return undefined;
     }
-    return (this.shownPressed(key) ? this.splashColors()[key] : undefined) ?? this.colors()[key];
+    return (this.shownPressed(key) ? this.splashColors()[key] : undefined) ?? this.colorOf(key);
+  }
+
+  /** The color a digit key's digit takes when typed next. */
+  private colorOf(key: Digit): string | undefined {
+    return this.palette()[this.colorIndices()[key]];
   }
 
   /** Whether a touch is on a button the keypad was given, or a dialog it opened, rather than on the keypad. */

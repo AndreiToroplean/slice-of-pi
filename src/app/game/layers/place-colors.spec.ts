@@ -1,5 +1,5 @@
 import { DIGITS, isDigit } from '../pi/digit';
-import { keyColors, occurrenceColor, PALETTE, placeColors } from './place-colors';
+import { keyColorIndices, occurrenceColor, PALETTE, placeColors } from './place-colors';
 
 /** The first 50 decimals of π. */
 const DECIMALS = '14159265358979323846264338327950288419716939937510';
@@ -60,9 +60,11 @@ describe('placeColors', () => {
   });
 });
 
-describe('keyColors', () => {
+describe('keyColorIndices', () => {
   it('starts with the whole palette on the keys, key d on color d', () => {
-    expect(DIGITS.map((digit) => keyColors('')[digit])).toEqual(PALETTE);
+    expect(DIGITS.map((digit) => keyColorIndices('')[digit])).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+    ]);
   });
 
   it('shows on each key the color its digit takes when typed next', () => {
@@ -73,19 +75,19 @@ describe('keyColors', () => {
         throw new Error('Not a decimal');
       }
 
-      expect(keyColors(typed)[next]).toBe(placeColors(typed + next).at(-1));
+      expect(PALETTE[keyColorIndices(typed)[next]]).toBe(placeColors(typed + next).at(-1));
     }
   });
 
   it('only moves on the key of the digit typed', () => {
-    const before = keyColors('1415');
-    const after = keyColors('14159');
+    const before = keyColorIndices('1415');
+    const after = keyColorIndices('14159');
 
     expect(DIGITS.filter((digit) => before[digit] !== after[digit])).toEqual(['9']);
   });
 
   it('rejects anything but digits', () => {
-    expect(() => keyColors('1x')).toThrow('Not a digit: x');
+    expect(() => keyColorIndices('1x')).toThrow('Not a digit: x');
   });
 });
 
@@ -127,6 +129,5 @@ describe('with a tuned palette', () => {
   it('steps through that palette instead', () => {
     expect(occurrenceColor('7', 4, tuned)).toBe('#000001');
     expect(placeColors('1415', tuned)).toEqual(['#000001', '#000004', '#000002', '#000005']);
-    expect(keyColors('11', tuned)['1']).toBe('#000003');
   });
 });
