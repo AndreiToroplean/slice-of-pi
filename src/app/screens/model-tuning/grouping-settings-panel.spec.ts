@@ -274,7 +274,7 @@ describe('GroupingSettingsPanel', () => {
     const { host, detect } = await setUp();
     const revert = (): HTMLButtonElement | null =>
       slider(host, 'window')
-        .closest('.setting')
+        .closest('app-slider')
         ?.querySelector<HTMLButtonElement>('button[title="Back to Default"]') ?? null;
 
     expect(revert()?.disabled).toBe(true);

@@ -5,6 +5,7 @@ import { CdkMenuItemRadio } from '@angular/cdk/menu';
 import { Candy } from '../../ui/candy';
 import { Dropdown, MenuTrigger } from '../../ui/menu';
 import { Page } from '../../ui/page';
+import { Slider } from '../../ui/slider';
 import { SEASON_NAMES, SeasonHeader } from '../play/season-header/season-header';
 import { TWILIGHT } from '../menu/menu-look';
 import {
@@ -41,6 +42,7 @@ type Owner = Season | 'menu';
 @Component({
   selector: 'app-background-colors',
   imports: [
+    Slider,
     Candy,
     CdkMenuItemRadio,
     ColorPicker,
@@ -132,17 +134,16 @@ type Owner = Season | 'menu';
           </div>
         </ng-template>
       </div>
-      <label class="slider turn">
-        {{ turnText() }}
-        <input
-          type="range"
-          min="1"
-          [max]="placesPerSeason"
-          step="1"
-          [value]="seasonTurn()"
-          (input)="turnOver($event)"
-        />
-      </label>
+      <app-slider
+        class="turn"
+        label="Season Turn"
+        [value]="seasonTurn()"
+        [min]="1"
+        [max]="placesPerSeason"
+        [valueText]="turnText()"
+        [defaultValue]="defaultTurn"
+        (changed)="turnOver($event)"
+      />
       <label class="slider place">
         Place in the year
         <input
@@ -229,13 +230,15 @@ export class BackgroundColors {
   );
   /** How many places a season takes to turn into the next. */
   protected readonly seasonTurn = this.tweaks.seasonTurn;
+  protected readonly defaultTurn = SEASON_TURN;
+  /** How each season turns into the next: at once, all season long, or over its last digits. */
   protected readonly turnText = computed(() => {
     const turn = this.seasonTurn();
     return turn === 1
-      ? 'Each season turns into the next at once'
+      ? 'At once'
       : turn === PLACES_PER_SEASON
-        ? 'Each season turns into the next all season long'
-        : `Each season turns into the next over its last ${String(turn)} digits`;
+        ? 'All season'
+        : `Last ${String(turn)} digits`;
   });
 
   protected readonly tuned = computed(
@@ -317,11 +320,8 @@ export class BackgroundColors {
     void this.tweaks.setColorSpace(space);
   }
 
-  protected turnOver(event: Event): void {
-    if (event.target instanceof HTMLInputElement) {
-      const turn = Number(event.target.value);
-      void this.tweaks.setSeasonTurn(turn);
-    }
+  protected turnOver(turn: number): void {
+    void this.tweaks.setSeasonTurn(turn);
   }
 
   protected moveTo(event: Event): void {

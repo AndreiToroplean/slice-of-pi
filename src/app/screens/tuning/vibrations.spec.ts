@@ -76,7 +76,9 @@ describe('Vibrations', () => {
   }
 
   function sliderLabel(host: HTMLElement): string {
-    return host.querySelector('.slider .label')?.textContent.replace(/\s+/g, ' ').trim() ?? '';
+    return Array.from(host.querySelectorAll('.slider label, .slider output'), (part) =>
+      part.textContent.trim(),
+    ).join(' ');
   }
 
   it("shows each vibration's pattern, buzzes and pauses in order", async () => {

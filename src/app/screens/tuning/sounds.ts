@@ -18,6 +18,7 @@ import { RUN_CLOCK } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { Candy } from '../../ui/candy';
 import { Page } from '../../ui/page';
+import { Slider } from '../../ui/slider';
 import { Segment, Segmented } from '../../ui/segmented';
 import { SoundLog } from '../play/sound-log/sound-log';
 import { TIMER } from '../play/timer';
@@ -93,7 +94,7 @@ export function* song(
  */
 @Component({
   selector: 'app-sounds',
-  imports: [Candy, CopyValues, Page, Segmented, SoundLog],
+  imports: [Candy, CopyValues, Page, Segmented, Slider, SoundLog],
   template: `
     <app-page heading="Sound Models">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
@@ -117,20 +118,15 @@ export function* song(
         </button>
       </div>
       @for (slider of sliders; track slider.key) {
-        <label class="slider">
-          <span class="label">
-            {{ slider.label }}
-            <span class="value">{{ slider.format(mix()[slider.key]) }}</span>
-          </span>
-          <input
-            type="range"
-            [min]="slider.min"
-            [max]="slider.max"
-            [step]="slider.step"
-            [value]="mix()[slider.key]"
-            (input)="set(slider.key, $event)"
-          />
-        </label>
+        <app-slider
+          [label]="slider.label"
+          [value]="mix()[slider.key]"
+          [min]="slider.min"
+          [max]="slider.max"
+          [step]="slider.step"
+          [valueText]="slider.format(mix()[slider.key])"
+          (changed)="set(slider.key, $event)"
+        />
       }
       <label class="setting">
         Landing Chords
@@ -236,9 +232,9 @@ export class Sounds {
     }
   }
 
-  protected set(key: keyof SoundMix, event: Event): void {
+  protected set(key: keyof SoundMix, value: number): void {
     this.edited = true;
-    this.mix.update((mix) => ({ ...mix, [key]: Number((event.target as HTMLInputElement).value) }));
+    this.mix.update((mix) => ({ ...mix, [key]: value }));
     void this.tweaks.setSoundMix(this.mix());
   }
 
