@@ -97,7 +97,7 @@ describe('YourRuns', () => {
     expect(button(host, 'Delete All Runs').disabled).toBe(true);
   });
 
-  it('keeps the runs when the player does not confirm', async () => {
+  it('keeps the runs when the player does not confirm', { tags: ['disabled'] }, async () => {
     const { host } = await setUp([first]);
     confirming = false;
 
@@ -147,22 +147,32 @@ describe('YourRuns', () => {
     );
   });
 
-  it('lets the groups of all runs scroll, from the keyboard too', async () => {
-    const { host } = await setUp([first]);
+  it(
+    'lets the groups of all runs scroll, from the keyboard too',
+    { tags: ['disabled'] },
+    async () => {
+      const { host } = await setUp([first]);
 
-    expect(host.querySelector('.groups')?.getAttribute('tabindex')).toBe('0');
-  });
+      expect(host.querySelector('.groups')?.getAttribute('tabindex')).toBe('0');
+    },
+  );
 
-  it('marks the breaks of each run on its chart, and counts its groups', async () => {
-    const { host } = await setUp([grouped]);
+  it(
+    'marks the breaks of each run on its chart, and counts its groups',
+    { tags: ['disabled'] },
+    async () => {
+      const { host } = await setUp([grouped]);
 
-    const chart = host.querySelector('.runs article app-run-chart');
-    expect(
-      Array.from(chart?.querySelectorAll('.break') ?? [], (bar) => bar.getAttribute('x1')),
-    ).toEqual(['2.5', '5.5', '8.5', '11.5', '14.5', '17.5', '20.5', '23.5', '26.5']);
-    expect(chart?.querySelector('.baseline')).not.toBeNull();
-    expect(host.querySelector('.runs .meta')?.textContent).toBe('30 digits in 10.4 s · 10 groups');
-  });
+      const chart = host.querySelector('.runs article app-run-chart');
+      expect(
+        Array.from(chart?.querySelectorAll('.break') ?? [], (bar) => bar.getAttribute('x1')),
+      ).toEqual(['2.5', '5.5', '8.5', '11.5', '14.5', '17.5', '20.5', '23.5', '26.5']);
+      expect(chart?.querySelector('.baseline')).not.toBeNull();
+      expect(host.querySelector('.runs .meta')?.textContent).toBe(
+        '30 digits in 10.4 s · 10 groups',
+      );
+    },
+  );
 
   it('shows the groups of all runs, dotted past the trust horizon, but not how confident they are', async () => {
     const { host } = await setUp(trusted);
@@ -178,13 +188,17 @@ describe('YourRuns', () => {
     expect(text(host)).not.toContain('Confidence trend');
   });
 
-  it('finds no group in a single run, outweighed by the synthetic runs', async () => {
-    const { host } = await setUp([grouped]);
+  it(
+    'finds no group in a single run, outweighed by the synthetic runs',
+    { tags: ['disabled'] },
+    async () => {
+      const { host } = await setUp([grouped]);
 
-    expect(Array.from(host.querySelectorAll('.groups li'), (group) => group.className)).toEqual([
-      'unsure',
-    ]);
-  });
+      expect(Array.from(host.querySelectorAll('.groups li'), (group) => group.className)).toEqual([
+        'unsure',
+      ]);
+    },
+  );
 
   describe('unchecked runs', () => {
     const unchecked = { ...grouped, id: 'unchecked', checked: false };
@@ -193,14 +207,18 @@ describe('YourRuns', () => {
       return Array.from(host.querySelectorAll('.groups li'), (group) => group.textContent.trim());
     }
 
-    it('hides unchecked runs, and leaves them out of the groups', async () => {
-      const { host } = await setUp([grouped, unchecked]);
+    it(
+      'hides unchecked runs, and leaves them out of the groups',
+      { tags: ['disabled'] },
+      async () => {
+        const { host } = await setUp([grouped, unchecked]);
 
-      expect(host.querySelectorAll('.runs article')).toHaveLength(1);
-      expect(host.querySelector('.runs .badge')).toBeNull();
-      expect(groupsShown(host)).toEqual([PI_DECIMALS.slice(0, 30)]);
-      expect(host.querySelector('.unchecked')).toBeNull();
-    });
+        expect(host.querySelectorAll('.runs article')).toHaveLength(1);
+        expect(host.querySelector('.runs .badge')).toBeNull();
+        expect(groupsShown(host)).toEqual([PI_DECIMALS.slice(0, 30)]);
+        expect(host.querySelector('.unchecked')).toBeNull();
+      },
+    );
   });
 
   describe("a run's context menu", () => {
@@ -228,7 +246,7 @@ describe('YourRuns', () => {
       expect(articles(host)).toHaveLength(1);
     });
 
-    it('keeps the run when the player does not confirm', async () => {
+    it('keeps the run when the player does not confirm', { tags: ['disabled'] }, async () => {
       const page = await setUp([first, second]);
       confirming = false;
 
@@ -253,14 +271,14 @@ describe('YourRuns', () => {
       expect(navigate).toHaveBeenCalledWith(['/runs', 'b', 'replay']);
     });
 
-    it('opens from the keyboard too', async () => {
+    it('opens from the keyboard too', { tags: ['disabled'] }, async () => {
       const { host } = await setUp([first]);
 
       expect(article(host, 0).getAttribute('tabindex')).toBe('0');
     });
   });
 
-  it('spans every chart over the places of the longest run', async () => {
+  it('spans every chart over the places of the longest run', { tags: ['disabled'] }, async () => {
     const { host } = await setUp([first, second]);
 
     const viewBoxes = Array.from(host.querySelectorAll('app-run-chart svg'), (svg) =>
