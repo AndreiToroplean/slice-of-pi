@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { INDEXED_DB } from '../player-data/run-store';
 import { SoundSetting } from '../player-data/sound-setting';
 import { FakeAudio } from '../../testing/fake-audio';
-import { Speaker } from './speaker';
+import { envelopeCurve, Speaker } from './speaker';
 import { SOURING } from './souring';
 import { DeveloperMode } from '../developer-mode/developer-mode';
 import { Tweaks } from '../developer-mode/tweaks';
@@ -28,6 +28,19 @@ describe('Speaker', () => {
     );
 
     expect(audio.notes().map(({ start }) => start)).toEqual([10.5, 10.6]);
+  });
+
+  it('fades each note in and out by an envelope played from its start, however late the note reaches the audio', () => {
+    audio.currentTime = 10;
+    TestBed.inject(Speaker).play([
+      { pitch: 69, gain: 1, length: 1.2 },
+      { pitch: 60, gain: 0.5, length: 0.7, accompaniment: true, delay: 0.1 },
+    ]);
+
+    expect(audio.envelopes).toEqual([
+      { start: 10, length: 1.2 },
+      { start: 10.1, length: 0.7 },
+    ]);
   });
 
   it('makes its audio context once, as it first plays', () => {
@@ -145,5 +158,25 @@ describe('Speaker', () => {
     playing.stop();
 
     expect(audio.notes().map((note) => note.connected())).toEqual([true, false]);
+  });
+});
+
+describe('envelopeCurve', () => {
+  const curve = envelopeCurve(0.7, 48000);
+
+  it('lasts as long as its note', () => {
+    expect(curve).toHaveLength(0.7 * 48000);
+  });
+
+  it('starts silent, rises to its full volume, then fades out to the unheard', () => {
+    expect(curve[0]).toBe(0);
+    expect(Math.max(...curve)).toBe(1);
+    expect(curve.at(-1)).toBeCloseTo(0.001, 6);
+  });
+
+  it('never jumps, fading in over a few milliseconds', () => {
+    const steps = curve.slice(1).map((value, i) => Math.abs(value - (curve[i] ?? 0)));
+
+    expect(Math.max(...steps)).toBeLessThan(0.005);
   });
 });

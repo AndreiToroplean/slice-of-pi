@@ -22,6 +22,13 @@ const FIRST = { center: 2, reach: 1, width: 0.7 } as const;
 const SECOND = { center: 4, reach: 1.5, width: 0.9 } as const;
 /** How long a note takes to reach its full volume, in seconds: short, as plucked. */
 const ATTACK = 0.005;
+/** How faint a note gets as it ends, next to its full volume: -60 dB, unheard. */
+const FLOOR = 0.001;
+/**
+ * How long a note's partials keep going after it ends, in seconds, as its envelope may start a little after it was
+ * scheduled to, ending as much later (see {@link envelopeCurve}): longer than the audio is ever late.
+ */
+const TAIL = 0.1;
 /** How loud a single note at full volume is, so that a chord with its melody doesn't clip. */
 const HEADROOM = 0.15;
 /** How loud the buzz of a sour note is at its fullest, next to the note: a square wave is loud for its volume. */
@@ -78,6 +85,26 @@ function partialLevels(timbre: number | undefined): number[] {
   return levels.map((level) => level / loudest);
 }
 
+/**
+ * A note's envelope, its volume over its `length` in seconds, as samples at `sampleRate`, from 0 up to its full volume,
+ * 1, over {@link ATTACK}, then fading out to the {@link FLOOR}.
+ *
+ * Played as samples rather than as changes scheduled on the audio's clock, it always plays from its start, however late
+ * the note reaches the audio: the audio is worked out in chunks ahead of what the speakers play, so that a note played
+ * at once reaches it a little after its time, by up to a chunk, and a fade-in scheduled on the clock would then be
+ * over, the note starting at its full volume, with a click.
+ */
+export function envelopeCurve(length: number, sampleRate: number): Float32Array<ArrayBuffer> {
+  const samples = Math.max(1, Math.round(length * sampleRate));
+  const attack = Math.max(1, Math.min(samples, Math.round(ATTACK * sampleRate)));
+  const curve = new Float32Array(samples);
+  for (let i = 0; i < samples; i++) {
+    curve[i] =
+      i < attack ? i / attack : FLOOR ** ((i - attack) / Math.max(1, samples - 1 - attack));
+  }
+  return curve;
+}
+
 /** The frequency of a MIDI note number, in hertz: 69 is A at 440 Hz. */
 function frequencyOf(pitch: number): number {
   return 440 * 2 ** ((pitch - 69) / 12);
@@ -99,6 +126,8 @@ export class Speaker {
   private readonly tweaks = inject(Tweaks);
   private context: AudioContext | undefined;
   private output: AudioNode | undefined;
+  /** The envelopes of the notes played so far, by their length in ms, made once each (see {@link envelopeCurve}). */
+  private readonly envelopes = new Map<number, AudioBuffer>();
 
   /** Gets the audio ready to play, unless the player turned sounds off: done on every tap and key, as browsers ask. */
   warmUp(): void {
@@ -191,7 +220,23 @@ export class Speaker {
     return this.context.state === 'running' ? Promise.resolve() : this.context.resume();
   }
 
-  /** Plucks a note at `start`, on the context's clock, fading out, its tone through a gain a sour note's rasp shakes. */
+  /** The envelope of a note `length` seconds long: see {@link envelopeCurve}. */
+  private envelope(context: AudioContext, length: number): AudioBuffer {
+    const key = Math.round(length * 1000);
+    let buffer = this.envelopes.get(key);
+    if (buffer === undefined) {
+      const curve = envelopeCurve(key / 1000, context.sampleRate);
+      buffer = context.createBuffer(1, curve.length, context.sampleRate);
+      buffer.copyToChannel(curve, 0);
+      this.envelopes.set(key, buffer);
+    }
+    return buffer;
+  }
+
+  /**
+   * Plucks a note at `start`, on the context's clock, fading out (see {@link envelopeCurve}), its tone through a gain a
+   * sour note's rasp shakes.
+   */
   private voice(
     context: AudioContext,
     output: AudioNode,
@@ -201,11 +246,17 @@ export class Speaker {
   ): Voice {
     const peak = HEADROOM * note.gain * (note.accompaniment ? mix.chords : 1);
     const end = start + note.length;
+    const level = context.createGain();
+    level.gain.value = peak;
+    level.connect(output);
+    // Its volume is the curve's alone: the gain adds what's connected to it to its own value.
     const envelope = context.createGain();
-    envelope.gain.setValueAtTime(0, start);
-    envelope.gain.linearRampToValueAtTime(peak, start + ATTACK);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, end);
-    envelope.connect(output);
+    envelope.gain.value = 0;
+    envelope.connect(level);
+    const curve = context.createBufferSource();
+    curve.buffer = this.envelope(context, note.length);
+    curve.connect(envelope.gain);
+    curve.start(start);
     const tone = context.createGain();
     tone.connect(envelope);
     const partials = partialLevels(note.timbre).map((level, i) => {
@@ -216,7 +267,7 @@ export class Speaker {
       oscillator.connect(partial);
       partial.connect(tone);
       oscillator.start(start);
-      oscillator.stop(end);
+      oscillator.stop(end + TAIL);
       return oscillator.detune;
     });
     return {

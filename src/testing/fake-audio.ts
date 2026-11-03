@@ -13,6 +13,15 @@ export interface PlayedTone {
   readonly bends: { readonly to: number; readonly by: number }[];
 }
 
+/** A note's envelope started on the fake audio context: when, and how long it lasts, in seconds. */
+export interface PlayedEnvelope {
+  readonly start: number;
+  readonly length: number;
+}
+
+/** The sample rate of the fake audio context. */
+const SAMPLE_RATE = 48000;
+
 /**
  * A stand-in for the Web Audio API, which the test browser lacks: it notes each oscillator started, a note's first
  * one first, so that tests can tell how many notes played, when, whether they were silenced, and how far they went off
@@ -23,6 +32,7 @@ export class FakeAudio {
   currentTime = 0;
   state: AudioContextState = 'running';
   readonly tones: PlayedTone[] = [];
+  readonly envelopes: PlayedEnvelope[] = [];
   /** How many contexts were made. */
   made = 0;
   /** Resolves once the browser lets the audio run: at once, unless {@link block}ed. */
@@ -97,6 +107,21 @@ export class FakeAudio {
       },
       get state() {
         return audio.state;
+      },
+      sampleRate: SAMPLE_RATE,
+      createBuffer: (_channels: number, length: number) => ({
+        duration: length / SAMPLE_RATE,
+        copyToChannel: () => undefined,
+      }),
+      createBufferSource: () => {
+        const source = {
+          ...node(),
+          buffer: null as { duration: number } | null,
+          start: (when: number) => {
+            audio.envelopes.push({ start: when, length: source.buffer?.duration ?? 0 });
+          },
+        };
+        return source;
       },
       resume: () =>
         audio.allowed.then(() => {
