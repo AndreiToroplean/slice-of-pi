@@ -62,33 +62,79 @@ const FIT = [1.5, 1, 0.5, 0.5] as const;
 /** How well a chord kept under a passing note fits it: worse than any of its own notes. */
 const PASSING = -1;
 
-/** How many places a bar has, and a period, two phrases of two bars, a question and its answer. */
-const BAR = 4;
-const PERIOD = 16;
+/** How many places a chord may last before it's wanted less for each more. */
+const FRESH = 4;
+type Cadence = Partial<Record<ChordName, number>>;
 /**
- * How much each chord is wanted at each place of a period: a phrase opens on the tonic (I) and ends on a cadence, the
- * question on the dominant (V), a half cadence, the answer on V then I, a full one, after the chords leading to V.
+ * How much each chord is wanted on a word's first slot, and on its last ones, counted from its end, by whether it asks
+ * or answers: a phrase opens on the tonic (I), the question ends on the dominant (V), a half cadence, and the answer on
+ * V then I, a full one, after the chords leading to V.
  */
-const CADENCES: Readonly<Partial<Record<number, Partial<Record<ChordName, number>>>>> = {
-  0: { I: 1.5 },
-  6: { V: 1.5, V7: 1 },
-  7: { V: 1.5, V7: 1 },
-  8: { I: 0.5, vi: 0.5 },
-  10: { IV: 1, ii: 1, ii7: 1, 'V/V': 0.5 },
-  11: { IV: 1, ii: 1, ii7: 1, 'V/V': 0.5 },
-  12: { V: 2, V7: 2 },
-  13: { V7: 2, V: 1.5 },
-  14: { I: 4, vi: 0.5 },
-  15: { I: 6 },
+const OPENINGS: Readonly<Record<'question' | 'answer', Cadence>> = {
+  question: { I: 1.5 },
+  answer: { I: 0.5, vi: 0.5 },
 };
-/** The places of a period a chord's lowest note is its root on, as a cadence's chords are. */
-const ROOTED = new Set([12, 13, 14, 15]);
+const ENDINGS: Readonly<Record<'question' | 'answer', readonly Cadence[]>> = {
+  question: [
+    { V: 2.5, V7: 1.5 },
+    { V: 1.5, V7: 1 },
+  ],
+  answer: [{ I: 6 }, { V: 2, V7: 2 }, { IV: 1, ii: 1, ii7: 1, 'V/V': 0.5 }],
+};
+/** How many of an answer's last slots a chord's lowest note is its root on, as a cadence's chords are. */
+const ROOTED = 2;
+
+/**
+ * Where a place falls in the player's words, which are the song's bars: its slot in its word, from 0, the word's size,
+ * and whether the word answers the one before, the words going in pairs, a question and its answer.
+ */
+export interface Meter {
+  readonly slot: number;
+  readonly size: number;
+  readonly answer: boolean;
+}
+
+/**
+ * The meter of the first `count` places, in the finished `words`, then in the word being typed, of `slots`, or as many
+ * as it holds past them.
+ */
+export function metersOf(count: number, words: readonly number[], slots: number): Meter[] {
+  const meters: Meter[] = [];
+  for (const [word, size] of [...words, Infinity].entries()) {
+    const left = count - meters.length;
+    const actual = size === Infinity ? Math.max(slots, left) : size;
+    for (let slot = 0; slot < Math.min(actual, left); slot++) {
+      meters.push({ slot, size: actual, answer: word % 2 === 1 });
+    }
+    if (meters.length >= count) {
+      break;
+    }
+  }
+  return meters;
+}
+
+/** How many slots of its word are left after a place's. */
+function fromEnd({ slot, size }: Meter): number {
+  return size - 1 - slot;
+}
+
+/** How much a chord is wanted at a place, for where it falls in its word and its pair. */
+function cadence(name: ChordName, meter: Meter): number {
+  const kind = meter.answer ? 'answer' : 'question';
+  const opening = meter.slot === 0 ? (OPENINGS[kind][name] ?? 0) : 0;
+  const ending =
+    meter.slot > 0 || meter.size === 1 ? (ENDINGS[kind][fromEnd(meter)]?.[name] ?? 0) : 0;
+  return opening + ending;
+}
 
 type Beat = 'strong' | 'medium' | 'weak';
-/** How much changing chord, or keeping it, is wanted on each beat: changes fall on the strong ones, as in songs. */
+/**
+ * How much changing chord, or keeping it, is wanted on each beat: changes fall on the strong ones, as in songs, and at
+ * the end of a word, where its cadence falls.
+ */
 const CHANGE: Readonly<Record<Beat, number>> = { strong: 1, medium: 0, weak: -1.5 };
 const HOLD: Readonly<Record<Beat, number>> = { strong: -0.5, medium: 2, weak: 4 };
-/** How much less a chord is wanted for each place it's kept past a bar, and going back to the one before it. */
+/** How much less a chord is wanted for each place it's kept past {@link FRESH}, and going back to the one before it. */
 const STALE = 2;
 const BACK = 0.75;
 
@@ -133,8 +179,13 @@ function mod(value: number, by: number): number {
   return ((value % by) + by) % by;
 }
 
-function beatOf(index: number): Beat {
-  return index % BAR === 0 ? 'strong' : index % 2 === 0 ? 'medium' : 'weak';
+/** A place's beat: a word's first slot is its downbeat, its last a cadence, and those between alternate. */
+function beatOf(meter: Meter): Beat {
+  return meter.slot === 0
+    ? 'strong'
+    : meter.slot % 2 === 0 || fromEnd(meter) === 0
+      ? 'medium'
+      : 'weak';
 }
 
 /**
@@ -152,29 +203,29 @@ function passing(pitch: number, beat: Beat, previous: Harmony): boolean {
 }
 
 /**
- * How much a chord is wanted under the melody's `pitch` at `index`, after `previous`; undefined if it doesn't hold the
+ * How much a chord is wanted under the melody's `pitch` at `meter`, after `previous`; undefined if it doesn't hold the
  * note, unless the note passes over it (see {@link passing}).
  */
 function harmonyScore(
   name: ChordName,
   pitch: number,
-  index: number,
+  meter: Meter,
   previous: Harmony | undefined,
 ): number | undefined {
   const chord = CHORDS[name];
   const role = chord.tones.indexOf(mod(pitch, 12));
-  const beat = beatOf(index);
+  const beat = beatOf(meter);
   if (role < 0) {
     return name === previous?.chord && passing(pitch, beat, previous)
-      ? PASSING + HOLD[beat] - STALE * Math.max(0, previous.held + 1 - BAR)
+      ? PASSING + HOLD[beat] - STALE * Math.max(0, previous.held + 1 - FRESH)
       : undefined;
   }
-  let score = (FIT[role] ?? 0) - (chord.rarity ?? 0) + (CADENCES[index % PERIOD]?.[name] ?? 0);
+  let score = (FIT[role] ?? 0) - (chord.rarity ?? 0) + cadence(name, meter);
   if (previous === undefined) {
     return score;
   }
   if (name === previous.chord) {
-    score += HOLD[beat] - STALE * Math.max(0, previous.held + 1 - BAR);
+    score += HOLD[beat] - STALE * Math.max(0, previous.held + 1 - FRESH);
   } else {
     score += CHANGE[beat] + (NEXT[previous.chord][name] ?? UNLISTED);
     if (name === previous.before) {
@@ -184,12 +235,12 @@ function harmonyScore(
   return score;
 }
 
-/** The chord under the melody's `pitch` at `index`, after `previous`: the most wanted that holds the note. */
-function chordFor(pitch: number, index: number, previous: Harmony | undefined): ChordName {
+/** The chord under the melody's `pitch` at `meter`, after `previous`: the most wanted that holds the note. */
+function chordFor(pitch: number, meter: Meter, previous: Harmony | undefined): ChordName {
   let best: ChordName = 'I';
   let bestScore = -Infinity;
   for (const name of CHORD_NAMES) {
-    const score = harmonyScore(name, pitch, index, previous);
+    const score = harmonyScore(name, pitch, meter, previous);
     if (score !== undefined && score > bestScore) {
       best = name;
       bestScore = score;
@@ -233,7 +284,7 @@ function voicingCost(
   chord: Chord,
   voices: readonly [number, number, number],
   melody: number,
-  index: number,
+  meter: Meter,
   previous: Harmony | undefined,
 ): number {
   const [bass, tenor, alto] = voices;
@@ -258,7 +309,7 @@ function voicingCost(
     cost += 20;
   }
   if (mod(bass, 12) !== root) {
-    cost += ROOTED.has(index % PERIOD) ? 6 : 1.5;
+    cost += meter.answer && fromEnd(meter) < ROOTED ? 6 : 1.5;
   }
   cost += 0.1 * Math.abs(bass - BASS.center);
   if (previous === undefined) {
@@ -285,7 +336,7 @@ function voicingCost(
 function voicingFor(
   name: ChordName,
   melody: number,
-  index: number,
+  meter: Meter,
   previous: Harmony | undefined,
 ): [number, number, number] {
   const chord = CHORDS[name];
@@ -307,7 +358,7 @@ function voicingFor(
         Math.min(TENOR.high, alto - 1),
         chord.tones,
       )) {
-        const cost = voicingCost(chord, [bass, tenor, alto], melody, index, previous);
+        const cost = voicingCost(chord, [bass, tenor, alto], melody, meter, previous);
         if (cost < bestCost) {
           best = [bass, tenor, alto];
           bestCost = cost;
@@ -319,13 +370,13 @@ function voicingFor(
 }
 
 /**
- * The harmony under the digit at `index`, after `previous`: the chord most wanted under its note (see
+ * The harmony under the digit at `meter`, after `previous`: the chord most wanted under its note (see
  * {@link harmonyScore}), and the voices, kept ringing while the chord is kept and they stay under the melody, else
  * moved to it as smoothly as they can (see {@link voicingCost}).
  */
-export function harmonize(digit: number, index: number, previous: Harmony | undefined): Harmony {
+export function harmonize(digit: number, meter: Meter, previous: Harmony | undefined): Harmony {
   const melody = CHORALE_PITCHES[digit] ?? 60;
-  const chord = chordFor(melody, index, previous);
+  const chord = chordFor(melody, meter, previous);
   if (chord === previous?.chord && previous.voices[2] < melody) {
     return { ...previous, held: previous.held + 1, melody, struck: false };
   }
@@ -334,23 +385,33 @@ export function harmonize(digit: number, index: number, previous: Harmony | unde
     before: previous === undefined || previous.chord === chord ? previous?.before : previous.chord,
     held: previous?.chord === chord ? previous.held + 1 : 1,
     melody,
-    voices: voicingFor(chord, melody, index, previous),
+    voices: voicingFor(chord, melody, meter, previous),
     struck: true,
   };
 }
 
-/** The harmony at each place of `typed`, worked out in order from the first, each from the digits up to it alone. */
-export function harmonizeAll(typed: string): Harmony[] {
+/**
+ * The harmony at each place of `typed`, in `words` of those sizes, worked out in order from the first, each from the
+ * digits and words up to it alone.
+ */
+export function harmonizeAll(typed: string, words: readonly number[]): Harmony[] {
   const harmonies: Harmony[] = [];
-  for (let index = 0; index < typed.length; index++) {
-    harmonies.push(harmonize(Number(typed[index]), index, harmonies.at(-1)));
+  for (const [index, meter] of metersOf(typed.length, words, 0).entries()) {
+    harmonies.push(harmonize(Number(typed[index]), meter, harmonies.at(-1)));
   }
   return harmonies;
 }
 
-/** Whether a phrase comes home at `index`: on the tonic, at the end of a period. */
-function home(harmony: Harmony, index: number): boolean {
-  return harmony.chord === 'I' && index % PERIOD >= PERIOD - 2;
+/** Whether a phrase comes home at `meter`: on the tonic, at the end of an answer. */
+function home(harmony: Harmony, meter: Meter): boolean {
+  return harmony.chord === 'I' && meter.answer && fromEnd(meter) === 0;
+}
+
+/** A meter for a place outside any word, never used: the first slot of a question of one. */
+const FIRST: Meter = { slot: 0, size: 1, answer: false };
+
+function sameMeter(a: Meter | undefined, b: Meter | undefined): boolean {
+  return a?.slot === b?.slot && a?.size === b?.size && a?.answer === b?.answer;
 }
 
 /**
@@ -358,26 +419,30 @@ function home(harmony: Harmony, index: number): boolean {
  * how it plays, which developer mode shows.
  */
 class Chorale implements SoundModel {
-  /** The digits typed last asked about, and the harmony at each of their places, kept while they stay the same. */
+  /**
+   * The digits typed last asked about, the meter and the harmony at each of their places, kept while they stay the
+   * same.
+   */
   private typed = '';
+  private meters: Meter[] = [];
   private readonly harmonies: Harmony[] = [];
 
-  keys({ typed }: Moment): Readonly<Record<Digit, Chime>> {
-    const previous = this.after(typed);
+  keys({ typed, words, slots }: Moment): Readonly<Record<Digit, Chime>> {
+    const { previous, meter } = this.after(typed, words, slots);
     return Object.fromEntries(
       DIGITS.map((digit): [Digit, Chime] => [
         digit,
-        this.chime(harmonize(Number(digit), typed.length, previous), typed.length),
+        this.chime(harmonize(Number(digit), meter, previous), meter),
       ]),
     ) as Record<Digit, Chime>;
   }
 
-  describe({ typed }: Moment, digit: Digit): string {
-    const index = typed.length;
-    const harmony = harmonize(Number(digit), index, this.after(typed));
+  describe({ typed, words, slots }: Moment, digit: Digit): string {
+    const { previous, meter } = this.after(typed, words, slots);
+    const harmony = harmonize(Number(digit), meter, previous);
     const [bass] = harmony.voices;
     const under = harmony.struck ? `bass ${nameOf(bass)}` : 'held';
-    return `${digit} ${nameOf(harmony.melody)} on ${CHORDS[harmony.chord].symbol} (${harmony.chord}) · ${under} · beat ${String((index % PERIOD) + 1)}/${String(PERIOD)}`;
+    return `${digit} ${nameOf(harmony.melody)} on ${CHORDS[harmony.chord].symbol} (${harmony.chord}) · ${under} · slot ${String(meter.slot + 1)}/${String(meter.size)} ${meter.answer ? 'answer' : 'question'}`;
   }
 
   landing(): Chime {
@@ -388,28 +453,44 @@ class Chorale implements SoundModel {
     return 'silent';
   }
 
-  /** The harmony at the last place of `typed`, worked out from where it last differed. */
-  private after(typed: string): Harmony | undefined {
+  /**
+   * The harmony at the last place of `typed`, worked out from where it or its meter last differed, and the meter of
+   * the place after it.
+   */
+  private after(
+    typed: string,
+    words: readonly number[],
+    slots: number,
+  ): { previous: Harmony | undefined; meter: Meter } {
+    const meters = metersOf(typed.length + 1, words, slots);
     let same = 0;
-    while (same < typed.length && same < this.typed.length && typed[same] === this.typed[same]) {
+    while (
+      same < typed.length &&
+      same < this.typed.length &&
+      typed[same] === this.typed[same] &&
+      sameMeter(meters[same], this.meters[same])
+    ) {
       same++;
     }
     this.harmonies.length = Math.min(this.harmonies.length, same);
     this.typed = typed;
+    this.meters = meters;
     while (this.harmonies.length < typed.length) {
       const index = this.harmonies.length;
-      this.harmonies.push(harmonize(Number(typed[index]), index, this.harmonies.at(-1)));
+      this.harmonies.push(
+        harmonize(Number(typed[index]), meters[index] ?? FIRST, this.harmonies.at(-1)),
+      );
     }
-    return this.harmonies.at(-1);
+    return { previous: this.harmonies.at(-1), meter: meters.at(-1) ?? FIRST };
   }
 
   /**
    * What a place plays: the melody's note, louder on a downbeat, and the voices under it where they're struck, or
    * struck again softer on a downbeat while the chord is kept; all longer as a phrase comes home.
    */
-  private chime(harmony: Harmony, index: number): Chime {
-    const isHome = home(harmony, index);
-    const downbeat = index % BAR === 0;
+  private chime(harmony: Harmony, meter: Meter): Chime {
+    const isHome = home(harmony, meter);
+    const downbeat = meter.slot === 0;
     const melody: Note = {
       pitch: harmony.melody,
       gain: downbeat ? DOWNBEAT_GAIN : MELODY_GAIN,
@@ -438,9 +519,9 @@ export const CHORALE: SoundModelKind = {
   about: [
     'Each digit always plays its own note: C major going up a step a digit, from C4 for 0 to E5 for 9. Its melody is π’s, and Chorale harmonizes it, as a hymn tune is, in four voices: the melody on top, then alto, tenor and bass.',
     'Under each note, it picks a chord holding that note, the one music theory wants most there: one that follows the chord before naturally (towards G and back home to C strongest, round the circle of fifths strong, backwards weak), with the note as its root rather than its fifth, and with a little color now and then (Dm7, G7, and the D and E leading to G and Am).',
-    'π plays in bars of 4 notes and periods of 16, a question and its answer. Chords change on the strong beats and stay on the weak ones; the question ends on G, the answer on G then C, and a period starts on C, wherever the melody lets it.',
-    'The voices under the melody move as little as they can to the next chord, by the rules of four-part writing: no parallel fifths or octaves, no doubled leading tone. They ring while the chord stays, and are struck again on each bar’s first beat.',
-    'It plays nothing as words land, and ignores the colors, the seasons and your words: only the digits make the music.',
+    'Your words are its bars, so that π plays to your own rhythm. Each word opens on a strong beat, where chords change, and they stay on the weak ones between. Words go in pairs, a question and its answer: the question opens on C and ends on G, the answer ends on G then C, on its last slots, whatever its size, wherever the melody lets it.',
+    'The voices under the melody move as little as they can to the next chord, by the rules of four-part writing: no parallel fifths or octaves, no doubled leading tone. They ring while the chord stays, and are struck again on each word’s first digit.',
+    'It plays nothing as words land, and ignores the colors and the seasons: only the digits and your words make the music.',
     'It never knows π: only the digits typed before, and the one typed, so a key sounds the same, right or wrong.',
   ],
   create: () => new Chorale(),
