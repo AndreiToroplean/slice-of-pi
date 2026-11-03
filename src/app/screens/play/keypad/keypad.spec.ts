@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { isDigit } from '../../../game/pi/digit';
-import { keyColors, PALETTE } from '../../../game/layers/place-colors';
+import { keyColorIndices, PALETTE } from '../../../game/layers/place-colors';
 import { Keypad, REPEAT_DELAY, REPEAT_INTERVAL, SPLASH_DURATION } from './keypad';
 import { KeypadKey, KeypadTouch } from '../../../game/layers/keypad-layout';
 
@@ -46,14 +46,17 @@ describe('Keypad', () => {
     typed = [];
     touches = [];
     // Like the play screen, each digit typed moves its key on to its next color.
-    fixture.componentRef.setInput('colors', keyColors(''));
+    fixture.componentRef.setInput('colorIndices', keyColorIndices(''));
     fixture.componentInstance.touched.subscribe((touch) => {
       touches.push(touch);
       if (touch.key === null) {
         return;
       }
       typed.push(touch.key);
-      fixture.componentRef.setInput('colors', keyColors(typed.filter(isDigit).join('')));
+      fixture.componentRef.setInput(
+        'colorIndices',
+        keyColorIndices(typed.filter(isDigit).join('')),
+      );
     });
     await vi.advanceTimersByTimeAsync(0);
     fixture.detectChanges();
@@ -534,7 +537,7 @@ describe('Keypad', () => {
     it('shows the key it is told to pressed, filled with the color noted for it', () => {
       const color = button('4').style.getPropertyValue('--press-color');
       fixture.componentInstance.noteColor('4');
-      fixture.componentRef.setInput('colors', keyColors('14'));
+      fixture.componentRef.setInput('colorIndices', keyColorIndices('14'));
 
       set('shown', '4');
 

@@ -31,7 +31,7 @@ import { slotBoxes } from './slots/slot-layout';
 import { SlotHandover } from './slots/slots';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { Keypad, KeypadMark } from './keypad/keypad';
-import { keyColors, placeColors } from '../../game/layers/place-colors';
+import { keyColorIndices, placeColors } from '../../game/layers/place-colors';
 import { Pause } from './pause/pause';
 import { PausesOnBack } from './pause-on-back';
 import { isPiDecimal } from '../../game/pi/pi';
@@ -123,7 +123,8 @@ const TICK = 16;
     <app-keypad
       class="keypad"
       [layout]="keypadLayout()"
-      [colors]="keyColors()"
+      [colorIndices]="colorIndices()"
+      [palette]="tweaks.palette()"
       [solid]="tweaks.solidKeys()"
       [showAreas]="editedLayout() !== undefined && !previewing()"
       [disabled]="replay() !== undefined"
@@ -275,8 +276,8 @@ export class Play implements PausesOnBack {
   protected readonly currentColors = computed(() =>
     this.placeColors().slice(this.digits().length - this.grouping().current.length),
   );
-  /** Each key's color: the color its digit takes when typed next. */
-  protected readonly keyColors = computed(() => keyColors(this.digits(), this.tweaks.palette()));
+  /** Each key's color index: where the color its digit takes when typed next is in the palette. */
+  protected readonly colorIndices = computed(() => keyColorIndices(this.digits()));
 
   /** The season, and the background's colors, after the places typed so far. */
   protected readonly season = computed(() =>

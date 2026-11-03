@@ -29,14 +29,19 @@ export type Palette = readonly string[];
  * color d, so the keys start on 10 different colors, and each occurrence moves its key on to the next color.
  */
 export function occurrenceColor(digit: Digit, before: number, palette: Palette = PALETTE): string {
-  const color =
-    Number.isInteger(before) && before >= 0
-      ? palette[(Number(digit) + before) % palette.length]
-      : undefined;
+  const color = palette[occurrenceIndex(digit, before)];
   if (color === undefined) {
-    throw new Error(`Not a number of occurrences: ${String(before)}`);
+    throw new Error(`No color in the palette`);
   }
   return color;
+}
+
+/** Where the color of an occurrence of `digit` is in the palette: see {@link occurrenceColor}. */
+function occurrenceIndex(digit: Digit, before: number): number {
+  if (!Number.isInteger(before) || before < 0) {
+    throw new Error(`Not a number of occurrences: ${String(before)}`);
+  }
+  return (Number(digit) + before) % PALETTE.length;
 }
 
 /**
@@ -52,18 +57,18 @@ export function placeColors(digits: string, palette: Palette = PALETTE): readonl
   });
 }
 
-/** Each key's color after the typed digits: the color its digit will take the next time it's typed. */
-export function keyColors(
-  digits: string,
-  palette: Palette = PALETTE,
-): Readonly<Record<Digit, string>> {
+/**
+ * Each key's color index after the typed digits: where the color its digit takes the next time it's typed is in the
+ * palette.
+ */
+export function keyColorIndices(digits: string): Readonly<Record<Digit, number>> {
   const seen = occurrenceCounts();
   for (const digit of digits) {
     seen[asDigit(digit)]++;
   }
   return Object.fromEntries(
-    DIGITS.map((digit) => [digit, occurrenceColor(digit, seen[digit], palette)]),
-  ) as Record<Digit, string>;
+    DIGITS.map((digit) => [digit, occurrenceIndex(digit, seen[digit])]),
+  ) as Record<Digit, number>;
 }
 
 function occurrenceCounts(): Record<Digit, number> {
