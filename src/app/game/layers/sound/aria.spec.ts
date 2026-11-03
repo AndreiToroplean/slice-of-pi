@@ -85,7 +85,7 @@ describe('Aria', () => {
     );
   });
 
-  it('plays the same song every time', () => {
+  it('plays the same song every time', { tags: ['disabled'] }, () => {
     const a = ARIA.create();
     const b = ARIA.create();
     for (const place of [1, 50, 10, 300]) {

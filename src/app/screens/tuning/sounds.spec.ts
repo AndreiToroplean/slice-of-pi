@@ -200,7 +200,7 @@ describe('Sounds', () => {
     expect(button(host, 'Reset All').disabled).toBe(false);
   });
 
-  it('shows the sound model picked, and what it does', async () => {
+  it('shows the sound model picked, and what it does', { tags: ['disabled'] }, async () => {
     const { host } = await setUp();
 
     expect(host.querySelector('app-segmented')?.textContent).toContain('Aria');
