@@ -268,6 +268,11 @@ export class Speaker {
     curve.buffer = this.envelope(context, note.length);
     curve.connect(envelope.gain);
     curve.start(start);
+    // Faded out, it leaves the mix at once rather than once collected: notes long over yet still connected cost the
+    // audio work all the same, enough over a long song to make it crackle.
+    curve.onended = () => {
+      level.disconnect();
+    };
     const tone = context.createGain();
     tone.connect(envelope);
     // Silent partials, as a plain pluck's highest, are left out: each would be an oscillator the device works out for
