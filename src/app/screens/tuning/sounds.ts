@@ -2,6 +2,7 @@ import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { Tweaks, TweakValues } from '../../developer-mode/tweaks';
 import { Speaker } from '../../feedback/speaker';
 import { MIX_SLIDERS, SOUND_MIX, SoundMix } from '../../feedback/sound-mix';
+import { Souring, SOURING, SOURING_SLIDERS } from '../../feedback/souring';
 import { keyColorIndices } from '../../game/layers/place-colors';
 import { seasonOf } from '../../game/layers/seasons';
 import { Chime, SoundModel, SoundModelKind } from '../../game/layers/sound/sound-model';
@@ -128,6 +129,20 @@ export function* song(
           (changed)="set(slider.key, $event)"
         />
       }
+      <fieldset class="souring">
+        <legend>Souring</legend>
+        @for (slider of souringSliders; track slider.key) {
+          <app-slider
+            [label]="slider.label"
+            [value]="souring()[slider.key]"
+            [min]="slider.min"
+            [max]="slider.max"
+            [step]="slider.step"
+            [valueText]="slider.format(souring()[slider.key])"
+            (changed)="setSouring(slider.key, $event)"
+          />
+        }
+      </fieldset>
       <label class="setting">
         Landing Chords
         <input type="checkbox" [checked]="landings()" (change)="setLandings($event)" />
@@ -157,6 +172,7 @@ export function* song(
 })
 export class Sounds {
   protected readonly sliders = MIX_SLIDERS;
+  protected readonly souringSliders = SOURING_SLIDERS;
   protected readonly models: readonly Segment<string>[] = SOUND_MODELS.map(({ id, label }) => ({
     value: id,
     label,
@@ -169,6 +185,8 @@ export class Sounds {
   /** The sound model picked, the mix being tuned, and whether words land with a chord. */
   protected readonly kind = signal<SoundModelKind>(this.storedKind());
   protected readonly mix = signal<SoundMix>(this.tweaks.values().sound ?? SOUND_MIX);
+  /** How a wrong key's note goes off, being tuned. */
+  protected readonly souring = signal<Souring>(this.tweaks.values().souring ?? SOURING);
   protected readonly landings = signal(this.tweaks.values().landings !== false);
   private edited = false;
   /** Stops the song playing, if it is. */
@@ -181,6 +199,7 @@ export class Sounds {
   protected readonly copied = computed((): TweakValues => ({
     soundModel: this.kind().id,
     sound: this.mix(),
+    souring: this.souring(),
     ...(this.landings() ? {} : { landings: false as const }),
   }));
   /** The player's runs, to play the song in their groups. */
@@ -202,7 +221,8 @@ export class Sounds {
     () =>
       this.kind() !== SOUND_MODEL ||
       !this.landings() ||
-      MIX_SLIDERS.some(({ key }) => this.mix()[key] !== SOUND_MIX[key]),
+      MIX_SLIDERS.some(({ key }) => this.mix()[key] !== SOUND_MIX[key]) ||
+      SOURING_SLIDERS.some(({ key }) => this.souring()[key] !== SOURING[key]),
   );
 
   constructor() {
@@ -210,6 +230,7 @@ export class Sounds {
       if (!this.edited) {
         this.kind.set(this.storedKind());
         this.mix.set(this.tweaks.values().sound ?? SOUND_MIX);
+        this.souring.set(this.tweaks.values().souring ?? SOURING);
         this.landings.set(this.tweaks.values().landings !== false);
       }
     });
@@ -238,6 +259,12 @@ export class Sounds {
     void this.tweaks.setSoundMix(this.mix());
   }
 
+  protected setSouring(key: keyof Souring, value: number): void {
+    this.edited = true;
+    this.souring.update((souring) => ({ ...souring, [key]: value }));
+    void this.tweaks.setSouring(this.souring());
+  }
+
   protected setLandings(event: Event): void {
     this.edited = true;
     this.landings.set((event.target as HTMLInputElement).checked);
@@ -248,9 +275,11 @@ export class Sounds {
     this.edited = true;
     this.kind.set(SOUND_MODEL);
     this.mix.set(SOUND_MIX);
+    this.souring.set(SOURING);
     this.landings.set(true);
     void this.tweaks.setSoundModel(undefined);
     void this.tweaks.setSoundMix(undefined);
+    void this.tweaks.setSouring(undefined);
     void this.tweaks.setLandings(true);
   }
 
@@ -278,10 +307,10 @@ export class Sounds {
         const unlog = this.timer.after(delay, () => {
           this.lines.update((lines) => [...lines.slice(1 - LOG_LINES), line]);
         });
-        const silence = this.speaker.play(chime, delay);
+        const playing = this.speaker.play(chime, delay);
         stops.push(() => {
           unlog();
-          silence();
+          playing.stop();
         });
         next = chimes.next();
       }

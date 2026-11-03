@@ -127,7 +127,7 @@ describe('Sounds', () => {
     const play = vi.spyOn(TestBed.inject(Speaker), 'play').mockImplementation(() => {
       const stop = vi.fn();
       stops.push(stop);
-      return stop;
+      return { stop, sour: vi.fn() };
     });
     const { host, stable } = await setUp();
     // Far more than the 10 s played.

@@ -7,9 +7,9 @@ export interface SoundMix {
 /** The game's own mix. */
 export const SOUND_MIX: SoundMix = { chords: 0.6 };
 
-/** A setting of the mix, as its slider shows it on the sounds page. */
-export interface MixSlider {
-  readonly key: keyof SoundMix;
+/** A setting of the speaker, such as of the mix, as its slider shows it on the Sound Models page. */
+export interface SoundSlider<T> {
+  readonly key: keyof T & string;
   readonly label: string;
   readonly min: number;
   readonly max: number;
@@ -20,6 +20,6 @@ export interface MixSlider {
 const percent = (value: number): string => `${String(Math.round(value * 100))}%`;
 
 /** The sliders of the mix, in order. */
-export const MIX_SLIDERS: readonly MixSlider[] = [
+export const MIX_SLIDERS: readonly SoundSlider<SoundMix>[] = [
   { key: 'chords', label: 'Chords', min: 0, max: 1, step: 0.05, format: percent },
 ];

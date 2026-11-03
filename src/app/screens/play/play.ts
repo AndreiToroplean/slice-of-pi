@@ -51,7 +51,7 @@ import { Slots } from './slots/slots';
 import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { TIMER } from './timer';
 import { Vibrator } from '../../feedback/vibrator';
-import { Speaker } from '../../feedback/speaker';
+import { Playing, Speaker } from '../../feedback/speaker';
 import { Chime, Moment } from '../../game/layers/sound/sound-model';
 import { SoundLog } from './sound-log/sound-log';
 import { LONGEST_STEP, MOST_STEPS, Vibration } from '../../feedback/vibrations';
@@ -327,6 +327,8 @@ export class Play implements PausesOnBack {
   private flights: Animation[] = [];
   private readonly vibrator = inject(Vibrator);
   private readonly speaker = inject(Speaker);
+  /** What each key touched is playing, until it's typed, to take it off if it turns out wrong. */
+  private readonly ringing = new Map<KeypadKey, Playing>();
   /**
    * The vibrations of the slots flying, as they pluck themselves off and land: when the last one ends, on the run's
    * clock, and what stops those yet to start.
@@ -463,6 +465,8 @@ export class Play implements PausesOnBack {
     if (key !== 'backspace' && !('x' in touch)) {
       this.sound(key);
     }
+    const ringing = key === 'backspace' ? undefined : this.ringing.get(key);
+    this.ringing.delete(key);
     // Keys are typed into the game, not into what has the focus, such as the typed digits once clicked or the pause
     // button once the game resumes: it gives the focus up rather than showing its ring as if typed into.
     if (document.activeElement instanceof HTMLElement) {
@@ -477,6 +481,7 @@ export class Play implements PausesOnBack {
         this.afterBackspace();
       } else {
         this.vibrate('mistake');
+        this.sour(ringing);
         this.mistakes.update((mistakes) => mistakes + key);
       }
       return;
@@ -485,6 +490,7 @@ export class Play implements PausesOnBack {
       // A group never finishes on a mistake.
       this.stopWatching();
       this.vibrate('mistake');
+      this.sour(ringing);
       this.mistakes.set(key);
       return;
     }
@@ -714,8 +720,16 @@ export class Play implements PausesOnBack {
       season: this.season().season,
     };
     const model = this.tweaks.soundModel();
-    this.speaker.play(model.keys(moment)[key]);
+    this.ringing.set(key, this.speaker.play(model.keys(moment)[key]));
     this.log(model.describe(moment, key));
+  }
+
+  /** Takes the note of a wrong key typed off as it rings, once typed: what the key sounded gave nothing away. */
+  private sour(ringing: Playing | undefined): void {
+    if (ringing !== undefined) {
+      ringing.sour();
+      this.log('wrong: goes off');
+    }
   }
 
   /** Adds a line to what the keys played, for developer mode to show, if it does. */
@@ -740,8 +754,8 @@ export class Play implements PausesOnBack {
     if (this.replay() !== undefined) {
       return;
     }
-    const stopLanding =
-      landing.length > 0 ? this.speaker.play(landing, landsAt(length - 1, slide)) : () => undefined;
+    const playing =
+      landing.length > 0 ? this.speaker.play(landing, landsAt(length - 1, slide)) : undefined;
     const indices = Array.from({ length }, (_, i) => i);
     const stopPlucks = this.vibrator.play(
       'pluck',
@@ -759,7 +773,7 @@ export class Play implements PausesOnBack {
         stop: () => {
           stopPlucks();
           stopLandings();
-          stopLanding();
+          playing?.stop();
         },
       },
     ];

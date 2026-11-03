@@ -3,6 +3,9 @@ import { INDEXED_DB } from '../player-data/run-store';
 import { SoundSetting } from '../player-data/sound-setting';
 import { FakeAudio } from '../../testing/fake-audio';
 import { Speaker } from './speaker';
+import { SOURING } from './souring';
+import { DeveloperMode } from '../developer-mode/developer-mode';
+import { Tweaks } from '../developer-mode/tweaks';
 
 describe('Speaker', () => {
   let audio: FakeAudio;
@@ -50,7 +53,9 @@ describe('Speaker', () => {
 
   it('plays nothing it was waiting to play once silenced', async () => {
     audio.block();
-    TestBed.inject(Speaker).play([{ pitch: 60, gain: 1, length: 1 }])();
+    TestBed.inject(Speaker)
+      .play([{ pitch: 60, gain: 1, length: 1 }])
+      .stop();
 
     await audio.allow();
 
@@ -83,23 +88,61 @@ describe('Speaker', () => {
     expect(audio.tones).toEqual([]);
   });
 
+  it('takes the melody off as it rings, as tuned, into a rasping buzz, the chord under it holding', async () => {
+    await TestBed.inject(DeveloperMode).set(true);
+    const souring = { ...SOURING, bend: -40, drift: 10, speed: 0.2 };
+    await TestBed.inject(Tweaks).setSouring(souring);
+    audio.currentTime = 1;
+    const playing = TestBed.inject(Speaker).play([
+      { pitch: 60, gain: 1, length: 1 },
+      { pitch: 48, gain: 1, length: 1, accompaniment: true },
+    ]);
+    audio.currentTime = 1.2;
+
+    playing.sour();
+
+    const by = 1.4;
+    const [melody, chord] = audio.notes();
+    expect(audio.partials()[1]?.bends).toEqual([{ to: -30, by }]);
+    expect(melody?.bends).toEqual([{ to: -40, by }]);
+    expect(chord?.bends).toEqual([]);
+    const added = audio.tones.filter(({ type }) => type !== 'sine');
+    expect(added.map(({ type, start }) => [type, start])).toEqual([
+      ['square', 1.2],
+      ['triangle', 1.2],
+    ]);
+    expect(added[0]?.bends).toEqual([{ to: -40, by }]);
+  });
+
+  it('takes a note off once the audio runs, when soured while it waited for it', async () => {
+    audio.block();
+    const playing = TestBed.inject(Speaker).play([{ pitch: 60, gain: 1, length: 1 }]);
+    playing.sour();
+
+    await audio.allow();
+
+    expect(audio.notes()[0]?.bends).toEqual([{ to: SOURING.bend, by: SOURING.speed }]);
+  });
+
   it('plays nothing once the player turned sounds off', async () => {
     await TestBed.inject(SoundSetting).set(false);
 
-    TestBed.inject(Speaker).play([{ pitch: 60, gain: 1, length: 1 }])();
+    TestBed.inject(Speaker)
+      .play([{ pitch: 60, gain: 1, length: 1 }])
+      .stop();
 
     expect(audio.tones).toEqual([]);
     expect(audio.made).toBe(0);
   });
 
   it('silences the notes yet to start, letting those started ring', () => {
-    const stop = TestBed.inject(Speaker).play([
+    const playing = TestBed.inject(Speaker).play([
       { pitch: 60, gain: 1, length: 1 },
       { pitch: 64, gain: 1, length: 1, delay: 0.2 },
     ]);
     audio.currentTime = 0.1;
 
-    stop();
+    playing.stop();
 
     expect(audio.notes().map((note) => note.connected())).toEqual([true, false]);
   });

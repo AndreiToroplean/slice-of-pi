@@ -1068,6 +1068,29 @@ describe('Play', () => {
       expect(play).toHaveBeenCalledTimes(1);
     });
 
+    it("takes a wrong key's note off once it's typed, as it rings, and leaves a right key's be", async () => {
+      const sours: string[] = [];
+      vi.spyOn(TestBed.inject(Speaker), 'play').mockImplementation((chime) => ({
+        stop: vi.fn(),
+        sour: () => {
+          sours.push(String(chime[0]?.pitch));
+        },
+      }));
+      const fixture = TestBed.createComponent(Play);
+      await fixture.whenStable();
+      const keypad = fixture.debugElement.query(By.directive(Keypad)).componentInstance as Keypad;
+      const keys = ARIA.create().keys(momentAt(1, [], 5));
+
+      keypad.pressed.emit('1');
+      keypad.touched.emit({ key: '1', x: 0.5, y: 0.5 });
+      expect(sours).toEqual([]);
+
+      keypad.pressed.emit('7');
+      expect(sours).toEqual([]);
+      keypad.touched.emit({ key: '7', x: 0.5, y: 0.5 });
+      expect(sours).toEqual([String(keys['7'][0]?.pitch)]);
+    });
+
     it('plays the next words in their own place in the song', async () => {
       const play = vi.spyOn(TestBed.inject(Speaker), 'play');
       const { type } = await setUp();

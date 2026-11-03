@@ -3,6 +3,7 @@ import { Tweaks } from '../developer-mode/tweaks';
 import type { Chime, Note } from '../game/layers/sound/sound-model';
 import { SoundSetting } from '../player-data/sound-setting';
 import { SoundMix } from './sound-mix';
+import { Souring } from './souring';
 
 /** Makes the audio context the game plays in, once it first plays; none where the browser has no Web Audio API. */
 export const AUDIO = new InjectionToken<() => AudioContext | undefined>('AUDIO', {
@@ -23,6 +24,34 @@ const SECOND = { center: 4, reach: 1.5, width: 0.9 } as const;
 const ATTACK = 0.005;
 /** How loud a single note at full volume is, so that a chord with its melody doesn't clip. */
 const HEADROOM = 0.15;
+/** How loud the buzz of a sour note is at its fullest, next to the note: a square wave is loud for its volume. */
+const BUZZ_LEVEL = 0.35;
+/** How fast a sour note's rasp flutters, in hertz: as fast as a buzzer's. */
+const RASP_RATE = 45;
+
+/** What the speaker is playing, to act on as it rings. */
+export interface Playing {
+  /** Silences its notes yet to start, such as once what they go with is cut short. */
+  stop(): void;
+  /** Takes its melody, the notes not accompanying it, off as they ring, as a wrong key's (see {@link Souring}). */
+  sour(): void;
+}
+
+const NOTHING: Playing = { stop: () => undefined, sour: () => undefined };
+
+/**
+ * A note being played: its pitch, when it starts and ends, whether it's the melody, what all its sound goes through,
+ * its tone before the envelope, and its partials' pitches, lowest first.
+ */
+interface Voice {
+  readonly pitch: number;
+  readonly start: number;
+  readonly end: number;
+  readonly melody: boolean;
+  readonly envelope: GainNode;
+  readonly tone: GainNode;
+  readonly partials: readonly AudioParam[];
+}
 
 /**
  * How loud each partial of a note is, from its fundamental up, the loudest at 1. With a timbre, the partials of a
@@ -80,50 +109,65 @@ export class Speaker {
 
   /**
    * Plays notes together, `delay` ms from now, each rolled by its own delay, or from once the audio runs, if it isn't
-   * yet; returns a function that silences those notes yet to start, such as once what they go with is cut short.
+   * yet, to stop or sour as they ring.
    */
-  play(chime: Chime, delay = 0): () => void {
+  play(chime: Chime, delay = 0): Playing {
     const ready = this.setting.enabled() ? this.ready() : undefined;
     const context = this.context;
     const output = this.output;
     if (ready === undefined || context === undefined || output === undefined) {
-      return () => undefined;
+      return NOTHING;
     }
     if (context.state === 'running') {
       return this.schedule(context, output, chime, delay);
     }
-    let stop: (() => void) | undefined;
+    let playing: Playing | undefined;
     let stopped = false;
+    let soured = false;
     void ready.then(() => {
       if (!stopped) {
-        stop = this.schedule(context, output, chime, delay);
+        playing = this.schedule(context, output, chime, delay);
+        if (soured) {
+          playing.sour();
+        }
       }
     });
-    return () => {
-      stopped = true;
-      stop?.();
+    return {
+      stop: () => {
+        stopped = true;
+        playing?.stop();
+      },
+      sour: () => {
+        soured = true;
+        playing?.sour();
+      },
     };
   }
 
   /** Plays notes on a running context: see {@link play}. */
-  private schedule(
-    context: AudioContext,
-    output: AudioNode,
-    chime: Chime,
-    delay: number,
-  ): () => void {
+  private schedule(context: AudioContext, output: AudioNode, chime: Chime, delay: number): Playing {
     const start = context.currentTime + delay / 1000;
     const mix = this.tweaks.soundMix();
-    const voices = chime.map((note) => ({
-      start: start + (note.delay ?? 0),
-      envelope: this.voice(context, output, note, start + (note.delay ?? 0), mix),
-    }));
-    return () => {
-      for (const voice of voices) {
-        if (voice.start > context.currentTime) {
-          voice.envelope.disconnect();
+    const voices = chime.map((note) =>
+      this.voice(context, output, note, start + (note.delay ?? 0), mix),
+    );
+    return {
+      stop: () => {
+        for (const voice of voices) {
+          if (voice.start > context.currentTime) {
+            voice.envelope.disconnect();
+          }
         }
-      }
+      },
+      sour: () => {
+        const from = Math.max(context.currentTime, ...voices.map((voice) => voice.start));
+        const souring = this.tweaks.souring();
+        for (const voice of voices) {
+          if (voice.melody && voice.end > from) {
+            sour(context, voice, souring, from);
+          }
+        }
+      },
     };
   }
 
@@ -147,14 +191,14 @@ export class Speaker {
     return this.context.state === 'running' ? Promise.resolve() : this.context.resume();
   }
 
-  /** Plucks a note at `start`, on the context's clock, fading out; returns its envelope, which all its sound goes through. */
+  /** Plucks a note at `start`, on the context's clock, fading out, its tone through a gain a sour note's rasp shakes. */
   private voice(
     context: AudioContext,
     output: AudioNode,
     note: Note,
     start: number,
     mix: SoundMix,
-  ): GainNode {
+  ): Voice {
     const peak = HEADROOM * note.gain * (note.accompaniment ? mix.chords : 1);
     const end = start + note.length;
     const envelope = context.createGain();
@@ -162,16 +206,62 @@ export class Speaker {
     envelope.gain.linearRampToValueAtTime(peak, start + ATTACK);
     envelope.gain.exponentialRampToValueAtTime(0.0001, end);
     envelope.connect(output);
-    for (const [i, level] of partialLevels(note.timbre).entries()) {
+    const tone = context.createGain();
+    tone.connect(envelope);
+    const partials = partialLevels(note.timbre).map((level, i) => {
       const oscillator = context.createOscillator();
       oscillator.frequency.value = frequencyOf(note.pitch) * (i + 1);
       const partial = context.createGain();
       partial.gain.value = level;
       oscillator.connect(partial);
-      partial.connect(envelope);
+      partial.connect(tone);
       oscillator.start(start);
       oscillator.stop(end);
-    }
-    return envelope;
+      return oscillator.detune;
+    });
+    return {
+      pitch: note.pitch,
+      start,
+      end,
+      melody: note.accompaniment !== true,
+      envelope,
+      tone,
+      partials,
+    };
+  }
+}
+
+/**
+ * Takes a note off from `from`, as it rings, over the souring's speed: its pitch sags and its harmonics drift apart, a
+ * buzz at its pitch, sagging with it, fades in, and its volume starts fluttering, as a buzzer's.
+ */
+function sour(context: AudioContext, voice: Voice, souring: Souring, from: number): void {
+  const to = from + souring.speed;
+  for (const [i, detune] of voice.partials.entries()) {
+    detune.setValueAtTime(0, from);
+    detune.linearRampToValueAtTime(souring.bend + i * souring.drift, to);
+  }
+  const buzz = context.createOscillator();
+  buzz.type = 'square';
+  buzz.frequency.value = frequencyOf(voice.pitch);
+  buzz.detune.setValueAtTime(0, from);
+  buzz.detune.linearRampToValueAtTime(souring.bend, to);
+  const buzzLevel = context.createGain();
+  buzzLevel.gain.setValueAtTime(0, from);
+  buzzLevel.gain.linearRampToValueAtTime(BUZZ_LEVEL * souring.buzz, to);
+  buzz.connect(buzzLevel);
+  buzzLevel.connect(voice.tone);
+  const rasp = context.createOscillator();
+  rasp.type = 'triangle';
+  rasp.frequency.value = RASP_RATE;
+  const raspDepth = context.createGain();
+  raspDepth.gain.setValueAtTime(0, from);
+  // The tone's volume, 1, shakes by as much as half of it either way.
+  raspDepth.gain.linearRampToValueAtTime(souring.rasp / 2, to);
+  rasp.connect(raspDepth);
+  raspDepth.connect(voice.tone.gain);
+  for (const oscillator of [buzz, rasp]) {
+    oscillator.start(from);
+    oscillator.stop(voice.end);
   }
 }
