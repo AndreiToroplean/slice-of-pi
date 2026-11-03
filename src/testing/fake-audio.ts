@@ -41,6 +41,8 @@ export class FakeAudio {
   private allowed = Promise.resolve();
   /** Whether the next oscillator started is a note's first, its envelope having just started. */
   private noteStarting = false;
+  /** What each envelope started does once it has played to its end. */
+  private readonly endings: (() => void)[] = [];
   private allowing: (() => void) | undefined;
 
   readonly providers: Provider[] = [
@@ -66,6 +68,13 @@ export class FakeAudio {
     this.allowing?.();
     await this.allowed;
     await Promise.resolve();
+  }
+
+  /** Plays every envelope started to its end, as once the notes have faded out. */
+  endEnvelopes(): void {
+    for (const end of this.endings.splice(0)) {
+      end();
+    }
   }
 
   /** The notes played, each as its first partial. */
@@ -121,9 +130,11 @@ export class FakeAudio {
         const source = {
           ...node(),
           buffer: null as { duration: number } | null,
+          onended: null as (() => void) | null,
           start: (when: number) => {
             audio.envelopes.push({ start: when, length: source.buffer?.duration ?? 0 });
             audio.noteStarting = true;
+            audio.endings.push(() => source.onended?.());
           },
         };
         return source;
