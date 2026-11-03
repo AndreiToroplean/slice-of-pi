@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793741027550,
+  "lastUpdate": 1793747192101,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3200,6 +3200,46 @@ window.BENCHMARK_DATA = {
             "value": 1506,
             "unit": "ms",
             "extra": "MissingPreview opens the preview as soon as it is published"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "e7c3f860630fad11e83b850e45660d347fbfcbb1",
+          "message": "fix: work the audio out 20 ms at a time, so it never crackles\n\n- With the browser's smallest audio buffer, about 4 ms on the owner's phone, the audio underran a few times a minute while typing: Android didn't always let it work out the next stretch in time, and the speakers crackled.\n- Measured with Chrome's own underrun counts: 5 underruns in 94 s with the smallest buffer, 1 in about 80 s with 10 ms, even with a third fewer oscillators, and none in two runs of about 80 s with 20 ms.\n- It adds about 25 ms between a tap and its sound over 10 ms, which the owner couldn't hear.\n\nClaude-Session: https://claude.ai/code/session_01X1XesoQwDLrBtVTPBqdsDy",
+          "timestamp": "2026-11-04T00:06:05+01:00",
+          "tree_id": "2f3373f235787cfbd39c564e886a6b0f7a8a993b",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/e7c3f860630fad11e83b850e45660d347fbfcbb1"
+        },
+        "date": 1793747189566,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 13828,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 29446,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1034,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs counts unchecked runs in the groups when told to"
           }
         ]
       }
