@@ -103,38 +103,44 @@ export function* song(
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
         Reset All
       </button>
-      <div class="model">
-        <app-segmented
-          label="Sound model"
-          [segments]="models"
-          [value]="kind().id"
-          (valueChange)="pick($event)"
-        />
-        <button
-          type="button"
-          class="round"
-          aria-haspopup="dialog"
-          [title]="'About ' + kind().label"
-          (click)="about.showModal()"
-        >
-          ?
-        </button>
-      </div>
-      @for (slider of sliders; track slider.key) {
-        <app-slider
-          [label]="slider.label"
-          [value]="mix()[slider.key]"
-          [min]="slider.min"
-          [max]="slider.max"
-          [step]="slider.step"
-          [valueText]="slider.format(mix()[slider.key])"
-          [defaultValue]="defaultMix[slider.key]"
-          (changed)="set(slider.key, $event)"
-        />
-      }
-      <fieldset class="souring">
-        <legend>
-          Souring
+      <section class="panel" aria-label="Model">
+        <div class="head">
+          <app-segmented
+            label="Sound model"
+            [segments]="models"
+            [value]="kind().id"
+            (valueChange)="pick($event)"
+          />
+          <button
+            type="button"
+            class="round"
+            aria-haspopup="dialog"
+            [title]="'About ' + kind().label"
+            (click)="about.showModal()"
+          >
+            ?
+          </button>
+        </div>
+        @for (slider of sliders; track slider.key) {
+          <app-slider
+            [label]="slider.label"
+            [value]="mix()[slider.key]"
+            [min]="slider.min"
+            [max]="slider.max"
+            [step]="slider.step"
+            [valueText]="slider.format(mix()[slider.key])"
+            [defaultValue]="defaultMix[slider.key]"
+            (changed)="set(slider.key, $event)"
+          />
+        }
+        <label class="setting">
+          Landing Chords
+          <input type="checkbox" [checked]="landings()" (change)="setLandings($event)" />
+        </label>
+      </section>
+      <section class="panel" aria-labelledby="souring-title">
+        <div class="head">
+          <h2 id="souring-title">Souring</h2>
           <button
             type="button"
             class="frosted pill"
@@ -146,33 +152,33 @@ export function* song(
           >
             Try
           </button>
-        </legend>
-        @for (slider of souringSliders; track slider.key) {
-          <app-slider
-            [label]="slider.label"
-            [value]="souring()[slider.key]"
-            [min]="slider.min"
-            [max]="slider.max"
-            [step]="slider.step"
-            [valueText]="slider.format(souring()[slider.key])"
-            [defaultValue]="defaultSouring[slider.key]"
-            (changed)="setSouring(slider.key, $event)"
-          />
-        }
-      </fieldset>
-      <label class="setting">
-        Landing Chords
-        <input type="checkbox" [checked]="landings()" (change)="setLandings($event)" />
-      </label>
-      <app-sound-log [lines]="lines()" />
-      <button
-        type="button"
-        appCandy="primary"
-        data-vibration="none"
-        (click)="listening() ? stop() : listen()"
-      >
-        {{ listening() ? 'Stop' : 'Play π' }}
-      </button>
+        </div>
+        <div class="pairs">
+          @for (slider of souringSliders; track slider.key) {
+            <app-slider
+              [label]="slider.label"
+              [value]="souring()[slider.key]"
+              [min]="slider.min"
+              [max]="slider.max"
+              [step]="slider.step"
+              [valueText]="slider.format(souring()[slider.key])"
+              [defaultValue]="defaultSouring[slider.key]"
+              (changed)="setSouring(slider.key, $event)"
+            />
+          }
+        </div>
+      </section>
+      <section class="panel" aria-label="Song of π">
+        <app-sound-log [lines]="lines()" />
+        <button
+          type="button"
+          appCandy="primary"
+          data-vibration="none"
+          (click)="listening() ? stop() : listen()"
+        >
+          {{ listening() ? 'Stop' : 'Play π' }}
+        </button>
+      </section>
       <app-copy-values label="Copy Values" [values]="copied()" />
       <dialog #about class="card" closedby="any" aria-labelledby="about-title">
         <h2 id="about-title">{{ kind().label }}</h2>
