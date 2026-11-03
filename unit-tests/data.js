@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793578017165,
+  "lastUpdate": 1793688032695,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3040,6 +3040,46 @@ window.BENCHMARK_DATA = {
             "value": 884,
             "unit": "ms",
             "extra": "FitToGroupingsDialog fits the run-count curve, with fewer runs too, and can still fit with all of them"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "33ce6bf72e3fd4a7bc96f78297379032398763ed",
+          "message": "docs: describe every command and tool call\n\n- The owner follows the work by these descriptions; calls without one are hard to follow.\n\nClaude-Session: https://claude.ai/code/session_01X1XesooexD1SsoHsrGrBpg",
+          "timestamp": "2026-11-03T07:40:09+01:00",
+          "tree_id": "b1f9008554dd95c9eebdbc051eea0013428f44e8",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/33ce6bf72e3fd4a7bc96f78297379032398763ed"
+        },
+        "date": 1793688031886,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 7944,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 16173,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 630,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs counts unchecked runs in the groups when told to"
           }
         ]
       }
