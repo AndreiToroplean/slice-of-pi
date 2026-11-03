@@ -1,6 +1,6 @@
 import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { Tweaks, TweakValues } from '../../developer-mode/tweaks';
-import { Speaker } from '../../feedback/speaker';
+import { Playing, Speaker } from '../../feedback/speaker';
 import { MIX_SLIDERS, SOUND_MIX, SoundMix } from '../../feedback/sound-mix';
 import { Souring, SOURING, SOURING_SLIDERS } from '../../feedback/souring';
 import { keyColorIndices } from '../../game/layers/place-colors';
@@ -33,6 +33,8 @@ export const LISTENED_BREAK = 700;
 /** How far ahead the page hands the notes to the speaker, in ms, and how often it does, so that none is late. */
 export const LISTEN_AHEAD = 1500;
 export const LISTEN_PERIOD = 500;
+/** The key the Try button plays, then sours. */
+const TRIED_KEY = '5';
 /** How many lines of what plays the page keeps. */
 const LOG_LINES = 200;
 
@@ -130,7 +132,20 @@ export function* song(
         />
       }
       <fieldset class="souring">
-        <legend>Souring</legend>
+        <legend>
+          Souring
+          <button
+            type="button"
+            class="frosted pill"
+            data-vibration="none"
+            (pointerdown)="tryNote($event)"
+            (pointerup)="sourTried()"
+            (pointercancel)="sourTried()"
+            (click)="tryClicked($event)"
+          >
+            Try
+          </button>
+        </legend>
         @for (slider of souringSliders; track slider.key) {
           <app-slider
             [label]="slider.label"
@@ -189,6 +204,8 @@ export class Sounds {
   protected readonly souring = signal<Souring>(this.tweaks.values().souring ?? SOURING);
   protected readonly landings = signal(this.tweaks.values().landings !== false);
   private edited = false;
+  /** The note being tried, until it's soured. */
+  private tried: Playing | undefined;
   /** Stops the song playing, if it is. */
   private stopSong: (() => void) | undefined;
   protected readonly listening = signal(false);
@@ -330,6 +347,42 @@ export class Sounds {
     };
     this.listening.set(true);
     schedule();
+  }
+
+  /**
+   * Plays key {@link TRIED_KEY} as the game would at the start of π, as a touch lands on the Try button, to sour it as
+   * the touch lifts, as a wrong key's.
+   */
+  protected tryNote(event: PointerEvent): void {
+    if (event.button === 0) {
+      this.playTried();
+    }
+  }
+
+  /** Sours the note tried, as a wrong key's once typed. */
+  protected sourTried(): void {
+    this.tried?.sour();
+    this.tried = undefined;
+  }
+
+  /** Tries the note and sours it at once when the button is pressed with no pointer, as with the keyboard. */
+  protected tryClicked(event: MouseEvent): void {
+    if (event.detail === 0) {
+      this.playTried();
+      this.sourTried();
+    }
+  }
+
+  private playTried(): void {
+    this.tried?.sour();
+    const moment = {
+      typed: '',
+      words: [],
+      slots: LISTENED_WORD,
+      colors: keyColorIndices(''),
+      season: seasonOf(0),
+    };
+    this.tried = this.speaker.play(this.kind().create().keys(moment)[TRIED_KEY]);
   }
 
   protected stop(): void {

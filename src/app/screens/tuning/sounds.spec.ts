@@ -186,6 +186,22 @@ describe('Sounds', () => {
     expect(play.mock.calls[4]?.[0]).toEqual(model.keys(momentAt(4, [3], 3))['5']);
   });
 
+  it('tries a key as a touch lands on Try, and sours it as the touch lifts', async () => {
+    const sour = vi.fn();
+    const play = vi
+      .spyOn(TestBed.inject(Speaker), 'play')
+      .mockImplementation(() => ({ stop: vi.fn(), sour }));
+    const { host } = await setUp();
+    const tried = button(host, 'Try');
+
+    tried.dispatchEvent(new PointerEvent('pointerdown', { button: 0 }));
+    expect(play).toHaveBeenCalledExactlyOnceWith(ARIA.create().keys(momentAt(1, [], 5))['5']);
+    expect(sour).not.toHaveBeenCalled();
+
+    tried.dispatchEvent(new PointerEvent('pointerup'));
+    expect(sour).toHaveBeenCalledOnce();
+  });
+
   it('lands words with a chord unless told not to', async () => {
     const { host, stable } = await setUp();
     const landings = Array.from(
