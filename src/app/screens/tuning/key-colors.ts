@@ -82,6 +82,7 @@ export const CLOSE = 15;
         [color]="hexes()[selected()] ?? '#000000'"
         [name]="names()[selected()] ?? ''"
         [neighbors]="neighbors()"
+        [defaultColor]="palette[selected()] ?? '#000000'"
         (colorChange)="tune($event)"
       />
       <app-copy-values [values]="{ palette: hexes() }" />
@@ -92,6 +93,7 @@ export const CLOSE = 15;
 export class KeyColors {
   protected readonly seasons = SEASONS;
   protected readonly seasonNames = SEASON_NAMES;
+  protected readonly palette = PALETTE;
 
   private readonly tweaks = inject(Tweaks);
   private readonly backgroundColors = inject(Background).colors;

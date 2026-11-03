@@ -129,6 +129,7 @@ function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
         class="picker"
         name="Icon light"
         [color]="look().iconLight.color"
+        [defaultColor]="defaultIconLight"
         (colorChange)="setIconLightColor($event)"
       />
     }
@@ -244,6 +245,7 @@ export class MenuEditor implements OnInit {
     };
   });
 
+  protected readonly defaultIconLight = MENU_LOOK.iconLight.color;
   /** Whether the look is the menu's own, and the margins the game's own. */
   protected readonly untuned = computed(
     () =>

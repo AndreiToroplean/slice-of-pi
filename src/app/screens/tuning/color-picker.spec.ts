@@ -5,11 +5,17 @@ import { ColorPicker } from './color-picker';
 
 @Component({
   imports: [ColorPicker],
-  template: `<app-color-picker [(color)]="color" name="Key 0" [neighbors]="neighbors()" />`,
+  template: `<app-color-picker
+    [(color)]="color"
+    name="Key 0"
+    [neighbors]="neighbors()"
+    [defaultColor]="defaultColor()"
+  />`,
 })
 class Host {
   readonly color = signal('#de3e2d');
   readonly neighbors = signal<readonly [string, string] | undefined>(['#ff0000', '#ffff00']);
+  readonly defaultColor = signal('#de3e2d');
 }
 
 describe('ColorPicker', () => {
@@ -100,5 +106,21 @@ describe('ColorPicker', () => {
     await stable();
 
     expect(element.querySelector('button.average')).toBeNull();
+  });
+
+  it('brings back the default color, once the color is another', async () => {
+    const { host, element, stable } = await setUp();
+    const back = (): HTMLButtonElement | null =>
+      element.querySelector<HTMLButtonElement>('button[title="Back to Default"]');
+    expect(back()?.disabled).toBe(true);
+
+    await slide(element, 'hue', 200, stable);
+    expect(back()?.disabled).toBe(false);
+    back()?.click();
+    await stable();
+
+    expect(host.color()).toBe('#de3e2d');
+    expect(Number(slider(element, 'hue').value)).toBeCloseTo(hexToHsl('#de3e2d').hue, 0);
+    expect(back()?.disabled).toBe(true);
   });
 });
