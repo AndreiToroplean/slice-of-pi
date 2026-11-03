@@ -24,6 +24,7 @@ import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import { Candy } from '../../ui/candy';
 import { LightDismiss } from '../../ui/light-dismiss';
 import { Segment, Segmented } from '../../ui/segmented';
+import { Slider } from '../../ui/slider';
 
 /** The tab of what is given to the panel. */
 const RUNS_TAB = 'Runs';
@@ -85,6 +86,7 @@ function keysOf(kind: BreakModelKind): string[] {
     MenuTrigger,
     MoreButton,
     Segmented,
+    Slider,
   ],
   template: `
     <div class="bar">
@@ -179,85 +181,69 @@ function keysOf(kind: BreakModelKind): string[] {
         @for (row of rowsOf(settingTab.hyperparameters); track row.sliders[0]?.key) {
           <div class="row" [class.pair]="row.pair !== undefined">
             @for (control of row.sliders; track control.key) {
-              <div class="setting">
-                <div class="top">
-                  <label [for]="'setting-' + control.key">{{ name(control) }}</label>
-                  <button
-                    type="button"
-                    class="round pin"
-                    [title]="'Pin the ' + name(control).toLowerCase() + ' when fitting'"
-                    [attr.aria-pressed]="pinned().has(control.key)"
-                    (click)="togglePin(control.key)"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M12 17v5" />
-                      <path d="M9 4h6l-1 6 3 3v4H7v-4l3-3z" />
-                    </svg>
-                  </button>
+              <app-slider
+                [label]="name(control)"
+                [value]="position(control)"
+                [min]="control.min"
+                [max]="control.max"
+                [step]="control.step"
+                [valueText]="formatted(control)"
+                [defaultValue]="defaultOf(control)"
+                [inputId]="'setting-' + control.key"
+                (changed)="apply(control, $event)"
+              >
+                <button
+                  type="button"
+                  class="round pin"
+                  [title]="'Pin the ' + name(control).toLowerCase() + ' when fitting'"
+                  [attr.aria-pressed]="pinned().has(control.key)"
+                  (click)="togglePin(control.key)"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 17v5" />
+                    <path d="M9 4h6l-1 6 3 3v4H7v-4l3-3z" />
+                  </svg>
+                </button>
+                @if (importSources().get(control.key); as others) {
                   <button
                     type="button"
                     class="round"
-                    title="Back to Default"
-                    [disabled]="isDefault(control)"
-                    (click)="revert(control)"
+                    [title]="'Import the ' + name(control).toLowerCase() + ' from another model'"
+                    [appMenuTrigger]="importMenu"
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M9 14 4 9l5-5" />
-                      <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+                      <path d="M12 4v11" />
+                      <path d="m7 10 5 5 5-5" />
+                      <path d="M5 20h14" />
                     </svg>
                   </button>
-                  @if (importSources().get(control.key); as others) {
-                    <button
-                      type="button"
-                      class="round"
-                      [title]="'Import the ' + name(control).toLowerCase() + ' from another model'"
-                      [appMenuTrigger]="importMenu"
+                  <ng-template #importMenu>
+                    <div
+                      appDropdown
+                      [attr.aria-label]="'Import the ' + name(control).toLowerCase()"
                     >
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M12 4v11" />
-                        <path d="m7 10 5 5 5-5" />
-                        <path d="M5 20h14" />
-                      </svg>
-                    </button>
-                    <ng-template #importMenu>
-                      <div
-                        appDropdown
-                        [attr.aria-label]="'Import the ' + name(control).toLowerCase()"
-                      >
-                        @for (source of others; track source.id) {
-                          <button
-                            type="button"
-                            cdkMenuItem
-                            (cdkMenuItemTriggered)="importFrom(source, [control.key])"
-                          >
-                            From {{ source.label }}
-                          </button>
-                        }
-                      </div>
-                    </ng-template>
-                  }
-                  <button
-                    type="button"
-                    class="round"
-                    aria-haspopup="dialog"
-                    [title]="'About ' + name(control)"
-                    (click)="showHelp(control)"
-                  >
-                    ?
-                  </button>
-                </div>
-                <output [for]="'setting-' + control.key">{{ formatted(control) }}</output>
-                <input
-                  type="range"
-                  [id]="'setting-' + control.key"
-                  [min]="control.min"
-                  [max]="control.max"
-                  [step]="control.step"
-                  [value]="position(control)"
-                  [attr.aria-valuetext]="formatted(control)"
-                  (input)="set(control, $event)"
-                />
-              </div>
+                      @for (source of others; track source.id) {
+                        <button
+                          type="button"
+                          cdkMenuItem
+                          (cdkMenuItemTriggered)="importFrom(source, [control.key])"
+                        >
+                          From {{ source.label }}
+                        </button>
+                      }
+                    </div>
+                  </ng-template>
+                }
+                <button
+                  type="button"
+                  class="round"
+                  aria-haspopup="dialog"
+                  [title]="'About ' + name(control)"
+                  (click)="showHelp(control)"
+                >
+                  ?
+                </button>
+              </app-slider>
             }
           </div>
         }
@@ -351,17 +337,6 @@ function keysOf(kind: BreakModelKind): string[] {
       column-gap: var(--space-3);
     }
 
-    .setting {
-      display: grid;
-      align-content: center;
-    }
-
-    .top {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
     h2 {
       margin: 0;
       font-family: var(--font-digits);
@@ -376,26 +351,6 @@ function keysOf(kind: BreakModelKind): string[] {
       text-shadow: var(--text-shadow);
     }
 
-    /* The label and the value on lines of their own, so that neither wraps the other. */
-    label,
-    output {
-      line-height: 1.2;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      text-shadow: var(--text-shadow);
-    }
-
-    label {
-      flex: 1;
-      font-weight: 500;
-    }
-
-    output {
-      font-size: 0.8125rem;
-      font-variant-numeric: tabular-nums;
-      opacity: 0.9;
-    }
     /* A break model, picked or to switch to, with what it does under its name. */
     .model span {
       display: grid;
@@ -434,12 +389,6 @@ function keysOf(kind: BreakModelKind): string[] {
 
     .pin[aria-pressed='true'] path {
       fill: currentColor;
-    }
-
-    input[type='range'] {
-      width: 100%;
-      margin: 0;
-      accent-color: var(--candy);
     }
 
     /* Wider than other dialogs, for its text, which scrolls if it doesn't fit. */
@@ -519,28 +468,15 @@ export class GroupingSettingsPanel {
     return this.settings()[control.key] ?? this.defaultOf(control);
   }
 
-  protected isDefault(control: Hyperparameter): boolean {
-    return this.position(control) === this.defaultOf(control);
-  }
-
   protected pick(kind: BreakModelKind): void {
     void this.tweaks.setBreakModel(kind);
   }
 
-  protected set(control: Hyperparameter, event: Event): void {
-    this.apply(control, Number((event.target as HTMLInputElement).value));
-  }
-
-  /** Brings back the game's value of one setting. */
-  protected revert(control: Hyperparameter): void {
-    this.apply(control, this.defaultOf(control));
-  }
-
-  private defaultOf(control: Hyperparameter): number {
+  protected defaultOf(control: Hyperparameter): number {
     return this.kind().defaults[control.key] ?? control.min;
   }
 
-  private apply(control: Hyperparameter, value: number): void {
+  protected apply(control: Hyperparameter, value: number): void {
     this.applyAll({ [control.key]: value });
   }
 

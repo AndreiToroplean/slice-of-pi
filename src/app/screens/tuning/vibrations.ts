@@ -13,6 +13,7 @@ import {
 } from '../../feedback/vibrations';
 import { Candy } from '../../ui/candy';
 import { Page } from '../../ui/page';
+import { Slider } from '../../ui/slider';
 import { CopyValues } from './copy-values';
 
 /** Each vibration's name, and when it plays. */
@@ -44,7 +45,7 @@ interface StepRef {
  */
 @Component({
   selector: 'app-vibrations',
-  imports: [Candy, CopyValues, Page],
+  imports: [Candy, CopyValues, Page, Slider],
   template: `
     <app-page heading="Vibrations">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="resetAll()">
@@ -117,21 +118,15 @@ interface StepRef {
         }
         <app-copy-values [values]="{ vibrations: patterns() }" />
       </div>
-      <label class="slider panel">
-        <span class="label">
-          {{ selectedName() }}
-          <span class="value">{{ selectedDuration() }} ms</span>
-        </span>
-        <input
-          type="range"
-          min="0"
-          [max]="sliderSteps"
-          step="1"
-          [value]="sliderValue()"
-          [attr.aria-valuetext]="selectedDuration() + ' ms'"
-          (input)="slide($event)"
-        />
-      </label>
+      <app-slider
+        class="slider panel"
+        [label]="selectedName()"
+        [value]="sliderValue()"
+        [min]="0"
+        [max]="sliderSteps"
+        [valueText]="selectedDuration() + ' ms'"
+        (changed)="slide($event)"
+      />
     </app-page>
   `,
   styleUrl: './vibrations.css',
@@ -185,9 +180,9 @@ export class Vibrations {
   }
 
   /** Sets the selected step's duration from the slider. */
-  protected slide(event: Event): void {
+  protected slide(position: number): void {
     const { vibration, index } = this.selected();
-    const duration = durationAt(Number((event.target as HTMLInputElement).value) / SLIDER_STEPS);
+    const duration = durationAt(position / SLIDER_STEPS);
     this.tune(
       vibration,
       this.patterns()[vibration].map((step, i) => (i === index ? duration : step)),

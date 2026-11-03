@@ -177,13 +177,13 @@ describe('BackgroundColors', () => {
     const { host, stable } = await setUp();
     const background = TestBed.inject(Background).colors;
     await set(slider(host), '22', stable);
-    const turn = host.querySelector<HTMLInputElement>('label.turn input');
+    const turn = host.querySelector<HTMLInputElement>('.turn input');
     if (turn === null) {
       throw new Error('No turn slider');
     }
-    const label = (): string | undefined => turn.parentElement?.textContent.trim();
+    const label = (): string | undefined => host.querySelector('.turn output')?.textContent.trim();
     expect([turn.min, turn.max, turn.value]).toEqual(['1', '25', '5']);
-    expect(label()).toBe('Each season turns into the next over its last 5 digits');
+    expect(label()).toBe('Last 5 digits');
 
     await set(turn, '1', stable);
 
@@ -191,9 +191,9 @@ describe('BackgroundColors', () => {
     expect(background()).toEqual(
       seasonAt(22, SEASON_BACKGROUNDS, SEASON_COLOR_SPACE, 1).background,
     );
-    expect(label()).toBe('Each season turns into the next at once');
+    expect(label()).toBe('At once');
     await set(turn, '25', stable);
-    expect(label()).toBe('Each season turns into the next all season long');
+    expect(label()).toBe('All season');
 
     reset(host).click();
     await stable();

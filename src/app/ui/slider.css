@@ -1,0 +1,40 @@
+:host {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+}
+
+/* Its name, and its buttons on the right. */
+.top {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* The name and the value on lines of their own, so that neither wraps the other. */
+label,
+output {
+  overflow: hidden;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-shadow: var(--text-shadow);
+  white-space: nowrap;
+}
+
+label {
+  flex: 1;
+  font-weight: 500;
+}
+
+output {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+}
+
+input {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--candy);
+}
