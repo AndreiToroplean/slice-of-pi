@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793688624039,
+  "lastUpdate": 1793689972255,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3118,6 +3118,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1010,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs counts unchecked runs in the groups when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "79ad5c2e7919a7b268e2a9c7cb4defb303e6dc4a",
+          "message": "test: disable the sound tests of markup and sameness\n\n- The Sound Models page showing the model picked and its explanation is plain markup.\n- The song being the same every time is a paranoid check: the model holds nothing random.\n\nClaude-Session: https://claude.ai/code/session_01X1XesqnHfKBGDZiDdJRN1n",
+          "timestamp": "2026-11-03T08:12:28+01:00",
+          "tree_id": "363f468fee516cd331dd42cd1d80d0081d0df187",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/79ad5c2e7919a7b268e2a9c7cb4defb303e6dc4a"
+        },
+        "date": 1793689971429,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 13693,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 29426,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1056,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs counts unchecked runs in the groups when told to"
           }
