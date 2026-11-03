@@ -7,7 +7,8 @@ import { Tweaks } from '../../developer-mode/tweaks';
 import { LUNA } from '../../game/grouping/break-models/luna';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { INDEXED_DB, IS_PREVIEW, RunStore } from '../../player-data/run-store';
-import { FitToGroupingsDialog } from './fit-to-groupings-dialog';
+import { FIT_TO_GROUPINGS, FitToGroupingsDialog } from './fit-to-groupings-dialog';
+import { FitOptions, fitToGroupings } from '../../game/grouping/break-models/fit-to-groupings';
 import { MyGroupings, saveMyGroupings } from './my-groupings';
 
 describe('FitToGroupingsDialog', () => {
@@ -36,11 +37,47 @@ describe('FitToGroupingsDialog', () => {
     );
   }
 
-  async function setUp(stored = ''): Promise<{ host: HTMLElement; detect: () => void }> {
+  /**
+   * Stands in for the search, whole ones taking long, for the tests of the dialog alone: it reports its first pass, then
+   * gives the window slider 11 once let finish, or the values it started from once stopped.
+   */
+  function standIn(): { fit: typeof fitToGroupings; finish: () => void } {
+    let finish = (): void => undefined;
+    const finished = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const fit: typeof fitToGroupings = async (
+      _kind,
+      start,
+      _runs,
+      _labels,
+      options?: FitOptions,
+    ) => {
+      const best = { settings: { ...start, window: 11 }, score: 1 };
+      await options?.pause?.({ stage: 'yours', pass: 1, done: 0.5, best });
+      await new Promise<void>((resolve) => {
+        void finished.then(resolve);
+        if (options?.signal?.aborted === true) {
+          resolve();
+        }
+        options?.signal?.addEventListener('abort', () => {
+          resolve();
+        });
+      });
+      return options?.signal?.aborted === true ? { settings: start, score: 0 } : best;
+    };
+    return { fit, finish };
+  }
+
+  async function setUp(
+    stored = '',
+    fit: typeof fitToGroupings = fitToGroupings,
+  ): Promise<{ host: HTMLElement; detect: () => void }> {
     TestBed.configureTestingModule({
       providers: [
         { provide: IS_PREVIEW, useValue: false },
         { provide: INDEXED_DB, useValue: new IDBFactory() },
+        { provide: FIT_TO_GROUPINGS, useValue: fit },
       ],
     });
     await TestBed.inject(DeveloperMode).set(true);
@@ -125,29 +162,25 @@ describe('FitToGroupingsDialog', () => {
   });
 
   it('fits the model to the groupings, sets the sliders and draws their run-count curve', async () => {
-    const { host, detect } = await setUp(groupedBy(3));
-    // The quickest model, so that the test is.
+    const { fit, finish } = standIn();
+    const { host, detect } = await setUp(groupedBy(3), fit);
+    // The quickest model, so that drawing its curve is.
     await TestBed.inject(Tweaks).setBreakModel(LUNA);
     detect();
-    const before = Number(/F1 (\S+)\./.exec(status(host))?.[1]);
     fitButton(host).click();
     detect();
 
     expect(fitButton(host).disabled).toBe(true);
-    expect(status(host)).toMatch(
-      /^Refining your values until they settle, pass 1: best F1 \d\.\d\d so far\.$/,
+    expect(status(host)).toBe(
+      'Refining your values until they settle, pass 1: best F1 1.00 so far.',
     );
-    await vi.waitFor(
-      () => {
-        detect();
-        expect(fitButton(host).textContent.trim()).toBe('Fitted');
-        expect(host.querySelector('.spinner')).toBeNull();
-      },
-      { timeout: 30_000, interval: 20 },
-    );
-    expect(TestBed.inject(Tweaks).values().grouping?.[LUNA.id]).toBeDefined();
-    // How well the model, as now set, matches them.
-    expect(Number(/F1 (\S+)\./.exec(status(host))?.[1])).toBeGreaterThan(before);
+    finish();
+    await vi.waitFor(() => {
+      detect();
+      expect(fitButton(host).textContent.trim()).toBe('Fitted');
+      expect(host.querySelector('.spinner')).toBeNull();
+    });
+    expect(TestBed.inject(Tweaks).grouping()['window']).toBe(11);
     // The dialog stays open on the curve, and the same fit can't be run again.
     expect((field(host, 'dialog') as HTMLDialogElement).open).toBe(true);
     expect(field(host, '.curve h3').textContent).toBe(`Run-count curve of ${LUNA.label}`);
@@ -159,7 +192,7 @@ describe('FitToGroupingsDialog', () => {
     expect(fitButton(host).disabled).toBe(false);
     expect(fitButton(host).textContent.trim()).toBe('Fit');
     expect(field(host, '.curve h3').textContent).toBe(`Run-count curve of ${LUNA.label}`);
-  }, 40_000);
+  });
 
   it('fits the run-count curve, with fewer runs too, and can still fit with all of them', async () => {
     const { host, detect } = await setUp(groupedBy(3));
@@ -189,7 +222,7 @@ describe('FitToGroupingsDialog', () => {
   }, 40_000);
 
   it('stops fitting when closed, leaving the hyperparameters as they were', async () => {
-    const { host, detect } = await setUp(groupedBy(6));
+    const { host, detect } = await setUp(groupedBy(6), standIn().fit);
     fitButton(host).click();
     detect();
     (field(host, '.buttons button') as HTMLButtonElement).click();

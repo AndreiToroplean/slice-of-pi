@@ -1,4 +1,13 @@
-import { Component, computed, ElementRef, inject, input, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  InjectionToken,
+  input,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { CdkMenuItemRadio } from '@angular/cdk/menu';
 import { Dropdown, MenuTrigger } from '../../ui/menu';
@@ -21,6 +30,11 @@ import { LightDismiss } from '../../ui/light-dismiss';
 
 /** How long the search runs before letting the page draw, in milliseconds. */
 const FRAME = 30;
+
+/** How the dialog fits a model to the groupings: the whole search, which tests of the dialog alone stand in for. */
+export const FIT_TO_GROUPINGS = new InjectionToken<typeof fitToGroupings>('FIT_TO_GROUPINGS', {
+  factory: () => fitToGroupings,
+});
 
 /**
  * Developer mode's dialog that fits a break model's hyperparameters to the player's own groups, opened from the overflow
@@ -283,6 +297,7 @@ export class FitToGroupingsDialog {
 
   protected readonly models = BREAK_MODELS;
   private readonly tweaks = inject(Tweaks);
+  private readonly fitToGroupings = inject(FIT_TO_GROUPINGS);
   protected readonly kind = this.tweaks.breakModelKind;
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
@@ -408,15 +423,21 @@ export class FitToGroupingsDialog {
     this.fittedFor.set(undefined);
     this.curveFit.set(curve);
     const breathe = breather();
-    const best = await fitToGroupings(kind, this.tweaks.grouping(), this.runs(), this.labels(), {
-      signal: abort.signal,
-      curve,
-      pinned: this.tweaks.pinsOf(kind),
-      pause: async (progress) => {
-        this.progress.set(progress);
-        await breathe();
+    const best = await this.fitToGroupings(
+      kind,
+      this.tweaks.grouping(),
+      this.runs(),
+      this.labels(),
+      {
+        signal: abort.signal,
+        curve,
+        pinned: this.tweaks.pinsOf(kind),
+        pause: async (progress) => {
+          this.progress.set(progress);
+          await breathe();
+        },
       },
-    });
+    );
     this.progress.set(undefined);
     if (abort.signal.aborted || !ready) {
       return;
