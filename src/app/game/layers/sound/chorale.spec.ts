@@ -2,11 +2,24 @@ import { DIGITS } from '../../pi/digit';
 import { PI_DECIMALS } from '../../pi/pi-decimals';
 import { momentAt } from '../../../../testing/sound-moments';
 import { nameOf } from './aria';
-import { CHORALE, CHORALE_PITCHES, harmonize, harmonizeAll, Harmony, parallel } from './chorale';
+import {
+  CHORALE,
+  CHORALE_PITCHES,
+  harmonize,
+  harmonizeAll,
+  Harmony,
+  Meter,
+  metersOf,
+  parallel,
+} from './chorale';
 
 describe('Chorale', () => {
   const pitchClass = (pitch: number): number => ((pitch % 12) + 12) % 12;
-  const song = harmonizeAll(PI_DECIMALS.slice(0, 2000));
+  /** Words of sizes a player might type them in, 2000 places' worth. */
+  const words = Array.from({ length: 500 }, (_, i) => [5, 3, 4, 6, 2, 7, 4][i % 7] ?? 4);
+  const song = harmonizeAll(PI_DECIMALS.slice(0, 2000), words);
+  const meters = metersOf(2000, words, 0);
+  const question = (slot: number, size: number): Meter => ({ slot, size, answer: false });
   /** The pitch classes of a chord, by its name. */
   const tones: Record<string, number[]> = {
     I: [0, 4, 7],
@@ -31,12 +44,46 @@ describe('Chorale', () => {
     }
   });
 
-  it('harmonizes each place from the digits up to it alone', () => {
-    expect(harmonizeAll('14159265').slice(0, 5)).toEqual(harmonizeAll('14159'));
+  it('harmonizes each place from the digits and words up to it alone', () => {
+    expect(harmonizeAll('14159265', [3, 5]).slice(0, 5)).toEqual(harmonizeAll('14159', [3, 5]));
     const model = CHORALE.create();
-    for (const typed of ['14159265', '1415', '1426', '14159']) {
-      const moment = { ...momentAt(1, [], 5), typed };
+    for (const [typed, done, slots] of [
+      ['14159265', [3, 5], 4],
+      ['1415', [3], 5],
+      ['1415', [3], 3],
+      ['1426', [4], 2],
+      ['14159', [2, 3], 3],
+    ] as const) {
+      const moment = { ...momentAt(1, [], 5), typed, words: done, slots };
       expect(model.keys(moment)).toEqual(CHORALE.create().keys(moment));
+    }
+  });
+
+  it('takes its bars from the words, the slots setting the size of the one being typed', () => {
+    const answer = (slot: number, size: number): Meter => ({ slot, size, answer: true });
+    expect(metersOf(4, [2], 3)).toEqual([
+      question(0, 2),
+      question(1, 2),
+      answer(0, 3),
+      answer(1, 3),
+    ]);
+    expect(metersOf(6, [2], 3).slice(2)).toEqual([0, 1, 2, 3].map((slot) => answer(slot, 4)));
+    const moment = { ...momentAt(1, [], 5), typed: '1415926' };
+    const model = CHORALE.create();
+    expect(model.keys({ ...moment, words: [3, 4], slots: 5 })).not.toEqual(
+      model.keys({ ...moment, words: [4, 3], slots: 5 }),
+    );
+  });
+
+  it('strikes the chord on the first digit of each word, whatever key is typed', () => {
+    const model = CHORALE.create();
+    for (const [typed, done] of [
+      ['141', [3]],
+      ['14159', [2, 3]],
+      ['1415926', [3, 4]],
+    ] as const) {
+      const keys = model.keys({ ...momentAt(1, [], 5), typed, words: done, slots: 4 });
+      expect(DIGITS.every((digit) => keys[digit].length === 4)).toBe(true);
     }
   });
 
@@ -45,7 +92,8 @@ describe('Chorale', () => {
       const before = song[index - 1];
       const passes =
         before !== undefined &&
-        index % 2 === 1 &&
+        meters[index]?.slot !== undefined &&
+        meters[index].slot % 2 === 1 &&
         harmony.chord === before.chord &&
         Math.abs(harmony.melody - before.melody) <= 2;
       expect(holds(harmony, harmony.melody) || passes).toBe(true);
@@ -93,17 +141,28 @@ describe('Chorale', () => {
     expect(parallel([48, 55], [50, 59])).toBe(false);
   });
 
-  it('ends each period on C whenever its last note lets it', () => {
-    song.forEach((harmony, index) => {
-      if (index % 16 === 15 && holds({ ...harmony, chord: 'I' }, harmony.melody)) {
+  it('ends each answer on C whenever its last note lets it, each question on G most of the time it can', () => {
+    let questions = 0;
+    let onG = 0;
+    meters.forEach((meter, index) => {
+      const harmony = song[index];
+      if (harmony === undefined || meter.slot !== meter.size - 1) {
+        return;
+      }
+      if (meter.answer && holds({ ...harmony, chord: 'I' }, harmony.melody)) {
         expect(harmony.chord).toBe('I');
       }
+      if (!meter.answer && holds({ ...harmony, chord: 'V' }, harmony.melody)) {
+        questions++;
+        onG += harmony.chord === 'V' || harmony.chord === 'V7' ? 1 : 0;
+      }
     });
+    expect(onG / questions).toBeGreaterThan(0.75);
   });
 
   it('keeps the chord over a weak beat when the note fits it, its voices ringing', () => {
-    const first = harmonize(0, 0, undefined);
-    const second = harmonize(4, 1, first);
+    const first = harmonize(0, question(0, 5), undefined);
+    const second = harmonize(4, question(1, 5), first);
 
     expect(first.chord).toBe('I');
     expect(second).toEqual({ ...first, held: 2, melody: CHORALE_PITCHES[4], struck: false });
@@ -114,7 +173,7 @@ describe('Chorale', () => {
     const keys = CHORALE.create().keys(momentAt(1, [], 5));
     const under = keys['1'].slice(1);
 
-    expect(under.map(({ pitch }) => pitch)).toEqual(harmonize(1, 0, undefined).voices);
+    expect(under.map(({ pitch }) => pitch)).toEqual(harmonize(1, question(0, 5), undefined).voices);
     expect(under.every(({ accompaniment }) => accompaniment)).toBe(true);
   });
 
