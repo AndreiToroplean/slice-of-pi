@@ -44,7 +44,7 @@ Seasons are only colors for now ([`vision.md` §5.4](vision.md#54-seasons)). The
 
 ## 7. Sounds
 
-The keys get sounds, yet another memory layer ([`vision.md` §5.5](vision.md#55-sound)). Each digit plays its own note, over chords that the digits typed before pick, never those to come, so that the sounds never give the next digit away: π's digits play the song of π, as melodious as music theory can make it, and the player's words phrase it. Sound models, swapped in developer mode, try different ways to compose it, to be play tested by ear.
+The keys get sounds, yet another memory layer ([`vision.md` §5.5](vision.md#55-sound)). Each digit plays its own note, over chords that the digits typed so far pick, never those to come, so that the sounds never give the next digit away: π's digits play the song of π, as melodious as music theory can make it, and the player's words phrase it. Sound models, swapped in developer mode, try different ways to compose it, to be play tested by ear.
 
 ## 8. Your Data
 

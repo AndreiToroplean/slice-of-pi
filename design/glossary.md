@@ -51,7 +51,7 @@
 - **Palette:** the sequence of colors every digit key steps through.
 - **Place color:** the color of a place, from the palette.
 - **Key color:** the color a digit key shows: the place color of the next occurrence of its digit.
-- **Song of π:** the melody π's digits play, typed one after the other, the same for every player: each digit has its own note, and the chords under them come from the digits typed before, never from those to come, so that a key sounds the same, right or wrong. The player's words **phrase** it: how full the chord under each note is, and the chord each word lands on.
+- **Song of π:** the melody π's digits play, typed one after the other, the same for every player: each digit has its own note, and the chords under them come from the digits typed up to them, never from those to come, so that a key sounds the same, right or wrong. The player's words **phrase** it: how full the chord under each note is, and the chord each word lands on.
 - **Season / year:** 100 places make one year of four seasons. Years count from 0, so the year is the hundreds of the digit reached: digit 200 starts year 2.
 
 ## Player
