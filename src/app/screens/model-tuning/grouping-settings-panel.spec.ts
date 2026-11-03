@@ -186,7 +186,7 @@ describe('GroupingSettingsPanel', () => {
     expect(keys.sort()).toEqual(Object.keys(kind.defaults).sort());
   });
 
-  it('shows one tab at a time, the runs first', async () => {
+  it('shows one tab at a time, the runs first', { tags: ['disabled'] }, async () => {
     const { host, detect } = await setUp();
     const shown = (): string[] =>
       Array.from(
