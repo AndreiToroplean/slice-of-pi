@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793752655615,
+  "lastUpdate": 1793754345946,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3318,6 +3318,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 928,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs counts unchecked runs in the groups when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "1f06a11b3c199f2f7ac222c0f3d6a82554e65e21",
+          "message": "feat: keep a missing preview's page from backing out\n\n- It stands in for the preview, which opens in its place: there's nowhere to go back to, so no back button, and Escape stays put\n\nClaude-Session: https://claude.ai/code/session_01X1Xesqe5Yh5ciLy1kpae4a",
+          "timestamp": "2026-11-04T02:05:20+01:00",
+          "tree_id": "0b7aa73ec23633ed929fef006d36b96051484400",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/1f06a11b3c199f2f7ac222c0f3d6a82554e65e21"
+        },
+        "date": 1793754345385,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14799,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 31427,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1015,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs counts unchecked runs in the groups when told to"
           }
