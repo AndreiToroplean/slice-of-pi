@@ -63,14 +63,27 @@ describe('envelopeOf', () => {
 
 describe('the envelope as hyperparameters', () => {
   it('reads its strength and as many points as are numbered in a row', () => {
-    expect(envelopeIn(ENVELOPE_DEFAULTS)).toEqual({
+    expect(
+      envelopeIn({
+        ...ENVELOPE_DEFAULTS,
+        envelopeStrength: 2,
+        envelopeSize1: 1,
+        envelopeFactor1: 0.5,
+        envelopeSize2: 5,
+        envelopeFactor2: 1,
+        envelopeSize3: 8,
+        envelopeFactor3: 0.5,
+        envelopeSize4: 11,
+        envelopeFactor4: 0,
+      }),
+    ).toEqual({
       points: [
         { size: 1, factor: 0.5 },
         { size: 5, factor: 1 },
         { size: 8, factor: 0.5 },
         { size: 11, factor: 0 },
       ],
-      strength: 1,
+      strength: 2,
     });
     expect(envelopeIn({ envelopeSize1: 3, envelopeFactor1: 0.5, envelopeSize3: 9 })).toEqual({
       points: [{ size: 3, factor: 0.5 }],

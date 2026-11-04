@@ -49,11 +49,24 @@ describe('the views of the groups', () => {
       const line = plot.layers.find((layer) => layer.kind === 'line');
       return line?.kind === 'line' ? line.points : [];
     };
-    const plot = groupSizesView(input);
+    const envelope = {
+      envelopeSize1: 1,
+      envelopeFactor1: 0.5,
+      envelopeSize2: 5,
+      envelopeFactor2: 1,
+      envelopeSize3: 8,
+      envelopeFactor3: 0.5,
+      envelopeSize4: 11,
+      envelopeFactor4: 0,
+    };
+    const shaped = stepsOf(MARS.steps?.(envelope, [run(30), run(30), run(24)]));
+    const plot = groupSizesView({ ...input, model: shaped });
     const at = (size: number) =>
       curve(plot).find((point) => point !== undefined && Math.abs(point[0] - size) < 1e-9)?.[1];
     const flat = stepsOf(
-      MARS.steps?.({ envelopeFactor1: 1, envelopeFactor3: 1, envelopeFactor4: 1 }, [run(30)]),
+      MARS.steps?.({ ...envelope, envelopeFactor1: 1, envelopeFactor3: 1, envelopeFactor4: 1 }, [
+        run(30),
+      ]),
     );
 
     // Half of it at 1 digit, all of it at 5, half again at 8, nothing past 10.
