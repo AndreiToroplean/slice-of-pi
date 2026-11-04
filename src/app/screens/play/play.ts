@@ -642,7 +642,8 @@ export class Play implements PausesOnBack {
     );
     this.sizes.update((sizes) => [...sizes, length]);
     const model = this.tweaks.soundModel();
-    const landing = this.tweaks.landings() ? model.landing(this.digits(), this.sizes()) : [];
+    const landing =
+      this.tweaks.soundMix().landings > 0 ? model.landing(this.digits(), this.sizes()) : [];
     if (landing.length > 0 && fly && this.replay() === undefined) {
       this.log(model.describeLanding(this.digits(), this.sizes()));
     }
@@ -650,7 +651,7 @@ export class Play implements PausesOnBack {
       // Words that don't fly, as when the player prefers reduced motion, land at once; a word ending again at once,
       // reopened and finished as it was, never left.
       if (fly && landing.length > 0 && this.replay() === undefined) {
-        this.speaker.play(landing);
+        this.speaker.play(landing, 0, 'landing');
       }
       return;
     }
@@ -755,7 +756,9 @@ export class Play implements PausesOnBack {
       return;
     }
     const playing =
-      landing.length > 0 ? this.speaker.play(landing, landsAt(length - 1, slide)) : undefined;
+      landing.length > 0
+        ? this.speaker.play(landing, landsAt(length - 1, slide), 'landing')
+        : undefined;
     const indices = Array.from({ length }, (_, i) => i);
     const stopPlucks = this.vibrator.play(
       'pluck',

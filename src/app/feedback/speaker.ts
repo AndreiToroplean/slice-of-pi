@@ -57,6 +57,19 @@ export interface Playing {
 
 const NOTHING: Playing = { stop: () => undefined, sour: () => undefined };
 
+/** What a chime plays: a key typed, or a word landing on the tape. */
+export type SoundPart = 'key' | 'landing';
+
+/**
+ * How loud a note plays in the mix, next to the sound model's own gain for it: a landing's notes at the landings'
+ * volume, a key's chords at the chords', its melody as it is.
+ */
+export function mixedGain(note: Note, part: SoundPart, mix: SoundMix): number {
+  return (
+    note.gain * (part === 'landing' ? mix.landings : note.accompaniment === true ? mix.chords : 1)
+  );
+}
+
 /**
  * A note being played: its pitch, when it starts and ends, whether it's the melody, what all its sound goes through,
  * its tone before the envelope, and the pitches of its partials sounding, by their rank, lowest first.
@@ -148,10 +161,10 @@ export class Speaker {
   }
 
   /**
-   * Plays notes together, `delay` ms from now, each rolled by its own delay, or from once the audio runs, if it isn't
-   * yet, to stop or sour as they ring.
+   * Plays notes together, as a `part` of the game's sounds, `delay` ms from now, each rolled by its own delay, or from
+   * once the audio runs, if it isn't yet, to stop or sour as they ring.
    */
-  play(chime: Chime, delay = 0): Playing {
+  play(chime: Chime, delay = 0, part: SoundPart = 'key'): Playing {
     const ready = this.setting.enabled() ? this.ready() : undefined;
     const context = this.context;
     const output = this.output;
@@ -159,14 +172,14 @@ export class Speaker {
       return NOTHING;
     }
     if (context.state === 'running') {
-      return this.schedule(context, output, chime, delay);
+      return this.schedule(context, output, chime, delay, part);
     }
     let playing: Playing | undefined;
     let stopped = false;
     let soured = false;
     void ready.then(() => {
       if (!stopped) {
-        playing = this.schedule(context, output, chime, delay);
+        playing = this.schedule(context, output, chime, delay, part);
         if (soured) {
           playing.sour();
         }
@@ -185,11 +198,17 @@ export class Speaker {
   }
 
   /** Plays notes on a running context: see {@link play}. */
-  private schedule(context: AudioContext, output: AudioNode, chime: Chime, delay: number): Playing {
+  private schedule(
+    context: AudioContext,
+    output: AudioNode,
+    chime: Chime,
+    delay: number,
+    part: SoundPart,
+  ): Playing {
     const start = context.currentTime + delay / 1000;
     const mix = this.tweaks.soundMix();
     const voices = chime.map((note) =>
-      this.voice(context, output, note, start + (note.delay ?? 0), mix),
+      this.voice(context, output, note, start + (note.delay ?? 0), mixedGain(note, part, mix)),
     );
     return {
       stop: () => {
@@ -253,9 +272,9 @@ export class Speaker {
     output: AudioNode,
     note: Note,
     start: number,
-    mix: SoundMix,
+    gain: number,
   ): Voice {
-    const peak = HEADROOM * note.gain * (note.accompaniment ? mix.chords : 1);
+    const peak = HEADROOM * gain;
     const end = start + note.length;
     const level = context.createGain();
     level.gain.value = peak;

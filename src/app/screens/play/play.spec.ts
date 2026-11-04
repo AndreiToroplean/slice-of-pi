@@ -1,3 +1,4 @@
+import { SOUND_MIX } from '../../feedback/sound-mix';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { Location } from '@angular/common';
 import { provideLocationMocks, SpyLocation } from '@angular/common/testing';
@@ -1009,13 +1010,17 @@ describe('Play', () => {
 
       await typeAll(type, '14159 ');
 
-      expect(play).toHaveBeenLastCalledWith(ARIA.create().landing('14159', [5]), landsAt(4, 0));
+      expect(play).toHaveBeenLastCalledWith(
+        ARIA.create().landing('14159', [5]),
+        landsAt(4, 0),
+        'landing',
+      );
     });
 
-    it('lands words silently when developer mode says so', async () => {
+    it('lands words silently when developer mode turns landings all the way down', async () => {
       stubAnimations();
       await TestBed.inject(DeveloperMode).set(true);
-      await TestBed.inject(Tweaks).setLandings(false);
+      await TestBed.inject(Tweaks).setSoundMix({ ...SOUND_MIX, landings: 0 });
       const play = vi.spyOn(TestBed.inject(Speaker), 'play');
       const { type } = await setUp();
 
@@ -1032,7 +1037,7 @@ describe('Play', () => {
 
       await typeAll(type, '14159 ');
 
-      expect(play).toHaveBeenLastCalledWith(ARIA.create().landing('14159', [5]));
+      expect(play).toHaveBeenLastCalledWith(ARIA.create().landing('14159', [5]), 0, 'landing');
     });
   });
 
