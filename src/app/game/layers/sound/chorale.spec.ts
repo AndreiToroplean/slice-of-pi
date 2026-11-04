@@ -5,6 +5,7 @@ import { nameOf } from './aria';
 import {
   CHORALE,
   CHORALE_PITCHES,
+  echoOf,
   harmonize,
   harmonizeAll,
   Harmony,
@@ -177,8 +178,32 @@ describe('Chorale', () => {
     expect(under.every(({ accompaniment }) => accompaniment)).toBe(true);
   });
 
-  it('plays nothing as words land', () => {
-    expect(CHORALE.create().landing('14159', [5])).toEqual([]);
+  it('echoes a word as it lands: its last chord climbing to its last note an octave up', () => {
+    const model = CHORALE.create();
+    const question = model.landing('14159', [5]);
+    const last = harmonizeAll('14159', [5]).at(-1);
+
+    expect(question.map(({ pitch }) => pitch)).toEqual(last && echoOf(last, false));
+    expect(question.at(-1)?.pitch).toBe((last?.melody ?? 0) + 12);
+    expect(question.every((note) => last !== undefined && holds(last, note.pitch))).toBe(true);
+    expect(question.every(({ accompaniment }) => accompaniment)).toBe(true);
+  });
+
+  it('echoes a question in 2 notes, an answer in 3 over its root, low', () => {
+    const model = CHORALE.create();
+    const answer = model.landing('14159265', [5, 3]);
+    const last = harmonizeAll('14159265', [5, 3]).at(-1);
+
+    expect(model.landing('14159', [5])).toHaveLength(2);
+    expect(answer).toHaveLength(4);
+    expect(pitchClass(answer[0]?.pitch ?? NaN)).toBe(tones[last?.chord ?? '']?.[0]);
+    expect(answer[0]?.pitch).toBeLessThan(last?.voices[1] ?? 0);
+  });
+
+  it("leans a word's first chord towards one holding the note the last word's echo ends on", () => {
+    const opening = (typed: string, done: number[]) => harmonizeAll(typed, done).at(-1)?.chord;
+    // After a word ending on C, its echo ends on C: under the next D, Dm7 holds it, where Dm doesn't.
+    expect(opening('0001', [3, 1])).toBe('ii7');
   });
 
   it('tells what a key plays in a line, starting with the digit, its note and its chord', () => {

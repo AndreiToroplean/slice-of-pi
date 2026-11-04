@@ -159,6 +159,22 @@ const HOME_MELODY_LENGTH = 1.6;
 const HOME_CHORD_LENGTH = 2.8;
 /** How long after each other the voices under the melody start, from the bass up, in seconds, as a harp rolls them. */
 const ROLL = 0.015;
+/**
+ * How many notes a word's echo has as it lands, a question's fewer, as open, an answer's more, over a low root, as
+ * closed; how far apart they start, in seconds, as a music box plays them; how loud they are, and the low root; and
+ * how long they ring.
+ */
+const ECHO_NOTES = { question: 2, answer: 3 } as const;
+const ECHO_STEP = 0.11;
+const ECHO_GAIN = 0.4;
+const ECHO_ROOT_GAIN = 0.45;
+const ECHO_LENGTH = 1.8;
+const HOME_ECHO_LENGTH = 2.6;
+/**
+ * How much a chord on a word's first slot is wanted when it holds the note the last word's echo ends on, which rings
+ * on over it: the echo then ties the two words, a note they share.
+ */
+const ECHOED = 1.5;
 
 /** The harmony at a place: its chord, how it got there, and the voices singing it. */
 export interface Harmony {
@@ -224,6 +240,9 @@ function harmonyScore(
   if (previous === undefined) {
     return score;
   }
+  if (meter.slot === 0 && chord.tones.includes(mod(echoEnd(previous), 12))) {
+    score += ECHOED;
+  }
   if (name === previous.chord) {
     score += HOLD[beat] - STALE * Math.max(0, previous.held + 1 - FRESH);
   } else {
@@ -258,6 +277,27 @@ function within(low: number, high: number, classes: readonly number[]): number[]
     }
   }
   return pitches;
+}
+
+/**
+ * The note a word's echo ends on, from the harmony at its last place: its last note an octave up, or, if that note
+ * passed over the chord, the chord's note nearest it.
+ */
+function echoEnd(last: Harmony): number {
+  const target = last.melody + 12;
+  return within(target - 3, target + 3, CHORDS[last.chord].tones).reduce((best, pitch) =>
+    Math.abs(pitch - target) < Math.abs(best - target) ? pitch : best,
+  );
+}
+
+/**
+ * The notes of a word's echo as it lands, from the harmony at its last place, lowest first: its chord climbing to
+ * {@link echoEnd}, as many notes as its word asks or answers (see {@link ECHO_NOTES}).
+ */
+export function echoOf(last: Harmony, answer: boolean): number[] {
+  const end = echoEnd(last);
+  const count = ECHO_NOTES[answer ? 'answer' : 'question'];
+  return [...within(end - 12, end - 1, CHORDS[last.chord].tones).slice(1 - count), end];
 }
 
 /**
@@ -445,12 +485,55 @@ class Chorale implements SoundModel {
     return `${digit} ${nameOf(harmony.melody)} on ${CHORDS[harmony.chord].symbol} (${harmony.chord}) · ${under} · slot ${String(meter.slot + 1)}/${String(meter.size)} ${meter.answer ? 'answer' : 'question'}`;
   }
 
-  landing(): Chime {
-    return [];
+  /**
+   * A word's echo as it lands, answering it: a few high notes climbing its last chord to its last note an octave up,
+   * as a music box, over its root, low, for an answer, as it comes home (see {@link echoOf}).
+   */
+  landing(typed: string, words: readonly number[]): Chime {
+    const landed = this.landed(typed, words);
+    if (landed === undefined) {
+      return [];
+    }
+    const { last, answer } = landed;
+    const length = answer ? HOME_ECHO_LENGTH : ECHO_LENGTH;
+    const root = CHORDS[last.chord].tones[0] ?? 0;
+    const echo = echoOf(last, answer).map((pitch, i): Note => ({
+      pitch,
+      gain: ECHO_GAIN,
+      length,
+      accompaniment: true,
+      delay: i * ECHO_STEP,
+    }));
+    return answer
+      ? [
+          {
+            pitch: BASS.low + mod(root - BASS.low, 12),
+            gain: ECHO_ROOT_GAIN,
+            length,
+            accompaniment: true,
+          },
+          ...echo,
+        ]
+      : echo;
   }
 
-  describeLanding(): string {
-    return 'silent';
+  describeLanding(typed: string, words: readonly number[]): string {
+    const landed = this.landed(typed, words);
+    return landed === undefined
+      ? 'silent'
+      : `echoes ${echoOf(landed.last, landed.answer).map(nameOf).join(' ')} on ${CHORDS[landed.last.chord].symbol} · ${landed.answer ? 'answer' : 'question'}`;
+  }
+
+  /** The harmony at the last place of the word landing, the last of `words`, and whether it answers; if any. */
+  private landed(
+    typed: string,
+    words: readonly number[],
+  ): { last: Harmony; answer: boolean } | undefined {
+    const end = words.reduce((total, size) => total + size, 0);
+    const last = this.after(typed.slice(0, end), words, 0).previous;
+    return last === undefined || words.length === 0
+      ? undefined
+      : { last, answer: words.length % 2 === 0 };
   }
 
   /**
@@ -521,7 +604,8 @@ export const CHORALE: SoundModelKind = {
     'Under each note, it picks a chord holding that note, the one music theory wants most there: one that follows the chord before naturally (towards G and back home to C strongest, round the circle of fifths strong, backwards weak), with the note as its root rather than its fifth, and with a little color now and then (Dm7, G7, and the D and E leading to G and Am).',
     'Your words are its bars, so that π plays to your own rhythm. Each word opens on a strong beat, where chords change, and they stay on the weak ones between. Words go in pairs, a question and its answer: the question opens on C and ends on G, the answer ends on G then C, on its last slots, whatever its size, wherever the melody lets it.',
     'The voices under the melody move as little as they can to the next chord, by the rules of four-part writing: no parallel fifths or octaves, no doubled leading tone. They ring while the chord stays, and are struck again on each word’s first digit.',
-    'It plays nothing as words land, and ignores the colors and the seasons: only the digits and your words make the music.',
+    'As a word lands, the tape echoes it, as a choir answers its cantor: a few high notes, soft, climbing its last chord to its last note an octave up, 2 for a question, open, 3 over a low root for an answer, home. The echo rings on over the next word’s first note, so that note leans on a chord holding the echo’s last one, a note the two words share.',
+    'It ignores the colors and the seasons: only the digits and your words make the music.',
     'It never knows π: only the digits typed before, and the one typed, so a key sounds the same, right or wrong.',
   ],
   create: () => new Chorale(),
