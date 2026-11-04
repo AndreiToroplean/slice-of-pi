@@ -1,7 +1,7 @@
 import { BackgroundColors } from '../../game/layers/seasons';
 
 /** The main menu's background, a sky at twilight: deep blue at the top, the last of the light at the bottom. */
-export const TWILIGHT: BackgroundColors = ['#18214f', '#f2a073'];
+export const TWILIGHT: BackgroundColors = ['#19224d', '#be5a23'];
 
 /**
  * How the main menu looks: where its parts sit, and the light its lanterns and icon give. Everything stays centered
@@ -84,16 +84,16 @@ export const MENU_LOOK: MenuLook = {
       intensity: 0.38,
       core: 5.1,
       falloff: 3.95,
-      reach: 11,
+      reach: 12,
       rays: 0.64,
       rayCount: 4,
       saturation: 3,
     },
     pi: {
-      intensity: 0.5,
+      intensity: 0.45,
       core: 4,
-      falloff: 1.2,
-      reach: 17,
+      falloff: 1.3,
+      reach: 13,
       rays: 1,
       rayCount: 3,
       saturation: 1.2,
