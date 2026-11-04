@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793751059154,
+  "lastUpdate": 1793752655615,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3280,6 +3280,46 @@ window.BENCHMARK_DATA = {
             "value": 1020,
             "unit": "ms",
             "extra": "MissingPreview opens the preview as soon as it is published"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "851f6c5bc0d61806526f71f2bc5be5ee8ca7e731",
+          "message": "feat: tune how loud words land with a slider, not a toggle\n\n- The Sound Models page's Landing Chords toggle becomes a Landings slider in the mix, next to Chords, from 0 to 100%, 100% by default: Chorale's echo can now be tuned rather than only kept or dropped\n- A landing's notes play at the landings' volume alone, not the chords' as well, so the two are tuned apart\n- At 0, words land silently, as the toggle turned off did; tweaks stored with landings off migrate to it\n\nClaude-Session: https://claude.ai/code/session_01X1Xesr5WW89dBRhq9Jh21x",
+          "timestamp": "2026-11-04T01:37:13+01:00",
+          "tree_id": "9dac42723592a64d6a003d5ff0bf82f7565576ff",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/851f6c5bc0d61806526f71f2bc5be5ee8ca7e731"
+        },
+        "date": 1793752654997,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 12958,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 26917,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 928,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs counts unchecked runs in the groups when told to"
           }
         ]
       }
