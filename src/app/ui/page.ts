@@ -5,8 +5,9 @@ import { OverlayHost } from './overlay-host';
 
 /**
  * A page opened from the main menu, scrolling under a frosted top bar that stays at its top: a back button, to the main
- * menu, the page's title, and in the top right corner what is marked `pageAction`, if anything. What else it contains
- * goes under the top bar, in a column. Escape goes back to the main menu too. The menus opened on it open within it.
+ * menu, unless the page can't be left, the page's title, and in the top right corner what is marked `pageAction`, if
+ * anything. What else it contains goes under the top bar, in a column. Escape goes back to the main menu too. The menus
+ * opened on it open within it.
  */
 @Component({
   selector: 'app-page',
@@ -15,9 +16,11 @@ import { OverlayHost } from './overlay-host';
   host: { class: 'screen', '(document:keydown.escape)': 'escape($event)' },
   template: `
     <header class="top-bar">
-      <button type="button" appCandy="clear" class="corner back" title="Back" (click)="back()">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
-      </button>
+      @if (canGoBack()) {
+        <button type="button" appCandy="clear" class="corner back" title="Back" (click)="back()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+        </button>
+      }
       <h1>{{ heading() }}</h1>
       <div class="actions"><ng-content select="[pageAction]" /></div>
     </header>
@@ -28,12 +31,21 @@ import { OverlayHost } from './overlay-host';
 export class Page {
   /** The page's title, in its top bar; not `title`, which the browser would show as a tooltip over the whole page. */
   readonly heading = input.required<string>();
+  /** `false` for a page there's no going back from, such as one standing in for another: no back button, nor Escape. */
+  readonly canGoBack = input(true);
   protected readonly back = injectBackToMenu();
   private readonly document = inject(DOCUMENT);
 
-  /** Back to the main menu, unless the Escape closes something open: a menu, or a dialog, as the browser does with it. */
+  /**
+   * Back to the main menu, unless the page can't be left, or the Escape closes something open: a menu, or a dialog, as
+   * the browser does with it.
+   */
   protected escape(event: Event): void {
-    if (!event.defaultPrevented && this.document.querySelector('dialog[open]') === null) {
+    if (
+      this.canGoBack() &&
+      !event.defaultPrevented &&
+      this.document.querySelector('dialog[open]') === null
+    ) {
       event.preventDefault();
       this.back();
     }
