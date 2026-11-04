@@ -10,17 +10,26 @@ import { Page } from './page';
 })
 class APage {}
 
+@Component({
+  imports: [Page],
+  template: `<app-page heading="A page for good" [canGoBack]="false" />`,
+})
+class APageForGood {}
+
 describe('Page', () => {
-  async function setUp(): Promise<{ harness: RouterTestingHarness; host: HTMLElement | null }> {
+  async function setUp(
+    url = '/page',
+  ): Promise<{ harness: RouterTestingHarness; host: HTMLElement | null }> {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
           { path: '', children: [] },
           { path: 'page', component: APage },
+          { path: 'for-good', component: APageForGood },
         ]),
       ],
     });
-    const harness = await RouterTestingHarness.create('/page');
+    const harness = await RouterTestingHarness.create(url);
     return { harness, host: harness.routeNativeElement };
   }
 
@@ -49,6 +58,16 @@ describe('Page', () => {
     await harness.fixture.whenStable();
 
     expect(TestBed.inject(Router).url).toBe('/');
+  });
+
+  it("can't be left, by a button or by Escape, when there's no going back from it", async () => {
+    const { harness, host } = await setUp('/for-good');
+
+    expect(host?.querySelector('button[title="Back"]')).toBeNull();
+    expect(escape().defaultPrevented).toBe(false);
+    await harness.fixture.whenStable();
+
+    expect(TestBed.inject(Router).url).toBe('/for-good');
   });
 
   it('leaves Escape to an open dialog, to close it', async () => {
