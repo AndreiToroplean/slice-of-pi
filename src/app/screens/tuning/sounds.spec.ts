@@ -4,7 +4,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { Speaker } from '../../feedback/speaker';
 import { SOUND_MIX } from '../../feedback/sound-mix';
-import { ARIA } from '../../game/layers/sound/aria';
+import { SOUND_MODEL } from '../../game/layers/sound/sound-models';
 import { momentAt } from '../../../testing/sound-moments';
 import { INDEXED_DB } from '../../player-data/run-store';
 import { IDBFactory } from 'fake-indexeddb';
@@ -70,7 +70,7 @@ describe('Sounds', () => {
   }
 
   it("plays each word's digits, then its landing, in the player's groups, unless words land silently", () => {
-    const model = ARIA.create();
+    const model = SOUND_MODEL.create();
     const played = first(song(model, [3, 2], true), 7);
 
     expect(played.map(({ at }) => at)).toEqual([
@@ -91,7 +91,7 @@ describe('Sounds', () => {
   });
 
   it('plays on past the groups in words of 5, as far into π as asked', () => {
-    const model = ARIA.create();
+    const model = SOUND_MODEL.create();
     const played = first(song(model, [3], false), 300);
 
     expect(played).toHaveLength(300);
@@ -129,9 +129,10 @@ describe('Sounds', () => {
       stops.push(stop);
       return { stop, sour: vi.fn() };
     });
+    await TestBed.inject(Tweaks).setSoundMix({ ...SOUND_MIX, landings: 1 });
     const { host, stable } = await setUp();
     // Far more than the 10 s played.
-    const whole = first(song(ARIA.create(), [], true), 100);
+    const whole = first(song(SOUND_MODEL.create(), [], true), 100);
     const ahead = (time: number): number =>
       whole.filter(({ at }) => at < time + LISTEN_AHEAD).length;
 
@@ -172,6 +173,7 @@ describe('Sounds', () => {
       );
     }
     const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+    await TestBed.inject(Tweaks).setSoundMix({ ...SOUND_MIX, landings: 1 });
     const { host, stable } = await setUp();
     await store.runs();
     await stable();
@@ -181,7 +183,7 @@ describe('Sounds', () => {
     expect(host.querySelector('app-sound-log')?.textContent).toContain(
       'π in your 4 groups, then words of 5',
     );
-    const model = ARIA.create();
+    const model = SOUND_MODEL.create();
     expect(play.mock.calls[3]?.[0]).toEqual(model.landing('141', [3]));
     expect(play.mock.calls[3]?.[2]).toBe('landing');
     expect(play.mock.calls[4]?.[0]).toEqual(model.keys(momentAt(4, [3], 3))['5']);
@@ -197,7 +199,9 @@ describe('Sounds', () => {
     const tried = button(host, 'Try');
 
     tried.dispatchEvent(new PointerEvent('pointerdown', { button: 0 }));
-    expect(play).toHaveBeenCalledExactlyOnceWith(ARIA.create().keys(momentAt(1, [], 5))['5']);
+    expect(play).toHaveBeenCalledExactlyOnceWith(
+      SOUND_MODEL.create().keys(momentAt(1, [], 5))['5'],
+    );
     expect(sour).not.toHaveBeenCalled();
 
     tried.dispatchEvent(new PointerEvent('pointerup'));
@@ -208,6 +212,6 @@ describe('Sounds', () => {
     const { host } = await setUp();
 
     expect(host.querySelector('app-segmented')?.textContent).toContain('Aria');
-    expect(host.querySelector('dialog')?.textContent).toContain(ARIA.about[0]);
+    expect(host.querySelector('dialog')?.textContent).toContain(SOUND_MODEL.about[0]);
   });
 });

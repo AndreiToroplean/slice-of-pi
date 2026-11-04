@@ -18,7 +18,7 @@ import { Background } from '../../ui/background';
 import { FIRST_LANDING, landsAt, leavesAt } from './flight/flight';
 import { Vibrator } from '../../feedback/vibrator';
 import { Speaker } from '../../feedback/speaker';
-import { ARIA } from '../../game/layers/sound/aria';
+import { SOUND_MODEL } from '../../game/layers/sound/sound-models';
 import { momentAt } from '../../../testing/sound-moments';
 import { SoundModel } from '../../game/layers/sound/sound-model';
 import { routes } from '../../app.routes';
@@ -1005,13 +1005,15 @@ describe('Play', () => {
 
     it('plays the landing of the word as its last slot lands', async () => {
       stubAnimations();
+      await TestBed.inject(DeveloperMode).set(true);
+      await TestBed.inject(Tweaks).setSoundMix({ ...SOUND_MIX, landings: 1 });
       const play = vi.spyOn(TestBed.inject(Speaker), 'play');
       const { type } = await setUp();
 
       await typeAll(type, '14159 ');
 
       expect(play).toHaveBeenLastCalledWith(
-        ARIA.create().landing('14159', [5]),
+        SOUND_MODEL.create().landing('14159', [5]),
         landsAt(4, 0),
         'landing',
       );
@@ -1031,13 +1033,19 @@ describe('Play', () => {
 
     it('plays the landing at once when the word does not fly', async () => {
       stubAnimations();
+      await TestBed.inject(DeveloperMode).set(true);
+      await TestBed.inject(Tweaks).setSoundMix({ ...SOUND_MIX, landings: 1 });
       vi.stubGlobal('matchMedia', () => ({ matches: true }));
       const play = vi.spyOn(TestBed.inject(Speaker), 'play');
       const { type } = await setUp();
 
       await typeAll(type, '14159 ');
 
-      expect(play).toHaveBeenLastCalledWith(ARIA.create().landing('14159', [5]), 0, 'landing');
+      expect(play).toHaveBeenLastCalledWith(
+        SOUND_MODEL.create().landing('14159', [5]),
+        0,
+        'landing',
+      );
     });
   });
 
@@ -1049,7 +1057,7 @@ describe('Play', () => {
       await typeAll(type, '149<');
 
       const keys = (place: number): ReturnType<SoundModel['keys']> =>
-        ARIA.create().keys(momentAt(place, [], 5));
+        SOUND_MODEL.create().keys(momentAt(place, [], 5));
       expect(play.mock.calls.map(([chime]) => chime)).toEqual([
         keys(1)['1'],
         keys(2)['4'],
@@ -1064,7 +1072,7 @@ describe('Play', () => {
       const keypad = fixture.debugElement.query(By.directive(Keypad)).componentInstance as Keypad;
 
       keypad.pressed.emit('7');
-      expect(play).toHaveBeenLastCalledWith(ARIA.create().keys(momentAt(1, [], 5))['7']);
+      expect(play).toHaveBeenLastCalledWith(SOUND_MODEL.create().keys(momentAt(1, [], 5))['7']);
 
       keypad.touched.emit({ key: '7', x: 0.5, y: 0.5 });
       expect(play).toHaveBeenCalledTimes(1);
@@ -1084,7 +1092,7 @@ describe('Play', () => {
       const fixture = TestBed.createComponent(Play);
       await fixture.whenStable();
       const keypad = fixture.debugElement.query(By.directive(Keypad)).componentInstance as Keypad;
-      const keys = ARIA.create().keys(momentAt(1, [], 5));
+      const keys = SOUND_MODEL.create().keys(momentAt(1, [], 5));
 
       keypad.pressed.emit('1');
       keypad.touched.emit({ key: '1', x: 0.5, y: 0.5 });
@@ -1102,12 +1110,13 @@ describe('Play', () => {
 
       await typeAll(type, '141 5');
 
-      expect(play).toHaveBeenLastCalledWith(ARIA.create().keys(momentAt(4, [3], 5))['5']);
+      expect(play).toHaveBeenLastCalledWith(SOUND_MODEL.create().keys(momentAt(4, [3], 5))['5']);
     });
 
     it('logs a line for each key typed, and each word landing, in developer mode once told to', async () => {
       await TestBed.inject(DeveloperMode).set(true);
       await TestBed.inject(Tweaks).setSoundNotes(true);
+      await TestBed.inject(Tweaks).setSoundMix({ ...SOUND_MIX, landings: 1 });
       const { host, type } = await setUp();
       const lines = (): string[] =>
         Array.from(host.querySelectorAll('app-sound-log p'), (line) => line.textContent);
@@ -1115,7 +1124,7 @@ describe('Play', () => {
 
       await typeAll(type, '14159 ');
 
-      const model = ARIA.create();
+      const model = SOUND_MODEL.create();
       // Newest first.
       expect(lines()).toEqual(
         [
