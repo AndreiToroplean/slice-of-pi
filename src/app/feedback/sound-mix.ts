@@ -7,7 +7,7 @@ export interface SoundMix {
 }
 
 /** The game's own mix. */
-export const SOUND_MIX: SoundMix = { chords: 0.6, landings: 1 };
+export const SOUND_MIX: SoundMix = { chords: 0.6, landings: 0 };
 
 /** A setting of the speaker, such as of the mix, as its slider shows it on the Sound Models page. */
 export interface SoundSlider<T> {
