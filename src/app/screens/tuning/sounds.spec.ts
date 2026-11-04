@@ -183,7 +183,9 @@ describe('Sounds', () => {
     );
     const model = ARIA.create();
     expect(play.mock.calls[3]?.[0]).toEqual(model.landing('141', [3]));
+    expect(play.mock.calls[3]?.[2]).toBe('landing');
     expect(play.mock.calls[4]?.[0]).toEqual(model.keys(momentAt(4, [3], 3))['5']);
+    expect(play.mock.calls[4]?.[2]).toBe('key');
   });
 
   it('tries a key as a touch lands on Try, and sours it as the touch lifts', async () => {
@@ -200,20 +202,6 @@ describe('Sounds', () => {
 
     tried.dispatchEvent(new PointerEvent('pointerup'));
     expect(sour).toHaveBeenCalledOnce();
-  });
-
-  it('lands words with a chord unless told not to', async () => {
-    const { host, stable } = await setUp();
-    const landings = Array.from(
-      host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
-    ).find((input) => input.closest('label')?.textContent.includes('Landing Chords'));
-    expect(landings?.checked).toBe(true);
-
-    landings?.click();
-    await stable();
-
-    expect(TestBed.inject(Tweaks).landings()).toBe(false);
-    expect(button(host, 'Reset All').disabled).toBe(false);
   });
 
   it('shows the sound model picked, and what it does', { tags: ['disabled'] }, async () => {

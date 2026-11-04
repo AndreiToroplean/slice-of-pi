@@ -41,7 +41,7 @@ import { SOUND_MODEL, soundModelKindById } from '../game/layers/sound/sound-mode
 /** The name of the tweaks setting in the store. */
 export const TWEAKS = 'tweaks';
 /** The format of the stored tweaks, which changes, with a migration, whenever they do. */
-export const TWEAKS_FORMAT = 3;
+export const TWEAKS_FORMAT = 4;
 /** The steps that bring the stored tweaks in older formats to the current one, one per format (see {@link migrate}). */
 const TWEAKS_MIGRATIONS: readonly Migration[] = [
   // Format 2 keeps each break model's hyperparameters apart: those stored before go to Mercury.
@@ -49,6 +49,9 @@ const TWEAKS_MIGRATIONS: readonly Migration[] = [
     grouping === undefined ? tweaks : { ...tweaks, grouping: { mercury: grouping } },
   // Format 3 lays the screens out by their margins, as edit mode edits them: the layout stored before goes.
   (tweaks) => Object.fromEntries(Object.entries(tweaks).filter(([key]) => key !== 'layout')),
+  // Format 4 sets how loud words land in the mix: those that landed silently land at 0.
+  ({ landings, ...tweaks }) =>
+    landings === false ? { ...tweaks, sound: { ...Object(tweaks['sound']), landings: 0 } } : tweaks,
 ];
 
 /** Each season's starting background colors, top then bottom. */
@@ -94,8 +97,6 @@ export interface TweakValues {
   readonly sound?: SoundMix;
   /** How a wrong key's note goes off, for {@link SOURING}. */
   readonly souring?: Souring;
-  /** `false` for words to land on the tape without a chord, which they otherwise play. */
-  readonly landings?: false;
   /** `true` to show, in developer mode, what each key typed played, in words, which is otherwise hidden. */
   readonly soundNotes?: true;
 }
@@ -225,10 +226,6 @@ export class Tweaks {
     (): Souring => (this.developerMode.enabled() ? this.tweaks().souring : undefined) ?? SOURING,
   );
 
-  /** Whether each word plays a chord as it lands on the tape. */
-  readonly landings = computed(
-    () => !this.developerMode.enabled() || this.tweaks().landings !== false,
-  );
   /** Whether the play screen shows what each key typed played, which only developer mode does, once told to. */
   readonly soundNotes = computed(
     () => this.developerMode.enabled() && this.tweaks().soundNotes === true,
@@ -379,11 +376,6 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), souring }));
   }
 
-  /** Has words play a chord as they land on the tape, or land silently. */
-  setLandings(landings: boolean): Promise<void> {
-    return this.save(tweakValues({ ...this.tweaks(), landings: landings ? undefined : false }));
-  }
-
   /** Shows what each key typed played, in words, or hides it. */
   setSoundNotes(soundNotes: boolean): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), soundNotes: soundNotes ? true : undefined }));
@@ -446,7 +438,6 @@ export function parseTweaks(stored: unknown): TweakValues {
     soundModel,
     sound,
     souring,
-    landings,
     soundNotes,
   } = migrate(stored, TWEAKS_MIGRATIONS);
   if (format !== TWEAKS_FORMAT) {
@@ -472,7 +463,6 @@ export function parseTweaks(stored: unknown): TweakValues {
     soundModel: soundModelKindById(soundModel)?.id,
     sound: slidValues(sound, MIX_SLIDERS, SOUND_MIX),
     souring: slidValues(souring, SOURING_SLIDERS, SOURING),
-    landings: landings === false ? landings : undefined,
     soundNotes: soundNotes === true ? soundNotes : undefined,
   });
 }
@@ -557,7 +547,6 @@ function tweakValues({
   soundModel,
   sound,
   souring,
-  landings,
   soundNotes,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
@@ -582,7 +571,6 @@ function tweakValues({
     ...(soundModel === undefined ? {} : { soundModel }),
     ...(sound === undefined ? {} : { sound }),
     ...(souring === undefined ? {} : { souring }),
-    ...(landings === undefined ? {} : { landings }),
     ...(soundNotes === undefined ? {} : { soundNotes }),
   };
 }

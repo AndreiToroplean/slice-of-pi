@@ -43,6 +43,8 @@ export interface Played {
   readonly at: number;
   readonly chime: Chime;
   readonly line: string;
+  /** Whether it's a word landing, rather than a key typed. */
+  readonly landing?: true;
 }
 
 /**
@@ -84,6 +86,7 @@ export function* song(
         at: at + LISTENED_DIGIT,
         chime: model.landing(typed, words),
         line: model.describeLanding(typed, words),
+        landing: true,
       };
     }
     at += LISTENED_BREAK;
@@ -133,10 +136,6 @@ export function* song(
             (changed)="set(slider.key, $event)"
           />
         }
-        <label class="setting">
-          Landing Chords
-          <input type="checkbox" [checked]="landings()" (change)="setLandings($event)" />
-        </label>
       </section>
       <section class="panel" aria-labelledby="souring-title">
         <div class="head">
@@ -207,12 +206,11 @@ export class Sounds {
   private readonly speaker = inject(Speaker);
   private readonly clock = inject(RUN_CLOCK);
   private readonly timer = inject(TIMER);
-  /** The sound model picked, the mix being tuned, and whether words land with a chord. */
+  /** The sound model picked, and the mix being tuned. */
   protected readonly kind = signal<SoundModelKind>(this.storedKind());
   protected readonly mix = signal<SoundMix>(this.tweaks.values().sound ?? SOUND_MIX);
   /** How a wrong key's note goes off, being tuned. */
   protected readonly souring = signal<Souring>(this.tweaks.values().souring ?? SOURING);
-  protected readonly landings = signal(this.tweaks.values().landings !== false);
   private edited = false;
   /** The note being tried, until it's soured. */
   private tried: Playing | undefined;
@@ -227,7 +225,6 @@ export class Sounds {
     soundModel: this.kind().id,
     sound: this.mix(),
     souring: this.souring(),
-    ...(this.landings() ? {} : { landings: false as const }),
   }));
   /** The player's runs, to play the song in their groups. */
   private readonly runs = signal<readonly Run[]>([]);
@@ -247,7 +244,6 @@ export class Sounds {
   protected readonly tuned = computed(
     () =>
       this.kind() !== SOUND_MODEL ||
-      !this.landings() ||
       MIX_SLIDERS.some(({ key }) => this.mix()[key] !== SOUND_MIX[key]) ||
       SOURING_SLIDERS.some(({ key }) => this.souring()[key] !== SOURING[key]),
   );
@@ -258,7 +254,6 @@ export class Sounds {
         this.kind.set(this.storedKind());
         this.mix.set(this.tweaks.values().sound ?? SOUND_MIX);
         this.souring.set(this.tweaks.values().souring ?? SOURING);
-        this.landings.set(this.tweaks.values().landings !== false);
       }
     });
     void inject(RunStore)
@@ -292,22 +287,14 @@ export class Sounds {
     void this.tweaks.setSouring(this.souring());
   }
 
-  protected setLandings(event: Event): void {
-    this.edited = true;
-    this.landings.set((event.target as HTMLInputElement).checked);
-    void this.tweaks.setLandings(this.landings());
-  }
-
   protected reset(): void {
     this.edited = true;
     this.kind.set(SOUND_MODEL);
     this.mix.set(SOUND_MIX);
     this.souring.set(SOURING);
-    this.landings.set(true);
     void this.tweaks.setSoundModel(undefined);
     void this.tweaks.setSoundMix(undefined);
     void this.tweaks.setSouring(undefined);
-    void this.tweaks.setLandings(true);
   }
 
   /**
@@ -316,7 +303,7 @@ export class Sounds {
    * plays as it plays.
    */
   protected listen(): void {
-    const chimes = song(this.kind().create(), this.groups(), this.landings());
+    const chimes = song(this.kind().create(), this.groups(), this.mix().landings > 0);
     const groups = this.groups().length;
     this.lines.set([
       groups === 0
@@ -329,12 +316,12 @@ export class Sounds {
     const schedule = (): void => {
       const now = this.clock.now() - start;
       while (!next.done && next.value.at < now + LISTEN_AHEAD) {
-        const { chime, line, at } = next.value;
+        const { chime, line, at, landing } = next.value;
         const delay = Math.max(0, at - now);
         const unlog = this.timer.after(delay, () => {
           this.lines.update((lines) => [...lines.slice(1 - LOG_LINES), line]);
         });
-        const playing = this.speaker.play(chime, delay);
+        const playing = this.speaker.play(chime, delay, landing ? 'landing' : 'key');
         stops.push(() => {
           unlog();
           playing.stop();

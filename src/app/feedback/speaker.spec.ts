@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { INDEXED_DB } from '../player-data/run-store';
 import { SoundSetting } from '../player-data/sound-setting';
 import { FakeAudio } from '../../testing/fake-audio';
-import { envelopeCurve, Speaker } from './speaker';
+import { envelopeCurve, mixedGain, Speaker } from './speaker';
 import { SOURING } from './souring';
 import { DeveloperMode } from '../developer-mode/developer-mode';
 import { Tweaks } from '../developer-mode/tweaks';
@@ -59,6 +59,17 @@ describe('Speaker', () => {
     audio.endEnvelopes();
 
     expect(audio.notes()[0]?.connected()).toBe(false);
+  });
+
+  it("mixes a key's chords at the chords' volume, and all of a landing at the landings'", () => {
+    const mix = { chords: 0.5, landings: 0.2 };
+    const melody = { pitch: 60, gain: 0.8, length: 1 };
+    const chord = { ...melody, accompaniment: true as const };
+
+    expect(mixedGain(melody, 'key', mix)).toBeCloseTo(0.8);
+    expect(mixedGain(chord, 'key', mix)).toBeCloseTo(0.4);
+    expect(mixedGain(melody, 'landing', mix)).toBeCloseTo(0.16);
+    expect(mixedGain(chord, 'landing', mix)).toBeCloseTo(0.16);
   });
 
   it('makes its audio context once, as it first plays', () => {

@@ -322,19 +322,6 @@ describe('Tweaks', () => {
     expect((await load()).values()).toEqual({});
   });
 
-  it('lands words silently only in developer mode, once told to, kept until undone', async () => {
-    const tweaks = await load();
-    await tweaks.setLandings(false);
-    expect(tweaks.landings()).toBe(true);
-
-    await TestBed.inject(DeveloperMode).set(true);
-    expect(tweaks.landings()).toBe(false);
-    expect((await load()).values()).toEqual({ landings: false });
-
-    await TestBed.inject(Tweaks).setLandings(true);
-    expect((await load()).values()).toEqual({});
-  });
-
   it('shows what keys played only in developer mode, once told to, kept until undone', async () => {
     const tweaks = await load();
     await tweaks.setSoundNotes(true);
@@ -479,6 +466,16 @@ describe('Tweaks', () => {
     expect(parseTweaks({ format: 2, layout, seasonTurn: 3 })).toEqual({ seasonTurn: 3 });
   });
 
+  it('turns words landing silently, as stored before, into landings at 0 in the mix', () => {
+    expect(parseTweaks({ format: 3, landings: false, sound: { chords: 0.4 } })).toEqual({
+      sound: { chords: 0.4, landings: 0 },
+    });
+    expect(parseTweaks({ format: 3, landings: false })).toEqual({
+      sound: { ...SOUND_MIX, landings: 0 },
+    });
+    expect(parseTweaks({ format: 3, landings: true, seasonTurn: 3 })).toEqual({ seasonTurn: 3 });
+  });
+
   it('leaves out the settings saved for the timing model the break model replaced', () => {
     expect(
       parseTweaks({
@@ -562,8 +559,6 @@ describe('Tweaks', () => {
     expect(parseTweaks({ format: TWEAKS_FORMAT, sound: { chords: -1 } })).toEqual({});
     expect(parseTweaks({ format: TWEAKS_FORMAT, soundNotes: true })).toEqual({ soundNotes: true });
     expect(parseTweaks({ format: TWEAKS_FORMAT, soundNotes: 'yes' })).toEqual({});
-    expect(parseTweaks({ format: TWEAKS_FORMAT, landings: false })).toEqual({ landings: false });
-    expect(parseTweaks({ format: TWEAKS_FORMAT, landings: true })).toEqual({});
     expect(parseTweaks(null)).toEqual({});
 
     const store = (await load(), TestBed.inject(RunStore));
