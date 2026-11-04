@@ -19,7 +19,7 @@ export interface Souring {
 }
 
 /** The game's own souring. */
-export const SOURING: Souring = { bend: -70, drift: 12, buzz: 0.5, rasp: 0.5, speed: 0.15 };
+export const SOURING: Souring = { bend: -70, drift: 12, buzz: 0.5, rasp: 0.5, speed: 0.05 };
 
 const cents = (value: number): string => `${String(Math.round(value))}¢`;
 const percent = (value: number): string => `${String(Math.round(value * 100))}%`;
