@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793747192101,
+  "lastUpdate": 1793751059154,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3240,6 +3240,46 @@ window.BENCHMARK_DATA = {
             "value": 1034,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs counts unchecked runs in the groups when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "080440daaab24a1f4ab1969a3655528376289650",
+          "message": "fix: take each note out of the mix once it has faded out\n\n- A note's nodes stayed connected after it ended, until garbage collection freed them. Rendered in Chromium, 1000 notes long over yet still connected made the same sound 3.6 times as costly to work out, and 3000 made it 5.5 times as costly; disconnected, 3000 made it about a fifth costlier.\n- The song of π on the Sound Models page, playing on without a pause, could pile up about 1000 a minute, were they not collected sooner. Measured on a phone, with this change at most 37 notes were in the mix at once.\n- How many piled up on the phone before is unknown, so this may not have mattered there: the crackle still heard while the song plays came from Android's output pausing for about 64 ms after Chrome had worked the sound out in time.\n\nClaude-Session: https://claude.ai/code/session_01X1XesoQwDLrBtVTPBqdsDy",
+          "timestamp": "2026-11-04T01:10:34+01:00",
+          "tree_id": "9ebde2f41be316ae6d4b63b005b8614732414243",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/080440daaab24a1f4ab1969a3655528376289650"
+        },
+        "date": 1793751058337,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 9659,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 20346,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1020,
+            "unit": "ms",
+            "extra": "MissingPreview opens the preview as soon as it is published"
           }
         ]
       }
