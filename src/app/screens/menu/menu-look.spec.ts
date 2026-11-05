@@ -1,4 +1,5 @@
 import {
+  BUTTON_COUNT,
   MENU_LOOK,
   menuStyles,
   parseMenuLook,
@@ -46,7 +47,9 @@ describe('menu look', () => {
     const { y, height, gap } = MENU_LOOK.layout.buttons;
 
     expect(styles['--buttons-y']).toBe(`${String(y)}%`);
-    expect(styles['--buttons-span']).toBe(`${String(2 * height + gap)}rem`);
+    expect(styles['--buttons-span']).toBe(
+      `${String(BUTTON_COUNT * height + (BUTTON_COUNT - 1) * gap)}rem`,
+    );
   });
 
   it('reads a stored look back as it was', () => {
