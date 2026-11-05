@@ -52,8 +52,13 @@ export class MissingPreview {
     void this.check();
   }
 
+  /**
+   * Checks for the preview on the network, with a full request that leaves its answer in the browser's cache: the site
+   * lets the browser keep any page for a while, the "not found" it answered with this one included, so opening the
+   * preview would otherwise find that one in the cache, and stand in for it again and again.
+   */
   private async check(): Promise<void> {
-    const published = await fetch(this.url, { method: 'HEAD', cache: 'no-store' }).then(
+    const published = await fetch(this.url, { cache: 'reload' }).then(
       (response) => response.ok,
       () => false,
     );
