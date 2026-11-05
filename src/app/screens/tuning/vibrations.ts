@@ -18,7 +18,7 @@ import { CopyValues } from './copy-values';
 
 /** Each vibration's name, and when it plays. */
 const ABOUT: Readonly<Record<Vibration, { readonly name: string; readonly when: string }>> = {
-  play: { name: 'Play', when: 'Tapping Play, on the main menu.' },
+  play: { name: 'Play', when: 'Starting a game, on the main menu.' },
   button: { name: 'Button', when: 'Tapping any other button.' },
   digit: { name: 'Digit', when: 'Typing a right digit.' },
   mistake: { name: 'Mistake', when: 'Typing a wrong digit.' },

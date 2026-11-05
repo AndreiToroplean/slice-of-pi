@@ -60,7 +60,7 @@ export const RELOAD_PAGE = new InjectionToken<() => void>('RELOAD_PAGE', {
 const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], pi: [] };
 
 /**
- * The main menu, where the app opens: the game's icon and name, a button to play and one above it to the player's runs,
+ * The main menu, where the app opens: the game's icon and name, a button to free play and one above it to the player's runs,
  * the settings behind a gear in a corner, and in developer mode, its pages in an overflow menu in the other, with its
  * editor (see `menu-editor.ts`). The name's letters are lanterns, in the key colors, and the icon is lit from behind:
  * three layers of light (see `light-layer.ts`), "Pi" nearest, then "Slice of", then the icon, each lighting everything
@@ -68,7 +68,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
  * The lights switch on once the menu is in place, and off before another screen comes in, both from the top down, the
  * icon first, "Pi" last. It shows
  * once its icon and fonts have arrived, over the background alone until then. Tab, or left and right, go from one group of buttons to the next, from the left to the right, and up and
- * down between its main buttons; Play has the focus from the start, picked out, for Enter to play.
+ * down between its main buttons; Free Play has the focus from the start, picked out, for Enter to play.
  */
 @Component({
   selector: 'app-menu',
@@ -165,7 +165,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
     </p>
     <app-button-list class="actions" [style.gap]="'var(--buttons-gap)'">
       <a appCandy routerLink="/runs">Your Runs</a>
-      <a #play appCandy="primary" routerLink="/play" data-vibration="play">Play</a>
+      <a #play appCandy="primary" routerLink="/play" data-vibration="play">Free Play</a>
     </app-button-list>
     <!-- After the middle of the menu, for Tab to go through it from the left to the right. -->
     @if (developerMode.enabled()) {
@@ -381,7 +381,7 @@ export class Menu {
     };
   }
 
-  /** Up or down onto Play when nothing has the focus, as on touch screens, from where they move on. */
+  /** Up or down onto Free Play when nothing has the focus, as on touch screens, from where they move on. */
   protected startOnPlay(event: Event): void {
     const active = this.document.activeElement;
     if (active === null || active === this.document.body) {
