@@ -1,4 +1,4 @@
-import { inject, InjectionToken, Service } from '@angular/core';
+import { inject, InjectionToken, Service, signal } from '@angular/core';
 import { Tweaks } from '../developer-mode/tweaks';
 import { KeypadTouch } from '../game/layers/keypad-layout';
 import { KeypadLayoutSetting } from './keypad-layout-setting';
@@ -34,7 +34,7 @@ export const RUN_CLOCK = new InjectionToken<RunClock>('RUN_CLOCK', {
  *
  * A run starts with the first digit typed and ends when the game restarts or ends: touches before it aren't kept.
  * Deleting every digit deletes the run, as if it had never started, and the next digit starts a new one (see
- * {@link LiveRun}). A run started without checking the digits, in developer mode, is marked unchecked, and each run
+ * {@link LiveRun}). A run started without checking the digits, in developer mode, is marked unchecked, unless it's a challenge, and each run
  * records the keypad layout it's played on.
  */
 @Service()
@@ -51,12 +51,14 @@ export class RunRecorder implements RunSession {
       return newTouchLog(
         this.clock.newId(),
         this.clock.epoch(),
-        this.tweaks.checking(),
+        this.challenge() || this.tweaks.checking(),
         this.keypadLayout.layout(),
       );
     },
   );
   readonly run = this.live.run;
+  /** Whether the runs started from now on are challenges, which check their digits whatever developer mode says. */
+  readonly challenge = signal(false);
 
   /** The latest touch log of each run not saved yet. */
   private readonly unsaved = new Map<string, TouchLog>();

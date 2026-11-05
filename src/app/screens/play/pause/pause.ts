@@ -13,6 +13,10 @@ import { LightDismiss } from '../../../ui/light-dismiss';
  * resumes, or goes back from the confirmation, as do going back and a click outside the dialog; up and down move between a dialog's
  * buttons, and Enter chooses one, as on any button. In developer mode, a button in its right corner also puts the play screen
  * in edit mode, the game staying paused until it's done.
+ *
+ * Once a game is lost, as on a challenge's mistake, the game over dialog takes the pause dialog's place: there's no
+ * resuming, only playing again or going back to the main menu, and nothing else closes it; its replay button replays the
+ * run at once, as there's no game left to warn about.
  */
 @Component({
   selector: 'app-pause',
@@ -63,6 +67,35 @@ import { LightDismiss } from '../../../ui/light-dismiss';
       </app-button-list>
     </dialog>
     <dialog
+      #overDialog
+      class="card"
+      closedby="none"
+      aria-labelledby="over-title"
+      (cancel)="$event.preventDefault()"
+      (close)="closed()"
+    >
+      <div class="heading">
+        <h2 id="over-title">Game Over</h2>
+        <button
+          type="button"
+          appCandy="clear"
+          class="corner replay-button"
+          [disabled]="!replayable()"
+          title="Replay This Run"
+          (click)="void stopAndReplay()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4.5 12A7.5 7.5 0 1 0 12 4.5M14.5 2 12 4.5 14.5 7" />
+            <path class="play" d="M10.5 9.25 14.75 12l-4.25 2.75z" />
+          </svg>
+        </button>
+      </div>
+      <app-button-list>
+        <button type="button" appCandy="primary" autofocus (click)="playAgain()">Play Again</button>
+        <button type="button" appCandy (click)="void endGame()">Main Menu</button>
+      </app-button-list>
+    </dialog>
+    <dialog
       #replayDialog
       class="card"
       closedby="any"
@@ -103,11 +136,31 @@ export class Pause {
   private readonly backToMenu = injectBackToMenu();
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
   private readonly replayDialog = viewChild.required<ElementRef<HTMLDialogElement>>('replayDialog');
+  private readonly overDialog = viewChild.required<ElementRef<HTMLDialogElement>>('overDialog');
 
   /** Pauses, opening the dialog, as the pause button does. */
   pause(): void {
     this.dialog().nativeElement.showModal();
     this.paused.set(true);
+  }
+
+  /** Opens the game over dialog, once the game is lost, in place of the pause dialog if it's open. */
+  gameOver(): void {
+    const dialog = this.dialog().nativeElement;
+    if (dialog.open) {
+      // Closed as the game is over: closing it mustn't resume the game.
+      this.editing = false;
+      dialog.close();
+    }
+    this.replayDialog().nativeElement.close();
+    this.overDialog().nativeElement.showModal();
+    this.paused.set(true);
+  }
+
+  /** Restarts the game, from the game over dialog, which closes. */
+  protected playAgain(): void {
+    this.restart.emit();
+    this.overDialog().nativeElement.close();
   }
 
   /** Going back: pauses, or resumes, or goes back from the confirmation, as Escape does. */
@@ -136,12 +189,15 @@ export class Pause {
     this.resume();
   }
 
-  /** The dialog closed: the game resumes, unless the player chose to edit the layout. */
+  /**
+   * A dialog closed: the game resumes, unless the player chose to edit the layout, or the game over dialog took the
+   * pause dialog's place.
+   */
   protected closed(): void {
     if (this.editing) {
       this.editing = false;
       this.edit.emit();
-    } else {
+    } else if (!this.overDialog().nativeElement.open) {
       this.paused.set(false);
     }
   }
@@ -167,12 +223,16 @@ export class Pause {
 
   /** On to the run's replay, the dialogs closed first, as when ending the game. */
   protected async stopAndReplay(): Promise<void> {
-    await Promise.all([close(this.replayDialog().nativeElement), this.close()]);
+    await Promise.all([
+      close(this.replayDialog().nativeElement),
+      close(this.overDialog().nativeElement),
+      this.close(),
+    ]);
     this.replay.emit();
   }
 
   private async close(): Promise<void> {
-    await close(this.dialog().nativeElement);
+    await Promise.all([close(this.dialog().nativeElement), close(this.overDialog().nativeElement)]);
   }
 }
 

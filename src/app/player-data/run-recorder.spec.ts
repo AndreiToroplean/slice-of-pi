@@ -282,6 +282,17 @@ describe('RunRecorder', () => {
     expect(stored()[0]?.keypadLayout).toBe('telephone');
   });
 
+  it('checks the digits of a challenge, whatever developer mode says', async () => {
+    const recorder = TestBed.inject(RunRecorder);
+    checking = false;
+
+    recorder.challenge.set(true);
+    press(recorder, '1');
+    await recorder.saved();
+
+    expect(stored()).toMatchObject([{ checked: true }]);
+  });
+
   it('marks a run started without checking the digits as unchecked', async () => {
     const recorder = TestBed.inject(RunRecorder);
 

@@ -59,16 +59,16 @@ export interface MenuLook {
 }
 
 /** How many buttons the menu has, one above the other. */
-export const BUTTON_COUNT = 2;
+export const BUTTON_COUNT = 3;
 
 /** The menu's own look. */
 export const MENU_LOOK: MenuLook = {
   layout: {
-    title: { y: 53.4 },
+    title: { y: 63 },
     icon: { size: 48.7, offset: 11.8 },
     slice: { size: 7.9, offset: -20.7 },
     pi: { size: 13.5, offset: -40.9 },
-    buttons: { y: 14, height: 3.25, gap: 0.875 },
+    buttons: { y: 17, height: 3.25, gap: 0.75 },
   },
   light: {
     icon: {

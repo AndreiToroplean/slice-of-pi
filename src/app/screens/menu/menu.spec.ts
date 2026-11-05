@@ -170,10 +170,11 @@ describe('Menu', () => {
     );
   }
 
-  it('starts a game with the play button', async () => {
+  it('starts a game in free play, or a challenge', async () => {
     const host = await setUp();
 
     expect(link(host, 'Free Play')?.getAttribute('href')).toBe('/play');
+    expect(link(host, 'Challenge')?.getAttribute('href')).toBe('/challenge');
   });
 
   it('opens the player’s runs', async () => {
@@ -201,28 +202,30 @@ describe('Menu', () => {
       document.activeElement?.getAttribute('title') ??
       document.activeElement?.textContent.trim();
 
-    it('gives Free Play the focus once shown, for Enter to play', async () => {
+    it('gives Challenge the focus once shown, for Enter to play', async () => {
       const host = await shown();
 
-      expect(document.activeElement).toBe(link(host, 'Free Play'));
+      expect(document.activeElement).toBe(link(host, 'Challenge'));
     });
 
-    it('moves the focus back onto Free Play with up or down once nothing has it, as after a tap', async () => {
+    it('moves the focus back onto Challenge with up or down once nothing has it, as after a tap', async () => {
       const host = await shown();
       (document.activeElement as HTMLElement).blur();
 
       expect(press('ArrowUp').defaultPrevented).toBe(true);
 
-      expect(document.activeElement).toBe(link(host, 'Free Play'));
+      expect(document.activeElement).toBe(link(host, 'Challenge'));
     });
 
     it('moves up and down its main buttons only, round from either end', async () => {
       const host = await shown();
 
       press('ArrowUp');
+      expect(focused()).toBe('Free Play');
+      press('ArrowUp');
       expect(focused()).toBe('Your Runs');
       press('ArrowUp');
-      expect(focused()).toBe('Free Play');
+      expect(focused()).toBe('Challenge');
       press('ArrowDown');
       expect(focused()).toBe('Your Runs');
 
@@ -241,10 +244,10 @@ describe('Menu', () => {
       expect(press('ArrowLeft').defaultPrevented).toBe(false);
       press('ArrowRight');
       press('ArrowRight');
-      expect(focused()).toBe('Free Play');
+      expect(focused()).toBe('Challenge');
       press('ArrowUp');
       expect(press('ArrowRight').defaultPrevented).toBe(false);
-      expect(focused()).toBe('Your Runs');
+      expect(focused()).toBe('Free Play');
       press('ArrowLeft');
       expect(focused()).toBe('Slice of Pi');
     });

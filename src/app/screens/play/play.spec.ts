@@ -38,7 +38,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LAYOUT } from '../../ui/layout';
-import { Play } from './play';
+import { GAME_OVER_DELAY, Play } from './play';
 import { Keypad } from './keypad/keypad';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 import { GAME_BREAK_MODEL } from '../../game/grouping/break-models/break-models';
@@ -1572,6 +1572,115 @@ describe('Play', () => {
       await harness.fixture.whenStable();
 
       expect(end).toHaveBeenCalledOnce();
+    });
+    describe('in a challenge', () => {
+      async function challenge(): Promise<{
+        host: HTMLElement;
+        type: (keys: string) => Promise<void>;
+        stable: () => Promise<void>;
+      }> {
+        const harness = await RouterTestingHarness.create('/challenge');
+        const host = harness.routeNativeElement;
+        if (host === null) {
+          throw new Error('No play screen');
+        }
+        const stable = (): Promise<void> => harness.fixture.whenStable();
+        const type = async (keys: string): Promise<void> => {
+          for (const key of keys) {
+            time.advance(200);
+            host.querySelector<HTMLButtonElement>(`button[data-key="${key}"]`)?.click();
+            await stable();
+          }
+        };
+        return { host, type, stable };
+      }
+
+      function gameOver(host: HTMLElement): HTMLDialogElement | null {
+        return host.querySelector<HTMLDialogElement>('dialog[aria-labelledby="over-title"]');
+      }
+
+      it('ends the game on the first mistake: no more keys, and a moment later, the game over dialog', async () => {
+        const { host, type, stable } = await challenge();
+
+        await type('1410');
+        await type('5');
+        expect(slots(host)).toEqual(['1', '4', '1', '0', '']);
+        expect(host.querySelector('[aria-live="assertive"]')?.textContent.trim()).toBe(
+          '0 is wrong: game over.',
+        );
+        expect(gameOver(host)?.open).toBe(false);
+
+        time.advance(GAME_OVER_DELAY);
+        await stable();
+        expect(gameOver(host)?.open).toBe(true);
+      });
+
+      it('has no backspace', async () => {
+        const { host } = await challenge();
+
+        const backspace = host.querySelector<HTMLButtonElement>('button[data-key="backspace"]');
+        expect(backspace?.inert).toBe(true);
+      });
+
+      it('checks every digit, even when developer mode turns checking off', async () => {
+        await TestBed.inject(Tweaks).setChecking(false);
+        await TestBed.inject(DeveloperMode).set(true);
+        const { host, type } = await challenge();
+
+        await type('3');
+
+        expect(host.querySelector('app-slots .wrong')?.textContent).toBe('3');
+      });
+
+      it('has its runs recorded as challenges, checking their digits', async () => {
+        await challenge();
+
+        expect(TestBed.inject(RunRecorder).challenge()).toBe(true);
+      });
+
+      it('turns the screen red as soon as the game is lost, until it restarts', async () => {
+        const { host, type, stable } = await challenge();
+        await type('1');
+        expect(host.querySelector('.game-over')).toBeNull();
+
+        await type('0');
+        expect(host.querySelector('.game-over')).not.toBeNull();
+
+        time.advance(GAME_OVER_DELAY);
+        await stable();
+        pauseItem(host, 'Play Again').click();
+        await stable();
+        expect(host.querySelector('.game-over')).toBeNull();
+      });
+
+      it('plays again from the game over dialog, from the start, the keys typing again', async () => {
+        const end = vi.spyOn(TestBed.inject(RunRecorder), 'end');
+        const { host, type, stable } = await challenge();
+        await type('140');
+        time.advance(GAME_OVER_DELAY);
+        await stable();
+
+        pauseItem(host, 'Play Again').click();
+        await stable();
+
+        expect(gameOver(host)?.open).toBe(false);
+        expect(end).toHaveBeenCalledOnce();
+        await type('1');
+        expect(slots(host)).toEqual(['1', '', '', '', '']);
+      });
+
+      it('replaces the pause dialog with the game over dialog, if it opened meanwhile', async () => {
+        const { host, type, stable } = await challenge();
+        await type('0');
+
+        pauseItem(host, 'Pause').click();
+        time.advance(GAME_OVER_DELAY);
+        await stable();
+
+        const dialogs = Array.from(host.querySelectorAll('dialog'), (dialog) => dialog.open);
+        expect(dialogs.filter(Boolean)).toHaveLength(1);
+        expect(gameOver(host)?.open).toBe(true);
+      });
     });
   });
 });

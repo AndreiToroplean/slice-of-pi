@@ -12,7 +12,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import type { ReplayedGame } from '../replay/replay';
 import { Background } from '../../ui/background';
 import { BreakCountdown } from './break-countdown';
@@ -35,6 +35,7 @@ import { keyColorIndices, placeColors } from '../../game/layers/place-colors';
 import { Pause } from './pause/pause';
 import { PausesOnBack } from './pause-on-back';
 import { isPiDecimal } from '../../game/pi/pi';
+import { GameMode, isGameMode } from '../../game/modes/game-mode';
 import { groupRuns, Run } from '../../player-data/run';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { RUN_CLOCK, RunRecorder } from '../../player-data/run-recorder';
@@ -62,6 +63,9 @@ const SOUND_LOG_LINES = 200;
 /** How long a vibration can last at most, in ms. */
 const LONGEST_VIBRATION = LONGEST_STEP * MOST_STEPS;
 
+/** How long a challenge's mistake shows before the game over dialog opens, in milliseconds. */
+export const GAME_OVER_DELAY = 800;
+
 /** How often what shows the wait for the group being typed running out is redrawn, in milliseconds: about every frame. */
 const TICK = 16;
 
@@ -85,6 +89,10 @@ const TICK = 16;
  * dialog once done; going back from it asks whether to cancel the changes. Every touch on the keypad, and every key
  * typed, is recorded, with where and when, in the run's touch log, and so is every touch elsewhere on the screen,
  * typing nothing, but those on the pause button and its dialog; restarting or ending the game ends the run.
+ *
+ * The game mode comes from the route: free play unless it says otherwise. In a challenge, every digit is checked, the
+ * keypad has no backspace, and the first mistake ends the game: the screen's edges turn red at once, the keypad takes
+ * no more keys, and a moment later the game over dialog offers to play again or go back to the main menu.
  *
  * It also replays a run, given its touch log: the player can't type, nor pause, and nothing is recorded. Whatever
  * replays it hands it the touches one after the other, on the run's own clock (`TIMER` and `RUN_CLOCK`), and resets it
@@ -132,7 +140,11 @@ const TICK = 16;
     />
     <p class="visually-hidden" aria-live="assertive">
       @if (mistakes() !== '') {
-        {{ mistakes().charAt(0) }} is wrong: delete back to it to go on.
+        @if (lost()) {
+          {{ mistakes() }} is wrong: game over.
+        } @else {
+          {{ mistakes().charAt(0) }} is wrong: delete back to it to go on.
+        }
       }
     </p>
     <app-keypad
@@ -142,7 +154,8 @@ const TICK = 16;
       [palette]="tweaks.palette()"
       [solid]="tweaks.solidKeys()"
       [showAreas]="editedLayout() !== undefined && !previewing()"
-      [disabled]="replay() !== undefined"
+      [disabled]="replay() !== undefined || lost()"
+      [backspace]="mode() === 'free'"
       [shown]="shownKey()"
       [marks]="marks()"
       (touched)="press($event)"
@@ -160,6 +173,9 @@ const TICK = 16;
         />
       }
     </app-keypad>
+    @if (lost()) {
+      <div class="game-over" aria-hidden="true"></div>
+    }
     @if (tweaks.soundNotes()) {
       <app-sound-log [lines]="soundLog()" />
     }
@@ -225,8 +241,21 @@ export class Play implements PausesOnBack {
   protected readonly keypadLayout = computed(
     () => this.replay()?.keypadLayout ?? this.layoutSetting(),
   );
-  /** Whether digits are checked against π, as they are unless developer mode turns that off, or were in the run replayed. */
-  private readonly checking = computed(() => this.replay()?.checked ?? this.tweaks.checking());
+  /** The game mode the route asks for, free play unless it says otherwise. */
+  private readonly routeMode: GameMode = modeOf(inject(ActivatedRoute).snapshot.data['mode']);
+  /** The game mode, the route's. */
+  protected readonly mode = signal(this.routeMode);
+  /**
+   * Whether digits are checked against π, as they are in a game started as a challenge, and in free play unless
+   * developer mode turns that off, or were in the run replayed.
+   */
+  private readonly checking = computed(
+    () => this.replay()?.checked ?? (this.routeMode === 'challenge' || this.tweaks.checking()),
+  );
+  /** Whether the game is lost, on a challenge's first mistake: no more keys until it restarts. */
+  protected readonly lost = signal(false);
+  /** Stops the wait for the game over dialog to open, once the game is lost. */
+  private stopGameOver = (): void => undefined;
   /**
    * How long after the last digit the group being typed ends, in milliseconds, while the player may still pause:
    * `Infinity` if no pause up to the longest wait looked at ends it.
@@ -343,8 +372,12 @@ export class Play implements PausesOnBack {
     // Ending the game, back to the main menu, ends the run.
     inject(DestroyRef).onDestroy(() => {
       this.stopWatching();
+      this.stopGameOver();
       this.session.end();
     });
+    if (this.replay() === undefined) {
+      this.recorder.challenge.set(this.routeMode === 'challenge');
+    }
     void inject(RunStore)
       .runs()
       .then((runs) => {
@@ -381,7 +414,7 @@ export class Play implements PausesOnBack {
   }
 
   protected press(touch: KeypadTouch): void {
-    if (this.replay() !== undefined) {
+    if (this.replay() !== undefined || this.lost()) {
       return;
     }
     if (!this.paused()) {
@@ -407,7 +440,7 @@ export class Play implements PausesOnBack {
 
   leaveOnBack(): boolean {
     const pause = this.pause();
-    if (pause === undefined || pause.ending) {
+    if (pause === undefined || pause.ending || this.lost()) {
       return true;
     }
     const editor = this.layoutEditor();
@@ -492,6 +525,9 @@ export class Play implements PausesOnBack {
       this.vibrate('mistake');
       this.sour(ringing);
       this.mistakes.set(key);
+      if (this.mode() === 'challenge' && this.replay() === undefined) {
+        this.loseGame();
+      }
       return;
     }
     this.vibrate(key === 'backspace' ? 'backspace' : 'digit');
@@ -540,6 +576,15 @@ export class Play implements PausesOnBack {
     return !this.endsAfter(this.session.waited(), start, trusted);
   }
 
+  /** Ends a challenge on its mistake: no more keys, and a moment later, the game over dialog. */
+  private loseGame(): void {
+    this.lost.set(true);
+    this.stopGameOver = this.timer.after(GAME_OVER_DELAY, () => {
+      this.stopGameOver = () => undefined;
+      this.pause()?.gameOver();
+    });
+  }
+
   /** Starts a new game: no digits typed, back to the first spring, the run ended counting as an earlier one. */
   protected restart(): void {
     const ended = this.session.run();
@@ -569,6 +614,9 @@ export class Play implements PausesOnBack {
   /** Back to the start, as if nothing had been typed, ending the run, such as to replay a run from its start. */
   reset(): void {
     this.stopWatching();
+    this.stopGameOver();
+    this.stopGameOver = () => undefined;
+    this.lost.set(false);
     this.landFlights();
     this.digits.set('');
     this.mistakes.set('');
@@ -794,6 +842,11 @@ export class Play implements PausesOnBack {
     this.flights = [];
     this.handover.set(undefined);
   }
+}
+
+/** The game mode a route's data names, free play unless it names one. */
+function modeOf(value: unknown): GameMode {
+  return isGameMode(value) ? value : 'free';
 }
 
 /** Whether slots can fly: not when the player prefers reduced motion, nor where the Web Animations API is missing. */
