@@ -71,6 +71,8 @@ interface Press {
  *   then: another key, or nothing, off the keypad. Released farther, it types nothing. Only where it's released counts.
  * - Several fingers can press keys at once; each key is typed when its finger is released.
  * - Holding backspace repeats it, while near enough to type it; digits don't repeat.
+ * - Where the game mode has no backspace, its key shows blank and is inert: touches on it type nothing, and neither
+ *   does the keyboard's Backspace. Its shape stays, so that the keypad looks the same in every mode.
  *
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
  * repeats it.
@@ -120,15 +122,18 @@ interface Press {
           [pressColor]="pressColor(position.key)"
           [attr.data-key]="position.key"
           [attr.aria-label]="position.key === 'backspace' ? 'Delete last digit' : null"
+          [inert]="position.key === 'backspace' && !backspace()"
           [style.grid-row]="position.row + 1"
           [style.grid-column]="position.column + 1"
           (click)="onClick($event, position.key)"
         >
           @if (position.key === 'backspace') {
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M8.5 5h11a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1-1.5 1.5h-11L3 12z" />
-              <path d="m11 9 6 6m0-6-6 6" />
-            </svg>
+            @if (backspace()) {
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8.5 5h11a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1-1.5 1.5h-11L3 12z" />
+                <path d="m11 9 6 6m0-6-6 6" />
+              </svg>
+            }
           } @else {
             {{ position.key }}
           }
@@ -176,6 +181,8 @@ export class Keypad {
   readonly solid = input(false);
   /** Whether to show the area of each key, where touches type it. */
   readonly showAreas = input(false);
+  /** Whether backspace works, as it does unless the game mode has none: its key then shows blank, and is inert. */
+  readonly backspace = input(true);
   /** Whether it takes no touches nor keys, as while a run is replayed. */
   readonly disabled = input(false);
   /** A key to show pressed, whatever presses it, as the key of a touch replayed. */
@@ -354,14 +361,14 @@ export class Keypad {
 
   /** Activation of a focused button from the keyboard or assistive technology; touches and clicks are handled above. */
   protected onClick(event: MouseEvent, key: KeypadKey): void {
-    if (event.detail === 0 && !this.disabled()) {
+    if (event.detail === 0 && !this.disabled() && this.works(key)) {
       this.type(key);
     }
   }
 
   protected onKeydown(event: KeyboardEvent): void {
     const key = keyFor(event);
-    if (key === null || this.disabled()) {
+    if (key === null || this.disabled() || !this.works(key)) {
       return;
     }
     event.preventDefault();
@@ -458,7 +465,13 @@ export class Keypad {
       event.clientX < area.right &&
       event.clientY >= area.top &&
       event.clientY < area.bottom;
-    return { key: inside ? keyAt(this.layout(), point) : null, point };
+    const key = inside ? keyAt(this.layout(), point) : null;
+    return { key: key !== null && this.works(key) ? key : null, point };
+  }
+
+  /** Whether a key works: every one does, but backspace where the game mode has none. */
+  private works(key: KeypadKey): boolean {
+    return key !== 'backspace' || this.backspace();
   }
 }
 
