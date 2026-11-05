@@ -4,7 +4,7 @@ test('pauses the game on Back, and resumes it, keeping the history, so that endi
   page,
 }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: 'Play' }).click();
+  await page.getByRole('link', { name: 'Free Play' }).click();
   await expect(page).toHaveURL('/play');
   const paused = page.getByRole('dialog', { name: 'Paused' });
 
@@ -18,7 +18,7 @@ test('pauses the game on Back, and resumes it, keeping the history, so that endi
   await page.goBack();
   await paused.getByRole('button', { name: 'End Game' }).click();
   await expect(page).toHaveURL('/');
-  await expect(page.getByRole('link', { name: 'Play' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Free Play' })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL('about:blank');
 });

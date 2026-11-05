@@ -4,7 +4,7 @@ test('plays from the keyboard: Enter on the main menu, Escape to pause, up and d
   page,
 }) => {
   await page.goto('/');
-  const play = page.getByRole('link', { name: 'Play' });
+  const play = page.getByRole('link', { name: 'Free Play' });
   await expect(play).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
@@ -34,7 +34,7 @@ test('opens a page from the overflow menu, and goes back on Escape', async ({ pa
   await page.getByRole('button', { name: 'Slice of Pi' }).click({ clickCount: 10 });
   const more = page.getByRole('button', { name: 'Developer Pages' });
   await expect(more).toBeVisible();
-  await page.getByRole('link', { name: 'Play' }).focus();
+  await page.getByRole('link', { name: 'Free Play' }).focus();
   await page.keyboard.press('ArrowRight');
   await expect(more).toBeFocused();
 
