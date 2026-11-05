@@ -4,7 +4,7 @@ test('plays from the keyboard: Enter on the main menu, Escape to pause, up and d
   page,
 }) => {
   await page.goto('/');
-  const play = page.getByRole('link', { name: 'Free Play' });
+  const play = page.getByRole('link', { name: 'Challenge' });
   await expect(play).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
