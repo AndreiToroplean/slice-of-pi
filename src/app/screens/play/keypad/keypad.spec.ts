@@ -659,6 +659,31 @@ describe('Keypad', () => {
     });
   });
 
+  describe('without backspace', () => {
+    beforeEach(() => {
+      fixture.componentRef.setInput('backspace', false);
+      fixture.detectChanges();
+    });
+
+    it('shows its key blank and inert, in its place', () => {
+      expect(button('backspace').querySelector('svg')).toBeNull();
+      expect(button('backspace').inert).toBe(true);
+    });
+
+    it('types nothing for a touch on its key, a keyboard Backspace or assistive technology, digits still typed', () => {
+      tap('backspace');
+      vi.advanceTimersByTime(2000);
+      const event = keyboard('keydown', { key: 'Backspace' });
+      button('backspace').dispatchEvent(new MouseEvent('click', { detail: 0 }));
+      tap('3');
+
+      expect(typed).toEqual(['3']);
+      expect(touches.map(({ key }) => key)).toEqual([null, '3']);
+      expect(event.defaultPrevented).toBe(false);
+      expect(pressedKeys()).toEqual(['3']);
+    });
+  });
+
   describe('physical keyboard', () => {
     it('types digits and backspace as they are pressed', () => {
       const event = keyboard('keydown', { key: '4' });
