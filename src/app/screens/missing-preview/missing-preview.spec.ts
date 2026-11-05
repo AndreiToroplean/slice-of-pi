@@ -60,7 +60,7 @@ describe('MissingPreview', () => {
     await vi.advanceTimersByTimeAsync(PREVIEW_CHECK_INTERVAL);
 
     expect(open).toHaveBeenCalledExactlyOnceWith(previewUrl(42));
-    expect(fetch).toHaveBeenLastCalledWith(previewUrl(42), { method: 'HEAD', cache: 'no-store' });
+    expect(fetch).toHaveBeenLastCalledWith(previewUrl(42), { cache: 'reload' });
   });
 
   it('opens a published preview right away, without saying it is not built', async () => {
