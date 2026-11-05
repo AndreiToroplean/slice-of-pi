@@ -9,6 +9,7 @@ import {
   effect,
   ElementRef,
   inject,
+  InjectionToken,
   signal,
   viewChild,
 } from '@angular/core';
@@ -41,6 +42,19 @@ export const LIGHT_FADE = 120;
 export const LIGHT_STAGGER = 40;
 /** How long the lights take to switch off, all of them. */
 export const LIGHTS_OFF = LIGHT_FADE + 2 * LIGHT_STAGGER;
+
+/**
+ * Loads the page again, the browser asking the server whether the copy it keeps is still the latest: the way to get a
+ * build just published, from an installed app, which has no reload button of its own.
+ */
+export const RELOAD_PAGE = new InjectionToken<() => void>('RELOAD_PAGE', {
+  factory: () => {
+    const location = inject(DOCUMENT).location;
+    return () => {
+      location.reload();
+    };
+  },
+});
 
 /** No lights, before the menu is measured. */
 const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], pi: [] };
@@ -187,6 +201,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
               <button cdkMenuItem type="button" (cdkMenuItemTriggered)="edit()">
                 Edit Main Menu
               </button>
+              <button cdkMenuItem type="button" (cdkMenuItemTriggered)="reload()">Reload</button>
             </div>
           </div>
         </ng-template>
@@ -316,6 +331,9 @@ export class Menu {
       }, LIGHTS_OFF);
     });
   }
+
+  /** Loads the page again, from developer mode's menu. */
+  protected readonly reload = inject(RELOAD_PAGE);
 
   /** Opens the editor of the menu's look, from developer mode's menu. */
   protected edit(): void {

@@ -8,7 +8,7 @@ import { TWILIGHT } from './menu-look';
 import { seasonAt } from '../../game/layers/seasons';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { INDEXED_DB } from '../../player-data/run-store';
-import { LIGHTS_OFF, Menu } from './menu';
+import { LIGHTS_OFF, Menu, RELOAD_PAGE } from './menu';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { ScreenTransitions } from '../../ui/screen-transitions';
 import { PALETTE } from '../../game/layers/place-colors';
@@ -309,6 +309,26 @@ describe('Menu', () => {
         ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await fixture.whenStable();
       expect(host.querySelector('app-menu-editor')).toBeNull();
+    });
+
+    it('reloads the page from the overflow menu', async () => {
+      const reload = vi.fn();
+      TestBed.overrideProvider(RELOAD_PAGE, { useValue: reload });
+      await TestBed.inject(DeveloperMode).set(true);
+      const fixture = TestBed.createComponent(Menu);
+      const host = fixture.nativeElement as HTMLElement;
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(host.querySelector('button[title="Developer Pages"]')).not.toBeNull();
+      });
+      host.querySelector<HTMLButtonElement>('button[title="Developer Pages"]')?.click();
+      await fixture.whenStable();
+
+      Array.from(openMenu()?.querySelectorAll('button') ?? [])
+        .find((each) => each.textContent.trim() === 'Reload')
+        ?.click();
+
+      expect(reload).toHaveBeenCalledOnce();
     });
   });
 });
