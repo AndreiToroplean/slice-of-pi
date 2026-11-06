@@ -15,7 +15,8 @@ import { LightDismiss } from '../../../ui/light-dismiss';
  * in edit mode, the game staying paused until it's done.
  *
  * Once a game is lost, as on a challenge's mistake, the game over dialog takes the pause dialog's place: there's no
- * resuming, only playing again or going back to the main menu, and nothing else closes it; its replay button replays the
+ * resuming, only playing again, continuing the run in free play, or going back to the main menu, and nothing else
+ * closes it; its replay button replays the
  * run at once, as there's no game left to warn about.
  */
 @Component({
@@ -92,6 +93,7 @@ import { LightDismiss } from '../../../ui/light-dismiss';
       </div>
       <app-button-list>
         <button type="button" appCandy="primary" autofocus (click)="playAgain()">Play Again</button>
+        <button type="button" appCandy (click)="continueInFreePlay()">Continue in Free Play</button>
         <button type="button" appCandy (click)="void endGame()">Main Menu</button>
       </app-button-list>
     </dialog>
@@ -119,6 +121,8 @@ export class Pause {
   readonly paused = model(false);
   /** The player chose to restart the game. */
   readonly restart = output();
+  /** The player chose to carry a lost game on in free play, as the game over dialog closes. */
+  readonly freePlay = output();
   /** Whether there's a run to replay. */
   readonly replayable = input(false);
   /** The player chose to stop the game and replay the run, once the dialog has closed. */
@@ -160,6 +164,12 @@ export class Pause {
   /** Restarts the game, from the game over dialog, which closes. */
   protected playAgain(): void {
     this.restart.emit();
+    this.overDialog().nativeElement.close();
+  }
+
+  /** Carries the lost game on in free play, from the game over dialog, which closes. */
+  protected continueInFreePlay(): void {
+    this.freePlay.emit();
     this.overDialog().nativeElement.close();
   }
 

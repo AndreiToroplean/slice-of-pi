@@ -92,7 +92,8 @@ const TICK = 16;
  *
  * The game mode comes from the route: free play unless it says otherwise. In a challenge, every digit is checked, the
  * keypad has no backspace, and the first mistake ends the game: the screen's edges turn red at once, the keypad takes
- * no more keys, and a moment later the game over dialog offers to play again or go back to the main menu.
+ * no more keys, and a moment later the game over dialog offers to play again, to continue the run in free play from the
+ * mistake, backspace and all, or to go back to the main menu. Restarting goes back to the route's game mode.
  *
  * It also replays a run, given its touch log: the player can't type, nor pause, and nothing is recorded. Whatever
  * replays it hands it the touches one after the other, on the run's own clock (`TIMER` and `RUN_CLOCK`), and resets it
@@ -169,6 +170,7 @@ const TICK = 16;
           (edit)="editedLayout.set(tweaks.layout())"
           [replayable]="recorder.run() !== undefined"
           (restart)="restart()"
+          (freePlay)="continueInFreePlay()"
           (replay)="void replayRun()"
         />
       }
@@ -243,7 +245,7 @@ export class Play implements PausesOnBack {
   );
   /** The game mode the route asks for, free play unless it says otherwise. */
   private readonly routeMode: GameMode = modeOf(inject(ActivatedRoute).snapshot.data['mode']);
-  /** The game mode, the route's. */
+  /** The game mode: the route's, until a lost challenge continues in free play. */
   protected readonly mode = signal(this.routeMode);
   /**
    * Whether digits are checked against π, as they are in a game started as a challenge, and in free play unless
@@ -585,6 +587,14 @@ export class Play implements PausesOnBack {
     });
   }
 
+  /** Carries a lost challenge's run on in free play, from its mistake, for backspace to delete. */
+  protected continueInFreePlay(): void {
+    this.stopGameOver();
+    this.stopGameOver = () => undefined;
+    this.lost.set(false);
+    this.mode.set('free');
+  }
+
   /** Starts a new game: no digits typed, back to the first spring, the run ended counting as an earlier one. */
   protected restart(): void {
     const ended = this.session.run();
@@ -617,6 +627,7 @@ export class Play implements PausesOnBack {
     this.stopGameOver();
     this.stopGameOver = () => undefined;
     this.lost.set(false);
+    this.mode.set(this.routeMode);
     this.landFlights();
     this.digits.set('');
     this.mistakes.set('');
