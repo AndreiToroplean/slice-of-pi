@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793954420749,
+  "lastUpdate": 1793955008940,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3440,6 +3440,46 @@ window.BENCHMARK_DATA = {
             "value": 998,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "8aaa3658c5c5e8c9311ab762b1ebd4f61a46f7e2",
+          "message": "fix: keep the speed menu open as a replay plays on\n\n- Each key typed took the focus away, so that keys typed on a keyboard never go into what was last clicked; replaying, the player types nothing, and the menu closed with its focus gone.\n\nClaude-Session: https://claude.ai/code/session_01X1XesqFRXmfNxEAJYSAfSm",
+          "timestamp": "2026-11-06T09:49:42+01:00",
+          "tree_id": "1c0419ee68a9924aa97a31ac3d744237d29816ac",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/8aaa3658c5c5e8c9311ab762b1ebd4f61a46f7e2"
+        },
+        "date": 1793955008038,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 10982,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 23539,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1060,
+            "unit": "ms",
+            "extra": "MissingPreview opens the preview as soon as it is published"
           }
         ]
       }
