@@ -3,7 +3,7 @@ import { BACKUP_KIND, readBackup, writeBackup } from '../../player-data/backup';
 import { newTouchLog, TouchLog, TOUCH_LOG_FORMAT } from '../../player-data/touch-log';
 import { typeKey } from '../../../testing/touch-logs';
 import { RunStore } from '../../player-data/run-store';
-import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
+import { dialogNamed, installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
 import {
   DEVELOPER_MODE,
   DEVELOPER_MODE_FORMAT,
@@ -164,16 +164,15 @@ describe('YourData', () => {
 
     it('asks first, warning that the data is erased for good, and erases nothing on Back', async () => {
       const { host } = await setUp([first], false, false, undefined, true);
-      const dialog = host.querySelector('dialog');
-      const warning = dialog?.getAttribute('aria-describedby') ?? '';
+      const dialog = dialogNamed(host, 'Start Over?');
+      const warning = dialog.getAttribute('aria-describedby') ?? '';
 
       button(host, 'Delete All Your Data').click();
 
-      expect(dialog?.open).toBe(true);
-      expect(host.querySelector('#delete-title')?.textContent).toBe('Start Over?');
+      expect(dialog.open).toBe(true);
       expect(host.querySelector(`#${warning}`)?.textContent).toContain('for good');
       button(host, 'Back').click();
-      expect(dialog?.open).toBe(false);
+      expect(dialog.open).toBe(false);
       expect(await TestBed.inject(RunStore).touchLogs()).toEqual([first]);
       expect(TestBed.inject(DeveloperMode).enabled()).toBe(true);
     });

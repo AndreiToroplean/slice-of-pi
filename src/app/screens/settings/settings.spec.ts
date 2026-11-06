@@ -7,7 +7,7 @@ import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { INDEXED_DB } from '../../player-data/run-store';
 import { VibrationSetting } from '../../player-data/vibration-setting';
 import { SoundSetting } from '../../player-data/sound-setting';
-import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
+import { dialogNamed, installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
 import { Settings } from './settings';
 
 describe('Settings', () => {
@@ -221,25 +221,23 @@ describe('Settings', () => {
     const fixture = TestBed.createComponent(Settings);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
-    const dialog = host.querySelector<HTMLDialogElement>(
-      'dialog[aria-labelledby="reset-tweaks-title"]',
-    );
+    const dialog = dialogNamed(host, 'Reset the Tweaks?');
     expect(button(host, 'Reset All Tweaks')?.disabled).toBe(true);
 
     await tweaks.setCountdown(true);
     await tweaks.setSolidKeys(true);
     await fixture.whenStable();
     button(host, 'Reset All Tweaks')?.click();
-    expect(dialog?.open).toBe(true);
-    button(dialog ?? host, 'Back')?.click();
-    expect(dialog?.open).toBe(false);
+    expect(dialog.open).toBe(true);
+    button(dialog, 'Back')?.click();
+    expect(dialog.open).toBe(false);
     expect(tweaks.countdown()).toBe(true);
 
     button(host, 'Reset All Tweaks')?.click();
-    button(dialog ?? host, 'Reset All Tweaks')?.click();
+    button(dialog, 'Reset All Tweaks')?.click();
     await fixture.whenStable();
 
-    expect(dialog?.open).toBe(false);
+    expect(dialog.open).toBe(false);
     expect(tweaks.values()).toEqual({});
   });
 

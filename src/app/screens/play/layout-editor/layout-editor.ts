@@ -14,7 +14,7 @@ import { Handles } from '../../../ui/handles/handles';
 import { EditedPart, Parts } from '../../../ui/handles/parts';
 import { Tweaks } from '../../../developer-mode/tweaks';
 import { Layout, LAYOUT } from '../../../ui/layout';
-import { ButtonList } from '../../../ui/button-list';
+import { ChoiceDialog } from '../../../ui/choice-dialog';
 import { Candy } from '../../../ui/candy';
 import { CopyValues } from '../../tuning/copy-values';
 import { LAYOUT_HANDLES } from './layout-handles';
@@ -86,7 +86,7 @@ const PAGE_HANDLES = [
  */
 @Component({
   selector: 'app-layout-editor',
-  imports: [ButtonList, Candy, CopyValues, Handles, Parts],
+  imports: [Candy, ChoiceDialog, CopyValues, Handles, Parts],
   host: {
     '(document:keydown.escape)': 'escape($event)',
     '(click)': 'unpick($event)',
@@ -124,15 +124,10 @@ const PAGE_HANDLES = [
       <app-copy-values label="Copy" [values]="{ layout: layout() }" />
       <button type="button" appCandy="primary" (click)="done.emit()">Done</button>
     </div>
-    <dialog #cancelDialog class="card" closedby="any" aria-labelledby="cancel-title">
-      <h2 id="cancel-title">Cancel Your Tweaks?</h2>
-      <app-button-list>
-        <button type="button" appCandy autofocus (click)="cancelDialog.close()">
-          Continue Editing
-        </button>
-        <button type="button" appCandy="danger" (click)="cancel()">Yes</button>
-      </app-button-list>
-    </dialog>
+    <app-choice-dialog #cancelDialog heading="Cancel Your Tweaks?">
+      <button type="button" appCandy (click)="void cancelDialog.close()">Continue Editing</button>
+      <button type="button" appCandy="danger" (click)="cancel()">Yes</button>
+    </app-choice-dialog>
   `,
   styleUrl: './layout-editor.css',
 })
@@ -159,7 +154,7 @@ export class LayoutEditor implements OnInit {
     () => JSON.stringify(this.layout()) === JSON.stringify(LAYOUT),
   );
   private readonly tweaks = inject(Tweaks);
-  private readonly cancelDialog = viewChild.required<ElementRef<HTMLDialogElement>>('cancelDialog');
+  private readonly cancelDialog = viewChild.required<ChoiceDialog>('cancelDialog');
   /** The layout edit mode started with, to bring back if the changes are cancelled. */
   private original: Layout | undefined;
 
@@ -169,11 +164,11 @@ export class LayoutEditor implements OnInit {
 
   /** Asks whether to cancel the changes, as going back does; going back from the question goes on editing. */
   askToCancel(): void {
-    const dialog = this.cancelDialog().nativeElement;
-    if (dialog.open) {
-      dialog.close();
+    const dialog = this.cancelDialog();
+    if (dialog.isOpen) {
+      void dialog.close();
     } else {
-      dialog.showModal();
+      dialog.open();
     }
   }
 
@@ -192,7 +187,7 @@ export class LayoutEditor implements OnInit {
 
   /** Brings back the layout edit mode started with, and is done. */
   protected cancel(): void {
-    this.cancelDialog().nativeElement.close();
+    void this.cancelDialog().close();
     if (this.original !== undefined) {
       this.layout.set(this.original);
       this.save();
@@ -202,7 +197,7 @@ export class LayoutEditor implements OnInit {
 
   /** Asks whether to cancel the changes, unless already asking: the question then closes on Escape by itself. */
   protected escape(event: Event): void {
-    if (!this.cancelDialog().nativeElement.open) {
+    if (!this.cancelDialog().isOpen) {
       event.preventDefault();
       this.askToCancel();
     }

@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, InjectionToken, signal, viewChild } from '@angular/core';
+import { Component, inject, InjectionToken, signal, viewChild } from '@angular/core';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { ButtonList } from '../../ui/button-list';
@@ -10,7 +10,7 @@ import { RUN_CLOCK, RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { plural } from '../../ui/plural';
 import { Candy } from '../../ui/candy';
-import { LightDismiss } from '../../ui/light-dismiss';
+import { ChoiceDialog } from '../../ui/choice-dialog';
 
 /** Hands a file to the player, as a download. */
 export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void>('SAVE_FILE', {
@@ -33,7 +33,7 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
  */
 @Component({
   selector: 'app-your-data',
-  imports: [ButtonList, Candy, LightDismiss],
+  imports: [ButtonList, Candy, ChoiceDialog],
   template: `
     <section class="panel" aria-labelledby="data-title">
       <h2 id="data-title">Your Data</h2>
@@ -69,32 +69,23 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
           type="button"
           appCandy="danger"
           aria-haspopup="dialog"
-          (click)="deleteDialog.showModal()"
+          (click)="deleteDialog.open()"
         >
           Delete All Your Data
         </button>
       </app-button-list>
       <p class="message" role="status">{{ message() }}</p>
     </section>
-    <dialog
-      #deleteDialog
-      class="card"
-      closedby="any"
-      aria-labelledby="delete-title"
-      aria-describedby="delete-warning"
-    >
-      <h2 id="delete-title">Start Over?</h2>
-      <p id="delete-warning">
+    <app-choice-dialog #deleteDialog heading="Start Over?">
+      <p>
         This erases your runs and settings on this device for good. Only a backup file can bring
         them back.
       </p>
-      <app-button-list>
-        <button type="button" appCandy autofocus (click)="deleteDialog.close()">Back</button>
-        <button type="button" appCandy="danger" (click)="void deleteAll()">
-          Delete All Your Data
-        </button>
-      </app-button-list>
-    </dialog>
+      <button type="button" appCandy (click)="void deleteDialog.close()">Back</button>
+      <button type="button" appCandy="danger" (click)="void deleteAll()">
+        Delete All Your Data
+      </button>
+    </app-choice-dialog>
   `,
   styleUrl: './your-data.css',
 })
@@ -105,7 +96,7 @@ export class YourData {
   /** Whether this is a preview keeping its data apart from the main game's (see {@link RunStore}). */
   protected readonly separatePreview = signal(false);
   protected readonly message = signal('');
-  private readonly deleteDialog = viewChild.required<ElementRef<HTMLDialogElement>>('deleteDialog');
+  private readonly deleteDialog = viewChild.required<ChoiceDialog>('deleteDialog');
 
   private readonly developer = inject(DeveloperMode);
   private readonly tweaks = inject(Tweaks);
@@ -151,7 +142,7 @@ export class YourData {
 
   /** Deletes every run and setting, once confirmed. */
   protected async deleteAll(): Promise<void> {
-    this.deleteDialog().nativeElement.close();
+    void this.deleteDialog().close();
     await this.recorder.saved();
     await this.store.deleteEverything();
     await this.reload();

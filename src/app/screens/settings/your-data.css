@@ -27,8 +27,3 @@ p {
 .message:empty {
   display: none;
 }
-
-/* What starting over costs, in its confirmation. */
-dialog p {
-  text-align: center;
-}
