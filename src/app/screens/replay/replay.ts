@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { touchPoint } from '../../game/layers/keypad-layout';
 import { RUN_CLOCK } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
+import { SoundSetting } from '../../player-data/sound-setting';
 import { Touch, TouchLog } from '../../player-data/touch-log';
 import { injectBackTo } from '../../ui/back-to-menu';
 import { Candy } from '../../ui/candy';
@@ -41,8 +42,10 @@ export const TAIL = 1500;
 /**
  * A run replayed, opened from the player's runs: the play screen, playing the run's touches as they came, on the run's
  * own clock, at the speed picked, under a bar to play and pause it, step through it touch by touch while paused, and
- * move along it on its timeline, and a menu of speeds. Each touch shows on the keypad, a mark where it was, fading away, and its key pressed
- * as long as a tap's shortest press, on the run's clock. The player can't type into it: the back button, or Escape,
+ * move along it on its timeline, and a menu of speeds, with a button to mute it in the top right corner, where the game
+ * has its pause button, unless the player turned sounds off. Each touch shows on the keypad, a mark where it was, fading away, and its key pressed as long as a tap's shortest press, on
+ * the run's clock, and sounds as it's typed, its notes as much faster or slower as the replay, at their own pitch,
+ * unless muted; moving along the timeline sounds nothing. The player can't type into it: the back button, or Escape,
  * goes back to their runs, or, for a game stopped to replay its run, to the main menu.
  */
 @Component({
@@ -67,7 +70,33 @@ export const TAIL = 1500;
     </button>
     @let replayed = log();
     @if (replayed !== undefined) {
-      <app-play [replay]="replayed" [shownKey]="shownKey()" [marks]="marks()" />
+      <app-play
+        [replay]="replayed"
+        [shownKey]="shownKey()"
+        [marks]="marks()"
+        [tempo]="speed()"
+        [muted]="muted()"
+      />
+      @if (sounds()) {
+        <button
+          type="button"
+          appCandy="clear"
+          class="corner mute"
+          [title]="muted() ? 'Unmute' : 'Mute'"
+          (click)="muted.set(!muted())"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M4 9.5v5a1 1 0 0 0 1 1h3l4.4 3.7a1 1 0 0 0 1.6-.8V5.6a1 1 0 0 0-1.6-.8L8 8.5H5a1 1 0 0 0-1 1z"
+            />
+            @if (muted()) {
+              <path class="stroke" d="m16.5 9.5 5 5m0-5-5 5" />
+            } @else {
+              <path class="stroke" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />
+            }
+          </svg>
+        </button>
+      }
       <div class="controls" role="group" aria-label="Replay">
         <button
           type="button"
@@ -167,6 +196,9 @@ export class Replay {
   protected readonly applied = signal(0);
   protected readonly playing = signal(false);
   protected readonly speed = signal(1);
+  protected readonly muted = signal(false);
+  /** Whether the player plays sounds at all, and so has any to mute. */
+  protected readonly sounds = inject(SoundSetting).enabled;
   protected readonly speeds = SPEEDS;
   protected readonly speedLabel = computed(
     () => SPEEDS.find(({ speed }) => speed === this.speed())?.label ?? '',
@@ -255,11 +287,13 @@ export class Replay {
     }
   }
 
-  /** Moves along the timeline to where it was dragged, playing on from there if playing. */
+  /** Moves along the timeline to where it was dragged, quietly, playing on from there if playing. */
   protected scrub(event: Event): void {
     const time = Number((event.target as HTMLInputElement).value);
     if (time >= this.time()) {
-      this.advance(time);
+      this.quietly(() => {
+        this.advance(time);
+      });
     } else {
       this.seek(time);
     }
@@ -312,17 +346,24 @@ export class Replay {
     this.time.set(time);
   }
 
-  /** Replays the run again from its start up to `time`, at once: no slots fly meanwhile. */
+  /** Replays the run again from its start up to `time`, at once, quietly. */
   private seek(time: number, until?: number): void {
-    const play = this.play();
-    play?.reset();
+    this.play()?.reset();
     this.clock.reset();
     this.applied.set(0);
     this.time.set(0);
+    this.quietly(() => {
+      this.advance(time, until);
+    });
+  }
+
+  /** Skips ahead in the run as `skip` does: no slots fly, and nothing sounds, meanwhile. */
+  private quietly(skip: () => void): void {
+    const play = this.play();
     if (play !== undefined) {
       play.quiet = true;
     }
-    this.advance(time, until);
+    skip();
     if (play !== undefined) {
       play.quiet = false;
     }

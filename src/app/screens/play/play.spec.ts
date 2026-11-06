@@ -20,7 +20,7 @@ import { Vibrator } from '../../feedback/vibrator';
 import { Speaker } from '../../feedback/speaker';
 import { SOUND_MODEL } from '../../game/layers/sound/sound-models';
 import { momentAt } from '../../../testing/sound-moments';
-import { SoundModel } from '../../game/layers/sound/sound-model';
+import { atTempo, SoundModel } from '../../game/layers/sound/sound-model';
 import { routes } from '../../app.routes';
 import { KEEP_HISTORY } from '../../app.config';
 import { Menu } from '../menu/menu';
@@ -1145,14 +1145,34 @@ describe('Play', () => {
       expect(host.querySelector('app-sound-log')).toBeNull();
     });
 
-    it("doesn't play replaying a run", async () => {
+    it("plays a run replayed key by key as it's typed, at the replay's tempo", async () => {
       const play = vi.spyOn(TestBed.inject(Speaker), 'play');
       const fixture = TestBed.createComponent(Play);
       fixture.componentRef.setInput('replay', newTouchLog('run', 0));
+      fixture.componentRef.setInput('tempo', 2);
       await fixture.whenStable();
 
-      fixture.componentInstance.replayTouch({ key: '1' });
+      fixture.componentInstance.replayTouch({ key: '1', x: 0.5, y: 0.5 });
+      fixture.componentInstance.replayTouch({ key: null, x: 3, y: 0 });
+      fixture.componentInstance.replayTouch({ key: 'backspace', x: 0.5, y: 0.5 });
+
+      expect(play.mock.calls).toEqual([
+        [atTempo(SOUND_MODEL.create().keys(momentAt(1, [], 5))['1'], 2)],
+      ]);
+    });
+
+    it('plays nothing of a run replayed muted, nor skipping ahead in it', async () => {
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const fixture = TestBed.createComponent(Play);
+      fixture.componentRef.setInput('replay', newTouchLog('run', 0));
+      fixture.componentRef.setInput('muted', true);
       await fixture.whenStable();
+      fixture.componentInstance.replayTouch({ key: '1' });
+
+      fixture.componentRef.setInput('muted', false);
+      await fixture.whenStable();
+      fixture.componentInstance.quiet = true;
+      fixture.componentInstance.replayTouch({ key: '4' });
 
       expect(play).not.toHaveBeenCalled();
     });
