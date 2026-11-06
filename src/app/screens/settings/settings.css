@@ -49,11 +49,3 @@ app-segmented {
   margin: 0;
   accent-color: var(--candy);
 }
-
-/* What resetting the tweaks costs, in its confirmation. */
-dialog p {
-  margin: 0;
-  line-height: 1.45;
-  text-align: center;
-  text-shadow: var(--text-shadow);
-}

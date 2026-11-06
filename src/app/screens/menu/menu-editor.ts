@@ -12,7 +12,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
-import { ButtonList } from '../../ui/button-list';
+import { ChoiceDialog } from '../../ui/choice-dialog';
 import { Candy } from '../../ui/candy';
 import { bind, UnitSizes } from '../../ui/handles/handle';
 import { Handles } from '../../ui/handles/handles';
@@ -72,7 +72,7 @@ function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
  */
 @Component({
   selector: 'app-menu-editor',
-  imports: [ButtonList, Candy, ColorPicker, CopyValues, Handles, Parts],
+  imports: [Candy, ChoiceDialog, ColorPicker, CopyValues, Handles, Parts],
   host: {
     '(document:keydown.escape)': 'escape($event)',
     '(click)': 'unpick($event)',
@@ -146,15 +146,10 @@ function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
       }
       <app-handles #onMenu [handles]="handles()" (released)="save()" />
     }
-    <dialog #cancelDialog class="card" closedby="any" aria-labelledby="cancel-title">
-      <h2 id="cancel-title">Cancel Your Tweaks?</h2>
-      <app-button-list>
-        <button type="button" appCandy autofocus (click)="cancelDialog.close()">
-          Continue Editing
-        </button>
-        <button type="button" appCandy="danger" (click)="cancel()">Yes</button>
-      </app-button-list>
-    </dialog>
+    <app-choice-dialog #cancelDialog heading="Cancel Your Tweaks?">
+      <button type="button" appCandy (click)="void cancelDialog.close()">Continue Editing</button>
+      <button type="button" appCandy="danger" (click)="cancel()">Yes</button>
+    </app-choice-dialog>
   `,
   styleUrl: './menu-editor.css',
 })
@@ -254,7 +249,7 @@ export class MenuEditor implements OnInit {
   );
   private readonly tweaks = inject(Tweaks);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-  private readonly cancelDialog = viewChild.required<ElementRef<HTMLDialogElement>>('cancelDialog');
+  private readonly cancelDialog = viewChild.required<ChoiceDialog>('cancelDialog');
   private readonly handlesView = viewChild('onMenu', { read: Handles });
   /** What the editor started with, to bring back if the changes are cancelled. */
   private original: { readonly look: MenuLook; readonly layout: Layout } | undefined;
@@ -278,11 +273,11 @@ export class MenuEditor implements OnInit {
 
   /** Asks whether to cancel the changes; asked already, goes on editing. */
   askToCancel(): void {
-    const dialog = this.cancelDialog().nativeElement;
-    if (dialog.open) {
-      dialog.close();
+    const dialog = this.cancelDialog();
+    if (dialog.isOpen) {
+      void dialog.close();
     } else {
-      dialog.showModal();
+      dialog.open();
     }
   }
 
@@ -300,7 +295,7 @@ export class MenuEditor implements OnInit {
 
   /** Brings back what the editor started with, and is done. */
   protected cancel(): void {
-    this.cancelDialog().nativeElement.close();
+    void this.cancelDialog().close();
     if (this.original !== undefined) {
       this.look.set(this.original.look);
       this.layout.set(this.original.layout);
@@ -311,7 +306,7 @@ export class MenuEditor implements OnInit {
 
   /** Asks whether to cancel the changes, unless already asking: the question then closes on Escape by itself. */
   protected escape(event: Event): void {
-    if (!this.cancelDialog().nativeElement.open) {
+    if (!this.cancelDialog().isOpen) {
       event.preventDefault();
       this.askToCancel();
     }
