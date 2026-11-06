@@ -1,4 +1,13 @@
-import { Component, computed, DestroyRef, inject, signal, viewChild } from '@angular/core';
+import {
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  Injector,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { touchPoint } from '../../game/layers/keypad-layout';
@@ -40,10 +49,11 @@ export const MARK_DURATION = 1000;
 export const TAIL = 1500;
 
 /**
- * A run replayed, opened from the player's runs: the play screen, playing the run's touches as they came, on the run's
- * own clock, at the speed picked, under a bar to play and pause it, step through it touch by touch while paused, and
- * move along it on its timeline, and a menu of speeds, with a button to mute it in the top right corner, where the game
- * has its pause button, unless the player turned sounds off. Each touch shows on the keypad, a mark where it was, fading away, and its key pressed as long as a tap's shortest press, on
+ * A run replayed, opened from the player's runs: the play screen, playing the run's touches as they came, from as soon
+ * as it opens, on the run's own clock, at the speed picked, under a bar to play and pause it, step through it touch by
+ * touch while paused, and move along it on its timeline, and a menu of speeds, with a button to mute it in the top
+ * right corner, where the game has its pause button, unless the player turned sounds off. Each touch shows on the
+ * keypad, a mark where it was, fading away, and its key pressed as long as a tap's shortest press, on
  * the run's clock, and sounds as it's typed, its notes as much faster or slower as the replay, at their own pitch,
  * unless muted; moving along the timeline sounds nothing. The player can't type into it: the back button, or Escape,
  * goes back to their runs, or, for a game stopped to replay its run, to the main menu.
@@ -248,12 +258,22 @@ export class Replay {
 
   constructor() {
     const id = inject(ActivatedRoute).snapshot.paramMap.get('id');
+    const injector = inject(Injector);
     void inject(RunStore)
       .touchLogs()
       .then((logs) => {
         const log = logs.find((stored) => stored.id === id);
         this.log.set(log);
         this.missing.set(log === undefined);
+        if (log !== undefined) {
+          // Once the play screen is there to play it on.
+          afterNextRender(
+            () => {
+              this.toggle();
+            },
+            { injector },
+          );
+        }
       });
     inject(DestroyRef).onDestroy(() => {
       this.stop();
