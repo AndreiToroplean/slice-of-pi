@@ -15,7 +15,12 @@ export class LightDismiss {
 
   protected onClick(event: MouseEvent): void {
     // A click on the backdrop lands on the dialog itself, outside its box.
-    if ('closedBy' in HTMLDialogElement.prototype || event.target !== this.dialog) {
+    // Unless it has since been told not to close so, as a dialog that can't be dismissed is.
+    if (
+      'closedBy' in HTMLDialogElement.prototype ||
+      event.target !== this.dialog ||
+      this.dialog.getAttribute('closedby') !== 'any'
+    ) {
       return;
     }
     const box = this.dialog.getBoundingClientRect();
