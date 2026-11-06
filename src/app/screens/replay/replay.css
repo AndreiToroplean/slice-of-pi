@@ -1,6 +1,6 @@
 /*
- * The play screen, over the bar replaying it, filling the window as the play screen does, and the back button in the
- * top left corner, where pages have theirs.
+ * The play screen, over the bar replaying it, filling the window as the play screen does, the back button in the top
+ * left corner, where pages have theirs, and the mute button in the top right one, where the game has its pause button.
  */
 :host {
   flex: 1;
@@ -10,14 +10,23 @@
   flex-direction: column;
 }
 
-.back {
+.back,
+.mute {
   position: absolute;
   top: var(--margin-top);
-  left: var(--margin-side);
   z-index: 1;
 }
 
-.back svg {
+.back {
+  left: var(--margin-side);
+}
+
+.mute {
+  right: var(--margin-side);
+}
+
+.back svg,
+.mute .stroke {
   width: 1em;
   height: 1em;
   fill: none;
@@ -55,6 +64,13 @@
     height: 1.125rem;
     fill: currentColor;
   }
+}
+
+/* A speaker, and by it, sound waves, or a cross once muted. */
+.mute svg {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
 }
 
 .timeline {

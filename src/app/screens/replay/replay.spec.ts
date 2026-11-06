@@ -10,6 +10,9 @@ import { addTouch, newTouchLog, TouchLog } from '../../player-data/touch-log';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 import { menuItem, menuItems } from '../../../testing/menus';
 import { MARK_DURATION, Replay, TAIL } from './replay';
+import { Speaker } from '../../feedback/speaker';
+import { atTempo } from '../../game/layers/sound/sound-model';
+import { SoundSetting } from '../../player-data/sound-setting';
 
 @Component({ template: '' })
 class Runs {}
@@ -210,6 +213,48 @@ describe('Replay', () => {
     timeline(host).dispatchEvent(new Event('input'));
     await harness.fixture.whenStable();
     expect(shown(host)).toMatchObject({ slots: '14' });
+  });
+
+  describe('sounds', () => {
+    it('sounds each key as it is typed, its notes as much faster or slower as the replay', async () => {
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const { host, harness } = await setUp();
+
+      await click(harness, control(host, 'Next touch'));
+      await click(harness, control(host, 'Previous touch'));
+      await click(harness, control(host, 'Speed ×1'));
+      await click(harness, menuItem('×4') as HTMLButtonElement);
+      await click(harness, control(host, 'Next touch'));
+
+      const [first, again] = play.mock.calls.map(([chime]) => chime);
+      expect(first).toBeDefined();
+      expect(again).toEqual(atTempo(first ?? [], 4));
+    });
+
+    it('sounds nothing muted, nor moving along the timeline', async () => {
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const { host, harness } = await setUp();
+
+      await click(harness, control(host, 'Mute'));
+      await click(harness, control(host, 'Next touch'));
+      await click(harness, control(host, 'Unmute'));
+      timeline(host).value = '450';
+      timeline(host).dispatchEvent(new Event('input'));
+      await harness.fixture.whenStable();
+      expect(play).not.toHaveBeenCalled();
+
+      await click(harness, control(host, 'Next touch'));
+      expect(play).not.toHaveBeenCalled();
+      await click(harness, control(host, 'Next touch'));
+      expect(play).toHaveBeenCalledOnce();
+    });
+
+    it('has nothing to mute once the player turned sounds off', async () => {
+      await TestBed.inject(SoundSetting).set(false);
+      const { host } = await setUp();
+
+      expect(host.querySelector('[title="Mute"]')).toBeNull();
+    });
   });
 
   it('takes no keys from the player, and records nothing', async () => {

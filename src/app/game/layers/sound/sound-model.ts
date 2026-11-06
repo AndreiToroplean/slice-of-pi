@@ -34,6 +34,20 @@ export interface Note {
 export type Chime = readonly Note[];
 
 /**
+ * A chime played `tempo` times as fast, as a run replayed faster or slower: its notes ring, and its chords roll, for as
+ * much less or more time, at their own pitch.
+ */
+export function atTempo(chime: Chime, tempo: number): Chime {
+  return tempo === 1
+    ? chime
+    : chime.map((note) => ({
+        ...note,
+        length: note.length / tempo,
+        ...(note.delay === undefined ? {} : { delay: note.delay / tempo }),
+      }));
+}
+
+/**
  * Where the game is as a key is typed: all a sound model knows. It never knows π, nor which digit is right, only the
  * digits typed so far, so that a key sounds the same whether it's right or not, and gives nothing away.
  */

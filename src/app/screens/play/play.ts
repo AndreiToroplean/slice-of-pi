@@ -53,7 +53,7 @@ import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { TIMER } from './timer';
 import { Vibrator } from '../../feedback/vibrator';
 import { Playing, Speaker } from '../../feedback/speaker';
-import { Chime, Moment } from '../../game/layers/sound/sound-model';
+import { atTempo, Chime, Moment } from '../../game/layers/sound/sound-model';
 import { SoundLog } from './sound-log/sound-log';
 import { LONGEST_STEP, MOST_STEPS, Vibration } from '../../feedback/vibrations';
 
@@ -98,7 +98,7 @@ const TICK = 16;
  * It also replays a run, given its touch log: the player can't type, nor pause, and nothing is recorded. Whatever
  * replays it hands it the touches one after the other, on the run's own clock (`TIMER` and `RUN_CLOCK`), and resets it
  * to replay them again from the start; the game plays them as it did, on the earlier runs, the run's keypad layout and
- * whether it checked digits.
+ * whether it checked digits, and sounds them as they're typed, at the replay's tempo, unless muted.
  */
 @Component({
   selector: 'app-play',
@@ -204,7 +204,11 @@ export class Play implements PausesOnBack {
   readonly shownKey = input<KeypadKey>();
   /** Replaying a run, the touches to mark on the keypad. */
   readonly marks = input<readonly KeypadMark[]>([]);
-  /** Whether slots don't fly into their words, as while a replay skips ahead. */
+  /** Replaying a run, how many times as fast: the keys' notes ring for as much less or more time, at their own pitch. */
+  readonly tempo = input(1);
+  /** Replaying a run, whether it plays no sounds. */
+  readonly muted = input(false);
+  /** Whether slots don't fly into their words, nor anything sounds, as while a replay skips ahead. */
   quiet = false;
 
   /** The decimals typed so far: one character per digit, so even a very long sequence takes little memory. */
@@ -481,9 +485,15 @@ export class Play implements PausesOnBack {
     }
   }
 
-  /** Plays a touch of the run replayed, its key, if any, filled with the color its digit takes now. */
+  /**
+   * Plays a touch of the run replayed, its key, if any, filled with the color its digit takes now, and sounding as it's
+   * typed, as from a keyboard: the replay never shows where the touch first landed.
+   */
   replayTouch(touch: KeypadTouch): void {
     this.keypad().noteColor(touch.key);
+    if (touch.key !== null) {
+      this.sound(touch.key);
+    }
     this.play(touch);
   }
 
@@ -497,7 +507,7 @@ export class Play implements PausesOnBack {
       return;
     }
     // Touches sounded as they landed on the key; keys typed on a keyboard sound now.
-    if (key !== 'backspace' && !('x' in touch)) {
+    if (key !== 'backspace' && !('x' in touch) && this.replay() === undefined) {
       this.sound(key);
     }
     const ringing = key === 'backspace' ? undefined : this.ringing.get(key);
@@ -703,13 +713,13 @@ export class Play implements PausesOnBack {
     const model = this.tweaks.soundModel();
     const landing =
       this.tweaks.soundMix().landings > 0 ? model.landing(this.digits(), this.sizes()) : [];
-    if (landing.length > 0 && fly && this.replay() === undefined) {
+    if (landing.length > 0 && fly && !this.silent()) {
       this.log(model.describeLanding(this.digits(), this.sizes()));
     }
     if (slots.length === 0) {
       // Words that don't fly, as when the player prefers reduced motion, land at once; a word ending again at once,
       // reopened and finished as it was, never left.
-      if (fly && landing.length > 0 && this.replay() === undefined) {
+      if (fly && landing.length > 0 && !this.silent()) {
         this.speaker.play(landing, 0, 'landing');
       }
       return;
@@ -765,11 +775,12 @@ export class Play implements PausesOnBack {
 
   /**
    * Plays the sound of a key, as soon as a touch lands on it, before it's typed, if it is: sliding off it types nothing,
-   * so the player can listen to it before committing to it; keys typed on a keyboard sound as they're typed. Never
-   * while paused nor replaying a run. The sound model never knows the next digit, so the sound gives nothing away.
+   * so the player can listen to it before committing to it; keys typed on a keyboard, and those of a run replayed, sound
+   * as they're typed. Never while paused nor {@link silent}. The sound model never knows the next digit, so the sound
+   * gives nothing away.
    */
   protected sound(key: KeypadKey): void {
-    if (key === 'backspace' || this.paused() || this.replay() !== undefined) {
+    if (key === 'backspace' || this.paused() || this.silent()) {
       return;
     }
     const moment: Moment = {
@@ -780,7 +791,7 @@ export class Play implements PausesOnBack {
       season: this.season().season,
     };
     const model = this.tweaks.soundModel();
-    this.ringing.set(key, this.speaker.play(model.keys(moment)[key]));
+    this.ringing.set(key, this.speaker.play(atTempo(model.keys(moment)[key], this.tempo())));
     this.log(model.describe(moment, key));
   }
 
@@ -799,6 +810,11 @@ export class Play implements PausesOnBack {
     }
   }
 
+  /** Whether nothing sounds: replaying a run muted, or skipping ahead in it. */
+  private silent(): boolean {
+    return this.muted() || this.quiet;
+  }
+
   /** Vibrates on an event of the game, unless replaying a run. */
   private vibrate(vibration: Vibration): void {
     if (this.replay() === undefined) {
@@ -807,34 +823,38 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Vibrates as each of `length` slots flying, after they slide for `slide` ms, plucks itself off, then lands, and plays
-   * the word's `landing` as the last one lands.
+   * Vibrates as each of `length` slots flying, after they slide for `slide` ms, plucks itself off, then lands, unless
+   * replaying a run, and plays the word's `landing` as the last one lands, unless {@link silent}. The flights take
+   * their own time, whatever the replay's tempo, and so does the landing.
    */
   private vibrateFlights(length: number, slide: number, landing: Chime): void {
-    if (this.replay() !== undefined) {
-      return;
-    }
     const playing =
-      landing.length > 0
+      landing.length > 0 && !this.silent()
         ? this.speaker.play(landing, landsAt(length - 1, slide), 'landing')
         : undefined;
     const indices = Array.from({ length }, (_, i) => i);
-    const stopPlucks = this.vibrator.play(
-      'pluck',
-      indices.map((i) => leavesAt(i, slide)),
-    );
-    const stopLandings = this.vibrator.play(
-      'landing',
-      indices.map((i) => landsAt(i, slide)),
-    );
+    const vibrations =
+      this.replay() === undefined
+        ? [
+            this.vibrator.play(
+              'pluck',
+              indices.map((i) => leavesAt(i, slide)),
+            ),
+            this.vibrator.play(
+              'landing',
+              indices.map((i) => landsAt(i, slide)),
+            ),
+          ]
+        : [];
     const now = this.clock.now();
     this.flightVibrations = [
       ...this.flightVibrations.filter(({ until }) => until > now),
       {
         until: now + landsAt(length - 1, slide) + LONGEST_VIBRATION,
         stop: () => {
-          stopPlucks();
-          stopLandings();
+          for (const stop of vibrations) {
+            stop();
+          }
           playing?.stop();
         },
       },
