@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793754345946,
+  "lastUpdate": 1793949369495,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3360,6 +3360,46 @@ window.BENCHMARK_DATA = {
             "value": 1015,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs counts unchecked runs in the groups when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "872870cd5046d490a5100c1ac891c4139e8bf880",
+          "message": "feat: reload the page from developer mode's menu\n\n- An installed app has no reload button, and a reload is how to get a build just published: opening the app again gets the copy the browser keeps for 10 minutes, a reload asks the server whether it's still the latest\n\nClaude-Session: https://claude.ai/code/session_01X1Xeso5xhzodAroQtsL7wn",
+          "timestamp": "2026-11-06T08:15:46+01:00",
+          "tree_id": "8f808139a8b87ce851c30d0df448ab7bc5bce86e",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/872870cd5046d490a5100c1ac891c4139e8bf880"
+        },
+        "date": 1793949368990,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 9536,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 20027,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 718,
+            "unit": "ms",
+            "extra": "MissingPreview opens the preview as soon as it is published"
           }
         ]
       }
