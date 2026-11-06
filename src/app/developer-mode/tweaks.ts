@@ -81,7 +81,7 @@ export interface TweakValues {
   readonly countdown?: true;
   /** `'solid'` for keys solid, in their colors, which are otherwise see-through. */
   readonly keys?: 'solid';
-  /** `true` to count unchecked runs in the player's groups, which otherwise leave them out. */
+  /** `true` to include unchecked runs: shown on the pages of runs, and counted in the player's groups. */
   readonly includeUnchecked?: true;
   /** The order the game takes the runs in, and the line it plays from among them (see {@link RunOrder}). */
   readonly runOrder?: RunOrder;
@@ -181,7 +181,7 @@ export class Tweaks {
     () => this.developerMode.enabled() && this.tweaks().keys === 'solid',
   );
 
-  /** Whether the player's groups count unchecked runs, which may hold mistakes. */
+  /** Whether unchecked runs, which may hold mistakes, are included: shown on the pages of runs, and counted in the groups. */
   readonly includeUnchecked = computed(
     () => this.developerMode.enabled() && this.tweaks().includeUnchecked === true,
   );
@@ -322,7 +322,7 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), keys: solid ? 'solid' : undefined }));
   }
 
-  /** Counts unchecked runs in the player's groups, or leaves them out. */
+  /** Includes unchecked runs, shown and counted in the player's groups, or leaves them out. */
   setIncludeUnchecked(includeUnchecked: boolean): Promise<void> {
     return this.save(
       tweakValues({ ...this.tweaks(), includeUnchecked: includeUnchecked ? true : undefined }),

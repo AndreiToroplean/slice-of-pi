@@ -31,7 +31,7 @@ import { Segment, Segmented } from '../../ui/segmented';
 import { RunCard } from '../your-runs/run-card';
 import { HereLine } from '../your-runs/here-line';
 import { MoreButton } from '../../ui/more-button';
-import { dateAndTime, RunsState, WITH_UNCHECKED } from '../your-runs/runs-state';
+import { dateAndTime, RunsState } from '../your-runs/runs-state';
 import { SummaryCard } from '../your-runs/summary-card';
 import { TIMES, TimesView } from '../your-runs/times-view';
 
@@ -70,7 +70,7 @@ import { TIMES, TimesView } from '../your-runs/times-view';
     SummaryCard,
     TimesView,
   ],
-  providers: [RunsState, { provide: WITH_UNCHECKED, useValue: signal(true) }],
+  providers: [RunsState],
   template: `
     <app-page heading="Break Models">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
@@ -247,7 +247,7 @@ import { TIMES, TimesView } from '../your-runs/times-view';
             [cdkMenuItemChecked]="includeUnchecked()"
             (cdkMenuItemTriggered)="setIncludeUnchecked(!includeUnchecked())"
           >
-            Count Unchecked Runs
+            Include Unchecked Runs
           </button>
         </div>
       </ng-template>
