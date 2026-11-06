@@ -1,9 +1,9 @@
-import { Component, ElementRef, inject, input, model, output, viewChild } from '@angular/core';
+import { Component, inject, input, model, output, viewChild } from '@angular/core';
 import { DeveloperMode } from '../../../developer-mode/developer-mode';
 import { injectBackToMenu } from '../../../ui/back-to-menu';
-import { ButtonList } from '../../../ui/button-list';
 import { Candy } from '../../../ui/candy';
-import { LightDismiss } from '../../../ui/light-dismiss';
+import { ChoiceDialog } from '../../../ui/choice-dialog';
+import { ReplayButton } from './replay-button';
 
 /**
  * The pause key, a see-through key of the keypad, in its corner left of 0 (see `Keypad`), and the dialog it opens over
@@ -16,12 +16,12 @@ import { LightDismiss } from '../../../ui/light-dismiss';
  *
  * Once a game is lost, as on a challenge's mistake, the game over dialog takes the pause dialog's place: there's no
  * resuming, only playing again, continuing the run in free play, or going back to the main menu, and nothing else
- * closes it; its replay button replays the
- * run at once, as there's no game left to warn about.
+ * closes it; its replay button replays the run at once, as there's no game left to warn about. Its dialogs are choice
+ * dialogs (see `ChoiceDialog`), within the thumb's reach.
  */
 @Component({
   selector: 'app-pause',
-  imports: [ButtonList, Candy, LightDismiss],
+  imports: [Candy, ChoiceDialog, ReplayButton],
   host: { '(document:keydown.escape)': 'escape($event)' },
   template: `
     <button type="button" appCandy="clear" class="pause-button" title="Pause" (click)="pause()">
@@ -30,89 +30,44 @@ import { LightDismiss } from '../../../ui/light-dismiss';
         <rect x="14" y="5" width="4" height="14" rx="1.5" />
       </svg>
     </button>
-    <dialog #dialog class="card" closedby="any" aria-labelledby="pause-title" (close)="closed()">
-      <div class="heading">
-        <h2 id="pause-title">Paused</h2>
+    <app-choice-dialog #dialog heading="Paused" [inReach]="true" (closed)="closed()">
+      <app-replay-button cornerStart [disabled]="!replayable()" (pressed)="askToReplay()" />
+      @if (developerMode.enabled()) {
         <button
+          cornerEnd
           type="button"
           appCandy="clear"
-          class="corner replay-button"
-          [disabled]="!replayable()"
-          title="Replay This Run"
-          (click)="askToReplay()"
+          class="corner edit-button"
+          title="Edit Layout"
+          (click)="editLayout()"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4.5 12A7.5 7.5 0 1 0 12 4.5M14.5 2 12 4.5 14.5 7" />
-            <path class="play" d="M10.5 9.25 14.75 12l-4.25 2.75z" />
+            <path d="M4.5 19.5h4l10-10-4-4-10 10z" />
+            <path d="m12.5 7.5 4 4" />
           </svg>
         </button>
-        @if (developerMode.enabled()) {
-          <button
-            type="button"
-            appCandy="clear"
-            class="corner edit-button"
-            title="Edit Layout"
-            (click)="editLayout()"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4.5 19.5h4l10-10-4-4-10 10z" />
-              <path d="m12.5 7.5 4 4" />
-            </svg>
-          </button>
-        }
-      </div>
-      <app-button-list>
-        <button type="button" appCandy="primary" autofocus (click)="resume()">Resume</button>
-        <button type="button" appCandy (click)="restart.emit(); resume()">Restart</button>
-        <button type="button" appCandy="danger" (click)="void endGame()">End Game</button>
-      </app-button-list>
-    </dialog>
-    <dialog
+      }
+      <button type="button" appCandy="primary" (click)="resume()">Resume</button>
+      <button type="button" appCandy (click)="restart.emit(); resume()">Restart</button>
+      <button type="button" appCandy="danger" (click)="void endGame()">End Game</button>
+    </app-choice-dialog>
+    <app-choice-dialog
       #overDialog
-      class="card"
-      closedby="none"
-      aria-labelledby="over-title"
-      (cancel)="$event.preventDefault()"
-      (close)="closed()"
+      heading="Game Over"
+      [inReach]="true"
+      [dismissable]="false"
+      (closed)="closed()"
     >
-      <div class="heading">
-        <h2 id="over-title">Game Over</h2>
-        <button
-          type="button"
-          appCandy="clear"
-          class="corner replay-button"
-          [disabled]="!replayable()"
-          title="Replay This Run"
-          (click)="void stopAndReplay()"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4.5 12A7.5 7.5 0 1 0 12 4.5M14.5 2 12 4.5 14.5 7" />
-            <path class="play" d="M10.5 9.25 14.75 12l-4.25 2.75z" />
-          </svg>
-        </button>
-      </div>
-      <app-button-list>
-        <button type="button" appCandy="primary" autofocus (click)="playAgain()">Play Again</button>
-        <button type="button" appCandy (click)="continueInFreePlay()">Continue in Free Play</button>
-        <button type="button" appCandy (click)="void endGame()">Main Menu</button>
-      </app-button-list>
-    </dialog>
-    <dialog
-      #replayDialog
-      class="card"
-      closedby="any"
-      aria-labelledby="replay-title"
-      aria-describedby="replay-warning"
-    >
-      <h2 id="replay-title">Watch the Replay?</h2>
-      <p id="replay-warning" class="warning">
-        Your game ends here: you won’t be able to resume it.
-      </p>
-      <app-button-list>
-        <button type="button" appCandy autofocus (click)="replayDialog.close()">Back</button>
-        <button type="button" appCandy="danger" (click)="void stopAndReplay()">Watch Replay</button>
-      </app-button-list>
-    </dialog>
+      <app-replay-button cornerStart [disabled]="!replayable()" (pressed)="void stopAndReplay()" />
+      <button type="button" appCandy="primary" (click)="playAgain()">Play Again</button>
+      <button type="button" appCandy (click)="continueInFreePlay()">Continue in Free Play</button>
+      <button type="button" appCandy (click)="void endGame()">Main Menu</button>
+    </app-choice-dialog>
+    <app-choice-dialog #replayDialog heading="Watch the Replay?" [inReach]="true">
+      <p>Your game ends here: you won’t be able to resume it.</p>
+      <button type="button" appCandy (click)="void replayDialog.close()">Back</button>
+      <button type="button" appCandy="danger" (click)="void stopAndReplay()">Watch Replay</button>
+    </app-choice-dialog>
   `,
   styleUrl: './pause.css',
 })
@@ -138,46 +93,43 @@ export class Pause {
   private editing = false;
 
   private readonly backToMenu = injectBackToMenu();
-  private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
-  private readonly replayDialog = viewChild.required<ElementRef<HTMLDialogElement>>('replayDialog');
-  private readonly overDialog = viewChild.required<ElementRef<HTMLDialogElement>>('overDialog');
+  private readonly dialog = viewChild.required<ChoiceDialog>('dialog');
+  private readonly replayDialog = viewChild.required<ChoiceDialog>('replayDialog');
+  private readonly overDialog = viewChild.required<ChoiceDialog>('overDialog');
 
   /** Pauses, opening the dialog, as the pause button does. */
   pause(): void {
-    this.dialog().nativeElement.showModal();
+    this.dialog().open();
     this.paused.set(true);
   }
 
   /** Opens the game over dialog, once the game is lost, in place of the pause dialog if it's open. */
   gameOver(): void {
-    const dialog = this.dialog().nativeElement;
-    if (dialog.open) {
-      // Closed as the game is over: closing it mustn't resume the game.
-      this.editing = false;
-      dialog.close();
-    }
-    this.replayDialog().nativeElement.close();
-    this.overDialog().nativeElement.showModal();
+    // Closed as the game is over: closing it mustn't resume the game.
+    this.editing = false;
+    void this.dialog().close();
+    void this.replayDialog().close();
+    this.overDialog().open();
     this.paused.set(true);
   }
 
   /** Restarts the game, from the game over dialog, which closes. */
   protected playAgain(): void {
     this.restart.emit();
-    this.overDialog().nativeElement.close();
+    void this.overDialog().close();
   }
 
   /** Carries the lost game on in free play, from the game over dialog, which closes. */
   protected continueInFreePlay(): void {
     this.freePlay.emit();
-    this.overDialog().nativeElement.close();
+    void this.overDialog().close();
   }
 
   /** Going back: pauses, or resumes, or goes back from the confirmation, as Escape does. */
   back(): void {
-    const replayDialog = this.replayDialog().nativeElement;
-    if (replayDialog.open) {
-      replayDialog.close();
+    const replayDialog = this.replayDialog();
+    if (replayDialog.isOpen) {
+      void replayDialog.close();
     } else if (this.paused()) {
       this.resume();
     } else {
@@ -207,13 +159,13 @@ export class Pause {
     if (this.editing) {
       this.editing = false;
       this.edit.emit();
-    } else if (!this.overDialog().nativeElement.open) {
+    } else if (!this.overDialog().isOpen) {
       this.paused.set(false);
     }
   }
 
   protected resume(): void {
-    this.dialog().nativeElement.close();
+    void this.dialog().close();
   }
 
   /**
@@ -228,26 +180,17 @@ export class Pause {
   }
 
   protected askToReplay(): void {
-    this.replayDialog().nativeElement.showModal();
+    this.replayDialog().open();
   }
 
   /** On to the run's replay, the dialogs closed first, as when ending the game. */
   protected async stopAndReplay(): Promise<void> {
-    await Promise.all([
-      close(this.replayDialog().nativeElement),
-      close(this.overDialog().nativeElement),
-      this.close(),
-    ]);
+    await Promise.all([this.replayDialog().close(), this.close()]);
     this.replay.emit();
   }
 
+  /** Closes the pause and game over dialogs, settling once they're closed. */
   private async close(): Promise<void> {
-    await Promise.all([close(this.dialog().nativeElement), close(this.overDialog().nativeElement)]);
+    await Promise.all([this.dialog().close(), this.overDialog().close()]);
   }
-}
-
-/** Closes a dialog, once its transitions have ended. */
-async function close(dialog: HTMLDialogElement): Promise<void> {
-  dialog.close();
-  await Promise.allSettled(dialog.getAnimations().map(async (animation) => animation.finished));
 }

@@ -20,3 +20,15 @@ export function uninstallDialogs(): void {
   Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
   Reflect.deleteProperty(HTMLDialogElement.prototype, 'getAnimations');
 }
+
+/** The dialog within `host` named so: its title, the element its `aria-labelledby` names, says so. */
+export function dialogNamed(host: ParentNode, name: string): HTMLDialogElement {
+  const found = Array.from(host.querySelectorAll('dialog')).find((dialog) => {
+    const title = dialog.getAttribute('aria-labelledby');
+    return title !== null && dialog.querySelector(`#${title}`)?.textContent.trim() === name;
+  });
+  if (found === undefined) {
+    throw new Error(`No dialog named ${name}`);
+  }
+  return found;
+}

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { installDialogs, uninstallDialogs } from '../../../../testing/fake-dialogs';
+import { dialogNamed, installDialogs, uninstallDialogs } from '../../../../testing/fake-dialogs';
 import { DeveloperMode } from '../../../developer-mode/developer-mode';
 import { INDEXED_DB } from '../../../player-data/run-store';
 import { Pause } from './pause';
@@ -28,10 +28,7 @@ describe('Pause', () => {
     const fixture = TestBed.createComponent(Pause);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
-    const dialog = host.querySelector('dialog');
-    if (dialog === null) {
-      throw new Error('No dialog');
-    }
+    const dialog = dialogNamed(host, 'Paused');
     const click = async (label: string): Promise<void> => {
       Array.from(host.querySelectorAll('button'))
         .find((button) => button.textContent.trim() === label || button.title === label)
@@ -54,8 +51,6 @@ describe('Pause', () => {
 
     expect(dialog.open).toBe(true);
     expect(pause.paused()).toBe(true);
-    expect(dialog.getAttribute('aria-labelledby')).toBe('pause-title');
-    expect(dialog.querySelector('#pause-title')?.textContent).toBe('Paused');
   });
 
   it('pauses on Escape, leaving it to the dialog to close on the next', async () => {
@@ -78,13 +73,12 @@ describe('Pause', () => {
     expect(dialog.open).toBe(true);
   });
 
-  it('offers to resume, restart or end the game, resume first', async () => {
+  it('offers to resume, restart or end the game', async () => {
     const { dialog } = await setUp();
 
     expect(
       Array.from(dialog.querySelectorAll('app-button-list button'), (b) => b.textContent.trim()),
     ).toEqual(['Resume', 'Restart', 'End Game']);
-    expect(dialog.querySelector('app-button-list button')?.hasAttribute('autofocus')).toBe(true);
   });
 
   it('offers to edit the layout in developer mode only, staying paused while it’s edited', async () => {
@@ -157,7 +151,6 @@ describe('Pause', () => {
 
     await replayable();
     expect(replayButton()?.disabled).toBe(false);
-    expect(dialog.querySelector('[autofocus]')?.textContent.trim()).toBe('Resume');
   });
 
   it('asks before replaying the run, warning that the game cannot be resumed then', async () => {
@@ -165,11 +158,7 @@ describe('Pause', () => {
     const replay = vi.fn();
     pause.replay.subscribe(replay);
     await replayable();
-    const confirmation = host.querySelector('dialog[aria-labelledby="replay-title"]');
-    if (!(confirmation instanceof HTMLDialogElement)) {
-      throw new Error('No confirmation');
-    }
-    expect(host.querySelector('#replay-title')?.textContent).toBe('Watch the Replay?');
+    const confirmation = dialogNamed(host, 'Watch the Replay?');
     const warning = confirmation.getAttribute('aria-describedby') ?? '';
     expect(host.querySelector(`#${warning}`)?.textContent).toContain('won’t be able to resume');
     await click('Pause');

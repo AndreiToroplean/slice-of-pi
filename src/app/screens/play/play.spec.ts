@@ -12,7 +12,7 @@ import {
   installAnimations,
   uninstallAnimations,
 } from '../../../testing/fake-animations';
-import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
+import { dialogNamed, installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
 import { FakeTime } from '../../../testing/fake-time';
 import { Background } from '../../ui/background';
 import { FIRST_LANDING, landsAt, leavesAt } from './flight/flight';
@@ -1595,8 +1595,8 @@ describe('Play', () => {
         return { host, type, stable };
       }
 
-      function gameOver(host: HTMLElement): HTMLDialogElement | null {
-        return host.querySelector<HTMLDialogElement>('dialog[aria-labelledby="over-title"]');
+      function gameOver(host: HTMLElement): HTMLDialogElement {
+        return dialogNamed(host, 'Game Over');
       }
 
       it('ends the game on the first mistake: no more keys, and a moment later, the game over dialog', async () => {
@@ -1608,11 +1608,11 @@ describe('Play', () => {
         expect(host.querySelector('[aria-live="assertive"]')?.textContent.trim()).toBe(
           '0 is wrong: game over.',
         );
-        expect(gameOver(host)?.open).toBe(false);
+        expect(gameOver(host).open).toBe(false);
 
         time.advance(GAME_OVER_DELAY);
         await stable();
-        expect(gameOver(host)?.open).toBe(true);
+        expect(gameOver(host).open).toBe(true);
       });
 
       it('has no backspace', async () => {
@@ -1662,7 +1662,7 @@ describe('Play', () => {
 
         pauseItem(host, 'Continue in Free Play').click();
         await stable();
-        expect(gameOver(host)?.open).toBe(false);
+        expect(gameOver(host).open).toBe(false);
         expect(host.querySelector('.game-over')).toBeNull();
         const backspace = (): HTMLButtonElement | null =>
           host.querySelector<HTMLButtonElement>('button[data-key="backspace"]');
@@ -1693,7 +1693,7 @@ describe('Play', () => {
         pauseItem(host, 'Play Again').click();
         await stable();
 
-        expect(gameOver(host)?.open).toBe(false);
+        expect(gameOver(host).open).toBe(false);
         expect(end).toHaveBeenCalledOnce();
         await type('1');
         expect(slots(host)).toEqual(['1', '', '', '', '']);
@@ -1709,7 +1709,7 @@ describe('Play', () => {
 
         const dialogs = Array.from(host.querySelectorAll('dialog'), (dialog) => dialog.open);
         expect(dialogs.filter(Boolean)).toHaveLength(1);
-        expect(gameOver(host)?.open).toBe(true);
+        expect(gameOver(host).open).toBe(true);
       });
     });
   });
