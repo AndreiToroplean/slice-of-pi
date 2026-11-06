@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793949369495,
+  "lastUpdate": 1793954420749,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3400,6 +3400,46 @@ window.BENCHMARK_DATA = {
             "value": 718,
             "unit": "ms",
             "extra": "MissingPreview opens the preview as soon as it is published"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "629102fbeb27096dc6584b30018b732e1875be5b",
+          "message": "refactor: move the confirmations onto the choice dialog\n\n- Cancel Your Tweaks?, in both editors, Reset the Tweaks? and Start Over? are choice dialogs too, so every confirmation looks and behaves alike\n\nClaude-Session: https://claude.ai/code/session_01X1XesqdRcJcQRb9RKhY8D2",
+          "timestamp": "2026-11-06T09:39:56+01:00",
+          "tree_id": "1948220938e6ff8b56adb67a4c6f3641fe1b0635",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/629102fbeb27096dc6584b30018b732e1875be5b"
+        },
+        "date": 1793954420101,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14715,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 31882,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 998,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
         ]
       }
