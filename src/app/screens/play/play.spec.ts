@@ -1653,6 +1653,36 @@ describe('Play', () => {
         expect(host.querySelector('.game-over')).toBeNull();
       });
 
+      it('continues the run in free play from the mistake, backspace and all, until it restarts as a challenge', async () => {
+        const end = vi.spyOn(TestBed.inject(RunRecorder), 'end');
+        const { host, type, stable } = await challenge();
+        await type('140');
+        time.advance(GAME_OVER_DELAY);
+        await stable();
+
+        pauseItem(host, 'Continue in Free Play').click();
+        await stable();
+        expect(gameOver(host)?.open).toBe(false);
+        expect(host.querySelector('.game-over')).toBeNull();
+        const backspace = (): HTMLButtonElement | null =>
+          host.querySelector<HTMLButtonElement>('button[data-key="backspace"]');
+        expect(backspace()?.inert).toBe(false);
+
+        await type('2');
+        expect(slots(host)).toEqual(['1', '4', '0', '2', '']);
+        backspace()?.click();
+        backspace()?.click();
+        await stable();
+        await type('1');
+        expect(slots(host)).toEqual(['1', '4', '1', '', '']);
+        expect(end).not.toHaveBeenCalled();
+
+        pauseItem(host, 'Pause').click();
+        pauseItem(host, 'Restart').click();
+        await stable();
+        expect(backspace()?.inert).toBe(true);
+      });
+
       it('plays again from the game over dialog, from the start, the keys typing again', async () => {
         const end = vi.spyOn(TestBed.inject(RunRecorder), 'end');
         const { host, type, stable } = await challenge();

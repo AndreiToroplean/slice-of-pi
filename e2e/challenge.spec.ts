@@ -23,3 +23,19 @@ test('loses a challenge on its first mistake, the game over dialog staying open 
   await page.keyboard.press('1');
   await expect(page.locator('app-slots .slot').first()).toHaveText('1');
 });
+
+test('continues a lost challenge in free play, deleting the mistake with backspace', async ({
+  page,
+}) => {
+  await page.goto('/challenge');
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  await page.keyboard.press('0');
+  const over = page.getByRole('dialog', { name: 'Game Over' });
+  await over.getByRole('button', { name: 'Continue in Free Play' }).click();
+  await expect(over).toBeHidden();
+
+  await page.keyboard.press('Backspace');
+  await page.keyboard.press('1');
+  await expect(page.locator('app-slots .slot').first()).toHaveText('1');
+  await expect(page.locator('app-slots .wrong')).toHaveCount(0);
+});
