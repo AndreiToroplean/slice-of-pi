@@ -9,7 +9,7 @@ import { INDEXED_DB, RunStore } from '../../player-data/run-store';
 import { addTouch, newTouchLog, TouchLog } from '../../player-data/touch-log';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 import { menuItem, menuItems } from '../../../testing/menus';
-import { MARK_DURATION, Replay, TAIL } from './replay';
+import { MARK_DURATION, Replay, SPEEDS, TAIL } from './replay';
 import { Speaker } from '../../feedback/speaker';
 import { atTempo } from '../../game/layers/sound/sound-model';
 import { SoundSetting } from '../../player-data/sound-setting';
@@ -148,6 +148,16 @@ describe('Replay', () => {
     await play(harness, 100);
 
     expect(shown(host)).toMatchObject({ pressed: ['1'] });
+  });
+
+  it('keeps the menu of speeds open as it plays on', async () => {
+    const { host, harness } = await setUp([log], 'replayed', { playing: true });
+
+    await click(harness, control(host, 'Speed ×1'));
+    await play(harness, 1000);
+
+    expect(shown(host).summary).toBe('3 digits typed, the last one is 1.');
+    expect(menuItems()).toHaveLength(SPEEDS.length);
   });
 
   it('steps through the touches while paused, each marked, its key pressed', async () => {

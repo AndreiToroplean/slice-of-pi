@@ -513,8 +513,9 @@ export class Play implements PausesOnBack {
     const ringing = key === 'backspace' ? undefined : this.ringing.get(key);
     this.ringing.delete(key);
     // Keys are typed into the game, not into what has the focus, such as the typed digits once clicked or the pause
-    // button once the game resumes: it gives the focus up rather than showing its ring as if typed into.
-    if (document.activeElement instanceof HTMLElement) {
+    // button once the game resumes: it gives the focus up rather than showing its ring as if typed into. Replaying, the
+    // player types nothing, and keeps the focus, such as on a menu of the replay, which would close without it.
+    if (this.replay() === undefined && document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
     // Mistakes too bring the tape back from where the player scrolled it, though they never reach it.
