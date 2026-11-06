@@ -54,9 +54,11 @@ describe('Replay', () => {
     vi.useRealTimers();
   });
 
+  /** Opens the replay of the run `id`, paused unless told to go on `playing`, as it starts. */
   async function setUp(
     logs: TouchLog[] = [log],
     id = 'replayed',
+    { playing = false } = {},
   ): Promise<{ host: HTMLElement; harness: RouterTestingHarness }> {
     const store = TestBed.inject(RunStore);
     for (const stored of logs) {
@@ -69,6 +71,11 @@ describe('Replay', () => {
     const host = harness.routeNativeElement;
     if (host === null) {
       throw new Error('No replay');
+    }
+    const pause = host.querySelector<HTMLButtonElement>('[title="Pause"]');
+    if (!playing && pause !== null) {
+      pause.click();
+      await harness.fixture.whenStable();
     }
     return { host, harness };
   }
@@ -133,6 +140,14 @@ describe('Replay', () => {
     expect(host.querySelector('app-pause')).toBeNull();
     expect(host.querySelector('.back')?.getAttribute('title')).toBe('Back');
     expect(timeline(host).max).toBe(String(800 + PAUSE + TAIL));
+  });
+
+  it('starts playing as soon as it opens', async () => {
+    const { host, harness } = await setUp([log], 'replayed', { playing: true });
+
+    await play(harness, 100);
+
+    expect(shown(host)).toMatchObject({ pressed: ['1'] });
   });
 
   it('steps through the touches while paused, each marked, its key pressed', async () => {
