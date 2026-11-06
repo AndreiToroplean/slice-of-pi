@@ -84,33 +84,22 @@ describe('ModelTuning', () => {
       return Array.from(host.querySelectorAll('.groups li'), (group) => group.textContent.trim());
     }
 
-    it(
-      'shows unchecked runs too, marked, still leaving them out of the groups',
-      { tags: ['disabled'] },
-      async () => {
-        const { host } = await setUp([unchecked]);
-
-        const article = host.querySelector('.runs article');
-        expect(host.querySelector('.runs app-run-card')?.classList).toContain('unchecked');
-        expect(article?.querySelector('h3 .badge')?.textContent.trim()).toBe('Unchecked');
-        expect(groupsShown(host)).toEqual([]);
-      },
-    );
-
-    it('counts unchecked runs in the groups when told to', async () => {
+    it('includes unchecked runs, shown and counted in the groups, only when told to', async () => {
       const page = await setUp([grouped, unchecked]);
       const { host, until } = page;
-      const toggle = await overflowItem(page, 'Count Unchecked Runs');
+      const toggle = await overflowItem(page, 'Include Unchecked Runs');
       expect(toggle.getAttribute('aria-checked')).toBe('false');
 
+      expect(articles(host)).toHaveLength(1);
       expect(groupsShown(host)).toEqual([PI_DECIMALS.slice(0, 30)]);
 
       toggle.click();
       await until(() => groupsShown(host).length > 1);
-      expect((await overflowItem(page, 'Count Unchecked Runs')).getAttribute('aria-checked')).toBe(
-        'true',
-      );
+      expect(
+        (await overflowItem(page, 'Include Unchecked Runs')).getAttribute('aria-checked'),
+      ).toBe('true');
 
+      expect(articles(host)).toHaveLength(2);
       expect(groupsShown(host)).toEqual(groupsBy3);
       expect(TestBed.inject(Tweaks).values()).toEqual({ includeUnchecked: true });
     });

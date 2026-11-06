@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, InjectionToken, Signal, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { groupRuns, moveRun, orderRuns, Run, RunOrder } from '../../player-data/run';
@@ -10,15 +10,11 @@ import { ShownGroup } from './group-list';
 import { chartTop, digitTimes } from './run-charts';
 import type { RunCardChart } from './run-card';
 
-/** Whether a page of the runs shows the unchecked ones too, which may hold mistakes. */
-export const WITH_UNCHECKED = new InjectionToken<Signal<boolean>>('WITH_UNCHECKED', {
-  factory: () => signal(false),
-});
-
 /**
  * The player's runs as a page of them shows them, provided by each such page: read as it opens, in the order the game
  * takes them, what the break model makes of them, the chart of each and of all of them, and deleting them. The tweaks
- * apply, as they do to the whole game.
+ * apply, as they do to the whole game: unchecked runs, which may hold mistakes, are only shown while they count in the
+ * groups.
  */
 @Injectable()
 export class RunsState {
@@ -29,7 +25,6 @@ export class RunsState {
   readonly runs = signal<readonly Run[]>([]);
 
   private readonly tweaks = inject(Tweaks);
-  private readonly withUnchecked = inject(WITH_UNCHECKED);
   private readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
   private readonly confirm = inject(CONFIRM);
@@ -46,7 +41,7 @@ export class RunsState {
   /** The runs shown, by their chart, in the order the game takes them. */
   readonly charts = computed(() =>
     this.order().runs.flatMap((run, index): RunCardChart[] => {
-      if (!run.checked && !this.withUnchecked()) {
+      if (!run.checked && !this.tweaks.includeUnchecked()) {
         return [];
       }
       // Runs left out of the groups have only their times.
@@ -73,7 +68,7 @@ export class RunsState {
     Math.max(
       1,
       ...this.runs()
-        .filter((run) => run.checked || this.withUnchecked())
+        .filter((run) => run.checked || this.tweaks.includeUnchecked())
         .map((run) => run.digits.length),
     ),
   );

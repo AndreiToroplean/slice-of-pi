@@ -1,4 +1,3 @@
-import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { Digit } from '../../game/pi/digit';
@@ -7,7 +6,7 @@ import { RunStore } from '../../player-data/run-store';
 import { newTouchLog, TouchLog } from '../../player-data/touch-log';
 import { setUpPlayerData } from '../../../testing/player-data-pages';
 import { typeKey } from '../../../testing/touch-logs';
-import { dateAndTime, RunsState, WITH_UNCHECKED } from './runs-state';
+import { dateAndTime, RunsState } from './runs-state';
 
 describe('RunsState', () => {
   const first = typeKey(typeKey(newTouchLog('a', 1_000), '1', 0), '4', 250);
@@ -31,7 +30,7 @@ describe('RunsState', () => {
   /** The runs, read, as a page of them shows them, in developer mode, where the tweaks apply. */
   async function setUp(
     runs: TouchLog[],
-    { withUnchecked = false, confirming = true } = {},
+    { includeUnchecked = false, confirming = true } = {},
   ): Promise<RunsState> {
     questions = [];
     await setUpPlayerData(
@@ -43,8 +42,11 @@ describe('RunsState', () => {
           return confirming;
         },
       },
-      [RunsState, { provide: WITH_UNCHECKED, useValue: signal(withUnchecked) }],
+      [RunsState],
     );
+    if (includeUnchecked) {
+      await TestBed.inject(Tweaks).setIncludeUnchecked(true);
+    }
     const state = TestBed.inject(RunsState);
     await state.refresh();
     return state;
@@ -72,29 +74,21 @@ describe('RunsState', () => {
   it('spans every chart over the places of the longest run shown', async () => {
     expect((await setUp([first, second, unchecked])).places()).toBe(2);
     TestBed.resetTestingModule();
-    expect((await setUp([first, second, unchecked], { withUnchecked: true })).places()).toBe(30);
+    expect((await setUp([first, second, unchecked], { includeUnchecked: true })).places()).toBe(30);
   });
 
   describe('unchecked runs', () => {
-    it('hides them, unless the page shows them, and leaves them out of the groups', async () => {
-      const hidden = await setUp([grouped, unchecked]);
-      expect(ids(hidden)).toEqual(['c']);
-      expect(groups(hidden)).toEqual([PI_DECIMALS.slice(0, 30)]);
-      TestBed.resetTestingModule();
-
-      const shown = await setUp([grouped, unchecked], { withUnchecked: true });
-      expect(shown.charts().map((chart) => [chart.id, chart.checked])).toEqual([
-        ['c', true],
-        ['unchecked', false],
-      ]);
-      expect(groups(shown)).toEqual([PI_DECIMALS.slice(0, 30)]);
-    });
-
-    it('counts them in the groups when told to', async () => {
+    it('hides them and leaves them out of the groups, unless told to include them, marked', async () => {
       const state = await setUp([grouped, unchecked]);
+      expect(ids(state)).toEqual(['c']);
+      expect(groups(state)).toEqual([PI_DECIMALS.slice(0, 30)]);
 
       await TestBed.inject(Tweaks).setIncludeUnchecked(true);
 
+      expect(state.charts().map((chart) => [chart.id, chart.checked])).toEqual([
+        ['c', true],
+        ['unchecked', false],
+      ]);
       expect(groups(state)).toEqual(groupsBy3);
     });
   });
