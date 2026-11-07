@@ -35,7 +35,7 @@ export const RUN_CLOCK = new InjectionToken<RunClock>('RUN_CLOCK', {
  * A run starts with the first digit typed and ends when the game restarts or ends: touches before it aren't kept.
  * Deleting every digit deletes the run, as if it had never started, and the next digit starts a new one (see
  * {@link LiveRun}). A run started without checking the digits, in developer mode, is marked unchecked, unless it's a challenge, and each run
- * records the keypad layout it's played on.
+ * records the keypad layout it's played on, and the place it starts from.
  */
 @Service()
 export class RunRecorder implements RunSession {
@@ -53,12 +53,15 @@ export class RunRecorder implements RunSession {
         this.clock.epoch(),
         this.challenge() || this.tweaks.checking(),
         this.keypadLayout.layout(),
+        { start: this.start() },
       );
     },
   );
   readonly run = this.live.run;
   /** Whether the runs started from now on are challenges, which check their digits whatever developer mode says. */
   readonly challenge = signal(false);
+  /** The place the runs started from now on start from: the start of π, or a checkpoint. */
+  readonly start = signal(0);
 
   /** The latest touch log of each run not saved yet. */
   private readonly unsaved = new Map<string, TouchLog>();

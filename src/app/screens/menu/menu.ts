@@ -17,7 +17,8 @@ import { RouterLink } from '@angular/router';
 import { Background } from '../../ui/background';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { DeveloperTaps } from '../../developer-mode/developer-taps';
-import { CdkMenuGroup, CdkMenuItem } from '@angular/cdk/menu';
+import { CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio } from '@angular/cdk/menu';
+import { Checkpoint } from '../../player-data/checkpoint';
 import { Dropdown, MenuTrigger } from '../../ui/menu';
 import { OverlayHost } from '../../ui/overlay-host';
 import { MenuAssets } from './menu-assets';
@@ -61,6 +62,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
 
 /**
  * The main menu, where the app opens: the game's icon and name, a button to start a challenge and one above it to free play,
+ * beside which, once the player has unlocked a checkpoint, a small one shows the place games start from, and picks it,
  * the settings behind a gear in a corner, and in developer mode, its pages, the player's runs among them, in an overflow menu in the other, with its
  * editor (see `menu-editor.ts`). The name's letters are lanterns, in the key colors, and the icon is lit from behind:
  * three layers of light (see `light-layer.ts`), "Pi" nearest, then "Slice of", then the icon, each lighting everything
@@ -79,6 +81,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
     Candy,
     CdkMenuGroup,
     CdkMenuItem,
+    CdkMenuItemRadio,
     DeveloperTaps,
     Dropdown,
     LightLayer,
@@ -164,7 +167,35 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
       {{ taps.message() }}
     </p>
     <app-button-list class="actions" [style.gap]="'var(--buttons-gap)'">
-      <a appCandy routerLink="/play" data-vibration="play">Free Play</a>
+      <!-- Started from the checkpoint picked beside it, once there's one to pick. -->
+      <div class="row" appOverlayHost>
+        <a appCandy routerLink="/play" data-vibration="play">Free Play</a>
+        @if (checkpoint.unlocked().length > 0) {
+          <button
+            type="button"
+            appCandy
+            class="checkpoint"
+            title="Start From"
+            [appMenuTrigger]="checkpointMenu"
+          >
+            {{ checkpoint.start() }}
+          </button>
+        }
+      </div>
+      <ng-template #checkpointMenu>
+        <div appDropdown aria-label="Start from">
+          @for (place of [0].concat(checkpoint.unlocked()); track place) {
+            <button
+              type="button"
+              cdkMenuItemRadio
+              [cdkMenuItemChecked]="place === checkpoint.start()"
+              (cdkMenuItemTriggered)="checkpoint.pick(place)"
+            >
+              {{ place === 0 ? 'Start of π' : 'Place ' + place }}
+            </button>
+          }
+        </div>
+      </ng-template>
       <a #play appCandy="primary" routerLink="/challenge" data-vibration="play">Challenge</a>
     </app-button-list>
     <!-- After the middle of the menu, for Tab to go through it from the left to the right. -->
@@ -231,6 +262,8 @@ export class Menu {
   ];
   protected readonly developerMode = inject(DeveloperMode);
   protected readonly tweaks = inject(Tweaks);
+  /** Where the games started from here start: the start of π, or a checkpoint unlocked. */
+  protected readonly checkpoint = inject(Checkpoint);
 
   /** The look being edited, in developer mode's editor, shown as it changes. */
   protected readonly editedLook = signal<MenuLook | undefined>(undefined);
@@ -275,6 +308,7 @@ export class Menu {
   });
 
   constructor() {
+    void this.checkpoint.refresh();
     const fonts = this.document.fonts;
     afterNextRender(() => void this.assets.waitForFonts(fonts));
     // The lights switch on once the menu is in place: shown, and no transition from another screen running, which would
