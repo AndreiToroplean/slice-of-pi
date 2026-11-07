@@ -14,7 +14,7 @@ import type { RunCardChart } from './run-card';
  * The player's runs as a page of them shows them, provided by each such page: read as it opens, in the order the game
  * takes them, what the break model makes of them, the chart of each and of all of them, and deleting them. The tweaks
  * apply, as they do to the whole game: unchecked runs, which may hold mistakes, are only shown while they count in the
- * groups.
+ * groups. Neither are runs from a checkpoint, nor Discover's.
  */
 @Injectable()
 export class RunsState {
@@ -41,7 +41,7 @@ export class RunsState {
   /** The runs shown, by their chart, in the order the game takes them. */
   readonly charts = computed(() =>
     this.order().runs.flatMap((run, index): RunCardChart[] => {
-      if (!run.checked && !this.tweaks.includeUnchecked()) {
+      if (!this.shows(run)) {
         return [];
       }
       // Runs left out of the groups have only their times.
@@ -68,7 +68,7 @@ export class RunsState {
     Math.max(
       1,
       ...this.runs()
-        .filter((run) => run.checked || this.tweaks.includeUnchecked())
+        .filter((run) => this.shows(run))
         .map((run) => run.digits.length),
     ),
   );
@@ -186,6 +186,14 @@ export class RunsState {
     await this.store.deleteRuns(ids);
     await this.refresh();
     this.message.set(done);
+  }
+
+  /**
+   * Whether it shows a run: unchecked ones only while they're included. Runs from a checkpoint and Discover's aren't
+   * charted, as the charts go place by place from the start of π, every touch kept.
+   */
+  private shows(run: Run): boolean {
+    return run.start === 0 && !run.overwritten && (run.checked || this.tweaks.includeUnchecked());
   }
 
   /** Reads the runs again. */

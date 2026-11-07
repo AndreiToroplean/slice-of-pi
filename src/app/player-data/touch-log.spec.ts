@@ -28,6 +28,19 @@ describe('touch log', () => {
     expect(newTouchLog('run-1', 0, true, 'telephone').keypadLayout).toBe('telephone');
   });
 
+  it('starts from a checkpoint, or keeps only the latest typing of each place, when asked, saying so only then', () => {
+    const later = newTouchLog('run-1', 0, true, 'calculator', {
+      start: 50,
+      recording: 'overwrite',
+    });
+
+    expect([later.start, later.recording]).toEqual([50, 'overwrite']);
+    expect(Object.keys(newTouchLog('run-1', 0, true, 'calculator', { start: 0 }))).not.toContain(
+      'start',
+    );
+    expect(parseTouchLog(JSON.parse(JSON.stringify(later)))).toEqual(later);
+  });
+
   it('records each touch, in whole milliseconds, where it was to a thousandth of a step', () => {
     const touched = addTouch(empty, { key: '1', x: 0.12345, y: -1.98765 }, 212.6);
 
@@ -148,6 +161,8 @@ describe('touch log', () => {
       ['a numeric id', { ...log, id: 1 }],
       ['a checked flag that is not a boolean', { ...log, checked: 'yes' }],
       ['an unknown keypad layout', { ...log, keypadLayout: 'typewriter' }],
+      ['a start that is not a place after the first', { ...log, start: 0 }],
+      ['an unknown recording', { ...log, recording: 'some' }],
       ['a negative start', { ...log, startedAt: -1 }],
       ['touches that are not an array', { ...log, touches: 'none' }],
       ['a touch that is not an object', touches('1')],

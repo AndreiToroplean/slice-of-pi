@@ -1,6 +1,6 @@
 import { KeypadLayout } from '../game/layers/keypad-layout';
 import { isPiDecimal } from '../game/pi/pi';
-import { TouchLog } from './touch-log';
+import { startOf, TouchLog } from './touch-log';
 
 /** What a run holds (see {@link Run}). */
 interface RunFields {
@@ -14,7 +14,11 @@ interface RunFields {
   readonly keypadLayout: KeypadLayout;
   /** When the run started, in milliseconds since the Unix epoch. */
   readonly startedAt: number;
-  /** The digits typed, in order. */
+  /** The place it started from, that of its first digit: 0, the start of π, or a checkpoint. */
+  readonly start: number;
+  /** Whether it keeps only the latest typing of each place, as Discover's runs do, rather than every touch. */
+  readonly overwritten: boolean;
+  /** The digits typed, in order, from the one after its start. */
   readonly digits: string;
   /**
    * When each digit was typed, in whole milliseconds since the first digit, never decreasing; one per digit. Time
@@ -61,7 +65,7 @@ export function replay(log: TouchLog): { readonly run: Run; readonly rewound: nu
         continue;
       }
       rewound = time - (times.at(-1) ?? 0);
-    } else if (log.checked && (mistakes > 0 || !isPiDecimal(digits.length, key))) {
+    } else if (log.checked && (mistakes > 0 || !isPiDecimal(startOf(log) + digits.length, key))) {
       mistakes++;
     } else {
       digits.push(key);
@@ -73,6 +77,8 @@ export function replay(log: TouchLog): { readonly run: Run; readonly rewound: nu
     checked: log.checked,
     keypadLayout: log.keypadLayout,
     startedAt: log.startedAt,
+    start: startOf(log),
+    overwritten: log.recording === 'overwrite',
     digits: digits.join(''),
     times,
   };
@@ -86,10 +92,16 @@ export function runOf(log: TouchLog): Run {
 
 /**
  * Whether the player's groups are computed from this run: a checked one does, an unchecked one, which may hold
- * mistakes, only when unchecked runs are included.
+ * mistakes, only when unchecked runs are included. Only runs from the start of π count, every touch kept: the groups
+ * are worked out place by place from there, and Discover's runs are paced by its rounds.
  */
 export function countsInGroups(run: Run, includeUnchecked: boolean): boolean {
-  return run.checked || includeUnchecked;
+  return run.start === 0 && !run.overwritten && (run.checked || includeUnchecked);
+}
+
+/** The place a run reached: that of the digit after its last, as the digit reached in the season header. */
+export function reachedPlace(run: Run): number {
+  return run.start + run.digits.length;
 }
 
 /**
