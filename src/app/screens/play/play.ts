@@ -538,7 +538,7 @@ export class Play implements PausesOnBack {
       }
       return;
     }
-    if (key !== 'backspace' && this.checking() && !isPiDecimal(this.digits().length + 1, key)) {
+    if (key !== 'backspace' && this.checking() && !isPiDecimal(this.digits().length, key)) {
       // A group never finishes on a mistake.
       this.stopWatching();
       this.vibrate('mistake');
@@ -709,7 +709,7 @@ export class Play implements PausesOnBack {
   /** Turns the group being typed into a word, its slots flying into it if `fly`. */
   private finishGroup(fly: boolean): void {
     const length = this.grouping().current.length;
-    const firstPlace = this.digits().length - length + 1;
+    const firstPlace = this.digits().length - length;
     const slots = fly ? this.slotsToFly(length) : [];
     const slide = slideDuration(slots);
     this.arrival.set(slide + FIRST_LANDING);

@@ -28,7 +28,7 @@ const CONTEXT = 4;
 
 /** A digit the player typed that isn't π's. */
 export interface Mistake {
-  /** Its place, from 1. */
+  /** Its place. */
   readonly place: number;
   /** The digit π has there. */
   readonly expected: string;
@@ -42,7 +42,7 @@ export function firstMistake(groups: readonly string[]): Mistake | undefined {
   for (let i = 0; i < digits.length; i++) {
     if (digits[i] !== PI_DECIMALS[i]) {
       return {
-        place: i + 1,
+        place: i,
         expected: PI_DECIMALS[i] ?? '',
         before: PI_DECIMALS.slice(Math.max(0, i - CONTEXT), i),
       };

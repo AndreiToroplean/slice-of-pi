@@ -44,7 +44,7 @@ export const SCROLL_BACK_DURATION = 400;
       @for (word of words(); track word.firstPlace) {
         <span class="word" [attr.data-first-place]="word.firstPlace">
           @for (digit of word.digits; track $index) {
-            <span class="tile" [style.--place-color]="colors()[word.firstPlace - 1 + $index]">{{
+            <span class="tile" [style.--place-color]="colors()[word.firstPlace + $index]">{{
               digit
             }}</span>
           }

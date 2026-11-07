@@ -143,7 +143,7 @@ describe('FitToGroupingsDialog', () => {
     type('1415 927');
     detect();
 
-    expect(status(host)).toBe('At place 7, π goes …15926.');
+    expect(status(host)).toBe('At place 6, π goes …15926.');
     expect(field(host, '.status u').textContent).toBe('6');
     expect(fitButton(host).getAttribute('disabled')).not.toBeNull();
   });

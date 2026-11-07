@@ -1,5 +1,5 @@
 /**
- * The first 100,000 decimals of π, place 1 first: beyond what anyone has recited from memory. Written by
+ * The first 100,000 decimals of π, place 0 first: beyond what anyone has recited from memory. Written by
  * `scripts/write-pi-decimals.ts` with the Chudnovsky series, and checked against other computations by the manual
  * tests in `scripts/pi.spec.ts` (`npm run test:manual`).
  */

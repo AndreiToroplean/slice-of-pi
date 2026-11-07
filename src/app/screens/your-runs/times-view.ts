@@ -133,8 +133,8 @@ export class TimesView {
   protected readonly labels = computed(() => {
     const zoom = this.zoom();
     return zoom === undefined
-      ? ['Place 1', `Place ${String(this.places())}`]
-      : [`Place ${String(Math.round(zoom.min) + 1)}`, `Place ${String(Math.round(zoom.max) + 1)}`];
+      ? ['Place 0', `Place ${String(Math.max(this.places() - 1, 1))}`]
+      : [`Place ${String(Math.round(zoom.min))}`, `Place ${String(Math.round(zoom.max))}`];
   });
 
   protected shown(key: Key): boolean {

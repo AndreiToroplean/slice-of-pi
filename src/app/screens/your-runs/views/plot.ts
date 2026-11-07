@@ -132,9 +132,9 @@ export function alongPlaces(places: number): Plot['x'] {
   return {
     min: 0,
     max: Math.max(places - 1, 1),
-    labels: ['Place 1', `Place ${String(places)}`],
+    labels: ['Place 0', `Place ${String(Math.max(places - 1, 1))}`],
     places: true,
-    label: (x) => `Place ${String(Math.round(x) + 1)}`,
+    label: (x) => `Place ${String(Math.round(x))}`,
   };
 }
 

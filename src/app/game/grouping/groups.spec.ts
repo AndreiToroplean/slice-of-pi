@@ -12,9 +12,9 @@ describe('groupDigits', () => {
   it('cuts the finished groups at their sizes, and the rest is the group being typed', () => {
     expect(groupDigits('141592653', [3, 1, 4])).toEqual({
       words: [
-        { firstPlace: 1, digits: '141' },
-        { firstPlace: 4, digits: '5' },
-        { firstPlace: 5, digits: '9265' },
+        { firstPlace: 0, digits: '141' },
+        { firstPlace: 3, digits: '5' },
+        { firstPlace: 4, digits: '9265' },
       ],
       current: '3',
     });
@@ -22,7 +22,7 @@ describe('groupDigits', () => {
 
   it('has an empty group being typed right after a group is finished', () => {
     expect(groupDigits('14159', [5])).toEqual({
-      words: [{ firstPlace: 1, digits: '14159' }],
+      words: [{ firstPlace: 0, digits: '14159' }],
       current: '',
     });
   });

@@ -146,7 +146,7 @@ export class RunChart {
   readonly picked = output<number>();
 
   protected readonly height = CHART_HEIGHT;
-  /** From place 1 at x = 0 to the last place. */
+  /** From place 0 at x = 0 to the last place. */
   protected readonly width = computed(() => Math.max(this.places() - 1, 1));
   /** The places shown: the window zoomed into, or all of them. */
   private readonly shown = computed(() => this.window() ?? { min: 0, max: this.width() });

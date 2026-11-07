@@ -480,7 +480,7 @@ describe('ModelTuning', () => {
     chart.dispatchEvent(new MouseEvent('pointerup', { clientX: 56 }));
     button(host, 'Place').click();
     const place = () => host.querySelector('app-place-perspective');
-    await until(() => place()?.querySelector('h3')?.textContent.includes('Places 6 | 7') === true);
+    await until(() => place()?.querySelector('h3')?.textContent.includes('Places 5 | 6') === true);
 
     expect(place()?.closest<HTMLElement>('[role="tabpanel"]')?.hidden).toBe(false);
     expect(place()?.querySelector('.verdict')?.textContent.trim()).toBe('Break');

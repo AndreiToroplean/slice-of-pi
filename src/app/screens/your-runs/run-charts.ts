@@ -1,6 +1,6 @@
 import { Run } from '../../player-data/run';
 
-/** Values along the places of π, by index (index 0 is place 1); `undefined` where there's no value. */
+/** Values along the places of π, by place; `undefined` where there's no value. */
 export type Series = readonly (number | undefined)[];
 
 /**
@@ -27,7 +27,7 @@ export function chartTop(series: readonly Series[]): number {
 export const CHART_HEIGHT = 100;
 
 /**
- * The line of a series, as SVG path data for a chart `places` wide: place 1 at x = 0, one unit per place, and `top`
+ * The line of a series, as SVG path data for a chart `places` wide: place 0 at x = 0, one unit per place, and `top`
  * milliseconds at the top. Values above the top are cut off at it; places without a value break the line.
  */
 export function chartPath(values: Series, top: number): string {

@@ -39,7 +39,7 @@ const CONTEXT = 6;
         ‹
       </button>
       <h3>
-        <span>Places {{ place() }} | {{ place() + 1 }}</span
+        <span>Places {{ place() - 1 }} | {{ place() }}</span
         >{{ ' '
         }}<span class="verdict" [class.breaks]="analysis().breaks">{{
           analysis().breaks ? 'Break' : 'No break'
@@ -310,7 +310,7 @@ const CONTEXT = 6;
 export class PlacePerspective {
   /** The steps of the break model over the runs counted. */
   readonly steps = input.required<Steps>();
-  /** The place: the boundary before the digit at this index, from 1. */
+  /** The place picked: the boundary between the digit at this place and the one before, from place 1 on. */
   readonly place = model.required<number>();
   /** The digits of the longest run, so that the last place is before its last digit. */
   readonly digitCount = input.required<number>();
