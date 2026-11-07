@@ -1,0 +1,1 @@
+import{Pt as h,pt as Yr,zt as io}from"./chunk-CIxeMPXQ.js";function v(){return c(`/`)}function c(t){let i=h(io),e=h(Yr);return()=>{i.lastSuccessfulNavigation()?.previousNavigation?.finalUrl?.toString()===t?e.back():i.navigateByUrl(t,{replaceUrl:!0})}}export{v as n,c as t};

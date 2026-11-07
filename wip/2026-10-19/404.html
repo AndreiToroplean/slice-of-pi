@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-beasties-container>
+  <head><script>(() => { const f = IDBFactory.prototype, { open, deleteDatabase } = f, p = "wip-2026-10-19:"; f.open = function (n, ...a) { return open.call(this, p + n, ...a); }; f.deleteDatabase = function (n) { return deleteDatabase.call(this, p + n); }; })();</script>
+    <meta charset="utf-8">
+    <title>Slice of Pi</title>
+    <base href="/slice-of-pi/wip/2026-10-19/">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="apple-touch-icon" href="icons/icon-180x180.png">
+    <!-- The main menu shows this icon: fetch it with the page, not once the app has started, so that it is there as soon as the menu is. -->
+    <link rel="preload" as="image" href="icons/icon.webp" type="image/webp" fetchpriority="high">
+    <!--
+      Its fonts, for the same reason: served with the game (copied from their packages by `angular.json`, the latin
+      letters only) rather than from a font service, so that they come from where the page does.
+    -->
+    <link rel="preload" as="font" href="fonts/fredoka/files/fredoka-latin-wght-normal.woff2" type="font/woff2" crossorigin>
+    <link rel="preload" as="font" href="fonts/lexend/files/lexend-latin-wght-normal.woff2" type="font/woff2" crossorigin>
+    <style>
+      @font-face {
+        font-family: 'Fredoka';
+        font-display: swap;
+        font-weight: 300 700;
+        src: url('fonts/fredoka/files/fredoka-latin-wght-normal.woff2') format('woff2');
+        unicode-range:
+          U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+          U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: 'Lexend';
+        font-display: swap;
+        font-weight: 100 900;
+        src: url('fonts/lexend/files/lexend-latin-wght-normal.woff2') format('woff2');
+        unicode-range:
+          U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+          U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+    </style>
+    <meta name="theme-color" content="#ffb3d1">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.webmanifest">
+  <style>:root{color-scheme:light;--surround:#efe6da;--on-background:#ffffff;--ink:#2a1f3d;--text-shadow:0 1px 6px rgb(0 0 0 / 15%);--text-shadow-large:0 2px 10px rgb(0 0 0 / 18%);--focus-ring:#ffffff;--candy:#ffffff;--on-candy:var(--ink);--candy-edge:#d9cfe0;--candy-primary:#ffc35a;--candy-primary-edge:#e3962b;--candy-danger:#d63b41;--on-candy-danger:#ffffff;--candy-danger-edge:#a1262c;--frost:rgb(255 255 255 / 26%);--frost-pressed:rgb(255 255 255 / 45%);--frost-highlight:rgb(255 255 255 / 45%);--frost-blur:10px;--frost-slot:rgb(255 255 255 / 20%);--place-color:var(--lead);--on-place-color:var(--ink);--on-palette:#ffffff;--lead:#ffffff;--lead-shade:#e4e0ea;--mistake:#d81b36;--mistake-fill:rgb(255 255 255 / 88%);--chart-break:#e8344e;--ease:cubic-bezier(.7, 0, .3, 1);--duration-dialog:.1s;--duration-screen:.175s;--font-ui:"Lexend", system-ui, sans-serif;--font-digits:"Fredoka", system-ui, sans-serif;--radius-key:1.25rem;--radius-slot:.875rem;--radius-slot-dense:.5625rem;--space-1:.375rem;--space-2:.5625rem;--space-3:1.125rem;background:var(--surround);color:var(--on-background);font-family:var(--font-ui);font-size-adjust:from-font}html,body{margin:0;overscroll-behavior:none}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}</style><link rel="stylesheet" href="styles-3SIUV7NV.css" media="print" data-beasties-media="all"><noscript><link rel="stylesheet" href="styles-3SIUV7NV.css"></noscript></head>
+  <body>
+    <app-root></app-root>
+    <noscript>Please enable JavaScript to continue using this application.</noscript>
+  <link rel="modulepreload" href="chunk-DlTYtvWb.js"><script src="main-5WTV5B75.js" type="module"></script><script>document.querySelectorAll('link[data-beasties-media]').forEach(function(l){l.media=l.getAttribute('data-beasties-media');l.removeAttribute('data-beasties-media')})</script></body>
+</html>
