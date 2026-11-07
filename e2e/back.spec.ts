@@ -6,6 +6,8 @@ test('pauses the game on Back, and resumes it, keeping the history, so that endi
   await page.goto('/');
   await page.getByRole('link', { name: 'Free Play' }).click();
   await expect(page).toHaveURL('/play');
+  // Off the buttons: one under the mouse breathes, and a breathing one never stands still for a click.
+  await page.mouse.move(0, 0);
   const paused = page.getByRole('dialog', { name: 'Paused' });
 
   await page.goBack();
