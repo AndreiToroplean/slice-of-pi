@@ -177,12 +177,6 @@ describe('Menu', () => {
     expect(link(host, 'Challenge')?.getAttribute('href')).toBe('/challenge');
   });
 
-  it('opens the player’s runs', async () => {
-    const host = await setUp();
-
-    expect(link(host, 'Your Runs')?.getAttribute('href')).toBe('/runs');
-  });
-
   describe('from the keyboard', () => {
     async function shown(): Promise<HTMLElement> {
       const fixture = TestBed.createComponent(Menu);
@@ -223,11 +217,9 @@ describe('Menu', () => {
       press('ArrowUp');
       expect(focused()).toBe('Free Play');
       press('ArrowUp');
-      expect(focused()).toBe('Your Runs');
-      press('ArrowUp');
       expect(focused()).toBe('Challenge');
       press('ArrowDown');
-      expect(focused()).toBe('Your Runs');
+      expect(focused()).toBe('Free Play');
 
       host.querySelector<HTMLElement>('[title="Settings"]')?.focus();
       expect(press('ArrowDown').defaultPrevented).toBe(false);
