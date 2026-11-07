@@ -29,11 +29,11 @@ describe('My groupings', () => {
   it('finds the first digit that isn’t π’s', () => {
     expect(firstMistake(['1415', '926', '5358'])).toBeUndefined();
     expect(firstMistake(['1415', '927', '5358'])).toEqual({
-      place: 7,
+      place: 6,
       expected: '6',
       before: '1592',
     });
-    expect(firstMistake(['24'])).toEqual({ place: 1, expected: '1', before: '' });
+    expect(firstMistake(['24'])).toEqual({ place: 0, expected: '1', before: '' });
   });
 
   describe('kept', () => {

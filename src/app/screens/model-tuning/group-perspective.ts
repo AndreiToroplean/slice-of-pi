@@ -46,7 +46,7 @@ import { PlotView } from '../your-runs/views/plot-view';
           [class.error]="myGroupings.mistake() !== undefined"
         >
           @if (myGroupings.mistake(); as wrong) {
-            At place {{ wrong.place }}, π goes {{ wrong.before.length < wrong.place - 1 ? '…' : ''
+            At place {{ wrong.place }}, π goes {{ wrong.before.length < wrong.place ? '…' : ''
             }}{{ wrong.before }}<u>{{ wrong.expected }}</u
             >.
           } @else {

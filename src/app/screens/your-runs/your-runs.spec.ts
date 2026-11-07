@@ -287,7 +287,7 @@ describe('YourRuns', () => {
     expect(viewBoxes).toEqual(['0 0 1 100', '0 0 1 100', '0 0 1 100']);
     expect(
       Array.from(host.querySelectorAll('.summary .axis span'), (span) => span.textContent),
-    ).toEqual(['Place 1', 'Place 2']);
+    ).toEqual(['Place 0', 'Place 1']);
   });
 
   it('zooms the charts of the runs into the places zoomed into on the chart of all runs', async () => {
@@ -310,7 +310,7 @@ describe('YourRuns', () => {
     ).toEqual(Array<string>(trusted.length + 1).fill('0 0 14.5 100'));
     expect(
       Array.from(host.querySelectorAll('.summary .axis span'), (span) => span.textContent),
-    ).toEqual(['Place 1', 'Place 16']);
+    ).toEqual(['Place 0', 'Place 15']);
   });
 
   it('keeps its layout in developer mode, which has Break Models for the rest', async () => {

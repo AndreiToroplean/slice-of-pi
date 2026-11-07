@@ -75,7 +75,7 @@ describe('TypedDigits', () => {
 
     expect(
       Array.from(host.querySelectorAll<HTMLElement>('.word'), (word) => word.dataset['firstPlace']),
-    ).toEqual(['1', '6']);
+    ).toEqual(['0', '5']);
   });
 
   it('is a focusable region, so it can be scrolled with the keyboard', async () => {

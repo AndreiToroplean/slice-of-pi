@@ -44,20 +44,20 @@ describe('PlacePerspective', () => {
   it('says whether the place is a break, between which digits of π', () => {
     const { host, heading } = render(6);
 
-    expect(heading()).toBe('Places 6 | 7 Break');
+    expect(heading()).toBe('Places 5 | 6 Break');
     expect(host.querySelector('.digits')?.textContent.replace(/\s+/g, '')).toBe('141592|653589');
-    expect(render(7).heading()).toBe('Places 7 | 8 No break');
+    expect(render(7).heading()).toBe('Places 6 | 7 No break');
   });
 
   it('steps from place to place, and from one usual break spot to the next', () => {
     const { heading, press } = render(6);
 
     press('The place after');
-    expect(heading()).toContain('Places 7 | 8');
-    press('The usual break spot after');
-    expect(heading()).toContain('Places 9 | 10');
-    press('The usual break spot before');
     expect(heading()).toContain('Places 6 | 7');
+    press('The usual break spot after');
+    expect(heading()).toContain('Places 8 | 9');
+    press('The usual break spot before');
+    expect(heading()).toContain('Places 5 | 6');
   });
 
   it('lists every run at the place', () => {

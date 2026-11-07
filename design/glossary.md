@@ -5,7 +5,7 @@
 ## π and its digits
 
 - **Digit:** one of the ten values 0 to 9. "The digit 3" is a value, not a position.
-- **Place:** a position in π, by its decimal place: place 1 is the 1 right after "3.", and the leading 3 is place 0. Prefer it over "position" or "index".
+- **Place:** a position among π's decimals, counted from 0: place 0 is the 1 right after "3.", so a place's number is how many decimals come before it. Prefer it over "position" or "index".
 - **Occurrence:** a place holding a given digit: "the next 3".
 - **Group:** consecutive places the player types without a break; among the typed digits, a group is a **word**. Not "chunk" or "packet".
 - **Grouping:** how a player splits π into groups.
@@ -23,7 +23,7 @@
 - **Typed digits:** the digits typed so far in the run, in words.
 - **Tape:** the one row the typed digits sit on, scrolling as words come on and off it. Each digit on it is a **tile**.
 - **Background:** the season-colored backdrop behind every screen. Never call it the sky.
-- **Season header:** the top of the play screen: the digit reached (the places typed, digit 0 before any), the season and year, and the place in the year on the **year bar**.
+- **Season header:** the top of the play screen: the digit reached (the places typed, digit 0 before any, which is also the place of the next digit), the season and year, and the place in the year on the **year bar**.
 - **Sky:** the 3D night sky where the player's constellations collect.
 
 ## Play

@@ -1,6 +1,6 @@
 /** A group the player has finished typing, shown among the typed digits as a word. */
 export interface Word {
-  /** The place of its first digit: place 1 is the first decimal. */
+  /** The place of its first digit: place 0 is the first decimal. */
   readonly firstPlace: number;
   readonly digits: string;
 }
@@ -16,7 +16,7 @@ export interface Grouping {
 export function groupDigits(digits: string, sizes: readonly number[]): Grouping {
   let start = 0;
   const words = sizes.map((size) => {
-    const word = { firstPlace: start + 1, digits: digits.slice(start, start + size) };
+    const word = { firstPlace: start, digits: digits.slice(start, start + size) };
     start += size;
     return word;
   });

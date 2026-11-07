@@ -61,7 +61,7 @@ export function replay(log: TouchLog): { readonly run: Run; readonly rewound: nu
         continue;
       }
       rewound = time - (times.at(-1) ?? 0);
-    } else if (log.checked && (mistakes > 0 || !isPiDecimal(digits.length + 1, key))) {
+    } else if (log.checked && (mistakes > 0 || !isPiDecimal(digits.length, key))) {
       mistakes++;
     } else {
       digits.push(key);

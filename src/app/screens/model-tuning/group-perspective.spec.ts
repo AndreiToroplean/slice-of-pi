@@ -64,7 +64,7 @@ describe('GroupPerspective', () => {
     type('1415 927');
 
     expect(host.querySelector('#my-groupings-status')?.textContent.trim()).toBe(
-      'At place 7, π goes …15926.',
+      'At place 6, π goes …15926.',
     );
     expect(textarea.getAttribute('aria-invalid')).toBe('true');
   });
