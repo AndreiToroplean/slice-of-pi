@@ -1,5 +1,14 @@
 import { KeypadKey } from '../game/layers/keypad-layout';
-import { countsInGroups, groupRuns, moveRun, orderRuns, replay, Run, runOf } from './run';
+import {
+  countsInGroups,
+  groupRuns,
+  moveRun,
+  orderRuns,
+  reachedPlace,
+  replay,
+  Run,
+  runOf,
+} from './run';
 import { addTouch, newTouchLog, TouchLog } from './touch-log';
 
 describe('run', () => {
@@ -23,6 +32,8 @@ describe('run', () => {
         checked: true,
         keypadLayout: 'telephone',
         startedAt: 1_760_000_000_000,
+        start: 0,
+        overwritten: false,
         digits: '141',
         times: [0, 212, 531],
       });
@@ -69,6 +80,22 @@ describe('run', () => {
       expect(runOf(touches(false, ['9', 0], ['9', 100])).digits).toBe('99');
     });
 
+    it('checks the digits of a run from a checkpoint from its place', () => {
+      // Places 50 to 52 are 5, 8 and 2.
+      const fromCheckpoint = [
+        ['5', 0],
+        ['8', 200],
+        ['3', 400],
+      ].reduce(
+        (touched, [key, time]) => addTouch(touched, { key: key as KeypadKey }, time as number),
+        newTouchLog('run-1', 0, true, 'calculator', { start: 50 }),
+      );
+
+      const run = runOf(fromCheckpoint);
+
+      expect([run.start, run.digits, reachedPlace(run)]).toEqual([50, '58', 52]);
+    });
+
     it('ignores backspace with no digit to delete', () => {
       const { run, rewound } = replay(touches(true, ['backspace', 50], ['1', 100]));
 
@@ -83,6 +110,17 @@ describe('run', () => {
     expect(countsInGroups(checked, false)).toBe(true);
     expect(countsInGroups(unchecked, false)).toBe(false);
     expect(countsInGroups(unchecked, true)).toBe(true);
+  });
+
+  it('leaves runs from a checkpoint and Discover’s out of the groups', () => {
+    const fromCheckpoint = runOf(newTouchLog('later', 0, true, 'calculator', { start: 50 }));
+    const discovered = runOf(
+      newTouchLog('discovered', 0, true, 'calculator', { recording: 'overwrite' }),
+    );
+
+    expect(countsInGroups(fromCheckpoint, true)).toBe(false);
+    expect(countsInGroups(discovered, true)).toBe(false);
+    expect(discovered.overwritten).toBe(true);
   });
 
   describe('the order of the runs', () => {

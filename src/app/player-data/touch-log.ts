@@ -14,7 +14,7 @@ import { migrate, Migration, SavedRecord } from './migration';
  * than it knows (written by a pull request preview sharing the site's storage) leaves it alone rather than misreading
  * it. It carries on from the runs' format, which touch logs replaced.
  */
-export const TOUCH_LOG_FORMAT = 5;
+export const TOUCH_LOG_FORMAT = 6;
 
 /**
  * A touch on the keypad, or a key typed without touching it, in a touch log: what it typed, if anything, where it
@@ -39,6 +39,16 @@ interface TouchLogFields {
   /** When the run started, with its first digit, in milliseconds since the Unix epoch. */
   readonly startedAt: number;
   /**
+   * The place the run started from, a checkpoint, that of its first digit: left out for runs from the start
+   * of π, place 0, as every run was before checkpoints.
+   */
+  readonly start?: number;
+  /**
+   * How its touches were recorded: left out for every touch kept, in order; `overwrite` for Discover's, which keeps
+   * only the latest typing of each place, as its rounds go over the same places again and again.
+   */
+  readonly recording?: 'overwrite';
+  /**
    * Every touch on the keypad, and every key typed without touching it, in order, from the first digit: those typing
    * digits, wrong ones included, those typing backspace, and those typing nothing.
    */
@@ -54,12 +64,16 @@ declare const touchLogBrand: unique symbol;
  */
 export type TouchLog = TouchLogFields & { readonly [touchLogBrand]: true };
 
-/** A touch log with no touches yet, checked and on the default keypad layout unless said otherwise. */
+/**
+ * A touch log with no touches yet, checked, on the default keypad layout, from the start of π and keeping every touch,
+ * unless said otherwise.
+ */
 export function newTouchLog(
   id: string,
   startedAt: number,
   checked = true,
   keypadLayout: KeypadLayout = DEFAULT_KEYPAD_LAYOUT,
+  { start = 0, recording }: { readonly start?: number; readonly recording?: 'overwrite' } = {},
 ): TouchLog {
   return touchLog({
     format: TOUCH_LOG_FORMAT,
@@ -67,8 +81,15 @@ export function newTouchLog(
     checked,
     keypadLayout,
     startedAt,
+    ...(start === 0 ? {} : { start }),
+    ...(recording === undefined ? {} : { recording }),
     touches: [],
   });
+}
+
+/** The place a run starts from: 0, the start of π, unless it started from a checkpoint. */
+export function startOf(log: TouchLog): number {
+  return log.start ?? 0;
 }
 
 /**
@@ -92,7 +113,7 @@ export function parseTouchLog(value: unknown): TouchLog | undefined {
   if (typeof value !== 'object' || value === null) {
     return undefined;
   }
-  const { format, id, checked, keypadLayout, startedAt, touches } = migrate(
+  const { format, id, checked, keypadLayout, startedAt, start, recording, touches } = migrate(
     value,
     TOUCH_LOG_MIGRATIONS,
   );
@@ -103,6 +124,8 @@ export function parseTouchLog(value: unknown): TouchLog | undefined {
     typeof checked !== 'boolean' ||
     !isKeypadLayout(keypadLayout) ||
     !isTime(startedAt) ||
+    !(start === undefined || (Number.isInteger(start) && (start as number) > 0)) ||
+    !(recording === undefined || recording === 'overwrite') ||
     !Array.isArray(touches)
   ) {
     return undefined;
@@ -117,6 +140,8 @@ export function parseTouchLog(value: unknown): TouchLog | undefined {
     checked,
     keypadLayout,
     startedAt,
+    ...(start === undefined ? {} : { start: start as number }),
+    ...(recording === undefined ? {} : { recording }),
     touches: read as Touch[],
   });
 }
@@ -133,6 +158,9 @@ export const TOUCH_LOG_MIGRATIONS: readonly Migration[] = [
   // Format 4 touch logs placed each touch where it was released, rather than where it started: the places are dropped,
   // and with them the touches typing nothing, which had nothing else to them.
   withoutPlaces,
+  // Format 5 touch logs are from before checkpoints and Discover: from the start of π, every touch kept, as they say
+  // by leaving out where they start and how they were recorded.
+  (log) => log,
 ];
 
 /** A format 4 touch log without the places of its touches: each a key typed, those typing nothing left out. */

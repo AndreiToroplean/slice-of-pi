@@ -252,6 +252,8 @@ describe('RunRecorder', () => {
         checked: true,
         keypadLayout: 'calculator',
         startedAt: 1_760_000_006_000,
+        start: 0,
+        overwritten: false,
         digits: '14',
         times: [0, 200],
       },
