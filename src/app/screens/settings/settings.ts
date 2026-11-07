@@ -3,6 +3,8 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { DEFAULT_KEYPAD_LAYOUT, KeypadLayout } from '../../game/layers/keypad-layout';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
+import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
+import { DEFAULT_DISCOVER_PACE, DiscoverPace } from '../../game/modes/discover-pace';
 import { VibrationSetting } from '../../player-data/vibration-setting';
 import { SoundSetting } from '../../player-data/sound-setting';
 import { Page } from '../../ui/page';
@@ -13,7 +15,7 @@ import { Candy } from '../../ui/candy';
 import { YourData } from './your-data';
 
 /**
- * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout, whether the game
+ * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout, Discover's pace, whether the game
  * plays sounds and the phone vibrates, and in developer mode,
  * whether the keys are solid or see-through, whether to count down to the end of each group, whether to show what each
  * key typed played, and whether to leave the
@@ -51,6 +53,29 @@ import { YourData } from './your-data';
             title="Back to Default"
             [disabled]="layoutDefault()"
             (click)="resetLayout()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 14 4 9l5-5" />
+              <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+            </svg>
+          </button>
+        </div>
+      </section>
+      <section class="panel" aria-labelledby="discover-title">
+        <h2 id="discover-title">Discover</h2>
+        <div class="row">
+          <app-segmented
+            label="Discover pace"
+            [segments]="paces"
+            [value]="discoverPace.pace()"
+            (valueChange)="discoverPace.set($event)"
+          />
+          <button
+            type="button"
+            class="round"
+            title="Back to Default"
+            [disabled]="paceDefault()"
+            (click)="resetPace()"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M9 14 4 9l5-5" />
@@ -243,6 +268,12 @@ export class Settings {
     { value: 'calculator', label: 'Calculator' },
     { value: 'telephone', label: 'Telephone' },
   ];
+  protected readonly discoverPace = inject(DiscoverPaceSetting);
+  protected readonly paces: readonly Segment<DiscoverPace>[] = [
+    { value: 'slower', label: 'Slower' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'faster', label: 'Faster' },
+  ];
   protected readonly keyLooks: readonly Segment<'clear' | 'solid'>[] = [
     { value: 'solid', label: 'Solid Keys' },
     { value: 'clear', label: 'Clear Keys' },
@@ -257,12 +288,16 @@ export class Settings {
   protected readonly layoutDefault = computed(
     () => this.keypadLayout.layout() === DEFAULT_KEYPAD_LAYOUT,
   );
+  protected readonly paceDefault = computed(
+    () => this.discoverPace.pace() === DEFAULT_DISCOVER_PACE,
+  );
   /** Whether the countdown is hidden, as it is unless turned on: only developer mode has it. */
   protected readonly countdownDefault = computed(() => !this.tweaks.countdown());
   /** Whether every setting shown has its default value; the digits are always checked outside developer mode. */
   protected readonly allDefault = computed(
     () =>
       this.layoutDefault() &&
+      this.paceDefault() &&
       this.vibration.enabled() &&
       this.sound.enabled() &&
       this.countdownDefault() &&
@@ -289,6 +324,10 @@ export class Settings {
 
   protected resetVibration(): void {
     void this.vibration.set(true);
+  }
+
+  protected resetPace(): void {
+    void this.discoverPace.set(DEFAULT_DISCOVER_PACE);
   }
 
   protected setSound(event: Event): void {
@@ -328,6 +367,7 @@ export class Settings {
   /** Brings back the default value of every setting shown. */
   protected resetAll(): void {
     this.resetLayout();
+    this.resetPace();
     this.resetVibration();
     this.resetSound();
     if (this.developerMode.enabled()) {
