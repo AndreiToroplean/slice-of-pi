@@ -60,8 +60,8 @@ export const RELOAD_PAGE = new InjectionToken<() => void>('RELOAD_PAGE', {
 const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], pi: [] };
 
 /**
- * The main menu, where the app opens: the game's icon and name, a button to start a challenge, one above it to free play, and one above that to the player's runs,
- * the settings behind a gear in a corner, and in developer mode, its pages in an overflow menu in the other, with its
+ * The main menu, where the app opens: the game's icon and name, a button to start a challenge and one above it to free play,
+ * the settings behind a gear in a corner, and in developer mode, its pages, the player's runs among them, in an overflow menu in the other, with its
  * editor (see `menu-editor.ts`). The name's letters are lanterns, in the key colors, and the icon is lit from behind:
  * three layers of light (see `light-layer.ts`), "Pi" nearest, then "Slice of", then the icon, each lighting everything
  * behind it. Where each part sits, always centered across, and their light, come from its look (see `menu-look.ts`).
@@ -164,7 +164,6 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
       {{ taps.message() }}
     </p>
     <app-button-list class="actions" [style.gap]="'var(--buttons-gap)'">
-      <a appCandy routerLink="/runs">Your Runs</a>
       <a appCandy routerLink="/play" data-vibration="play">Free Play</a>
       <a #play appCandy="primary" routerLink="/challenge" data-vibration="play">Challenge</a>
     </app-button-list>
@@ -192,6 +191,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
           <div appDropdown aria-labelledby="developer-title">
             <div cdkMenuGroup class="section">
               <h2 id="developer-title">Developer</h2>
+              <a cdkMenuItem routerLink="/runs">Your Runs</a>
               <a cdkMenuItem routerLink="/developer/break-models">Break Models</a>
               <a cdkMenuItem routerLink="/developer/sound-models">Sound Models</a>
               <a cdkMenuItem routerLink="/developer/key-colors">Key Colors</a>

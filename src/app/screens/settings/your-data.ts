@@ -3,6 +3,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { ButtonList } from '../../ui/button-list';
 import { backupFileName, readBackup, writeBackup } from '../../player-data/backup';
+import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { VibrationSetting } from '../../player-data/vibration-setting';
 import { SoundSetting } from '../../player-data/sound-setting';
@@ -101,6 +102,7 @@ export class YourData {
   private readonly developer = inject(DeveloperMode);
   private readonly tweaks = inject(Tweaks);
   private readonly keypadLayout = inject(KeypadLayoutSetting);
+  private readonly discoverPace = inject(DiscoverPaceSetting);
   private readonly vibration = inject(VibrationSetting);
   private readonly sound = inject(SoundSetting);
   private readonly store = inject(RunStore);
@@ -155,6 +157,7 @@ export class YourData {
       this.developer.reload(),
       this.tweaks.reload(),
       this.keypadLayout.reload(),
+      this.discoverPace.reload(),
       this.vibration.reload(),
       this.sound.reload(),
       this.refresh(),
