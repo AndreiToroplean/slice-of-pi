@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { pressKey } from '../../../testing/keys';
-import { openMenu } from '../../../testing/menus';
+import { menuItem, menuItems, openMenu } from '../../../testing/menus';
+import { Checkpoint } from '../../player-data/checkpoint';
 import { provideRouter } from '@angular/router';
 import { routes } from '../../app.routes';
 import { Background } from '../../ui/background';
@@ -175,6 +176,37 @@ describe('Menu', () => {
 
     expect(link(host, 'Free Play')?.getAttribute('href')).toBe('/play');
     expect(link(host, 'Challenge')?.getAttribute('href')).toBe('/challenge');
+  });
+
+  describe('the checkpoint games start from', () => {
+    function picker(host: HTMLElement): HTMLButtonElement | null {
+      return host.querySelector('button[title="Start From"]');
+    }
+
+    it('is offered only once the player has unlocked a checkpoint', async () => {
+      expect(picker(await setUp())).toBeNull();
+    });
+
+    it('shows the place games start from, and picks another unlocked', async () => {
+      const checkpoint = TestBed.inject(Checkpoint);
+      vi.spyOn(checkpoint, 'refresh').mockImplementation(() => {
+        checkpoint.unlocked.set([50, 100]);
+        return Promise.resolve();
+      });
+      const fixture = TestBed.createComponent(Menu);
+      await fixture.whenStable();
+      const host = fixture.nativeElement as HTMLElement;
+      expect(picker(host)?.textContent.trim()).toBe('0');
+
+      picker(host)?.click();
+      await fixture.whenStable();
+      expect(menuItems()).toEqual(['Start of π', 'Place 50', 'Place 100']);
+      menuItem('Place 100').click();
+      await fixture.whenStable();
+
+      expect(checkpoint.start()).toBe(100);
+      expect(picker(host)?.textContent.trim()).toBe('100');
+    });
   });
 
   describe('from the keyboard', () => {

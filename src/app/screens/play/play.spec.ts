@@ -31,6 +31,7 @@ import { newTouchLog } from '../../player-data/touch-log';
 import { typeKey } from '../../../testing/touch-logs';
 import { Digit } from '../../game/pi/digit';
 import { RunRecorder } from '../../player-data/run-recorder';
+import { Checkpoint } from '../../player-data/checkpoint';
 import { INDEXED_DB, RunStore } from '../../player-data/run-store';
 import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { backgroundsFrom, seasonAt } from '../../game/layers/seasons';
@@ -416,6 +417,27 @@ describe('Play', () => {
       expect(slots(host)).toEqual(['1', '', '']);
     });
 
+    it('starts a group exactly at the checkpoint the game starts from, the player’s going on from there', async () => {
+      // Grouped by 3 from place 0, so that place 50 ends the group from place 48.
+      const { host, type } = await setUpWithRuns(
+        4,
+        true,
+        () => {
+          const checkpoint = TestBed.inject(Checkpoint);
+          checkpoint.unlocked.set([50]);
+          checkpoint.pick(50);
+          return Promise.resolve();
+        },
+        60,
+      );
+      expect(slots(host)).toEqual(['']);
+
+      await typeAll(type, '5');
+
+      expect(words(host).at(-1)).toBe('5');
+      expect(slots(host)).toEqual(['', '', '']);
+    });
+
     it('finishes a group at once where the runs agree it ends', async () => {
       const { host, type } = await setUpWithRuns(4);
 
@@ -599,6 +621,40 @@ describe('Play', () => {
 
     expect(slots(host)).toEqual(['', '', '', '', '']);
     expect(summary(host)).toBe('No digits typed yet.');
+  });
+
+  describe('from a checkpoint', () => {
+    beforeEach(() => {
+      const checkpoint = TestBed.inject(Checkpoint);
+      checkpoint.unlocked.set([50]);
+      checkpoint.pick(50);
+    });
+
+    it('gives the digits before it, in words of 10 on the tape, checking those after it', async () => {
+      const { host, type } = await setUp();
+      expect(words(host)).toEqual(PI_DECIMALS.slice(0, 50).match(/.{10}/g));
+
+      // Places 50 and 51 are 5 and 8.
+      await typeAll(type, '58');
+      expect(slots(host)).toEqual(['5', '8', '', '', '']);
+      await typeAll(type, '0');
+      expect(host.querySelector('app-slots .wrong')?.textContent).toBe('0');
+    });
+
+    it('never deletes the digits given', async () => {
+      const { host, type } = await setUp();
+
+      await typeAll(type, '5<<');
+
+      expect(slots(host)).toEqual(['', '', '', '', '']);
+      expect(words(host)).toHaveLength(5);
+    });
+
+    it('records its run from the checkpoint', async () => {
+      await setUp();
+
+      expect(TestBed.inject(RunRecorder).start()).toBe(50);
+    });
   });
 
   describe('mistakes', () => {

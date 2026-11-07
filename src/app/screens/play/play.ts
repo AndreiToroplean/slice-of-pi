@@ -40,7 +40,11 @@ import { groupRuns, Run } from '../../player-data/run';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { RUN_CLOCK, RunRecorder } from '../../player-data/run-recorder';
 import { LiveRun, RunSession } from '../../player-data/live-run';
-import { newTouchLog, TouchLog } from '../../player-data/touch-log';
+import { newTouchLog, startOf, TouchLog } from '../../player-data/touch-log';
+import { Checkpoint } from '../../player-data/checkpoint';
+import { givenWords } from '../../game/modes/checkpoints';
+import { timesFromPlace } from '../../game/grouping/from-checkpoint';
+import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { RunStore } from '../../player-data/run-store';
 import { KeypadKey, KeypadPoint, KeypadTouch } from '../../game/layers/keypad-layout';
 import { SeasonHeader } from './season-header/season-header';
@@ -89,6 +93,10 @@ const TICK = 16;
  * dialog once done; going back from it asks whether to cancel the changes. Every touch on the keypad, and every key
  * typed, is recorded, with where and when, in the run's touch log, and so is every touch elsewhere on the screen,
  * typing nothing, but those on the pause button and its dialog; restarting or ending the game ends the run.
+ *
+ * A game starts from the checkpoint picked on the main menu, if any: the digits before it are given, on the tape in
+ * words of 10, and backspace never deletes them; the run starts from it, and a group starts exactly there, the player's
+ * groups worked out from it as usual.
  *
  * The game mode comes from the route: free play unless it says otherwise. In a challenge, every digit is checked, the
  * keypad has no backspace, and the first mistake ends the game: the screen's edges turn red at once, the keypad takes
@@ -212,8 +220,18 @@ export class Play implements PausesOnBack {
   /** Whether slots don't fly into their words, nor anything sounds, as while a replay skips ahead. */
   quiet = false;
 
-  /** The decimals typed so far: one character per digit, so even a very long sequence takes little memory. */
-  protected readonly digits = signal('');
+  /** The checkpoint picked on the main menu, which a game starts from, if not from the start of π. */
+  private readonly checkpoint = inject(Checkpoint).start();
+  /** The place the game starts from: the checkpoint picked, or that of the run replayed. */
+  private readonly startPlace = computed(() => {
+    const log = this.replay();
+    return log === undefined ? this.checkpoint : startOf(log);
+  });
+  /**
+   * The decimals typed so far, those up to the place the game starts from given: one character per digit, so even a
+   * very long sequence takes little memory.
+   */
+  protected readonly digits = linkedSignal(() => PI_DECIMALS.slice(0, this.startPlace()));
   /**
    * A wrong digit typed after them, and any typed on after it, until backspace deletes them all: they all show as
    * mistakes, and none is recorded.
@@ -288,26 +306,21 @@ export class Play implements PausesOnBack {
   });
   /** The player's earlier runs, oldest first. */
   private readonly earlierRuns = signal<readonly Run[]>([]);
-  /** How the break model plays the groups over the earlier runs that count in them, before this one. */
-  private readonly gameplay = computed(() =>
-    this.tweaks
-      .breakModel()
-      .play(
-        groupRuns(this.earlierRuns(), this.tweaks.includeUnchecked(), this.tweaks.runOrder()).map(
-          (run) => run.times,
-        ),
-      ),
+  /** The times of the earlier runs that count in the groups, oldest first. */
+  private readonly earlierTimes = computed(() =>
+    groupRuns(this.earlierRuns(), this.tweaks.includeUnchecked(), this.tweaks.runOrder()).map(
+      (run) => run.times,
+    ),
   );
+  /** How the break model plays the groups over the earlier runs that count in them, before this one. */
+  private readonly gameplay = computed(() => this.tweaks.breakModel().play(this.earlierTimes()));
 
-  /** The size of each finished group, in order. */
-  private readonly sizes = signal<readonly number[]>([]);
+  /** The size of each finished group, in order, those given before the place the game starts from first. */
+  private readonly sizes = linkedSignal<readonly number[]>(() => givenWords(this.startPlace()));
   protected readonly grouping = computed(() => groupDigits(this.digits(), this.sizes()));
   /** How the group being typed is played. */
   private readonly plan = computed(() =>
-    this.gameplay().groupAt(
-      this.session.run()?.times ?? [],
-      this.digits().length - this.grouping().current.length,
-    ),
+    this.gameplay().groupAt(this.runTimes(), this.digits().length - this.grouping().current.length),
   );
   /**
    * The most digits the group being typed has held: it keeps the slots they took until it ends, those emptied by
@@ -389,6 +402,7 @@ export class Play implements PausesOnBack {
     });
     if (this.replay() === undefined) {
       this.recorder.challenge.set(this.routeMode === 'challenge');
+      this.recorder.start.set(this.checkpoint);
     }
     void inject(RunStore)
       .runs()
@@ -420,7 +434,10 @@ export class Play implements PausesOnBack {
     }
     this.replayed ??= new LiveRun(
       () => this.clock.now(),
-      () => newTouchLog(log.id, log.startedAt, log.checked, log.keypadLayout),
+      () =>
+        newTouchLog(log.id, log.startedAt, log.checked, log.keypadLayout, {
+          start: startOf(log),
+        }),
     );
     return this.replayed;
   }
@@ -549,6 +566,10 @@ export class Play implements PausesOnBack {
       }
       return;
     }
+    if (key === 'backspace' && this.digits().length <= this.startPlace()) {
+      // Nothing to delete: the digits before the place the game starts from are given.
+      return;
+    }
     this.vibrate(key === 'backspace' ? 'backspace' : 'digit');
     if (key === 'backspace') {
       this.landFlights();
@@ -591,7 +612,7 @@ export class Play implements PausesOnBack {
       return false;
     }
     const start = this.digits().length - size;
-    const trusted = this.gameplay().groupAt(this.session.run()?.times ?? [], start).trusted;
+    const trusted = this.gameplay().groupAt(this.runTimes(), start).trusted;
     return !this.endsAfter(this.session.waited(), start, trusted);
   }
 
@@ -646,9 +667,9 @@ export class Play implements PausesOnBack {
     this.lost.set(false);
     this.mode.set(this.routeMode);
     this.landFlights();
-    this.digits.set('');
+    this.digits.set(PI_DECIMALS.slice(0, this.startPlace()));
     this.mistakes.set('');
-    this.sizes.set([]);
+    this.sizes.set(givenWords(this.startPlace()));
     this.reopenable = false;
     this.session.end();
   }
@@ -701,9 +722,17 @@ export class Play implements PausesOnBack {
    * digit, were it typed `wait` milliseconds after the last one.
    */
   private endsAfter(wait: number, start: number, trusted: boolean): boolean {
-    const times = this.session.run()?.times ?? [];
+    const times = this.runTimes();
     const last = times.at(-1);
     return last !== undefined && this.gameplay().groupEnds([...times, last + wait], start, trusted);
+  }
+
+  /**
+   * The times of the run so far, as the break model takes them, place by place from the start of π: from a checkpoint,
+   * the places before it timed so that a group starts exactly there (see `timesFromPlace`).
+   */
+  private runTimes(): readonly number[] {
+    return timesFromPlace(this.startPlace(), this.session.run()?.times ?? [], this.earlierTimes());
   }
 
   /** Turns the group being typed into a word, its slots flying into it if `fly`. */
