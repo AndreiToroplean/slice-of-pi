@@ -4,7 +4,9 @@ import {
   DISCOVER_SPEED,
   isDiscoverSpeed,
   isPaceStep,
+  isShownFade,
   PACE_STEP,
+  SHOWN_FADE,
 } from '../game/modes/discover-pace';
 import { isKeyLinger, KEY_LINGER, Palette, PALETTE } from '../game/layers/place-colors';
 import { writeBackup } from '../player-data/backup';
@@ -87,6 +89,8 @@ export interface TweakValues {
   readonly discoverSpeed?: number;
   /** How much slower or faster than the medium pace Discover's others are, in percent, for {@link PACE_STEP}. */
   readonly paceStep?: number;
+  /** How long the digits Discover's game showed take to fade out of the tape, in milliseconds, for {@link SHOWN_FADE}. */
+  readonly shownFade?: number;
   /** `false` to play without checking the digits, which the game otherwise always does. */
   readonly checking?: false;
   /** `true` to show the countdown to the end of the group being typed, in developer mode, which is otherwise hidden. */
@@ -189,6 +193,10 @@ export class Tweaks {
   /** How much slower or faster than the medium pace Discover's others are, in percent. */
   readonly paceStep = computed(
     () => (this.developerMode.enabled() ? this.tweaks().paceStep : undefined) ?? PACE_STEP,
+  );
+  /** How long the digits Discover's game showed take to fade out of the tape, in milliseconds. */
+  readonly shownFade = computed(
+    () => (this.developerMode.enabled() ? this.tweaks().shownFade : undefined) ?? SHOWN_FADE,
   );
 
   /** Whether the game checks the digits typed against π. */
@@ -347,6 +355,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), paceStep }));
   }
 
+  /** Sets how long the digits Discover's game showed take to fade out; `undefined` brings back the game's. */
+  setShownFade(shownFade: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), shownFade }));
+  }
+
   /** Turns checking the digits typed on or off. */
   setChecking(checking: boolean): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), checking: checking ? undefined : false }));
@@ -470,6 +483,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     keyLinger,
     discoverSpeed,
     paceStep,
+    shownFade,
     checking,
     countdown,
     keys,
@@ -498,6 +512,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     keyLinger: isKeyLinger(keyLinger) ? keyLinger : undefined,
     discoverSpeed: isDiscoverSpeed(discoverSpeed) ? discoverSpeed : undefined,
     paceStep: isPaceStep(paceStep) ? paceStep : undefined,
+    shownFade: isShownFade(shownFade) ? shownFade : undefined,
     checking: checking === false ? checking : undefined,
     countdown: countdown === true ? countdown : undefined,
     keys: keys === 'solid' ? keys : undefined,
@@ -529,6 +544,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     keyLinger,
     discoverSpeed,
     paceStep,
+    shownFade,
     layout,
     menu,
     vibrations,
@@ -554,6 +570,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     keyLinger: keyLinger === KEY_LINGER ? undefined : keyLinger,
     discoverSpeed: discoverSpeed === DISCOVER_SPEED ? undefined : discoverSpeed,
     paceStep: paceStep === PACE_STEP ? undefined : paceStep,
+    shownFade: shownFade === SHOWN_FADE ? undefined : shownFade,
     layout: equal(layout, LAYOUT) ? undefined : layout,
     menu: equal(menu, MENU_LOOK) ? undefined : menu,
     vibrations: vibrationsOf(vibrations),
@@ -591,6 +608,7 @@ function tweakValues({
   keyLinger,
   discoverSpeed,
   paceStep,
+  shownFade,
   checking,
   countdown,
   keys,
@@ -618,6 +636,7 @@ function tweakValues({
     ...(keyLinger === undefined ? {} : { keyLinger }),
     ...(discoverSpeed === undefined ? {} : { discoverSpeed }),
     ...(paceStep === undefined ? {} : { paceStep }),
+    ...(shownFade === undefined ? {} : { shownFade }),
     ...(checking === undefined ? {} : { checking }),
     ...(countdown === undefined ? {} : { countdown }),
     ...(keys === undefined ? {} : { keys }),

@@ -84,9 +84,6 @@ export const GAME_OVER_DELAY = 800;
 /** How long a key Discover plays shows pressed, as a share of the time between two digits. */
 const KEY_SHOWN = 0.6;
 
-/** How long the digits Discover's game showed take to fade out of the tape, on the player's turn, in milliseconds. */
-export const SHOWN_FADE = 1000;
-
 /** Whose turn it is in Discover: the game's, showing the round, or the player's, typing; always the player's otherwise. */
 type Turn = 'game' | 'player';
 
@@ -161,6 +158,7 @@ const TICK = 16;
       [arrival]="arrival()"
       [faintFrom]="faintFrom()"
       [fading]="fading()"
+      [fadeDuration]="tweaks.shownFade()"
     />
     @if (checkpoints().length > 0) {
       <div class="checkpoints">
@@ -779,7 +777,7 @@ export class Play implements PausesOnBack {
         this.turn.set('player');
         this.vibrate('turn');
         this.fading.set(true);
-        this.afterRound(SHOWN_FADE, () => {
+        this.afterRound(this.tweaks.shownFade(), () => {
           this.backToRoundStart();
         });
       }

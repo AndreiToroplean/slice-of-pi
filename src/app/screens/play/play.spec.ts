@@ -39,8 +39,8 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LAYOUT } from '../../ui/layout';
-import { GAME_OVER_DELAY, Play, SHOWN_FADE } from './play';
-import { paceInterval } from '../../game/modes/discover-pace';
+import { GAME_OVER_DELAY, Play } from './play';
+import { paceInterval, SHOWN_FADE } from '../../game/modes/discover-pace';
 import { DiscoverRecorder } from '../../player-data/discover-recorder';
 import { Keypad } from './keypad/keypad';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
@@ -1907,6 +1907,18 @@ describe('Play', () => {
       await round.wait(SHOWN_FADE);
       expect(faint(round.host)).toBe('');
       expect(words(round.host)).toEqual([]);
+    });
+
+    it('fades the digits shown out for as long as developer mode sets', async () => {
+      const round = await discover();
+      await TestBed.inject(DeveloperMode).set(true);
+      await TestBed.inject(Tweaks).setShownFade(2000);
+
+      await round.wait(6 * MEDIUM_INTERVAL + SHOWN_FADE);
+      expect(faint(round.host)).toBe('14159');
+
+      await round.wait(1000);
+      expect(faint(round.host)).toBe('');
     });
 
     it('vibrates as the turn goes to the game, and back to the player', async () => {

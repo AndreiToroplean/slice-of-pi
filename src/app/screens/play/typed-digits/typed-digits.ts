@@ -1,3 +1,4 @@
+import { SHOWN_FADE } from '../../../game/modes/discover-pace';
 import {
   afterRenderEffect,
   Component,
@@ -29,6 +30,7 @@ export const SCROLL_BACK_DURATION = 400;
   selector: 'app-typed-digits',
   host: {
     '[class.fading]': 'fading()',
+    '[style.--shown-fade]': 'fadeDuration() + "ms"',
     role: 'region',
     'aria-label': 'Typed digits',
     tabindex: '0',
@@ -65,6 +67,8 @@ export class TypedDigits {
   readonly faintFrom = input<number>();
   /** Whether the faint digits are fading out, as once the game has shown them, on the player's turn. */
   readonly fading = input(false);
+  /** How long the faint digits take to fade out, in milliseconds. */
+  readonly fadeDuration = input(SHOWN_FADE);
   /** The finished groups, in order. */
   readonly words = input.required<readonly Word[]>();
   /** The digits typed so far, including those of the group being typed. */
