@@ -7,8 +7,11 @@ test('types every digit tapped on the keypad, however fast', async ({ page }) =>
   await page.goto('/play');
   const keypad = page.getByRole('group', { name: 'Keypad' });
   await keypad.waitFor();
-  // Where the keys are once the screen has come in.
-  await page.waitForFunction(() => document.getAnimations().length === 0);
+  // Where the keys are once the screen has come in: its view transition over, which takes every touch meanwhile, and
+  // which the keypad is already in before its animations start.
+  await page.waitForFunction(
+    () => document.activeViewTransition === null && document.getAnimations().length === 0,
+  );
   const centers = new Map<string, { x: number; y: number }>();
   for (const key of '0123456789') {
     const box = await keypad.locator(`[data-key="${key}"]`).boundingBox();
