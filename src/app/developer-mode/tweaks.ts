@@ -1,5 +1,11 @@
 import { computed, inject, Service, signal } from '@angular/core';
 import { COLOR_SPACES, ColorSpace } from '../game/color/color-spaces';
+import {
+  DISCOVER_SPEED,
+  isDiscoverSpeed,
+  isPaceStep,
+  PACE_STEP,
+} from '../game/modes/discover-pace';
 import { isKeyLinger, KEY_LINGER, Palette, PALETTE } from '../game/layers/place-colors';
 import { writeBackup } from '../player-data/backup';
 import { migrate, Migration } from '../player-data/migration';
@@ -77,6 +83,10 @@ export interface TweakValues {
   readonly seasonTurn?: number;
   /** How long a digit key's color lingers once released, in milliseconds, for {@link KEY_LINGER}. */
   readonly keyLinger?: number;
+  /** How many digits a second Discover plays at its medium pace, for {@link DISCOVER_SPEED}. */
+  readonly discoverSpeed?: number;
+  /** How much slower or faster than the medium pace Discover's others are, in percent, for {@link PACE_STEP}. */
+  readonly paceStep?: number;
   /** `false` to play without checking the digits, which the game otherwise always does. */
   readonly checking?: false;
   /** `true` to show the countdown to the end of the group being typed, in developer mode, which is otherwise hidden. */
@@ -170,6 +180,15 @@ export class Tweaks {
   /** How long a digit key's color lingers once released, in milliseconds. */
   readonly keyLinger = computed(
     () => (this.developerMode.enabled() ? this.tweaks().keyLinger : undefined) ?? KEY_LINGER,
+  );
+  /** How many digits a second Discover plays at its medium pace. */
+  readonly discoverSpeed = computed(
+    () =>
+      (this.developerMode.enabled() ? this.tweaks().discoverSpeed : undefined) ?? DISCOVER_SPEED,
+  );
+  /** How much slower or faster than the medium pace Discover's others are, in percent. */
+  readonly paceStep = computed(
+    () => (this.developerMode.enabled() ? this.tweaks().paceStep : undefined) ?? PACE_STEP,
   );
 
   /** Whether the game checks the digits typed against π. */
@@ -318,6 +337,16 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), keyLinger }));
   }
 
+  /** Sets how many digits a second Discover plays at its medium pace; `undefined` brings back the game's. */
+  setDiscoverSpeed(discoverSpeed: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), discoverSpeed }));
+  }
+
+  /** Sets how much slower or faster Discover's other paces are, in percent; `undefined` brings back the game's. */
+  setPaceStep(paceStep: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), paceStep }));
+  }
+
   /** Turns checking the digits typed on or off. */
   setChecking(checking: boolean): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), checking: checking ? undefined : false }));
@@ -439,6 +468,8 @@ export function parseTweaks(stored: unknown): TweakValues {
     colorSpace,
     seasonTurn,
     keyLinger,
+    discoverSpeed,
+    paceStep,
     checking,
     countdown,
     keys,
@@ -465,6 +496,8 @@ export function parseTweaks(stored: unknown): TweakValues {
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     keyLinger: isKeyLinger(keyLinger) ? keyLinger : undefined,
+    discoverSpeed: isDiscoverSpeed(discoverSpeed) ? discoverSpeed : undefined,
+    paceStep: isPaceStep(paceStep) ? paceStep : undefined,
     checking: checking === false ? checking : undefined,
     countdown: countdown === true ? countdown : undefined,
     keys: keys === 'solid' ? keys : undefined,
@@ -494,6 +527,8 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     colorSpace,
     seasonTurn,
     keyLinger,
+    discoverSpeed,
+    paceStep,
     layout,
     menu,
     vibrations,
@@ -517,6 +552,8 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     colorSpace: colorSpace === SEASON_COLOR_SPACE ? undefined : colorSpace,
     seasonTurn: seasonTurn === SEASON_TURN ? undefined : seasonTurn,
     keyLinger: keyLinger === KEY_LINGER ? undefined : keyLinger,
+    discoverSpeed: discoverSpeed === DISCOVER_SPEED ? undefined : discoverSpeed,
+    paceStep: paceStep === PACE_STEP ? undefined : paceStep,
     layout: equal(layout, LAYOUT) ? undefined : layout,
     menu: equal(menu, MENU_LOOK) ? undefined : menu,
     vibrations: vibrationsOf(vibrations),
@@ -552,6 +589,8 @@ function tweakValues({
   colorSpace,
   seasonTurn,
   keyLinger,
+  discoverSpeed,
+  paceStep,
   checking,
   countdown,
   keys,
@@ -577,6 +616,8 @@ function tweakValues({
     ...(colorSpace === undefined ? {} : { colorSpace }),
     ...(seasonTurn === undefined ? {} : { seasonTurn }),
     ...(keyLinger === undefined ? {} : { keyLinger }),
+    ...(discoverSpeed === undefined ? {} : { discoverSpeed }),
+    ...(paceStep === undefined ? {} : { paceStep }),
     ...(checking === undefined ? {} : { checking }),
     ...(countdown === undefined ? {} : { countdown }),
     ...(keys === undefined ? {} : { keys }),
