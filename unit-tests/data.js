@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793955008940,
+  "lastUpdate": 1794166685621,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3480,6 +3480,46 @@ window.BENCHMARK_DATA = {
             "value": 1060,
             "unit": "ms",
             "extra": "MissingPreview opens the preview as soon as it is published"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "c5c338debcb3d0123054acb075fa821a35d4c163",
+          "message": "feat: keep browsers from offering to translate the game\n\n- The page says it isn't to be translated, both as the standard asks and as the most common browser translator reads it\n\nClaude-Session: https://claude.ai/code/session_01X1XesqdRcJcQRb9RKhY8D2",
+          "timestamp": "2026-11-08T20:37:42+01:00",
+          "tree_id": "9b8ec33530a479a2f4d622308fc9fabf1e2e551e",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/c5c338debcb3d0123054acb075fa821a35d4c163"
+        },
+        "date": 1794166685116,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 10363,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 21994,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 843,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
         ]
       }
