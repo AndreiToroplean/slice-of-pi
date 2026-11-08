@@ -4,8 +4,8 @@
  * hue round the wheel instead, keeping colors saturated. OKLab and OKLCH are perceptual: equal steps look equal.
  */
 
-/** The spaces two colors can be blended in, named as in CSS (`linear-gradient(in oklch, …)`). */
-export const COLOR_SPACES = ['srgb', 'oklab', 'hsl', 'oklch'] as const;
+/** The spaces two colors can be blended in, named as in CSS (`linear-gradient(in oklch, …)`): the seasons' first, then the other perceptual one, then the others. */
+export const COLOR_SPACES = ['oklch', 'oklab', 'hsl', 'srgb'] as const;
 
 export type ColorSpace = (typeof COLOR_SPACES)[number];
 

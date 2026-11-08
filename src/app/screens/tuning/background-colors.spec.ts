@@ -213,7 +213,7 @@ describe('BackgroundColors', () => {
 
     host.querySelector<HTMLButtonElement>('.space .picker')?.click();
     await stable();
-    expect(menuItems()).toEqual(['sRGB', 'OKLab', 'HSL', 'OKLCH (The Game’s)']);
+    expect(menuItems()).toEqual(['OKLCH (The Game’s)', 'OKLab', 'HSL', 'sRGB']);
     expect(menuItem('OKLCH').getAttribute('aria-checked')).toBe('true');
     menuItem('sRGB').click();
     await stable();
