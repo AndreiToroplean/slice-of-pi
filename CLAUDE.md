@@ -11,6 +11,7 @@
 - In cloud sessions, open a pull request as soon as a task's first change is pushed, unless the owner says to hold off: he follows them from his phone, and the pull request's preview is how he tries the change.
 - No page scrolls as a whole: it fits the screen, and only a part of it may scroll, such as the list of runs on Your Runs. Longer explanations go in a dialog opened on demand, which may scroll.
 - Keep the words in the UI to the bare minimum: a label rather than a sentence, and only what helps understand what's shown or heard; more goes in a dialog opened on demand, if anywhere.
+- In a choice between options, such as a segmented control or a menu of choices, the default option comes first, and promoting a tweak that changes a default moves its option first too. Options with an order of their own, such as a pace or a speed, keep it. Options built over time, such as models, go newest first, as the newest usually becomes the default; one that becomes the default again moves first.
 - An action on a whole page or screen, such as a button in a page's top bar, is a candy button (`appCandy`), red (`danger`) when it erases or resets. Small plain buttons only ever act on the one setting or slider they sit by.
 - When a pull request changes what players see or hear, ask for a preview: right after opening it, put the line `Preview: https://andreitoroplean.github.io/slice-of-pi/pr-<number>/`, with its number, at the very top of its description, so the link is the first thing in it. Leave it out of other pull requests (CI, docs, refactors).
 
