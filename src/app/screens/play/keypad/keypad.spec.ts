@@ -701,15 +701,16 @@ describe('Keypad', () => {
     });
   });
 
-  describe('without backspace', () => {
+  describe('with backspace disabled', () => {
     beforeEach(() => {
-      fixture.componentRef.setInput('corner', 'blank');
+      fixture.componentRef.setInput('cornerDisabled', true);
       fixture.detectChanges();
     });
 
-    it('shows its key blank and inert, in its place', () => {
-      expect(button('backspace').querySelector('svg')).toBeNull();
-      expect(button('backspace').inert).toBe(true);
+    it('shows its key half there, disabled', () => {
+      expect(button('backspace').querySelector('svg')).not.toBeNull();
+      expect(button('backspace').classList).toContain('off');
+      expect(button('backspace').getAttribute('aria-disabled')).toBe('true');
     });
 
     it('types nothing for a touch on its key, a keyboard Backspace or assistive technology, digits still typed', () => {
