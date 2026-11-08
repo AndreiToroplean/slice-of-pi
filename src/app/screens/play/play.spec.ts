@@ -42,9 +42,10 @@ import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LAYOUT } from '../../ui/layout';
 import { GAME_OVER_DELAY, Play } from './play';
-import { paceInterval, SHOWN_FADE } from '../../game/modes/discover-pace';
+import { GAME_LINGER, HAND_OVER, paceInterval } from '../../game/modes/discover-pace';
 import { DiscoverRecorder } from '../../player-data/discover-recorder';
 import { Keypad } from './keypad/keypad';
+import { KEY_LINGER } from '../../game/layers/place-colors';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 import { GAME_BREAK_MODEL } from '../../game/grouping/break-models/break-models';
 
@@ -1820,6 +1821,7 @@ describe('Play', () => {
       wait: (milliseconds: number) => Promise<void>;
       /** Types keys on the keypad. */
       type: (keys: string) => Promise<void>;
+      keypad: () => Keypad;
     }
 
     /** Opens Discover, once the earlier runs, if any, are kept. */
@@ -1852,7 +1854,9 @@ describe('Play', () => {
         }
       };
       await wait(0);
-      return { host, wait, type };
+      const keypad = (): Keypad =>
+        harness.fixture.debugElement.query(By.directive(Keypad)).componentInstance as Keypad;
+      return { host, wait, type, keypad };
     }
 
     function shownKey(host: HTMLElement): string | undefined {
@@ -1876,9 +1880,17 @@ describe('Play', () => {
       ).join('');
     }
 
-    /** Lets the game play a round of `length` digits, up to the player's turn. */
+    /**
+     * Lets the game play a round of `length` digits, up to the player's turn: a little longer than a digit's time after
+     * the last, for the pauses between groups, but not so long that the digits shown are gone.
+     */
     async function listen({ wait }: Round, length: number): Promise<void> {
-      await wait((length + 1) * MEDIUM_INTERVAL);
+      await wait((length + 1.5) * MEDIUM_INTERVAL);
+    }
+
+    /** Whether the discover key works, as once the player has retyped the round. */
+    function discoverWorks(host: HTMLElement): boolean {
+      return !discoverKey(host).classList.contains('off');
     }
 
     /** Asks the game to show the round, with the discover key. */
@@ -1901,34 +1913,57 @@ describe('Play', () => {
       }
     }
 
-    it('plays the first group, keys pressed, the discover key held, then hands it over, faint and fading off the tape', async () => {
+    it('plays the first group, keys pressed, the discover key lit, then hands it over, faint and fading off the tape', async () => {
       const round = await discover();
-      expect(discoverKey(round.host).getAttribute('aria-label')).toBe('Show me');
-      expect(discoverKey(round.host).classList).toContain('pressed');
+      expect(discoverKey(round.host).getAttribute('aria-label')).toBe('Switch turns');
+      expect(discoverKey(round.host).classList).toContain('lit');
 
       await round.wait(MEDIUM_INTERVAL);
       expect(slots(round.host)[0]).toBe('1');
       expect(shownKey(round.host)).toBe('1');
 
-      await round.wait(5 * MEDIUM_INTERVAL);
+      await listen(round, 4);
       expect(faint(round.host)).toBe('14159');
-      expect(discoverKey(round.host).classList).not.toContain('pressed');
+      expect(discoverKey(round.host).classList).not.toContain('lit');
+      expect(discoverWorks(round.host)).toBe(false);
 
-      await round.wait(SHOWN_FADE);
+      await round.wait(HAND_OVER);
       expect(faint(round.host)).toBe('');
       expect(words(round.host)).toEqual([]);
     });
 
-    it('fades the digits shown out for as long as developer mode sets', async () => {
+    it('hands over for as long as developer mode sets', async () => {
       const round = await discover();
       await TestBed.inject(DeveloperMode).set(true);
-      await TestBed.inject(Tweaks).setShownFade(2000);
+      await TestBed.inject(Tweaks).setHandOver(2000);
 
-      await round.wait(6 * MEDIUM_INTERVAL + SHOWN_FADE);
+      await listen(round, 5);
+      await round.wait(HAND_OVER);
       expect(faint(round.host)).toBe('14159');
 
       await round.wait(1000);
       expect(faint(round.host)).toBe('');
+    });
+
+    it('pauses longer between groups as it plays them, as developer mode sets', async () => {
+      const round = await discover();
+      await TestBed.inject(DeveloperMode).set(true);
+      await TestBed.inject(Tweaks).setGroupPause(100);
+
+      await round.wait(6.5 * MEDIUM_INTERVAL);
+      expect(discoverKey(round.host).classList).toContain('lit');
+
+      await round.wait(MEDIUM_INTERVAL);
+      expect(discoverKey(round.host).classList).not.toContain('lit');
+    });
+
+    it('lets the keys’ colors linger longer as the game plays them', async () => {
+      const round = await discover();
+      expect(round.keypad().linger()).toBe(KEY_LINGER * GAME_LINGER);
+
+      await listen(round, 5);
+
+      expect(round.keypad().linger()).toBe(KEY_LINGER);
     });
 
     it('vibrates as the turn goes to the game, and back to the player', async () => {
@@ -1954,6 +1989,16 @@ describe('Play', () => {
       ).toBe(PALETTE[keyColorIndices('')['1']]);
     });
 
+    it('shows the slots of the player’s place on their turn, not of the digits shown', async () => {
+      // Grouped by 3, the runs ending at 7: the game trusts the first group only, then groups of the default size.
+      const round = await discover(Array.from({ length: 4 }, (_, run) => by3(7, run)));
+
+      await listen(round, 3);
+
+      expect(faint(round.host)).toBe('141');
+      expect(slots(round.host)).toEqual(['', '', '']);
+    });
+
     it('clears the digits shown as the player starts retyping them', async () => {
       const round = await discover();
       await listen(round, 5);
@@ -1976,27 +2021,42 @@ describe('Play', () => {
       expect(words(round.host)).toEqual(['14159']);
     });
 
-    it('waits for the player to ask for the next round, one more group', async () => {
+    it('shows the next round, one more group, once the player has retyped the round and the hand over is over', async () => {
       const round = await discover();
       await playRounds(round, 5);
-      await round.wait(5 * PAUSE);
-      expect(faint(round.host)).toBe('');
+      expect(discoverWorks(round.host)).toBe(true);
 
-      await showMe(round);
+      await round.wait(HAND_OVER);
       await listen(round, 10);
 
       expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 10));
     });
 
-    it('shows the round again when asked before it’s retyped', async () => {
+    it('starts the hand over again with each digit the player types on', async () => {
+      const round = await discover();
+      await playRounds(round, 5);
+
+      await round.wait(HAND_OVER - 200);
+      await round.type(PI_DECIMALS.charAt(5));
+      await round.wait(HAND_OVER - 200);
+      expect(discoverKey(round.host).classList).not.toContain('lit');
+
+      await round.wait(400);
+      expect(discoverKey(round.host).classList).toContain('lit');
+    });
+
+    it('shows the next round at once with the discover key, but only once the round is retyped', async () => {
       const round = await discover();
       await listen(round, 5);
       await round.type('14');
 
       await showMe(round);
-      await listen(round, 5);
+      expect(slots(round.host).slice(0, 2)).toEqual(['1', '4']);
 
-      expect(faint(round.host)).toBe('14159');
+      await round.type('159');
+      await showMe(round);
+      await listen(round, 10);
+      expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 10));
     });
 
     it('counts the whole groups typed past the round shown, not the digits of a group begun', async () => {
@@ -2028,14 +2088,32 @@ describe('Play', () => {
       expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 8));
     });
 
-    it('takes no keys while the game plays the round', async () => {
+    it('types nothing as the game plays the round, the discover key working all the same', async () => {
       const round = await discover();
+      await round.wait(2.5 * MEDIUM_INTERVAL);
+      expect(discoverWorks(round.host)).toBe(true);
 
-      await round.type('3');
-      await listen(round, 5);
+      await round.type('9');
+      expect(round.host.querySelector('.game-over')).toBeNull();
+      expect(slots(round.host)[0]).toBe('1');
+      expect(faint(round.host)).toBe('');
+    });
 
-      expect(faint(round.host)).toBe('14159');
-      expect(round.host.querySelector('app-slots .wrong')).toBeNull();
+    it('hands the turn over at once with the discover key, the round to retype to its end, unseen', async () => {
+      const round = await discover();
+      await round.wait(2.5 * MEDIUM_INTERVAL);
+
+      await showMe(round);
+      expect(discoverKey(round.host).classList).not.toContain('lit');
+      await round.wait(HAND_OVER);
+      expect(faint(round.host)).toBe('');
+      expect(slots(round.host)[0]).toBe('');
+
+      await round.type('1415');
+      expect(discoverWorks(round.host)).toBe(false);
+      await round.type('9');
+      expect(discoverWorks(round.host)).toBe(true);
+      expect(words(round.host)).toEqual(['14159']);
     });
 
     it('loses on the first wrong digit, playing again from the start', async () => {
@@ -2061,7 +2139,7 @@ describe('Play', () => {
       expect(slots(round.host)[0]).toBe('1');
     });
 
-    it('pops up each checkpoint reached, starting the rounds from it once tapped', async () => {
+    it('pops up each checkpoint reached, pressed once tapped, until the game’s next turn starts the rounds at it', async () => {
       const round = await discover();
       const checkpoints = (): string[] =>
         Array.from(round.host.querySelectorAll('.checkpoint'), (button) =>
@@ -2073,20 +2151,58 @@ describe('Play', () => {
       await showMe(round);
       await playRounds(round, 10);
       expect(checkpoints()).toEqual(['10']);
+      const button = round.host.querySelector<HTMLButtonElement>('.checkpoint');
+      // Even once the player has typed.
+      expect(button?.disabled).toBe(false);
 
-      const before = words(round.host);
-      round.host.querySelector<HTMLButtonElement>('.checkpoint')?.click();
+      button?.click();
       await round.wait(0);
+      expect(button?.getAttribute('aria-pressed')).toBe('true');
+      expect(checkpoints()).toEqual(['10']);
+
+      await showMe(round);
       expect(checkpoints()).toEqual([]);
-      expect(words(round.host)).toEqual(before);
+      // In the player's groups.
+      expect(words(round.host)).toEqual(['14159', '26535']);
       // Once the run unlocking it is saved.
       await vi.waitFor(() => {
         expect(TestBed.inject(Checkpoint).place('discover')).toBe(10);
       });
+      // The game shows the round from there.
+      await round.wait(MEDIUM_INTERVAL);
+      expect(slots(round.host)[0]).toBe(PI_DECIMALS.charAt(10));
+    });
+
+    it('waits for the game’s next turn for a checkpoint tapped on its turn', async () => {
+      const round = await discover();
+      await playRounds(round, 5, 10);
+      await showMe(round);
+
+      round.host.querySelector<HTMLButtonElement>('.checkpoint')?.click();
+      await listen(round, 15);
+      // The game showed its round from the start; the player retypes it all.
+      expect(round.host.querySelector('.checkpoint')?.getAttribute('aria-pressed')).toBe('true');
+      await round.type(PI_DECIMALS.slice(0, 15));
+
+      await showMe(round);
+      expect(round.host.querySelector('.checkpoint')).toBeNull();
+      await round.wait(MEDIUM_INTERVAL);
+      expect(slots(round.host)[0]).toBe(PI_DECIMALS.charAt(10));
+    });
+
+    it('takes a checkpoint back when tapped again', async () => {
+      const round = await discover();
+      await playRounds(round, 5, 10);
+      const button = round.host.querySelector<HTMLButtonElement>('.checkpoint');
+
+      button?.click();
+      button?.click();
+      await round.wait(0);
+      expect(button?.hasAttribute('aria-pressed')).toBe(false);
 
       await showMe(round);
       await round.wait(MEDIUM_INTERVAL);
-      expect(slots(round.host)[0]).toBe(PI_DECIMALS.charAt(10));
+      expect(slots(round.host)[0]).toBe('1');
     });
 
     it('records each digit retyped at its place, in its overwriting run', async () => {

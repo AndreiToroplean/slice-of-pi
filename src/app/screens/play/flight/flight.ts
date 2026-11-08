@@ -288,6 +288,19 @@ export function snapshotSlot(layer: Element, slot: Element): SlotSnapshot {
 }
 
 /**
+ * Keyframes going from wholly there to `opacity` as they go, as a digit flying from its slot, where it shows whole, onto
+ * a faint tile, as the digits Discover's game shows: at the opacity in between at each keyframe, by its offset (spread
+ * evenly where it has none).
+ */
+export function fadingTo(frames: readonly Keyframe[], opacity: number): Keyframe[] {
+  return frames.map((frame, k) => {
+    const offset =
+      typeof frame.offset === 'number' ? frame.offset : k / Math.max(1, frames.length - 1);
+    return { ...frame, opacity: 1 + (opacity - 1) * offset };
+  });
+}
+
+/**
  * Flies the slots that held a group into the tiles of its word: each slot is copied onto `layer` (which must be
  * positioned) and animated onto its tile. Each tile is hidden until its copy lands, and shows in the same frame as its
  * copy is removed, so that no digit is ever missing or shown twice. Copies with somewhere to slide to sweep there and
@@ -325,18 +338,20 @@ export function flyIntoWord(
     const colors = getComputedStyle(tile);
     copy.style.background = colors.backgroundColor;
     copy.style.color = colors.color;
-    copy.style.opacity = colors.opacity;
     const at = boxIn(layer, tile);
     const to = { ...at, left: at.left - shift };
     tile.style.visibility = 'hidden';
     layer.append(copy);
     const animation = copy.animate(
-      flightKeyframes(slot.box, to, slot.radius, tileCorners(i, flights.length, wordRadius), {
-        slid: slot.slid,
-        slide,
-        wait: flightStagger(i),
-        depth: slot.depth,
-      }),
+      fadingTo(
+        flightKeyframes(slot.box, to, slot.radius, tileCorners(i, flights.length, wordRadius), {
+          slid: slot.slid,
+          slide,
+          wait: flightStagger(i),
+          depth: slot.depth,
+        }),
+        Number(colors.opacity),
+      ),
       flightTiming(i, slide),
     );
     const land = (): void => {

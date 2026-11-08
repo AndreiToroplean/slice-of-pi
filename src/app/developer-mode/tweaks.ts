@@ -4,9 +4,13 @@ import {
   DISCOVER_SPEED,
   isDiscoverSpeed,
   isPaceStep,
-  isShownFade,
+  GAME_LINGER,
+  GROUP_PAUSE,
+  HAND_OVER,
+  isGameLinger,
+  isGroupPause,
+  isHandOver,
   PACE_STEP,
-  SHOWN_FADE,
 } from '../game/modes/discover-pace';
 import { isKeyLinger, KEY_LINGER, Palette, PALETTE } from '../game/layers/place-colors';
 import { writeBackup } from '../player-data/backup';
@@ -89,8 +93,12 @@ export interface TweakValues {
   readonly discoverSpeed?: number;
   /** How much slower or faster than the medium pace Discover's others are, in percent, for {@link PACE_STEP}. */
   readonly paceStep?: number;
-  /** How long the digits Discover's game showed take to fade out of the tape, in milliseconds, for {@link SHOWN_FADE}. */
-  readonly shownFade?: number;
+  /** How long Discover takes to hand a turn over, in milliseconds, for {@link HAND_OVER}. */
+  readonly handOver?: number;
+  /** How much longer Discover's game waits between groups than between digits, in percent, for {@link GROUP_PAUSE}. */
+  readonly groupPause?: number;
+  /** How many times longer keys linger on Discover's turn, for {@link GAME_LINGER}. */
+  readonly gameLinger?: number;
   /** `false` to play without checking the digits, which the game otherwise always does. */
   readonly checking?: false;
   /** `true` to show the countdown to the end of the group being typed, in developer mode, which is otherwise hidden. */
@@ -194,9 +202,17 @@ export class Tweaks {
   readonly paceStep = computed(
     () => (this.developerMode.enabled() ? this.tweaks().paceStep : undefined) ?? PACE_STEP,
   );
-  /** How long the digits Discover's game showed take to fade out of the tape, in milliseconds. */
-  readonly shownFade = computed(
-    () => (this.developerMode.enabled() ? this.tweaks().shownFade : undefined) ?? SHOWN_FADE,
+  /** How long Discover takes to hand a turn over, in milliseconds. */
+  readonly handOver = computed(
+    () => (this.developerMode.enabled() ? this.tweaks().handOver : undefined) ?? HAND_OVER,
+  );
+  /** How much longer Discover's game waits between groups than between digits, in percent. */
+  readonly groupPause = computed(
+    () => (this.developerMode.enabled() ? this.tweaks().groupPause : undefined) ?? GROUP_PAUSE,
+  );
+  /** How many times longer keys linger on Discover's turn. */
+  readonly gameLinger = computed(
+    () => (this.developerMode.enabled() ? this.tweaks().gameLinger : undefined) ?? GAME_LINGER,
   );
 
   /** Whether the game checks the digits typed against π. */
@@ -355,9 +371,19 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), paceStep }));
   }
 
-  /** Sets how long the digits Discover's game showed take to fade out; `undefined` brings back the game's. */
-  setShownFade(shownFade: number | undefined): Promise<void> {
-    return this.save(tweakValues({ ...this.tweaks(), shownFade }));
+  /** Sets how long Discover takes to hand a turn over; `undefined` brings back the game's. */
+  setHandOver(handOver: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), handOver }));
+  }
+
+  /** Sets how much longer Discover's game waits between groups; `undefined` brings back the game's. */
+  setGroupPause(groupPause: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), groupPause }));
+  }
+
+  /** Sets how many times longer keys linger on Discover's turn; `undefined` brings back the game's. */
+  setGameLinger(gameLinger: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), gameLinger }));
   }
 
   /** Turns checking the digits typed on or off. */
@@ -483,7 +509,9 @@ export function parseTweaks(stored: unknown): TweakValues {
     keyLinger,
     discoverSpeed,
     paceStep,
-    shownFade,
+    handOver,
+    groupPause,
+    gameLinger,
     checking,
     countdown,
     keys,
@@ -512,7 +540,9 @@ export function parseTweaks(stored: unknown): TweakValues {
     keyLinger: isKeyLinger(keyLinger) ? keyLinger : undefined,
     discoverSpeed: isDiscoverSpeed(discoverSpeed) ? discoverSpeed : undefined,
     paceStep: isPaceStep(paceStep) ? paceStep : undefined,
-    shownFade: isShownFade(shownFade) ? shownFade : undefined,
+    handOver: isHandOver(handOver) ? handOver : undefined,
+    groupPause: isGroupPause(groupPause) ? groupPause : undefined,
+    gameLinger: isGameLinger(gameLinger) ? gameLinger : undefined,
     checking: checking === false ? checking : undefined,
     countdown: countdown === true ? countdown : undefined,
     keys: keys === 'solid' ? keys : undefined,
@@ -544,7 +574,9 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     keyLinger,
     discoverSpeed,
     paceStep,
-    shownFade,
+    handOver,
+    groupPause,
+    gameLinger,
     layout,
     menu,
     vibrations,
@@ -570,7 +602,9 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     keyLinger: keyLinger === KEY_LINGER ? undefined : keyLinger,
     discoverSpeed: discoverSpeed === DISCOVER_SPEED ? undefined : discoverSpeed,
     paceStep: paceStep === PACE_STEP ? undefined : paceStep,
-    shownFade: shownFade === SHOWN_FADE ? undefined : shownFade,
+    handOver: handOver === HAND_OVER ? undefined : handOver,
+    groupPause: groupPause === GROUP_PAUSE ? undefined : groupPause,
+    gameLinger: gameLinger === GAME_LINGER ? undefined : gameLinger,
     layout: equal(layout, LAYOUT) ? undefined : layout,
     menu: equal(menu, MENU_LOOK) ? undefined : menu,
     vibrations: vibrationsOf(vibrations),
@@ -608,7 +642,9 @@ function tweakValues({
   keyLinger,
   discoverSpeed,
   paceStep,
-  shownFade,
+  handOver,
+  groupPause,
+  gameLinger,
   checking,
   countdown,
   keys,
@@ -636,7 +672,9 @@ function tweakValues({
     ...(keyLinger === undefined ? {} : { keyLinger }),
     ...(discoverSpeed === undefined ? {} : { discoverSpeed }),
     ...(paceStep === undefined ? {} : { paceStep }),
-    ...(shownFade === undefined ? {} : { shownFade }),
+    ...(handOver === undefined ? {} : { handOver }),
+    ...(groupPause === undefined ? {} : { groupPause }),
+    ...(gameLinger === undefined ? {} : { gameLinger }),
     ...(checking === undefined ? {} : { checking }),
     ...(countdown === undefined ? {} : { countdown }),
     ...(keys === undefined ? {} : { keys }),

@@ -15,9 +15,13 @@ import {
   DISCOVER_SPEEDS,
   DiscoverPace,
   MAX_PACE_STEP,
-  MAX_SHOWN_FADE,
+  GAME_LINGER,
+  GROUP_PAUSE,
+  HAND_OVER,
+  MAX_GAME_LINGER,
+  MAX_GROUP_PAUSE,
+  MAX_HAND_OVER,
   PACE_STEP,
-  SHOWN_FADE,
 } from '../../game/modes/discover-pace';
 import { VibrationSetting } from '../../player-data/vibration-setting';
 import { SoundSetting } from '../../player-data/sound-setting';
@@ -231,14 +235,34 @@ import { YourData } from './your-data';
             (changed)="setPaceStep($event)"
           />
           <app-slider
-            label="Shown Fade"
-            [value]="tweaks.shownFade()"
+            label="Group Pause"
+            [value]="tweaks.groupPause()"
             [min]="0"
-            [max]="maxShownFade"
+            [max]="maxGroupPause"
+            [step]="5"
+            [valueText]="'+' + tweaks.groupPause() + '%'"
+            [defaultValue]="defaultGroupPause"
+            (changed)="setGroupPause($event)"
+          />
+          <app-slider
+            label="Hand Over"
+            [value]="tweaks.handOver()"
+            [min]="0"
+            [max]="maxHandOver"
             [step]="100"
-            [valueText]="tweaks.shownFade() + ' ms'"
-            [defaultValue]="defaultShownFade"
-            (changed)="setShownFade($event)"
+            [valueText]="tweaks.handOver() + ' ms'"
+            [defaultValue]="defaultHandOver"
+            (changed)="setHandOver($event)"
+          />
+          <app-slider
+            label="Game Linger"
+            [value]="tweaks.gameLinger()"
+            [min]="1"
+            [max]="maxGameLinger"
+            [step]="0.1"
+            [valueText]="'×' + tweaks.gameLinger()"
+            [defaultValue]="defaultGameLinger"
+            (changed)="setGameLinger($event)"
           />
           <div class="row">
             <label class="setting">
@@ -366,8 +390,12 @@ export class Settings {
   protected readonly defaultSpeed = DISCOVER_SPEED;
   protected readonly maxPaceStep = MAX_PACE_STEP;
   protected readonly defaultPaceStep = PACE_STEP;
-  protected readonly maxShownFade = MAX_SHOWN_FADE;
-  protected readonly defaultShownFade = SHOWN_FADE;
+  protected readonly maxHandOver = MAX_HAND_OVER;
+  protected readonly defaultHandOver = HAND_OVER;
+  protected readonly maxGroupPause = MAX_GROUP_PAUSE;
+  protected readonly defaultGroupPause = GROUP_PAUSE;
+  protected readonly maxGameLinger = MAX_GAME_LINGER;
+  protected readonly defaultGameLinger = GAME_LINGER;
   protected readonly keyLooks: readonly Segment<'clear' | 'solid'>[] = [
     { value: 'clear', label: 'Clear Keys' },
     { value: 'solid', label: 'Solid Keys' },
@@ -405,7 +433,9 @@ export class Settings {
       this.tweaks.keyLinger() === KEY_LINGER &&
       this.tweaks.discoverSpeed() === DISCOVER_SPEED &&
       this.tweaks.paceStep() === PACE_STEP &&
-      this.tweaks.shownFade() === SHOWN_FADE,
+      this.tweaks.handOver() === HAND_OVER &&
+      this.tweaks.groupPause() === GROUP_PAUSE &&
+      this.tweaks.gameLinger() === GAME_LINGER,
   );
 
   protected setCountdown(event: Event): void {
@@ -416,8 +446,16 @@ export class Settings {
     void this.tweaks.setKeyLinger(linger);
   }
 
-  protected setShownFade(fade: number | undefined): void {
-    void this.tweaks.setShownFade(fade);
+  protected setHandOver(handOver: number | undefined): void {
+    void this.tweaks.setHandOver(handOver);
+  }
+
+  protected setGroupPause(pause: number | undefined): void {
+    void this.tweaks.setGroupPause(pause);
+  }
+
+  protected setGameLinger(linger: number | undefined): void {
+    void this.tweaks.setGameLinger(linger);
   }
 
   protected setDiscoverSpeed(speed: number | undefined): void {
@@ -498,7 +536,9 @@ export class Settings {
       this.setKeyLinger(undefined);
       this.setDiscoverSpeed(undefined);
       this.setPaceStep(undefined);
-      this.setShownFade(undefined);
+      this.setHandOver(undefined);
+      this.setGroupPause(undefined);
+      this.setGameLinger(undefined);
       this.resetCountdown();
       this.resetSoundNotes();
       this.resetChecking();

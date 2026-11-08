@@ -736,8 +736,8 @@ describe('Keypad', () => {
       fixture.detectChanges();
     });
 
-    it('asks to show the round on a touch, a click or the space bar, typing nothing, and never repeats', () => {
-      expect(button('backspace').getAttribute('aria-label')).toBe('Show me');
+    it('switches turns on a touch, a click or the space bar, typing nothing, and never repeats', () => {
+      expect(button('backspace').getAttribute('aria-label')).toBe('Switch turns');
 
       tap('backspace');
       down('backspace');
@@ -758,12 +758,25 @@ describe('Keypad', () => {
       expect(event.defaultPrevented).toBe(false);
     });
 
-    it('shows held down while told to, as while the game shows the round', () => {
+    it('lights up while told to, as while the game shows the round, without showing pressed', () => {
+      fixture.componentRef.setInput('lit', true);
+      fixture.detectChanges();
+
+      expect(button('backspace').classList).toContain('lit');
       expect(pressedKeys()).toEqual([]);
+    });
 
-      fixture.componentRef.setInput('held', true);
+    it('works while the digit keys are locked, which type nothing', () => {
+      fixture.componentRef.setInput('digitsLocked', true);
+      fixture.detectChanges();
 
-      expect(pressedKeys()).toEqual(['backspace']);
+      tap('4');
+      keyboard('keydown', { key: '4' });
+      tap('backspace');
+
+      expect(typed).toEqual([]);
+      expect(discovers).toBe(1);
+      expect(button('4').classList).not.toContain('off');
     });
   });
 

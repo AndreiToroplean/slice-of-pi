@@ -39,14 +39,41 @@ export function isPaceStep(value: unknown): value is number {
 }
 
 /**
- * How long the digits the game showed take to fade out of the tape once it's the player's turn, in milliseconds: long
- * enough to catch a last glimpse of them, short enough not to hold the player up.
+ * How long Discover takes to hand a turn over, in milliseconds. Once the game has shown the round, the digits it showed
+ * fade out of the tape over it; once the player has typed the round, their digits fade out over it too, and the game
+ * then shows the next one, each digit they type on starting it over, so that they can type on as far as they know.
  */
-export const SHOWN_FADE = 1000;
-/** The longest fade developer mode can tune, in milliseconds. */
-export const MAX_SHOWN_FADE = 3000;
+export const HAND_OVER = 1000;
+/** The longest hand over developer mode can tune, in milliseconds. */
+export const MAX_HAND_OVER = 3000;
 
-/** Whether a value is a fade developer mode can tune. */
-export function isShownFade(value: unknown): value is number {
-  return Number.isInteger(value) && Number(value) >= 0 && Number(value) <= MAX_SHOWN_FADE;
+/** Whether a value is a hand over developer mode can tune. */
+export function isHandOver(value: unknown): value is number {
+  return Number.isInteger(value) && Number(value) >= 0 && Number(value) <= MAX_HAND_OVER;
+}
+
+/**
+ * How much longer the game waits between two groups than between two digits, as it plays a round, in percent: a break,
+ * as players make between their groups.
+ */
+export const GROUP_PAUSE = 15;
+/** The longest group pause developer mode can tune, in percent: twice the time between two digits. */
+export const MAX_GROUP_PAUSE = 100;
+
+/** Whether a value is a group pause developer mode can tune. */
+export function isGroupPause(value: unknown): value is number {
+  return Number.isInteger(value) && Number(value) >= 0 && Number(value) <= MAX_GROUP_PAUSE;
+}
+
+/**
+ * How many times longer a key's color lingers as the game plays it, on Discover's turn, than as the player types it:
+ * the player, watching, takes in each color.
+ */
+export const GAME_LINGER = 2;
+/** The longest game linger developer mode can tune, as a multiple. */
+export const MAX_GAME_LINGER = 5;
+
+/** Whether a value is a game linger developer mode can tune. */
+export function isGameLinger(value: unknown): value is number {
+  return typeof value === 'number' && value >= 1 && value <= MAX_GAME_LINGER;
 }

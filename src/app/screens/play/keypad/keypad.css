@@ -117,13 +117,18 @@
   pointer-events: none;
 }
 
-/* The discover key: rimmed in gold, see-through; held down while the game shows the round, gold all over. */
+/* The discover key: rimmed in gold, see-through; gold all over while the game shows the round. */
 .key.discover {
   --candy-edge: var(--candy-primary);
 }
 
-.key.discover.pressed {
+.key.discover.lit {
   background: var(--candy-primary);
   color: var(--ink);
   text-shadow: none;
+}
+
+/* The key in backspace's place while it doesn't work, for now: half there. */
+.key.off {
+  opacity: 0.5;
 }
