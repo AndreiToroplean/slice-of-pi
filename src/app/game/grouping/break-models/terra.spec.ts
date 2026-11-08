@@ -70,7 +70,7 @@ describe('Terra', () => {
 
   it('ends a group at one pause long enough, where earlier runs carried on', () => {
     // A 10 s pause before index 2, where none of the earlier runs breaks.
-    const play = TERRA.create({}).play(grouped);
+    const play = TERRA.create({}).play(grouped, 5);
 
     expect(play.groupEnds([0, 200, 10200], 0, true)).toBe(true);
     expect(play.groupEnds([0, 200, 600], 0, true)).toBe(false);
@@ -78,14 +78,14 @@ describe('Terra', () => {
 
   it('ends a group sooner where the player usually breaks', () => {
     // 300 ms after the third digit, where the runs break, and after the second, where they don't.
-    const play = TERRA.create({}).play(grouped);
+    const play = TERRA.create({}).play(grouped, 5);
 
     expect(play.groupEnds([0, 180, 380, 680], 0, true)).toBe(true);
     expect(play.groupEnds([0, 180, 480], 0, true)).toBe(false);
   });
 
   it("follows the player's groups within the trust horizon", () => {
-    expect(TERRA.create({}).play(grouped).groupAt([], 3)).toEqual({ size: 3, trusted: true });
+    expect(TERRA.create({}).play(grouped, 5).groupAt([], 3)).toEqual({ size: 3, trusted: true });
   });
 
   it('trusts more as more runs agree', () => {
@@ -101,7 +101,7 @@ describe('Terra', () => {
   });
 
   it("tells a new player's breaks from their first run", () => {
-    const play = TERRA.create({}).play([]);
+    const play = TERRA.create({}).play([], 5);
 
     expect(play.groupEnds(timesOf(8, [7], 2000), 0, false)).toBe(true);
     expect(play.groupEnds(timesOf(8, []), 0, false)).toBe(false);

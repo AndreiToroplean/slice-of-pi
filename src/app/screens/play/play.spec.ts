@@ -36,6 +36,7 @@ import { INDEXED_DB, RunStore } from '../../player-data/run-store';
 import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { backgroundsFrom, seasonAt } from '../../game/layers/seasons';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
+import { GroupSizeSetting } from '../../player-data/group-size-setting';
 import { startFrom } from '../../../testing/checkpoints';
 import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
@@ -211,6 +212,13 @@ describe('Play', () => {
     expect(words(host)).toEqual([]);
     expect(slots(host)).toEqual(['', '', '', '', '']);
     expect(summary(host)).toBe('No digits typed yet.');
+  });
+
+  it("starts a new player's groups with as many slots as their group size", async () => {
+    await TestBed.inject(GroupSizeSetting).set(3);
+    const { host } = await setUp();
+
+    expect(slots(host)).toEqual(['', '', '']);
   });
 
   it('fills the slots with the digits typed', async () => {

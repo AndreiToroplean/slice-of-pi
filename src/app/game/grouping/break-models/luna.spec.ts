@@ -50,7 +50,7 @@ describe('Luna', () => {
   });
 
   it("follows the player's groups within the trust horizon", () => {
-    const play = LUNA.create({}).play(grouped);
+    const play = LUNA.create({}).play(grouped, 5);
 
     expect(play.groupAt([], 3)).toEqual({ size: 3, trusted: true });
     expect(play.groupEnds(timesOf(4, []), 0, true)).toBe(true);
@@ -68,18 +68,18 @@ describe('Luna', () => {
 
   it('trusts nothing past the places the runs reached', () => {
     expect(steps(grouped).horizon).toBeLessThanOrEqual(29);
-    expect(LUNA.create({}).play(grouped).groupAt([], 30)).toEqual({ size: 5, trusted: false });
+    expect(LUNA.create({}).play(grouped, 5).groupAt([], 30)).toEqual({ size: 5, trusted: false });
   });
 
   it('ends a group where this run pauses, past the trust horizon', () => {
-    const play = LUNA.create({}).play([]);
+    const play = LUNA.create({}).play([], 5);
 
     expect(play.groupEnds(timesOf(4, [3], 2000), 0, false)).toBe(true);
     expect(play.groupEnds(timesOf(4, []), 0, false)).toBe(false);
   });
 
   it('starts every group as 5 slots that grow for a new player', () => {
-    expect(LUNA.create({}).play([]).groupAt([], 0)).toEqual({ size: 5, trusted: false });
+    expect(LUNA.create({}).play([], 5).groupAt([], 0)).toEqual({ size: 5, trusted: false });
   });
 
   it('shows its steps without a mixture, a run’s baseline being its pace', () => {

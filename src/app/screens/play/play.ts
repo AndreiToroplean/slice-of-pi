@@ -54,6 +54,7 @@ import {
 import { paceInterval } from '../../game/modes/discover-pace';
 import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
 import { DiscoverRecorder } from '../../player-data/discover-recorder';
+import { GroupSizeSetting } from '../../player-data/group-size-setting';
 import { Digit } from '../../game/pi/digit';
 import { Candy } from '../../ui/candy';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
@@ -406,7 +407,10 @@ export class Play implements PausesOnBack {
     ),
   );
   /** How the break model plays the groups over the earlier runs that count in them, before this one. */
-  private readonly gameplay = computed(() => this.tweaks.breakModel().play(this.earlierTimes()));
+  private readonly groupSize = inject(GroupSizeSetting).size;
+  private readonly gameplay = computed(() =>
+    this.tweaks.breakModel().play(this.earlierTimes(), this.groupSize()),
+  );
 
   /** The size of each finished group, in order, those given before the place the game starts from first. */
   private readonly sizes = linkedSignal<readonly number[]>(() => givenWords(this.startPlace()));

@@ -33,8 +33,11 @@ export interface Group {
 
 /** A break model with its hyperparameters set: all the game sees of it. */
 export interface BreakModel {
-  /** How the groups are played over the player's finished runs, oldest first, for the run about to be typed. */
-  play(finished: readonly (readonly number[])[]): Gameplay;
+  /**
+   * How the groups are played over the player's finished runs, oldest first, for the run about to be typed: groups of
+   * `groupSize`, the player's setting, where the model doesn't know theirs.
+   */
+  play(finished: readonly (readonly number[])[], groupSize: number): Gameplay;
   /** What the model makes of the player's finished runs, oldest first, for them to see. */
   stats(finished: readonly (readonly number[])[]): Stats;
 }

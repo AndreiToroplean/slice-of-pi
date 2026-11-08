@@ -24,7 +24,7 @@ export function modelFromSteps(
   ends: Ends = groupEnds,
 ): BreakModel {
   return {
-    play: (finished) => gameplayOf(prepare(finished), ends),
+    play: (finished, groupSize) => gameplayOf(prepare(finished), ends, groupSize),
     stats: (finished) => statsOf(prepare(finished)()),
   };
 }
@@ -35,7 +35,7 @@ export function modelFromSteps(
  * the finished runs' alone, frozen for the run, so that the groups shown don't flicker between the player's own and
  * growing ones as they type.
  */
-function gameplayOf(fit: Fit, ends: Ends): Gameplay {
+function gameplayOf(fit: Fit, ends: Ends, groupSize: number): Gameplay {
   const horizon = fit().horizon;
   let mixture: Mixture | undefined;
   const withCurrent = (current: readonly number[], start: number): Steps => {
@@ -44,7 +44,7 @@ function gameplayOf(fit: Fit, ends: Ends): Gameplay {
     return steps;
   };
   return {
-    groupAt: (current, start) => groupAt(withCurrent(current, start), start, horizon),
+    groupAt: (current, start) => groupAt(withCurrent(current, start), start, horizon, groupSize),
     groupEnds: (current, start, trusted) =>
       ends(withCurrent(current, start), current.length - 1, trusted),
   };
@@ -52,14 +52,19 @@ function gameplayOf(fit: Fit, ends: Ends): Gameplay {
 
 /**
  * How the group starting at index `start` (index 0 is the first decimal) is played: within the trust horizon, as the
- * player's own group there, as many slots as it has digits left; past it, groups of the starting slots (5 by default)
+ * player's own group there, as many slots as it has digits left; past it, groups of `groupSize`, the player's setting,
  * that grow until the player breaks.
  */
-export function groupAt(steps: Steps, start: number, horizon: number): GroupPlan {
+export function groupAt(
+  steps: Steps,
+  start: number,
+  horizon: number,
+  groupSize: number,
+): GroupPlan {
   const group = steps.groups.find((g) => start >= g.start && start < g.start + g.size);
   return group !== undefined && !group.open && group.start + group.size <= horizon
     ? { size: group.start + group.size - start, trusted: true }
-    : { size: steps.settings.startingSlots, trusted: false };
+    : { size: groupSize, trusted: false };
 }
 
 /**

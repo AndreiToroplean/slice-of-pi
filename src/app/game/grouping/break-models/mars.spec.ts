@@ -37,7 +37,7 @@ describe('Mars', () => {
     typed: number,
     settings: Settings = {},
   ): number {
-    const play = MARS.create(settings).play(earlier);
+    const play = MARS.create(settings).play(earlier, 5);
     const times = timesOf(typed, by3(30));
     const last = times.at(-1) ?? 0;
     // The group being typed starts at the last break typed.
@@ -122,11 +122,11 @@ describe('Mars', () => {
   });
 
   it("follows the player's groups within the trust horizon", () => {
-    expect(MARS.create({}).play(grouped).groupAt([], 3)).toEqual({ size: 3, trusted: true });
+    expect(MARS.create({}).play(grouped, 5).groupAt([], 3)).toEqual({ size: 3, trusted: true });
   });
 
   it("tells a new player's breaks from their first run", () => {
-    const play = MARS.create({}).play([]);
+    const play = MARS.create({}).play([], 5);
 
     expect(play.groupEnds(timesOf(8, [7], 2000), 0, false)).toBe(true);
     expect(play.groupEnds(timesOf(8, []), 0, false)).toBe(false);
@@ -273,7 +273,7 @@ describe('Mars', () => {
 
     it('ends a group being typed at once once it has the most digits allowed', () => {
       const steady = Array.from({ length: 4 }, () => timesOf(30, []));
-      const play = MARS.create({}).play(steady);
+      const play = MARS.create({}).play(steady, 5);
       const endsAt = (typed: number) => {
         const times = timesOf(typed, []);
         return play.groupEnds([...times, times.at(-1) ?? 0], 0, true);
@@ -288,7 +288,7 @@ describe('Mars', () => {
       const times = timesOf(13, by3(30));
       const ends = (settings: Settings) =>
         MARS.create(settings)
-          .play(grouped)
+          .play(grouped, 5)
           .groupEnds([...times, (times.at(-1) ?? 0) + 1e6], 12, true);
 
       expect(ends(FLAT)).toBe(true);

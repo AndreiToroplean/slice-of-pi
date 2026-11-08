@@ -38,16 +38,16 @@ describe('Venus', () => {
     // A 10 s pause before index 2, where none of the earlier runs breaks.
     const pausing = [0, 200, 10200];
 
-    expect(VENUS.create(alone).play(grouped).groupEnds(pausing, 0, true)).toBe(true);
-    expect(MERCURY.create(alone).play(grouped).groupEnds(pausing, 0, true)).toBe(false);
+    expect(VENUS.create(alone).play(grouped, 5).groupEnds(pausing, 0, true)).toBe(true);
+    expect(MERCURY.create(alone).play(grouped, 5).groupEnds(pausing, 0, true)).toBe(false);
   });
 
   it('carries on through a short wait where earlier runs carried on', () => {
-    expect(VENUS.create(alone).play(grouped).groupEnds([0, 200, 600], 0, true)).toBe(false);
+    expect(VENUS.create(alone).play(grouped, 5).groupEnds([0, 200, 600], 0, true)).toBe(false);
   });
 
   it("follows the player's groups within the trust horizon", () => {
-    expect(VENUS.create(alone).play(grouped).groupAt([], 3)).toEqual({ size: 3, trusted: true });
+    expect(VENUS.create(alone).play(grouped, 5).groupAt([], 3)).toEqual({ size: 3, trusted: true });
   });
 
   it('trusts nothing a single run says', () => {
@@ -56,7 +56,7 @@ describe('Venus', () => {
   });
 
   it("tells a new player's breaks from their first run, against the synthetic runs", () => {
-    const play = VENUS.create(MERCURY_DEFAULTS).play([]);
+    const play = VENUS.create(MERCURY_DEFAULTS).play([], 5);
 
     expect(play.groupEnds(timesOf(4, [3], 2000), 0, false)).toBe(true);
     expect(play.groupEnds(timesOf(4, []), 0, false)).toBe(false);
