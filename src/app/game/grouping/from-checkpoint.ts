@@ -1,4 +1,5 @@
-import { MEDIUM_INTERVAL } from '../modes/discover-pace';
+/** The even pace the places before a checkpoint are timed at when no earlier run got that far, in milliseconds. */
+export const EVEN_INTERVAL = 300;
 
 /** The break put just before a checkpoint a run starts from, in milliseconds: clearly longer than any interval. */
 export const CHECKPOINT_BREAK = 3000;
@@ -24,7 +25,7 @@ export function timesFromPlace(
     [...earlier]
       .reverse()
       .find((times) => times.length > start)
-      ?.slice(0, start) ?? Array.from({ length: start }, (_, i) => i * MEDIUM_INTERVAL);
+      ?.slice(0, start) ?? Array.from({ length: start }, (_, i) => i * EVEN_INTERVAL);
   const offset = (lead.at(-1) ?? 0) + CHECKPOINT_BREAK;
   return [...lead, ...own.map((time) => time + offset)];
 }

@@ -1,5 +1,4 @@
-import { MEDIUM_INTERVAL } from '../modes/discover-pace';
-import { CHECKPOINT_BREAK, timesFromPlace } from './from-checkpoint';
+import { CHECKPOINT_BREAK, EVEN_INTERVAL, timesFromPlace } from './from-checkpoint';
 
 describe('timesFromPlace', () => {
   it('takes a run from the start of π as it is', () => {
@@ -26,8 +25,8 @@ describe('timesFromPlace', () => {
   it('times them at an even pace when no earlier run got that far', () => {
     expect(timesFromPlace(2, [0], [[0, 300]])).toEqual([
       0,
-      MEDIUM_INTERVAL,
-      MEDIUM_INTERVAL + CHECKPOINT_BREAK,
+      EVEN_INTERVAL,
+      EVEN_INTERVAL + CHECKPOINT_BREAK,
     ]);
   });
 });

@@ -6,7 +6,14 @@ import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { Slider } from '../../ui/slider';
 import { KEY_LINGER, MAX_KEY_LINGER } from '../../game/layers/place-colors';
 import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
-import { DEFAULT_DISCOVER_PACE, DiscoverPace } from '../../game/modes/discover-pace';
+import {
+  DEFAULT_DISCOVER_PACE,
+  DISCOVER_SPEED,
+  DISCOVER_SPEEDS,
+  DiscoverPace,
+  MAX_PACE_STEP,
+  PACE_STEP,
+} from '../../game/modes/discover-pace';
 import { VibrationSetting } from '../../player-data/vibration-setting';
 import { SoundSetting } from '../../player-data/sound-setting';
 import { Page } from '../../ui/page';
@@ -27,7 +34,7 @@ import { YourData } from './your-data';
  */
 @Component({
   selector: 'app-settings',
-  imports: [ButtonList, Candy, ChoiceDialog, Page, Segmented, YourData, Slider],
+  imports: [ButtonList, Candy, ChoiceDialog, Page, Segmented, Slider, YourData],
   template: `
     <app-page heading="Settings">
       <button
@@ -168,6 +175,26 @@ import { YourData } from './your-data';
             [defaultValue]="defaultKeyLinger"
             (changed)="setKeyLinger($event)"
           />
+          <app-slider
+            label="Discover Speed"
+            [value]="tweaks.discoverSpeed()"
+            [min]="speeds.min"
+            [max]="speeds.max"
+            [step]="0.1"
+            [valueText]="tweaks.discoverSpeed() + ' digits/s'"
+            [defaultValue]="defaultSpeed"
+            (changed)="setDiscoverSpeed($event)"
+          />
+          <app-slider
+            label="Pace Step"
+            [value]="tweaks.paceStep()"
+            [min]="0"
+            [max]="maxPaceStep"
+            [step]="5"
+            [valueText]="'±' + tweaks.paceStep() + '%'"
+            [defaultValue]="defaultPaceStep"
+            (changed)="setPaceStep($event)"
+          />
           <div class="row">
             <label class="setting">
               <span>
@@ -288,6 +315,10 @@ export class Settings {
     { value: 'medium', label: 'Medium' },
     { value: 'faster', label: 'Faster' },
   ];
+  protected readonly speeds = DISCOVER_SPEEDS;
+  protected readonly defaultSpeed = DISCOVER_SPEED;
+  protected readonly maxPaceStep = MAX_PACE_STEP;
+  protected readonly defaultPaceStep = PACE_STEP;
   protected readonly keyLooks: readonly Segment<'clear' | 'solid'>[] = [
     { value: 'clear', label: 'Clear Keys' },
     { value: 'solid', label: 'Solid Keys' },
@@ -318,7 +349,9 @@ export class Settings {
       !this.tweaks.soundNotes() &&
       this.tweaks.checking() &&
       !this.tweaks.solidKeys() &&
-      this.tweaks.keyLinger() === KEY_LINGER,
+      this.tweaks.keyLinger() === KEY_LINGER &&
+      this.tweaks.discoverSpeed() === DISCOVER_SPEED &&
+      this.tweaks.paceStep() === PACE_STEP,
   );
 
   protected setCountdown(event: Event): void {
@@ -327,6 +360,14 @@ export class Settings {
 
   protected setKeyLinger(linger: number | undefined): void {
     void this.tweaks.setKeyLinger(linger);
+  }
+
+  protected setDiscoverSpeed(speed: number | undefined): void {
+    void this.tweaks.setDiscoverSpeed(speed);
+  }
+
+  protected setPaceStep(step: number | undefined): void {
+    void this.tweaks.setPaceStep(step);
   }
 
   protected setSolidKeys(solid: boolean): void {
@@ -392,6 +433,8 @@ export class Settings {
     if (this.developerMode.enabled()) {
       this.setSolidKeys(false);
       this.setKeyLinger(undefined);
+      this.setDiscoverSpeed(undefined);
+      this.setPaceStep(undefined);
       this.resetCountdown();
       this.resetSoundNotes();
       this.resetChecking();
