@@ -161,6 +161,31 @@ const BUTTONS_HEIGHT: Handle<MenuLook> = {
   knob: { left: '18%' },
 };
 
+/** How wide the buttons are, as the menu lays them out: as set, no wider than the screen within its margins. */
+const BUTTONS_WIDE = 'min(100% - 2 * (var(--margin-side) + var(--margin)), var(--buttons-width))';
+
+/** How wide the buttons are, dragged across by their right edge, which moves by half as much, as they stay centered. */
+const BUTTONS_WIDTH: Handle<MenuLook> = {
+  label: 'Button width',
+  text: 'Width',
+  axis: 'x',
+  sign: 1,
+  unit: 'rem',
+  scale: 0.5,
+  get: (look) => look.layout.buttons.width,
+  set: (look, width) => {
+    const field = LAYOUT_FIELDS.buttons.find((each) => each.key === 'width');
+    return withLayout(look, 'buttons', 'width', clamp(width, field?.min ?? 0, field?.max ?? width));
+  },
+  line: {
+    left: `calc(50% + ${BUTTONS_WIDE} / 2)`,
+    bottom: 'calc(var(--buttons-y) - var(--buttons-span) / 2)',
+    height: 'var(--buttons-span)',
+  },
+  // Above its top end, within the screen, however near its edge.
+  knob: { top: '0', left: '0', translate: '-50% calc(-100% - 0.25rem)' },
+};
+
 /** The height of the icon's light, dragged up and down, with the icon. */
 const ICON_LIGHT_HEIGHT: Handle<MenuLook> = {
   label: 'Icon light height',
@@ -188,6 +213,7 @@ export const PART_HANDLES: Readonly<Record<MenuPart, readonly Handle<MenuLook>[]
   pi: [height('pi', '30%'), size('pi', LINE_SIZES.pi.width, LINE_SIZES.pi.height, 20)],
   buttons: [
     BUTTONS_HEIGHT,
+    BUTTONS_WIDTH,
     // The top of the group, which grows by half as much on each side as all the buttons together.
     buttons('height', 'Button size', 'Size', 'var(--buttons-span) / 2', BUTTON_SLOTS / 2, '82%'),
     // The bottom of the first, above the first gap.
@@ -306,11 +332,7 @@ export const PART_BOXES: readonly EditedPart<MenuPart>[] = [
   {
     id: 'buttons',
     name: PART_NAMES.buttons,
-    box: centered(
-      'var(--buttons-y)',
-      'min(100% - 2 * (var(--margin-side) + var(--margin)), 16rem)',
-      'var(--buttons-span)',
-    ),
+    box: centered('var(--buttons-y)', BUTTONS_WIDE, 'var(--buttons-span)'),
   },
 ];
 

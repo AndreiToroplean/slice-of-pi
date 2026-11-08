@@ -113,7 +113,7 @@ describe('MenuEditor', () => {
     expect([core?.style.left, core?.style.top]).toEqual(['150px', '400px']);
 
     await pick(host, 'Buttons', stable);
-    expect(sliders(host)).toEqual(['Buttons height', 'Button size', 'Button gap']);
+    expect(sliders(host)).toEqual(['Buttons height', 'Button width', 'Button size', 'Button gap']);
 
     await pick(host, 'Buttons', stable);
     expect(sliders(host)).toContain('Top margin');

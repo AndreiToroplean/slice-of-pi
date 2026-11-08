@@ -63,6 +63,14 @@ describe('menu handles', () => {
     ]);
   });
 
+  it('widens the buttons by their right edge, which moves half as far, as they stay centered', () => {
+    // 8 pixels right: half a rem wider on each side, a rem in all.
+    expect(
+      dragged(handle(PART_HANDLES.buttons, 'Button width'), MENU_LOOK, 8, SIZES).layout.buttons
+        .width,
+    ).toBe(MENU_LOOK.layout.buttons.width + 1);
+  });
+
   it('moves the icon’s light up and down, by its offset from the icon’s middle', () => {
     const look = dragged(handle(PART_HANDLES.icon, 'Icon light height'), MENU_LOOK, -8, SIZES);
 
