@@ -17,8 +17,11 @@ import { RouterLink } from '@angular/router';
 import { Background } from '../../ui/background';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { DeveloperTaps } from '../../developer-mode/developer-taps';
-import { CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio } from '@angular/cdk/menu';
+import { CdkMenuGroup, CdkMenuItem } from '@angular/cdk/menu';
 import { Checkpoint } from '../../player-data/checkpoint';
+import { GameMode } from '../../game/modes/game-mode';
+import { StartFrom } from './start-from';
+import { SplitButton } from '../../ui/split-button';
 import { Dropdown, MenuTrigger } from '../../ui/menu';
 import { OverlayHost } from '../../ui/overlay-host';
 import { MenuAssets } from './menu-assets';
@@ -82,13 +85,14 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
     Candy,
     CdkMenuGroup,
     CdkMenuItem,
-    CdkMenuItemRadio,
     DeveloperTaps,
     Dropdown,
     LightLayer,
     MenuEditor,
     MenuTrigger,
     OverlayHost,
+    SplitButton,
+    StartFrom,
   ],
   host: {
     class: 'screen',
@@ -100,6 +104,8 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
     '(document:keydown.arrowdown)': 'startOnPlay($event)',
     '(document:keydown.arrowleft)': 'side($event, -1)',
     '(document:keydown.arrowright)': 'side($event, 1)',
+    '(document:pointerdown)': 'closeOutside($event)',
+    '(document:keydown.escape)': 'opened.set(undefined)',
   },
   template: `
     <canvas
@@ -168,37 +174,55 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
       {{ taps.message() }}
     </p>
     <app-button-list class="actions" [style.gap]="'var(--buttons-gap)'">
-      <!-- Every game starts from the checkpoint picked beside Discover, once there is one to pick. -->
-      <div class="row" appOverlayHost>
+      <!-- Discover starts from the place picked on it, once there's a checkpoint to pick; the others, from theirs. -->
+      @if (checkpoint.farthest() > 0) {
+        <app-start-from mode="discover" path="/discover" name="Discover" />
+      } @else {
         <a appCandy routerLink="/discover" data-vibration="play">Discover</a>
-        @if (checkpoint.unlocked().length > 0) {
-          <button
-            type="button"
-            appCandy
-            class="checkpoint"
-            title="Start From"
-            [appMenuTrigger]="checkpointMenu"
-          >
-            {{ checkpoint.start() }}
-          </button>
+      }
+      <app-split-button
+        #free="splitButton"
+        label="Free Play From"
+        [openable]="checkpoint.farthest() > 0"
+        [open]="opened() === 'free'"
+        (openChange)="opened.set($event ? 'free' : undefined)"
+      >
+        <a appCandy routerLink="/play" data-vibration="play">Free Play</a>
+        @if (checkpoint.farthest() > 0) {
+          <app-start-from mode="free" path="/play" name="Free Play" [sunk]="!free.risen()" />
         }
-      </div>
-      <ng-template #checkpointMenu>
-        <div appDropdown aria-label="Start from">
-          @for (place of [0].concat(checkpoint.unlocked()); track place) {
-            <button
-              type="button"
-              cdkMenuItemRadio
-              [cdkMenuItemChecked]="place === checkpoint.start()"
-              (cdkMenuItemTriggered)="checkpoint.pick(place)"
-            >
-              {{ place === 0 ? 'Start of π' : 'Place ' + place }}
-            </button>
-          }
-        </div>
-      </ng-template>
-      <a appCandy routerLink="/play" data-vibration="play">Free Play</a>
-      <a #play appCandy="primary" routerLink="/challenge" data-vibration="play">Challenge</a>
+      </app-split-button>
+      <app-split-button
+        #challenge="splitButton"
+        look="primary"
+        label="Challenge From"
+        [openable]="checkpoint.farthest() > 0"
+        [open]="opened() === 'challenge'"
+        (openChange)="opened.set($event ? 'challenge' : undefined)"
+      >
+        <a #play appCandy="primary" routerLink="/challenge" data-vibration="play">Challenge</a>
+        @if (checkpoint.farthest() > 0) {
+          <app-start-from
+            mode="challenge"
+            path="/challenge"
+            name="Challenge"
+            look="primary"
+            [sunk]="!challenge.risen()"
+          />
+        }
+      </app-split-button>
+      @if (editedLook() !== undefined) {
+        <!-- Editing the menu, the room under the buttons shows what a split button opens there, faint. -->
+        <app-start-from
+          class="room"
+          mode="challenge"
+          path="/challenge"
+          name="Challenge"
+          look="primary"
+          inert
+          aria-hidden="true"
+        />
+      }
     </app-button-list>
     <!-- After the middle of the menu, for Tab to go through it from the left to the right. -->
     @if (developerMode.enabled()) {
@@ -266,6 +290,8 @@ export class Menu {
   protected readonly tweaks = inject(Tweaks);
   /** Where the games started from here start: the start of π, or a checkpoint unlocked. */
   protected readonly checkpoint = inject(Checkpoint);
+  /** The game mode whose button to start it from its place is open, below its own, if any. */
+  protected readonly opened = signal<GameMode | undefined>(undefined);
 
   /** The look being edited, in developer mode's editor, shown as it changes. */
   protected readonly editedLook = signal<MenuLook | undefined>(undefined);
@@ -370,6 +396,14 @@ export class Menu {
 
   /** Loads the page again, from developer mode's menu. */
   protected readonly reload = inject(RELOAD_PAGE);
+
+  /** Closes the button starting a game mode from its place on a press anywhere but on its split button. */
+  protected closeOutside(event: PointerEvent): void {
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest('app-split-button.open') === null) {
+      this.opened.set(undefined);
+    }
+  }
 
   /** Opens the editor of the menu's look, from developer mode's menu. */
   protected edit(): void {

@@ -31,11 +31,11 @@ import { newTouchLog } from '../../player-data/touch-log';
 import { typeKey } from '../../../testing/touch-logs';
 import { Digit } from '../../game/pi/digit';
 import { RunRecorder } from '../../player-data/run-recorder';
-import { Checkpoint } from '../../player-data/checkpoint';
 import { INDEXED_DB, RunStore } from '../../player-data/run-store';
 import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { backgroundsFrom, seasonAt } from '../../game/layers/seasons';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
+import { Checkpoint } from '../../player-data/checkpoint';
 import { GroupSizeSetting } from '../../player-data/group-size-setting';
 import { startFrom } from '../../../testing/checkpoints';
 import { MARS } from '../../game/grouping/break-models/mars';
@@ -432,11 +432,11 @@ describe('Play', () => {
       const { host, type } = await setUpWithRuns(
         4,
         true,
-        () => {
-          // The runs, of 60 digits, unlock it.
-          TestBed.inject(Checkpoint).pick(50);
-          return Promise.resolve();
-        },
+        // The runs, of 60 digits, unlock it.
+        () =>
+          TestBed.inject(Router)
+            .navigateByUrl('/?from=50')
+            .then(() => undefined),
         60,
       );
       expect(slots(host)).toEqual(['']);
@@ -2079,6 +2079,10 @@ describe('Play', () => {
       await round.wait(0);
       expect(checkpoints()).toEqual([]);
       expect(words(round.host)).toEqual(before);
+      // Once the run unlocking it is saved.
+      await vi.waitFor(() => {
+        expect(TestBed.inject(Checkpoint).place('discover')).toBe(10);
+      });
 
       await showMe(round);
       await round.wait(MEDIUM_INTERVAL);

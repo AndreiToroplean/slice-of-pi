@@ -1,5 +1,5 @@
 import {
-  BUTTON_COUNT,
+  BUTTON_SLOTS,
   MENU_LOOK,
   menuStyles,
   parseMenuLook,
@@ -48,7 +48,7 @@ describe('menu look', () => {
 
     expect(styles['--buttons-y']).toBe(`${String(y)}%`);
     expect(styles['--buttons-span']).toBe(
-      `${String(BUTTON_COUNT * height + (BUTTON_COUNT - 1) * gap)}rem`,
+      `${String(BUTTON_SLOTS * height + (BUTTON_SLOTS - 1) * gap)}rem`,
     );
   });
 
