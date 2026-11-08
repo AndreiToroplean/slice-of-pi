@@ -1,6 +1,6 @@
 import { computed, inject, Service, signal } from '@angular/core';
 import { COLOR_SPACES, ColorSpace } from '../game/color/color-spaces';
-import { Palette, PALETTE } from '../game/layers/place-colors';
+import { isKeyLinger, KEY_LINGER, Palette, PALETTE } from '../game/layers/place-colors';
 import { writeBackup } from '../player-data/backup';
 import { migrate, Migration } from '../player-data/migration';
 import { RunOrder } from '../player-data/run';
@@ -75,6 +75,8 @@ export interface TweakValues {
   readonly colorSpace?: ColorSpace;
   /** How many places a season takes to turn into the next, for {@link SEASON_TURN}. */
   readonly seasonTurn?: number;
+  /** How long a digit key's color lingers once released, in milliseconds, for {@link KEY_LINGER}. */
+  readonly keyLinger?: number;
   /** `false` to play without checking the digits, which the game otherwise always does. */
   readonly checking?: false;
   /** `true` to show the countdown to the end of the group being typed, in developer mode, which is otherwise hidden. */
@@ -164,6 +166,10 @@ export class Tweaks {
   /** How many places a season takes to turn into the next. */
   readonly seasonTurn = computed(
     () => (this.developerMode.enabled() ? this.tweaks().seasonTurn : undefined) ?? SEASON_TURN,
+  );
+  /** How long a digit key's color lingers once released, in milliseconds. */
+  readonly keyLinger = computed(
+    () => (this.developerMode.enabled() ? this.tweaks().keyLinger : undefined) ?? KEY_LINGER,
   );
 
   /** Whether the game checks the digits typed against π. */
@@ -307,6 +313,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), seasonTurn }));
   }
 
+  /** Sets how long a digit key's color lingers once released; `undefined` brings back the game's. */
+  setKeyLinger(keyLinger: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), keyLinger }));
+  }
+
   /** Turns checking the digits typed on or off. */
   setChecking(checking: boolean): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), checking: checking ? undefined : false }));
@@ -427,6 +438,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     pins,
     colorSpace,
     seasonTurn,
+    keyLinger,
     checking,
     countdown,
     keys,
@@ -452,6 +464,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     pins: pinsOf(pins),
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
+    keyLinger: isKeyLinger(keyLinger) ? keyLinger : undefined,
     checking: checking === false ? checking : undefined,
     countdown: countdown === true ? countdown : undefined,
     keys: keys === 'solid' ? keys : undefined,
@@ -480,6 +493,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     grouping,
     colorSpace,
     seasonTurn,
+    keyLinger,
     layout,
     menu,
     vibrations,
@@ -502,6 +516,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     grouping: tuned.length === 0 ? undefined : Object.fromEntries(tuned),
     colorSpace: colorSpace === SEASON_COLOR_SPACE ? undefined : colorSpace,
     seasonTurn: seasonTurn === SEASON_TURN ? undefined : seasonTurn,
+    keyLinger: keyLinger === KEY_LINGER ? undefined : keyLinger,
     layout: equal(layout, LAYOUT) ? undefined : layout,
     menu: equal(menu, MENU_LOOK) ? undefined : menu,
     vibrations: vibrationsOf(vibrations),
@@ -536,6 +551,7 @@ function tweakValues({
   pins,
   colorSpace,
   seasonTurn,
+  keyLinger,
   checking,
   countdown,
   keys,
@@ -560,6 +576,7 @@ function tweakValues({
     ...(pins === undefined ? {} : { pins }),
     ...(colorSpace === undefined ? {} : { colorSpace }),
     ...(seasonTurn === undefined ? {} : { seasonTurn }),
+    ...(keyLinger === undefined ? {} : { keyLinger }),
     ...(checking === undefined ? {} : { checking }),
     ...(countdown === undefined ? {} : { countdown }),
     ...(keys === undefined ? {} : { keys }),

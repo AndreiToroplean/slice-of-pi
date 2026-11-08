@@ -157,6 +157,7 @@ const TICK = 16;
       [showAreas]="editedLayout() !== undefined && !previewing()"
       [disabled]="replay() !== undefined || lost()"
       [backspace]="mode() === 'free'"
+      [linger]="linger()"
       [shown]="shownKey()"
       [marks]="marks()"
       (touched)="press($event)"
@@ -221,6 +222,11 @@ export class Play implements PausesOnBack {
 
   /** The colors tuned in developer mode, or the game's own, and whether to count down to the end of the group. */
   protected readonly tweaks = inject(Tweaks);
+  /**
+   * How long a digit key's color lingers once released, in milliseconds of the page's clock: the tuned linger, at a
+   * replay's tempo.
+   */
+  protected readonly linger = computed(() => this.tweaks.keyLinger() / this.tempo());
   /** What the keys played, and the words as they landed, one line each, oldest first, for developer mode to show. */
   protected readonly soundLog = signal<readonly string[]>([]);
   /** The layout being edited, in developer mode's edit mode, while the game stays paused. */
