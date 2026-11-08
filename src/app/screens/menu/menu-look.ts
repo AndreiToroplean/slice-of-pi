@@ -8,8 +8,9 @@ export const TWILIGHT: BackgroundColors = ['#19224d', '#be5a23'];
  * across: only sizes and heights are set. The icon and the name's lines are a group, kept together whatever the menu's
  * height: only the group's center is a height of the menu, in hundredths of it, up from its bottom; each part's middle
  * is an offset from that center, up, and each part's size, both in hundredths of the column's width (see `app.css`).
- * The buttons are a group too: its middle is a height of the menu, as the title's is, and each button's height, and the
- * gap between any two, are in rem, as every page's controls are sized.
+ * The buttons are a group too: its middle is a height of the menu, as the title's is, and each button's height and
+ * width, and the gap between any two, are in rem, as every page's controls are sized, the width no wider than the
+ * screen within its margins.
  */
 export interface MenuLayout {
   /** The height of the center of the icon and the name, together. */
@@ -20,8 +21,13 @@ export interface MenuLayout {
   readonly slice: { readonly size: number; readonly offset: number };
   /** The size of the letters of "Pi", and how far their middle is above the center. */
   readonly pi: { readonly size: number; readonly offset: number };
-  /** Each button's height, the gap between any two, and how far above the bottom margin the last one stands, in rem. */
-  readonly buttons: { readonly y: number; readonly height: number; readonly gap: number };
+  /** The height of the buttons' middle, and each button's height and width, and the gap between any two, in rem. */
+  readonly buttons: {
+    readonly y: number;
+    readonly height: number;
+    readonly width: number;
+    readonly gap: number;
+  };
 }
 
 /**
@@ -73,7 +79,7 @@ export const MENU_LOOK: MenuLook = {
     icon: { size: 48.7, offset: 11.8 },
     slice: { size: 7.9, offset: -20.7 },
     pi: { size: 13.5, offset: -40.9 },
-    buttons: { y: 17, height: 3.25, gap: 0.75 },
+    buttons: { y: 17, height: 3.25, width: 16, gap: 0.75 },
   },
   light: {
     icon: {
@@ -133,6 +139,7 @@ export const LAYOUT_FIELDS = {
   ],
   buttons: [
     { key: 'height', label: 'Height', min: 2, max: 6, step: 0.0625 },
+    { key: 'width', label: 'Width', min: 8, max: 32, step: 0.0625 },
     { key: 'gap', label: 'Gap', min: 0, max: 4, step: 0.0625 },
     { key: 'y', label: 'Height', min: 0, max: 100, step: 0.1 },
   ],
@@ -190,7 +197,7 @@ export function withLight(
 
 /**
  * The look as the CSS lengths the menu lays out with: `--icon-size` and `--icon-y`, `--icon-light-y`, `--slice-size`
- * and `--slice-y`, `--pi-size` and `--pi-y`, `--buttons-y`, `--buttons-height`, `--buttons-gap`, and `--buttons-span`,
+ * and `--slice-y`, `--pi-size` and `--pi-y`, `--buttons-y`, `--buttons-height`, `--buttons-width`, `--buttons-gap`, and `--buttons-span`,
  * how tall the buttons are together, with the room under them (see {@link BUTTON_SLOTS}). Each `-y` is the height of a middle, up from the menu's bottom, as a percentage of
  * the menu's height plus a length.
  */
@@ -210,6 +217,7 @@ export function menuStyles(look: MenuLook): Readonly<Record<string, string>> {
     '--pi-y': up(pi.offset),
     '--buttons-y': `${String(buttons.y)}%`,
     '--buttons-height': rem(buttons.height),
+    '--buttons-width': rem(buttons.width),
     '--buttons-gap': rem(buttons.gap),
     '--buttons-span': rem(BUTTON_SLOTS * buttons.height + (BUTTON_SLOTS - 1) * buttons.gap),
   };
