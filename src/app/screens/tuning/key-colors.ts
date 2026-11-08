@@ -99,7 +99,6 @@ export class KeyColors {
   private readonly backgroundColors = inject(Background).colors;
   /** The colors being tuned. */
   protected readonly hexes = signal<Palette>(this.tweaks.values().palette ?? PALETTE);
-  private edited = false;
   /** The key whose color is in the picker. */
   protected readonly selected = signal(0);
 
@@ -119,11 +118,6 @@ export class KeyColors {
   protected readonly background = signal<Season>('spring');
 
   constructor() {
-    void this.tweaks.loaded.then(() => {
-      if (!this.edited) {
-        this.hexes.set(this.tweaks.values().palette ?? PALETTE);
-      }
-    });
     this.showBackground('spring');
   }
 
@@ -133,13 +127,11 @@ export class KeyColors {
 
   /** Sets the selected key's color. */
   protected tune(color: string): void {
-    this.edited = true;
     this.hexes.update((colors) => colors.map((old, i) => (i === this.selected() ? color : old)));
     void this.tweaks.setPalette(this.hexes());
   }
 
   protected reset(): void {
-    this.edited = true;
     this.hexes.set(PALETTE);
     void this.tweaks.setPalette(undefined);
   }

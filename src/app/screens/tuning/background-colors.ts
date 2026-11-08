@@ -185,7 +185,6 @@ export class BackgroundColors {
   protected readonly starts = signal<SeasonStarts>(this.tweaks.values().seasons ?? SEASON_STARTS);
   /** The main menu's colors being tuned. */
   protected readonly twilight = signal<Gradient>(this.tweaks.values().twilight ?? TWILIGHT);
-  private edited = false;
   /**
    * The place shown, as if that many digits were typed: a whole year, marked at its start and its end, and a season
    * on either side, to look at the turns of the year too.
@@ -260,12 +259,6 @@ export class BackgroundColors {
   );
 
   constructor() {
-    void this.tweaks.loaded.then(() => {
-      if (!this.edited) {
-        this.starts.set(this.tweaks.values().seasons ?? SEASON_STARTS);
-        this.twilight.set(this.tweaks.values().twilight ?? TWILIGHT);
-      }
-    });
     // As in the game: the background eases to the colors of the place shown, or the main menu's, while one of them is
     // selected.
     const background = inject(Background);
@@ -297,7 +290,6 @@ export class BackgroundColors {
   /** Sets the color selected. */
   protected pick(color: string): void {
     const { season, end } = this.selected();
-    this.edited = true;
     if (season === 'menu') {
       this.twilight.update(([top, bottom]) => (end === 0 ? [color, bottom] : [top, color]));
       void this.tweaks.setTwilight(this.twilight());
@@ -331,7 +323,6 @@ export class BackgroundColors {
   }
 
   protected reset(): void {
-    this.edited = true;
     this.starts.set(SEASON_STARTS);
     this.twilight.set(TWILIGHT);
     void this.tweaks.setSeasons(undefined);

@@ -145,7 +145,6 @@ export class Vibrations {
 
   /** The patterns being tuned. */
   protected readonly patterns = signal<VibrationPatterns>(this.storedPatterns());
-  private edited = false;
   /** The step whose duration is on the slider. */
   protected readonly selected = signal<StepRef>({ vibration: VIBRATIONS[0], index: 0 });
 
@@ -163,14 +162,6 @@ export class Vibrations {
   protected readonly sliderValue = computed(() =>
     Math.round(sliderOf(this.selectedDuration()) * SLIDER_STEPS),
   );
-
-  constructor() {
-    void this.tweaks.loaded.then(() => {
-      if (!this.edited) {
-        this.patterns.set(this.storedPatterns());
-      }
-    });
-  }
 
   protected isDefault(vibration: Vibration): boolean {
     const pattern = this.patterns()[vibration];
@@ -210,7 +201,6 @@ export class Vibrations {
 
   /** Brings back the game's own pattern of a vibration. */
   protected reset(vibration: Vibration): void {
-    this.edited = true;
     this.patterns.update((patterns) => ({
       ...patterns,
       [vibration]: VIBRATION_PATTERNS[vibration],
@@ -226,7 +216,6 @@ export class Vibrations {
   }
 
   private tune(vibration: Vibration, pattern: VibrationPattern): void {
-    this.edited = true;
     this.patterns.update((patterns) => ({ ...patterns, [vibration]: pattern }));
     void this.tweaks.setVibration(vibration, pattern);
   }
