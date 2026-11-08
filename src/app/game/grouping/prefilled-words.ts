@@ -21,16 +21,45 @@ export function wordsUpTo(
     place += size;
   }
   while (place < to) {
-    const known = groups.find(
-      (group) =>
-        group.trusted && !group.open && place >= group.start && place < group.start + group.size,
-    );
-    const size = Math.min(
-      to - place,
-      known === undefined ? groupSize : known.start + known.size - place,
-    );
+    const size = Math.min(to - place, sizeAt(place, groups, groupSize));
     words.push(size);
     place += size;
   }
   return words;
+}
+
+/**
+ * Where the word holding place `to` starts, as `wordsUpTo` would cut the words, but whole: a game starting from a
+ * checkpoint starts there, so that it never splits a group; at `to` itself where a word ends there.
+ */
+export function groupStart(
+  kept: readonly number[],
+  to: number,
+  groups: readonly Group[],
+  groupSize: number,
+): number {
+  let place = 0;
+  for (const size of kept) {
+    if (place + size > to) {
+      return place;
+    }
+    place += size;
+  }
+  while (place < to) {
+    const size = sizeAt(place, groups, groupSize);
+    if (place + size > to) {
+      return place;
+    }
+    place += size;
+  }
+  return place;
+}
+
+/** How long the word starting at a place is: as the player's group there, if the model trusts it, or the group size. */
+function sizeAt(place: number, groups: readonly Group[], groupSize: number): number {
+  const known = groups.find(
+    (group) =>
+      group.trusted && !group.open && place >= group.start && place < group.start + group.size,
+  );
+  return known === undefined ? groupSize : known.start + known.size - place;
 }

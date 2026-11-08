@@ -43,7 +43,7 @@ import { RUN_CLOCK, RunRecorder } from '../../player-data/run-recorder';
 import { LiveRun, RunSession } from '../../player-data/live-run';
 import { newTouchLog, startOf, TouchLog } from '../../player-data/touch-log';
 import { Checkpoint } from '../../player-data/checkpoint';
-import { wordsUpTo } from '../../game/grouping/prefilled-words';
+import { groupStart, wordsUpTo } from '../../game/grouping/prefilled-words';
 import { timesFromPlace } from '../../game/grouping/from-checkpoint';
 import {
   checkpointsAhead,
@@ -113,10 +113,11 @@ const TICK = 16;
  * typed, is recorded, with where and when, in the run's touch log, and so is every touch elsewhere on the screen,
  * typing nothing, but those on the pause button and its dialog; restarting or ending the game ends the run.
  *
- * A game starts from the checkpoint picked on the main menu, if any: the digits before it are on the tape, as if
- * typed, in the player's groups where the break model knows them, and in groups of their group size elsewhere; the run
- * starts from it, and a group starts exactly there, the player's groups worked out from it as usual. Backspace deletes
- * them as any other digit: the next digit then starts the run anew, from where it goes on.
+ * A game starts from the checkpoint picked on the main menu, if any, or rather from where the group holding it starts,
+ * never splitting a group: the digits before it are on the tape, as if typed, in the player's groups where the break
+ * model knows them, and in groups of their group size elsewhere; the run starts there, the player's groups worked out
+ * from it as usual. Discover's rounds move on to a checkpoint likewise. Backspace deletes them as any other digit: the
+ * next digit then starts the run anew, from where it goes on.
  *
  * The game mode comes from the route: free play unless it says otherwise. In a challenge, every digit is checked, the
  * keypad has no backspace, and the first mistake ends the game: the screen's edges turn red at once, the keypad takes
@@ -275,13 +276,13 @@ export class Play implements PausesOnBack {
   private readonly checkpoint = this.checkpointSetting.reachable(
     Number(inject(ActivatedRoute).snapshot.queryParamMap.get('from') ?? 0),
   );
-  /** The place the game starts from: the checkpoint picked, or that of the run replayed. */
+  /** The place the game starts from: that of the checkpoint picked's group, or that of the run replayed. */
   private readonly startPlace = computed(() => {
     const log = this.replay();
     if (log !== undefined) {
       return startOf(log);
     }
-    return this.discovering ? this.rounds().from : this.checkpoint;
+    return this.discovering ? this.rounds().from : this.checkpointStart();
   });
   /** How far back backspace has deleted the digits the game started with, if it has. */
   private readonly deletedTo = signal<number | undefined>(undefined);
@@ -353,7 +354,7 @@ export class Play implements PausesOnBack {
   /** Whether it's Discover: the game plays each round, then the player retypes it. */
   protected readonly discovering = this.routeMode === 'discover';
   /** Where Discover is, round after round, from the checkpoint picked. */
-  private readonly rounds = signal(newRounds(this.checkpoint));
+  private readonly rounds = signal(newRounds(0));
   /** Whose turn it is in Discover; always the player's otherwise. */
   protected readonly turn = signal<Turn>(this.discovering ? 'game' : 'player');
   /** The place from which the digits are those Discover's game showed, faint until the player types. */
@@ -466,6 +467,13 @@ export class Play implements PausesOnBack {
   private readonly knownGroups = computed(
     () => this.tweaks.breakModel().stats(this.earlierTimes()).groups,
   );
+  /**
+   * Where the group holding the checkpoint picked starts, in the player's groups: the game starts there, so that it
+   * never splits a group.
+   */
+  private readonly checkpointStart = computed(() =>
+    groupStart([], this.checkpoint, this.knownGroups(), this.groupSize()),
+  );
   /** The size of each finished group, in order, those given before the place the game starts from first. */
   private readonly sizes = linkedSignal<readonly number[]>(() =>
     this.wordsUpTo([], this.startPlace()),
@@ -567,6 +575,7 @@ export class Play implements PausesOnBack {
   private stopTimers = (): void => undefined;
 
   constructor() {
+    this.rounds.set(newRounds(this.checkpointStart(), this.checkpoint));
     // Ending the game, back to the main menu, ends the run.
     inject(DestroyRef).onDestroy(() => {
       this.stopWatching();
@@ -585,7 +594,7 @@ export class Play implements PausesOnBack {
     }
     if (this.replay() === undefined) {
       this.recorder.challenge.set(this.routeMode === 'challenge');
-      this.recorder.start.set(this.checkpoint);
+      this.recorder.start.set(this.checkpointStart());
     }
     const background = inject(Background);
     effect(() => {
@@ -980,7 +989,8 @@ export class Play implements PausesOnBack {
   private moveRoundsTo(checkpoint: number): void {
     // Where Discover starts from next time, too.
     void this.checkpointSetting.pick('discover', checkpoint);
-    this.rounds.update((rounds) => moveTo(rounds, checkpoint));
+    const from = groupStart(this.sizes(), checkpoint, this.knownGroups(), this.groupSize());
+    this.rounds.update((rounds) => moveTo(rounds, checkpoint, from));
   }
 
   private afterRound(delay: number, callback: () => void): void {
@@ -1035,14 +1045,14 @@ export class Play implements PausesOnBack {
       this.stopHandOver();
       this.target.set(undefined);
       this.discoverRecorder.end();
-      this.rounds.update((rounds) => newRounds(rounds.from));
+      this.rounds.update((rounds) => newRounds(rounds.from, rounds.checkpoint));
       this.turn.set('game');
       this.picked.set(undefined);
     }
     this.landFlights();
     this.deletedTo.set(undefined);
     if (this.replay() === undefined) {
-      this.recorder.start.set(this.checkpoint);
+      this.recorder.start.set(this.startPlace());
     }
     this.digits.set(PI_DECIMALS.slice(0, this.startPlace()));
     this.mistakes.set('');

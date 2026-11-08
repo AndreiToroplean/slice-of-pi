@@ -18,4 +18,13 @@ describe('Discover rounds', () => {
     expect(moveTo(moved, 10)).toBe(moved);
     expect(moveTo(rounds, 30)).toBe(rounds);
   });
+
+  it('starts the rounds at a checkpoint from where its group starts, never offering it again', () => {
+    const moved = moveTo(completeRound(newRounds(0), 23), 20, 18);
+
+    expect(moved.from).toBe(18);
+    expect(moved.checkpoint).toBe(20);
+    expect(checkpointsAhead(moved)).toEqual([]);
+    expect(checkpointsAhead(completeRound(newRounds(198, 200), 215))).toEqual([210]);
+  });
 });
