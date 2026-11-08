@@ -428,8 +428,8 @@ describe('Play', () => {
       expect(slots(host)).toEqual(['1', '', '']);
     });
 
-    it('starts a group exactly at the checkpoint the game starts from, the player’s going on from there', async () => {
-      // Grouped by 3 from place 0, so that place 50 ends the group from place 48.
+    it('starts from where the group holding the checkpoint starts, never splitting it', async () => {
+      // Grouped by 3 from place 0, so that place 50 is in the group from place 48.
       const { host, type } = await setUpWithRuns(
         4,
         true,
@@ -440,12 +440,13 @@ describe('Play', () => {
             .then(() => undefined),
         60,
       );
-      expect(slots(host)).toEqual(['']);
-
-      await typeAll(type, '5');
-
-      expect(words(host).at(-1)).toBe('5');
       expect(slots(host)).toEqual(['', '', '']);
+      expect(words(host).at(-1)).toBe(PI_DECIMALS.slice(45, 48));
+      expect(TestBed.inject(RunRecorder).start()).toBe(48);
+
+      await typeAll(type, PI_DECIMALS.slice(48, 51));
+
+      expect(words(host).at(-1)).toBe(PI_DECIMALS.slice(48, 51));
     });
 
     it('finishes a group at once where the runs agree it ends', async () => {
@@ -668,10 +669,10 @@ describe('Play', () => {
     });
   });
 
-  it('cuts the digits before the checkpoint it starts from in the groups the player is known by', async () => {
+  it('puts the digits before the checkpoint’s group on the tape in the groups the player is known by', async () => {
     const { host } = await setUpWithRuns(4, true, () => startFrom(10), 15);
 
-    expect(words(host).map((word) => word.length)).toEqual([3, 3, 3, 1]);
+    expect(words(host).map((word) => word.length)).toEqual([3, 3, 3]);
   });
 
   describe('mistakes', () => {
