@@ -310,7 +310,6 @@ export class Menu {
   });
 
   constructor() {
-    void this.checkpoint.refresh();
     const fonts = this.document.fonts;
     afterNextRender(() => void this.assets.waitForFonts(fonts));
     // The lights switch on once the menu is in place: shown, and no transition from another screen running, which would

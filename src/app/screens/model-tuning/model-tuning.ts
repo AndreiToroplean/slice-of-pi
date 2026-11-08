@@ -162,9 +162,7 @@ import { TIMES, TimesView } from '../your-runs/times-view';
         <section class="runs" cdkScrollable>
           <p class="message" role="status">{{ state.message() }}</p>
           @if (charts().length === 0) {
-            @if (state.loaded()) {
-              <p>None yet: each game you play shows up here.</p>
-            }
+            <p>None yet: each game you play shows up here.</p>
           } @else {
             <!-- The chart of all runs can be left out of the card, and runs added to it. -->
             <div class="panel aggregate" [class.selected]="aggregateShown()">

@@ -110,8 +110,11 @@ export async function setUpPlayerData(
       ...providers,
     ],
   });
+  const store = TestBed.inject(RunStore);
+  // As the app does before showing anything.
+  await store.loaded;
   for (const run of runs) {
-    await TestBed.inject(RunStore).save(run);
+    await store.save(run);
   }
   if (developer) {
     await TestBed.inject(DeveloperMode).set(true);

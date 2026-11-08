@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
-import { inject, InjectionToken, Service } from '@angular/core';
+import { computed, inject, InjectionToken, Service, signal } from '@angular/core';
 import { isOlderFormat } from './migration';
-import { Run, runOf } from './run';
+import { runOf } from './run';
 import { parseTouchLog, TOUCH_LOG_FORMAT, TouchLog } from './touch-log';
 
 /** The browser's IndexedDB, where runs are stored, as their touch logs; missing in browsers without it. */
@@ -66,6 +66,9 @@ interface Database {
  * the main game yet) uses the main game's database. Any other preview keeps its own database for its format, so it
  * never leaves records the main game can't load: each time it opens, it adds the main game's runs it doesn't have yet,
  * migrated, and the first time it also copies the main game's settings.
+ *
+ * The runs are read once, as it's first used, and kept in memory from then on, along with where the storage stands, each
+ * write changing them there once it's done: pages read them at once, with nothing to wait for.
  */
 @Service()
 export class RunStore {
@@ -73,6 +76,30 @@ export class RunStore {
   private readonly storage = inject(STORAGE_MANAGER);
   private readonly preview = inject(IS_PREVIEW);
   private database: Promise<Database | undefined> | undefined;
+
+  private readonly stored = signal<readonly TouchLog[]>([]);
+  /** The touch log of every run stored in a format this version of the game knows, oldest first. */
+  readonly logs = this.stored.asReadonly();
+  /** Every run stored, from its touch log, oldest first. */
+  readonly runs = computed(() => this.logs().map(runOf));
+  private readonly isSeparate = signal(false);
+  /** Whether this is a preview keeping its runs apart from the main game's, as its touch log format is another. */
+  readonly separate = this.isSeparate.asReadonly();
+  private readonly isPersisted = signal(false);
+  /** Whether the browser keeps the site's storage until the player clears it, rather than when it runs low on space. */
+  readonly persisted = this.isPersisted.asReadonly();
+  /** Settles once the runs, and where the storage stands, have been read. */
+  readonly loaded: Promise<void>;
+
+  constructor() {
+    this.loaded = Promise.all([this.touchLogs(), this.open(), this.storage?.persisted()]).then(
+      ([logs, opened, persisted]) => {
+        this.stored.set(logs);
+        this.isSeparate.set(opened?.separate ?? false);
+        this.isPersisted.set(persisted ?? false);
+      },
+    );
+  }
 
   /** Saves a run's touch log, replacing the earlier save of the same run. */
   async save(log: TouchLog): Promise<void> {
@@ -83,6 +110,7 @@ export class RunStore {
     const transaction = database.transaction(RUNS, 'readwrite');
     transaction.objectStore(RUNS).put(log);
     await completion(transaction);
+    await this.change((logs) => inOrder([...logs.filter(({ id }) => id !== log.id), log]));
   }
 
   /** Deletes a run. */
@@ -94,6 +122,7 @@ export class RunStore {
     const transaction = database.transaction(RUNS, 'readwrite');
     transaction.objectStore(RUNS).delete(id);
     await completion(transaction);
+    await this.change((logs) => logs.filter((log) => log.id !== id));
   }
 
   /** Deletes these runs. */
@@ -107,6 +136,7 @@ export class RunStore {
       transaction.objectStore(RUNS).delete(id);
     }
     await completion(transaction);
+    await this.change((logs) => logs.filter((log) => !ids.includes(log.id)));
   }
 
   /** Deletes every run, those in formats this version of the game doesn't know included. */
@@ -118,6 +148,7 @@ export class RunStore {
     const transaction = database.transaction(RUNS, 'readwrite');
     transaction.objectStore(RUNS).clear();
     await completion(transaction);
+    await this.change(() => []);
   }
 
   /** Deletes every run and every setting: all the player's data. */
@@ -130,6 +161,7 @@ export class RunStore {
     transaction.objectStore(RUNS).clear();
     transaction.objectStore(SETTINGS).clear();
     await completion(transaction);
+    await this.change(() => []);
   }
 
   /**
@@ -148,12 +180,13 @@ export class RunStore {
       store.add(log);
     }
     await completion(transaction);
+    await this.change((kept) => inOrder([...kept, ...added]));
     return added.length;
   }
 
   /**
-   * The touch log of every run stored in a format this version of the game knows, oldest first. Records in other formats
-   * are left in the database, untouched.
+   * Reads the touch log of every run stored in a format this version of the game knows from the database, oldest first,
+   * as {@link logs} holds them. Records in other formats are left in the database, untouched.
    */
   async touchLogs(): Promise<TouchLog[]> {
     const database = (await this.open())?.database;
@@ -163,15 +196,7 @@ export class RunStore {
     const records = await result(
       database.transaction(RUNS).objectStore(RUNS).getAll() as IDBRequest<unknown[]>,
     );
-    return records
-      .map(parseTouchLog)
-      .filter((log) => log !== undefined)
-      .sort((a, b) => a.startedAt - b.startedAt);
-  }
-
-  /** Every run stored, from its touch log (see {@link touchLogs}), oldest first. */
-  async runs(): Promise<Run[]> {
-    return (await this.touchLogs()).map(runOf);
+    return inOrder(records.map(parseTouchLog).filter((log) => log !== undefined));
   }
 
   /** A setting, as stored, or `undefined` where there is none. */
@@ -230,16 +255,6 @@ export class RunStore {
     return (await this.open())?.writable ?? false;
   }
 
-  /** Whether this is a preview keeping its runs apart from the main game's, as its touch log format is another. */
-  async separate(): Promise<boolean> {
-    return (await this.open())?.separate ?? false;
-  }
-
-  /** Whether the browser keeps the site's storage until the player clears it, rather than when it runs low on space. */
-  async persisted(): Promise<boolean> {
-    return (await this.storage?.persisted()) ?? false;
-  }
-
   /**
    * Asks the browser to keep the site's storage until the player clears it. Browsers decide on their own, some by
    * asking the player, so this is only asked once storage is actually used. Gives whether the storage is persistent.
@@ -248,7 +263,18 @@ export class RunStore {
     if (this.storage === undefined) {
       return false;
     }
-    return (await this.storage.persisted()) || this.storage.persist();
+    const persisted = (await this.storage.persisted()) || (await this.storage.persist());
+    this.isPersisted.set(persisted);
+    return persisted;
+  }
+
+  /**
+   * Changes the runs kept in memory as a write did, once they've been read: the first read, asked for before any write,
+   * holds none of them.
+   */
+  private async change(update: (logs: readonly TouchLog[]) => readonly TouchLog[]): Promise<void> {
+    await this.loaded;
+    this.stored.update(update);
   }
 
   private open(): Promise<Database | undefined> {
@@ -263,6 +289,11 @@ export class RunStore {
     const opened = await this.open();
     return opened?.writable === true ? opened.database : undefined;
   }
+}
+
+/** Touch logs, oldest first. */
+function inOrder(logs: readonly TouchLog[]): TouchLog[] {
+  return [...logs].sort((a, b) => a.startedAt - b.startedAt);
 }
 
 async function openDatabase(

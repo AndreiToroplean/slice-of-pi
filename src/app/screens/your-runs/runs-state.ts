@@ -18,14 +18,12 @@ import type { RunCardChart } from './run-card';
  */
 @Injectable()
 export class RunsState {
-  /** Whether the runs have been read. */
-  readonly loaded = signal(false);
   /** What the page last did, for screen readers too. */
   readonly message = signal('');
-  readonly runs = signal<readonly Run[]>([]);
 
   private readonly tweaks = inject(Tweaks);
   private readonly store = inject(RunStore);
+  readonly runs = this.store.runs;
   private readonly recorder = inject(RunRecorder);
   private readonly confirm = inject(CONFIRM);
 
@@ -117,10 +115,6 @@ export class RunsState {
     this.order().line === undefined ? 'All runs' : 'Runs before here',
   );
 
-  constructor() {
-    void this.refresh();
-  }
-
   /**
    * Plays from just after the run with this id, as if only the runs up to it had been played, or from before all of
    * them if none, keeping the order shown. A tweak, it only applies in developer mode.
@@ -164,7 +158,6 @@ export class RunsState {
       return;
     }
     await this.store.deleteAllRuns();
-    await this.refresh();
     this.message.set(`Deleted ${plural(count, 'run')}.`);
   }
 
@@ -184,7 +177,6 @@ export class RunsState {
       return;
     }
     await this.store.deleteRuns(ids);
-    await this.refresh();
     this.message.set(done);
   }
 
@@ -194,13 +186,6 @@ export class RunsState {
    */
   private shows(run: Run): boolean {
     return run.start === 0 && !run.overwritten && (run.checked || this.tweaks.includeUnchecked());
-  }
-
-  /** Reads the runs again. */
-  async refresh(): Promise<void> {
-    await this.recorder.saved();
-    this.runs.set(await this.store.runs());
-    this.loaded.set(true);
   }
 }
 

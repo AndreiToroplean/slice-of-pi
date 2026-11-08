@@ -10,6 +10,7 @@ import {
   input,
   linkedSignal,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -384,8 +385,20 @@ export class Play implements PausesOnBack {
       ? 1
       : Math.max(0, wait - this.session.waited()) / wait;
   });
-  /** The player's earlier runs, oldest first. */
-  private readonly earlierRuns = signal<readonly Run[]>([]);
+  /** The player's runs as the screen opened, oldest first: those it plays from then on aren't among them. */
+  private readonly storedRuns = untracked(inject(RunStore).runs);
+  /** The runs played on this screen since it opened, ended by restarting the game, oldest first. */
+  private readonly playedHere = signal<readonly Run[]>([]);
+  /** The player's earlier runs, oldest first: replaying a run, those played before it. */
+  private readonly earlierRuns = computed(() => {
+    const replayed = this.replay();
+    return [
+      ...(replayed === undefined
+        ? this.storedRuns
+        : this.storedRuns.filter((run) => run.startedAt < replayed.startedAt)),
+      ...this.playedHere(),
+    ];
+  });
   /** The times of the earlier runs that count in the groups, oldest first. */
   private readonly earlierTimes = computed(() =>
     groupRuns(this.earlierRuns(), this.tweaks.includeUnchecked(), this.tweaks.runOrder()).map(
@@ -503,22 +516,6 @@ export class Play implements PausesOnBack {
       this.recorder.challenge.set(this.routeMode === 'challenge');
       this.recorder.start.set(this.checkpoint);
     }
-    void inject(RunStore)
-      .runs()
-      .then((runs) => {
-        // Leaving out the run being played, already saved if a key came first, and those already added on restarts;
-        // replaying a run, those played after it.
-        const playing = this.recorder.run()?.id;
-        const replayed = this.replay();
-        this.earlierRuns.update((added) => [
-          ...runs.filter((run) =>
-            replayed === undefined
-              ? run.id !== playing && !added.some(({ id }) => id === run.id)
-              : run.startedAt < replayed.startedAt,
-          ),
-          ...added,
-        ]);
-      });
     const background = inject(Background);
     effect(() => {
       background.colors.set(this.season().background);
@@ -860,7 +857,7 @@ export class Play implements PausesOnBack {
     const ended = this.session.run();
     this.reset();
     if (ended !== undefined) {
-      this.earlierRuns.update((runs) => [...runs, ended]);
+      this.playedHere.update((runs) => [...runs, ended]);
     }
   }
 

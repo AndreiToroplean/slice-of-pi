@@ -101,16 +101,59 @@ describe('RunStore', () => {
     backspaces: [],
   };
 
-  it('has no runs at first', async () => {
-    expect(await storeWith().touchLogs()).toEqual([]);
+  describe('in memory', () => {
+    it('holds the runs stored, read once, oldest first', async () => {
+      const database = await openDirectly(DATABASE_VERSION, (opened) => {
+        opened.createObjectStore(RUNS, { keyPath: 'id' });
+        opened.createObjectStore('settings');
+        opened.createObjectStore(META);
+      });
+      await put(database, [second, first]);
+      database.close();
+      const store = storeWith();
+
+      await store.loaded;
+
+      expect(store.logs()).toEqual([first, second]);
+      expect(store.runs()).toEqual([runOf(first), runOf(second)]);
+    });
+
+    it('keeps them as each write leaves them, without reading them again', async () => {
+      const store = storeWith();
+      await store.save(second);
+      await store.save(first);
+      await store.save(typeKey(first, '1', 400));
+      expect(store.logs()).toEqual([typeKey(first, '1', 400), second]);
+
+      await store.delete('a');
+      expect(store.logs()).toEqual([second]);
+
+      expect(await store.addRuns([first, second])).toBe(1);
+      expect(store.logs()).toEqual([first, second]);
+
+      await store.deleteRuns(['a', 'b']);
+      expect(store.logs()).toEqual([]);
+
+      await store.save(first);
+      await store.deleteAllRuns();
+      expect(store.logs()).toEqual([]);
+
+      await store.save(first);
+      await store.deleteEverything();
+      expect(store.logs()).toEqual([]);
+    });
+
+    it('keeps a run saved while they are first read', async () => {
+      const store = storeWith();
+
+      await Promise.all([store.save(first), store.loaded]);
+
+      expect(store.logs()).toEqual([first]);
+    });
   });
 
-  it('gives the run of each touch log', async () => {
-    const store = storeWith();
-
-    await store.save(first);
-
-    expect(await store.runs()).toEqual([runOf(first)]);
+  it('has no runs at first', async () => {
+    expect(await storeWith().touchLogs()).toEqual([]);
   });
 
   it('keeps the runs saved, oldest first', async () => {
@@ -388,7 +431,8 @@ describe('RunStore', () => {
       await preview.saveSetting('sounds', 1);
 
       expect(await preview.writable()).toBe(true);
-      expect(await preview.separate()).toBe(true);
+      await preview.loaded;
+      expect(preview.separate()).toBe(true);
       expect(await preview.touchLogs()).toEqual([second]);
       expect(await preview.settings()).toEqual({ colors: 1, sounds: 1 });
       expect(await storedRecords()).toEqual([first]);
@@ -439,7 +483,9 @@ describe('RunStore', () => {
       await storeWith().writable();
       TestBed.resetTestingModule();
 
-      expect(await storeWith({ preview: true }).separate()).toBe(false);
+      const store = storeWith({ preview: true });
+      await store.loaded;
+      expect(store.separate()).toBe(false);
     });
 
     it('keeps runs when the main game has never opened the database', async () => {
@@ -473,9 +519,12 @@ describe('RunStore', () => {
 
     it('asks the browser to keep the storage', async () => {
       const store = storeWith({ storage: storageManager(false, true) });
+      await store.loaded;
+      expect(store.persisted()).toBe(false);
 
       expect(await store.persist()).toBe(true);
       expect(persist).toHaveBeenCalledOnce();
+      expect(store.persisted()).toBe(true);
     });
 
     it('gives whether the browser agreed', async () => {
@@ -485,7 +534,8 @@ describe('RunStore', () => {
     it('does not ask again once the storage is persistent', async () => {
       const store = storeWith({ storage: storageManager(true, true) });
 
-      expect(await store.persisted()).toBe(true);
+      await store.loaded;
+      expect(store.persisted()).toBe(true);
       expect(await store.persist()).toBe(true);
       expect(persist).not.toHaveBeenCalled();
     });
@@ -493,7 +543,8 @@ describe('RunStore', () => {
     it('is not persistent where the browser cannot make it so', async () => {
       const store = storeWith({ storage: undefined });
 
-      expect(await store.persisted()).toBe(false);
+      await store.loaded;
+      expect(store.persisted()).toBe(false);
       expect(await store.persist()).toBe(false);
     });
   });

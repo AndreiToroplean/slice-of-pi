@@ -77,9 +77,7 @@ import { Key, Range } from './views/plot';
             <app-here-line />
           }
         } @empty {
-          @if (state.loaded()) {
-            <p>None yet: each game you play shows up here.</p>
-          }
+          <p>None yet: each game you play shows up here.</p>
         }
       </section>
       <!-- A run's context menu, opened by its ⋮ or a long press on it; in developer mode, to play from it too. -->

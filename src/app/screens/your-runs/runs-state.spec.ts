@@ -47,9 +47,7 @@ describe('RunsState', () => {
     if (includeUnchecked) {
       await TestBed.inject(Tweaks).setIncludeUnchecked(true);
     }
-    const state = TestBed.inject(RunsState);
-    await state.refresh();
-    return state;
+    return TestBed.inject(RunsState);
   }
 
   const ids = (state: RunsState): string[] => state.charts().map((chart) => chart.id);
@@ -60,7 +58,6 @@ describe('RunsState', () => {
   it('charts each run, oldest first, counting its digits, time and groups', async () => {
     const state = await setUp([second, first, grouped]);
 
-    expect(state.loaded()).toBe(true);
     expect(ids(state)).toEqual(['a', 'b', 'c']);
     expect(state.charts()[0]?.title).toBe(dateAndTime.format(1_000));
     expect(state.charts().map((chart) => chart.meta)).toEqual([
