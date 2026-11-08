@@ -2,14 +2,16 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   ElementRef,
   inject,
   input,
   output,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
-import { Digit, isDigit } from '../../../game/pi/digit';
+import { Digit, DIGITS, isDigit } from '../../../game/pi/digit';
 import { PALETTE, Palette } from '../../../game/layers/place-colors';
 import {
   DEFAULT_KEYPAD_LAYOUT,
@@ -183,6 +185,11 @@ export class Keypad {
   readonly showAreas = input(false);
   /** Whether backspace works, as it does unless the game mode has none: its key then shows blank, and is inert. */
   readonly backspace = input(true);
+  /**
+   * How long a digit key's color lingers on its face once it stops showing pressed, in milliseconds, fading out to the
+   * color its digit takes next: none at 0.
+   */
+  readonly linger = input(0);
   /** Whether it takes no touches nor keys, as while a run is replayed. */
   readonly disabled = input(false);
   /** A key to show pressed, whatever presses it, as the key of a touch replayed. */
@@ -214,7 +221,26 @@ export class Keypad {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly grid = viewChild.required<ElementRef<HTMLElement>>('grid');
 
+  /** The digit keys showing pressed, the last time it looked. */
+  private wasPressed: readonly Digit[] = [];
+  /** The lingering color of each digit key, fading out. */
+  private readonly lingering = new Map<Digit, Animation>();
+
   constructor() {
+    // A digit key that stops showing pressed keeps the color it took for a moment, fading out.
+    effect(() => {
+      const pressed = DIGITS.filter((digit) => this.shownPressed(digit));
+      const released = this.wasPressed.filter((digit) => !pressed.includes(digit));
+      this.wasPressed = pressed;
+      untracked(() => {
+        for (const digit of pressed) {
+          this.lingering.get(digit)?.cancel();
+        }
+        for (const digit of released) {
+          this.lingerOn(digit);
+        }
+      });
+    });
     inject(DestroyRef).onDestroy(() => {
       for (const press of this.presses.values()) {
         clearTimeout(press.timer);
@@ -405,6 +431,21 @@ export class Keypad {
       press.repeated = true;
       this.touched.emit({ key: press.key, ...press.start });
     }
+  }
+
+  /** Lets the color a digit key took as it was pressed linger on its face, fading out. */
+  private lingerOn(digit: Digit): void {
+    const duration = this.linger();
+    const key = this.host.querySelector<HTMLElement>(`.key[data-key="${digit}"]`);
+    const color = this.splashColors()[digit];
+    if (duration <= 0 || key === null || color === undefined || typeof key.animate !== 'function') {
+      return;
+    }
+    key.style.setProperty('--linger-color', color);
+    this.lingering.set(
+      digit,
+      key.animate([{ '--linger': 1 }, { '--linger': 0 }], { duration, easing: 'ease-out' }),
+    );
   }
 
   /** Fills a digit key with its color: the color its digit takes when typed now. */

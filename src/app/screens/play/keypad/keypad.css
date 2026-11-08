@@ -35,6 +35,7 @@
 /* Candy buttons (see `Candy`), for digits, as thick as the keypad's keys are. */
 .key {
   --candy-depth: var(--key-depth);
+  --linger: 0;
   min-height: var(--key-height);
   padding: 0;
   font-size: calc(var(--key-height) * 0.45);
@@ -100,4 +101,18 @@
       inset 0 0 0 0.125rem #ffffff,
       0 0 0 0.125rem rgb(40 20 60 / 55%);
   }
+}
+
+/*
+ * The color a digit key took as it was pressed, lingering on its face once released, fading out (`--linger` from 1
+ * to 0, see `Keypad`) to the color its digit takes next. Under what the key says.
+ */
+.key::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--linger-color, transparent);
+  opacity: var(--linger);
+  pointer-events: none;
 }

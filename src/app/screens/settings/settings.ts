@@ -3,6 +3,8 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { DEFAULT_KEYPAD_LAYOUT, KeypadLayout } from '../../game/layers/keypad-layout';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
+import { Slider } from '../../ui/slider';
+import { KEY_LINGER, MAX_KEY_LINGER } from '../../game/layers/place-colors';
 import { VibrationSetting } from '../../player-data/vibration-setting';
 import { SoundSetting } from '../../player-data/sound-setting';
 import { Page } from '../../ui/page';
@@ -23,7 +25,7 @@ import { YourData } from './your-data';
  */
 @Component({
   selector: 'app-settings',
-  imports: [ButtonList, Candy, ChoiceDialog, Page, Segmented, YourData],
+  imports: [ButtonList, Candy, ChoiceDialog, Page, Segmented, YourData, Slider],
   template: `
     <app-page heading="Settings">
       <button
@@ -131,6 +133,16 @@ import { YourData } from './your-data';
               </svg>
             </button>
           </div>
+          <app-slider
+            label="Key Linger"
+            [value]="tweaks.keyLinger()"
+            [min]="0"
+            [max]="maxKeyLinger"
+            [step]="10"
+            [valueText]="tweaks.keyLinger() + ' ms'"
+            [defaultValue]="defaultKeyLinger"
+            (changed)="setKeyLinger($event)"
+          />
           <div class="row">
             <label class="setting">
               <span>
@@ -243,6 +255,8 @@ export class Settings {
     { value: 'calculator', label: 'Calculator' },
     { value: 'telephone', label: 'Telephone' },
   ];
+  protected readonly maxKeyLinger = MAX_KEY_LINGER;
+  protected readonly defaultKeyLinger = KEY_LINGER;
   protected readonly keyLooks: readonly Segment<'clear' | 'solid'>[] = [
     { value: 'solid', label: 'Solid Keys' },
     { value: 'clear', label: 'Clear Keys' },
@@ -268,11 +282,16 @@ export class Settings {
       this.countdownDefault() &&
       !this.tweaks.soundNotes() &&
       this.tweaks.checking() &&
-      !this.tweaks.solidKeys(),
+      !this.tweaks.solidKeys() &&
+      this.tweaks.keyLinger() === KEY_LINGER,
   );
 
   protected setCountdown(event: Event): void {
     void this.tweaks.setCountdown((event.target as HTMLInputElement).checked);
+  }
+
+  protected setKeyLinger(linger: number | undefined): void {
+    void this.tweaks.setKeyLinger(linger);
   }
 
   protected setSolidKeys(solid: boolean): void {
@@ -332,6 +351,7 @@ export class Settings {
     this.resetSound();
     if (this.developerMode.enabled()) {
       this.setSolidKeys(false);
+      this.setKeyLinger(undefined);
       this.resetCountdown();
       this.resetSoundNotes();
       this.resetChecking();

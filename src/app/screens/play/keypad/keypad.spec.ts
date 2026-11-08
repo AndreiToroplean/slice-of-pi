@@ -659,6 +659,48 @@ describe('Keypad', () => {
     });
   });
 
+  describe('lingering colors', () => {
+    let animate: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      animate = vi.fn(() => ({ cancel: vi.fn() }));
+      Object.defineProperty(HTMLElement.prototype, 'animate', {
+        value: animate,
+        configurable: true,
+      });
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(HTMLElement.prototype, 'animate');
+    });
+
+    it('lets the color a digit key took as it was pressed linger once released, fading out', () => {
+      fixture.componentRef.setInput('linger', 200);
+      fixture.detectChanges();
+      const color = button('1').style.getPropertyValue('--press-color');
+
+      tap('1');
+      vi.advanceTimersByTime(SPLASH_DURATION);
+      fixture.detectChanges();
+
+      expect(animate).toHaveBeenCalledExactlyOnceWith([{ '--linger': 1 }, { '--linger': 0 }], {
+        duration: 200,
+        easing: 'ease-out',
+      });
+      expect(button('1').style.getPropertyValue('--linger-color')).toBe(color);
+      // The key itself has moved on to the color its digit takes next.
+      expect(button('1').style.getPropertyValue('--press-color')).not.toBe(color);
+    });
+
+    it('lets no color linger at 0', () => {
+      tap('1');
+      vi.advanceTimersByTime(SPLASH_DURATION);
+      fixture.detectChanges();
+
+      expect(animate).not.toHaveBeenCalled();
+    });
+  });
+
   describe('without backspace', () => {
     beforeEach(() => {
       fixture.componentRef.setInput('backspace', false);
