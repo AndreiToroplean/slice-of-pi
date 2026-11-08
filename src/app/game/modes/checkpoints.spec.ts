@@ -1,4 +1,4 @@
-import { givenWords, isCheckpoint, unlockedCheckpoints } from './checkpoints';
+import { isCheckpoint, unlockedCheckpoints } from './checkpoints';
 
 describe('checkpoints', () => {
   it('unlocks every checkpoint, every 10 places, up to the farthest place reached', () => {
@@ -8,13 +8,12 @@ describe('checkpoints', () => {
     expect(unlockedCheckpoints([12, 35, 21])).toEqual([10, 20, 30]);
   });
 
-  it('places a checkpoint every 10 places, place 0 being none, the digits before it given in words of 10', () => {
+  it('places a checkpoint every 10 places, place 0 being none', () => {
     expect([isCheckpoint(0), isCheckpoint(10), isCheckpoint(15), isCheckpoint(50)]).toEqual([
       false,
       true,
       false,
       true,
     ]);
-    expect(givenWords(30)).toEqual([10, 10, 10]);
   });
 });

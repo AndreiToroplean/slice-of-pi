@@ -18,8 +18,3 @@ export function unlockedCheckpoints(reached: readonly number[]): number[] {
 export function isCheckpoint(place: number): boolean {
   return place > 0 && place % CHECKPOINTS === 0;
 }
-
-/** The words a game starting from a place shows as already typed: one per checkpoint before it. */
-export function givenWords(start: number): number[] {
-  return Array.from({ length: Math.floor(start / CHECKPOINTS) }, () => CHECKPOINTS);
-}
