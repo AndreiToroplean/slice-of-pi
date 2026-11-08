@@ -1,4 +1,5 @@
 import {
+  fadingTo,
   FLIGHT_DURATION,
   PRESS_DURATION,
   FLIGHT_STAGGER,
@@ -22,6 +23,17 @@ describe('tileCorners', () => {
 
   it('rounds every corner of a word of one digit', () => {
     expect(tileCorners(0, 1, 4)).toEqual([4, 4, 4, 4]);
+  });
+});
+
+describe('fadingTo', () => {
+  it('goes from wholly there to the opacity, at the one in between at each keyframe', () => {
+    expect(fadingTo([{ offset: 0 }, { offset: 0.5 }, { offset: 1 }], 0.4)).toEqual([
+      { offset: 0, opacity: 1 },
+      { offset: 0.5, opacity: 0.7 },
+      { offset: 1, opacity: 0.4 },
+    ]);
+    expect(fadingTo([{}, {}], 1).map((frame) => frame['opacity'])).toEqual([1, 1]);
   });
 });
 

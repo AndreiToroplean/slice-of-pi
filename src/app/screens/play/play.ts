@@ -160,8 +160,8 @@ const TICK = 16;
       [colors]="placeColors()"
       [arrival]="arrival()"
       [faintFrom]="faintFrom()"
-      [fading]="fading()"
-      [fadeDuration]="tweaks.shownFade()"
+      [fadeOut]="fadeOut()"
+      [fadeDuration]="tweaks.handOver()"
     />
     @if (checkpoints().length > 0) {
       <div class="checkpoints">
@@ -172,6 +172,7 @@ const TICK = 16;
             class="checkpoint"
             [attr.aria-label]="'Start the rounds from place ' + place"
             [disabled]="lost()"
+            [attr.aria-pressed]="picked() === place || null"
             (click)="startFrom(place)"
           >
             {{ place }}
@@ -185,7 +186,6 @@ const TICK = 16;
       [colors]="currentColors()"
       [size]="editedLayout() === undefined || previewing() ? size() : 10"
       [wrong]="mistakes().length"
-      [faint]="faintFrom() !== undefined"
       [emptyOpacity]="waitLeft()"
       [handover]="handover()"
     />
@@ -207,13 +207,15 @@ const TICK = 16;
       [showAreas]="editedLayout() !== undefined && !previewing()"
       [disabled]="replay() !== undefined || lost()"
       [corner]="cornerKey()"
-      [held]="turn() === 'game'"
+      [lit]="turn() === 'game'"
+      [digitsLocked]="turn() === 'game'"
+      [cornerDisabled]="discovering && turn() === 'player' && !done()"
       [linger]="linger()"
       [shown]="playedKey() ?? shownKey()"
       [marks]="marks()"
       (touched)="press($event)"
       (pressed)="sound($event)"
-      (discover)="showRound()"
+      (discover)="switchTurns()"
     >
       <!-- The pause key, in the keypad's empty corner left of 0. -->
       @if (replay() === undefined) {
@@ -301,10 +303,14 @@ export class Play implements PausesOnBack {
   /** The colors tuned in developer mode, or the game's own, and whether to count down to the end of the group. */
   protected readonly tweaks = inject(Tweaks);
   /**
-   * How long a digit key's color lingers once released, in milliseconds of the page's clock: the tuned linger, at a
-   * replay's tempo.
+   * How long a digit key's color lingers once released, in milliseconds of the page's clock: the tuned linger, longer
+   * as Discover's game plays the keys (see `GAME_LINGER`), at a replay's tempo.
    */
-  protected readonly linger = computed(() => this.tweaks.keyLinger() / this.tempo());
+  protected readonly linger = computed(
+    () =>
+      (this.tweaks.keyLinger() * (this.turn() === 'game' ? this.tweaks.gameLinger() : 1)) /
+      this.tempo(),
+  );
   /** What the keys played, and the words as they landed, one line each, oldest first, for developer mode to show. */
   protected readonly soundLog = signal<readonly string[]>([]);
   /** The layout being edited, in developer mode's edit mode, while the game stays paused. */
@@ -354,8 +360,31 @@ export class Play implements PausesOnBack {
   protected readonly faintFrom = signal<number | undefined>(undefined);
   /** The key Discover is playing, shown pressed. */
   protected readonly playedKey = signal<KeypadKey | undefined>(undefined);
-  /** Whether the digits Discover's game showed are fading out of the tape, on the player's turn. */
-  protected readonly fading = signal(false);
+  /** The digits fading out of the tape as Discover hands a turn over, from where, and the round of the fade, if any. */
+  protected readonly fadeOut = signal<
+    { readonly from: number; readonly round: number } | undefined
+  >(undefined);
+  /**
+   * How many digits the player is to retype in Discover's round, up to the place the game showed it to; or, as they
+   * took the turn before it was done showing it, the round's end, once they get there: past the place reached, as a
+   * group lands.
+   */
+  private readonly target = signal<number | 'end' | undefined>(undefined);
+  /** Whether the player has retyped Discover's round, on their turn: the game then shows the next one, soon. */
+  protected readonly done = computed(() => {
+    const target = this.target();
+    return (
+      this.turn() === 'player' &&
+      this.faintFrom() === undefined &&
+      typeof target === 'number' &&
+      this.digits().length >= target
+    );
+  });
+  /** Whether the player has typed on their turn in Discover, or the game's: the checkpoints work only before. */
+  /** The checkpoint picked, which the rounds start at from the game's next turn, shown pressed until then. */
+  protected readonly picked = signal<number | undefined>(undefined);
+  /** Stops the wait for the next round to start, once the player has retyped the round. */
+  private stopHandOver = (): void => undefined;
   /** What the key in backspace's place is: backspace in free play, the discover key in Discover, nothing otherwise. */
   protected readonly cornerKey = computed((): CornerKey => {
     const mode = this.mode();
@@ -436,8 +465,18 @@ export class Play implements PausesOnBack {
   protected readonly grouping = computed(() => groupDigits(this.digits(), this.sizes()));
   /** How the group being typed is played. */
   private readonly plan = computed(() =>
-    this.gameplay().groupAt(this.runTimes(), this.digits().length - this.grouping().current.length),
+    this.gameplay().groupAt(this.runTimes(), this.planStart()),
   );
+  /**
+   * Where the group being typed starts: on the player's turn in Discover, while the digits the game showed are still
+   * on the tape, where they type from, so that the slots are theirs from the start.
+   */
+  private readonly planStart = computed(() => {
+    const faint = this.faintFrom();
+    return this.turn() === 'player' && faint !== undefined
+      ? faint
+      : this.digits().length - this.grouping().current.length;
+  });
   /**
    * The most digits the group being typed has held: it keeps the slots they took until it ends, those emptied by
    * backspace fading out with the wait, so that they never go at once. Not mistakes: theirs go with them.
@@ -528,6 +567,7 @@ export class Play implements PausesOnBack {
     });
     inject(DestroyRef).onDestroy(() => {
       this.stopRounds();
+      this.stopHandOver();
       this.discoverRecorder.end();
     });
     if (this.discovering) {
@@ -562,7 +602,7 @@ export class Play implements PausesOnBack {
   }
 
   protected press(touch: KeypadTouch): void {
-    if (this.replay() !== undefined || this.lost() || this.turn() === 'game') {
+    if (this.replay() !== undefined || this.lost()) {
       return;
     }
     // The digits the game showed go as the player starts retyping them.
@@ -587,6 +627,7 @@ export class Play implements PausesOnBack {
       this.stopTimers();
       this.stopTimers = () => undefined;
       this.stopRounds();
+      this.stopHandOver();
     } else {
       this.session.resume();
       this.discoverRecorder.resume();
@@ -594,6 +635,10 @@ export class Play implements PausesOnBack {
       // A round stopped as the game played it plays again from its start.
       if (this.discovering && !this.lost() && this.turn() === 'game') {
         this.playRound();
+      }
+      // The wait for the next round starts over.
+      if (this.done() && !this.lost()) {
+        this.handBack();
       }
     }
   }
@@ -726,6 +771,9 @@ export class Play implements PausesOnBack {
       if (this.discovering) {
         this.discoverRecorder.record(touch, place, this.rounds().start);
         this.landIfFull();
+        if (this.done()) {
+          this.handBack();
+        }
         return;
       }
       this.watchForPause();
@@ -760,6 +808,7 @@ export class Play implements PausesOnBack {
   /** Ends a challenge on its mistake: no more keys, and a moment later, the game over dialog. */
   private loseGame(): void {
     this.lost.set(true);
+    this.stopHandOver();
     this.discoverRecorder.end();
     this.stopGameOver = this.timer.after(GAME_OVER_DELAY, () => {
       this.stopGameOver = () => undefined;
@@ -778,11 +827,17 @@ export class Play implements PausesOnBack {
   /**
    * Plays Discover's round from the place the rounds start from, on the game's turn: the game types each digit at the
    * pace picked, its key shown pressed, in its color, and sounding, the groups landing as they fill, up to the place
-   * reached, then on to the end of the group the slots show there: as many digits as there are slots. Then it's the
-   * player's turn: the digits shown stay on the tape, faint, fading out, until they type.
+   * reached, then on to the end of the group the slots show there: as many digits as there are slots, a little longer
+   * between groups (see `GROUP_PAUSE`). Then it's the player's turn (see {@link handToPlayer}). The rounds start at the
+   * checkpoint picked meanwhile, if any.
    */
   private playRound(): void {
     this.stopRounds();
+    const picked = this.picked();
+    if (picked !== undefined) {
+      this.picked.set(undefined);
+      this.moveRoundsTo(picked);
+    }
     this.backToRoundStart();
     this.turn.set('game');
     this.vibrate('turn');
@@ -790,26 +845,58 @@ export class Play implements PausesOnBack {
     this.playNext(paceInterval(this.pace(), this.tweaks.discoverSpeed(), this.tweaks.paceStep()));
   }
 
-  /** Plays the next digit of Discover's round after `interval`, if the round goes on, or hands it to the player. */
-  private playNext(interval: number): void {
-    this.afterRound(interval, () => {
+  /** Plays the next digit of Discover's round after `delay`, if the round goes on, or hands it to the player. */
+  private playNext(interval: number, delay = interval): void {
+    this.afterRound(delay, () => {
       const typed = this.digits().length;
       if (typed <= this.rounds().reached || this.grouping().current !== '') {
-        this.playDigit(PI_DECIMALS.charAt(typed) as Digit, interval);
-        this.playNext(interval);
+        const grouped = this.playDigit(PI_DECIMALS.charAt(typed) as Digit, interval);
+        this.playNext(
+          interval,
+          grouped ? interval * (1 + this.tweaks.groupPause() / 100) : interval,
+        );
       } else {
-        this.turn.set('player');
-        this.vibrate('turn');
-        this.fading.set(true);
-        this.afterRound(this.tweaks.shownFade(), () => {
-          this.backToRoundStart();
-        });
+        this.handToPlayer();
       }
     });
   }
 
-  /** Types a digit of Discover's round, as the game plays it, never recorded: its group lands once its slots are full. */
-  private playDigit(digit: Digit, interval: number): void {
+  /**
+   * Hands Discover's round to the player, as the game is done showing it, or before, as they take the turn with the
+   * discover key: the round is all the same, to its end, as they show they know it. Its digits stay on the tape, faint,
+   * fading out over the hand over (see `HAND_OVER`), until the player types, the slots, keys and season already those
+   * of the place they type from.
+   */
+  private handToPlayer(early = false): void {
+    this.stopRounds();
+    this.playedKey.set(undefined);
+    this.turn.set('player');
+    this.vibrate('turn');
+    this.target.set(early ? 'end' : this.digits().length);
+    const from = this.rounds().from;
+    this.fadeOut.set({ from, round: (this.fadeOut()?.round ?? 0) + 1 });
+    this.afterRound(this.tweaks.handOver(), () => {
+      this.backToRoundStart();
+    });
+  }
+
+  /**
+   * Hands Discover's turn back to the game, as the player has retyped the round: their digits fade out of the tape
+   * over the hand over, and the game shows the next round once it's over, each digit they type on starting it over.
+   */
+  private handBack(): void {
+    this.stopHandOver();
+    this.fadeOut.set({ from: this.rounds().from, round: (this.fadeOut()?.round ?? 0) + 1 });
+    this.stopHandOver = this.timer.after(this.tweaks.handOver(), () => {
+      this.playRound();
+    });
+  }
+
+  /**
+   * Types a digit of Discover's round, as the game plays it, never recorded: its group lands once its slots are full.
+   * Gives whether it did.
+   */
+  private playDigit(digit: Digit, interval: number): boolean {
     this.keypad().noteColor(digit);
     this.sound(digit);
     this.playedKey.set(digit);
@@ -819,7 +906,9 @@ export class Play implements PausesOnBack {
     this.digits.update((digits) => digits + digit);
     if (this.grouping().current.length >= this.size()) {
       this.finishGroup(true);
+      return true;
     }
+    return false;
   }
 
   /**
@@ -831,6 +920,9 @@ export class Play implements PausesOnBack {
       return;
     }
     this.finishGroup(true);
+    if (this.target() === 'end' && this.digits().length > this.rounds().reached) {
+      this.target.set(this.digits().length);
+    }
     this.rounds.update((rounds) => completeRound(rounds, this.digits().length));
   }
 
@@ -840,7 +932,9 @@ export class Play implements PausesOnBack {
     this.landFlights();
     this.playedKey.set(undefined);
     this.faintFrom.set(undefined);
-    this.fading.set(false);
+    this.fadeOut.set(undefined);
+    this.stopHandOver();
+    this.stopHandOver = () => undefined;
     this.mistakes.set('');
     this.digits.set(PI_DECIMALS.slice(0, this.rounds().from));
     this.sizes.set(this.wordsUpTo(this.sizes(), this.rounds().from));
@@ -848,24 +942,37 @@ export class Play implements PausesOnBack {
     this.retyped.end();
   }
 
-  /** Shows Discover's round, as the player asks with the discover key on their turn: again, or one group further. */
-  protected showRound(): void {
-    if (this.turn() === 'player' && !this.lost() && !this.paused()) {
+  /**
+   * Switches Discover's turns, with the discover key: on the game's turn, the player takes it at once, as if they had
+   * seen the round to its end; on theirs, once they've retyped the round, the game shows the next one at once.
+   */
+  protected switchTurns(): void {
+    if (this.lost() || this.paused()) {
+      return;
+    }
+    if (this.turn() === 'game') {
+      this.handToPlayer(true);
+    } else if (this.done()) {
       this.playRound();
     }
   }
 
-  /** Starts Discover's rounds from a checkpoint they've reached: the round shown again from there, if being shown. */
+  /**
+   * Picks a checkpoint they've reached for Discover's rounds to start at from the game's next turn, which shows the
+   * player what to type from there; or, picked already, takes it back.
+   */
   protected startFrom(checkpoint: number): void {
+    if (this.lost() || this.paused()) {
+      return;
+    }
+    this.picked.update((picked) => (picked === checkpoint ? undefined : checkpoint));
+  }
+
+  /** Starts Discover's rounds at a checkpoint they've reached, from their next start. */
+  private moveRoundsTo(checkpoint: number): void {
     // Where Discover starts from next time, too.
     void this.checkpointSetting.pick('discover', checkpoint);
     this.rounds.update((rounds) => moveTo(rounds, checkpoint));
-    if (this.turn() === 'game' && !this.paused()) {
-      this.playRound();
-    } else {
-      this.stopRounds();
-      this.backToRoundStart();
-    }
   }
 
   private afterRound(delay: number, callback: () => void): void {
@@ -917,9 +1024,12 @@ export class Play implements PausesOnBack {
     if (this.discovering) {
       // Playing again, a new session from where the rounds started, its first round played once resumed.
       this.stopRounds();
+      this.stopHandOver();
+      this.target.set(undefined);
       this.discoverRecorder.end();
       this.rounds.update((rounds) => newRounds(rounds.from));
       this.turn.set('game');
+      this.picked.set(undefined);
     }
     this.landFlights();
     this.deletedTo.set(undefined);

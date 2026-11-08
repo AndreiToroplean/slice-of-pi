@@ -1,4 +1,4 @@
-import { SHOWN_FADE } from '../../../game/modes/discover-pace';
+import { HAND_OVER } from '../../../game/modes/discover-pace';
 import {
   afterRenderEffect,
   Component,
@@ -29,8 +29,6 @@ export const SCROLL_BACK_DURATION = 400;
 @Component({
   selector: 'app-typed-digits',
   host: {
-    '[class.fading]': 'fading()',
-    '[style.--shown-fade]': 'fadeDuration() + "ms"',
     role: 'region',
     'aria-label': 'Typed digits',
     tabindex: '0',
@@ -51,6 +49,7 @@ export const SCROLL_BACK_DURATION = 400;
             <span
               class="tile"
               [class.faint]="faint !== undefined && word.firstPlace + $index >= faint"
+              [attr.data-place]="word.firstPlace + $index"
               [style.--place-color]="colors()[word.firstPlace + $index]"
               >{{ digit }}</span
             >
@@ -65,10 +64,12 @@ export const SCROLL_BACK_DURATION = 400;
 export class TypedDigits {
   /** The place from which the digits are faint, as those the game shows in Discover, if any are. */
   readonly faintFrom = input<number>();
-  /** Whether the faint digits are fading out, as once the game has shown them, on the player's turn. */
-  readonly fading = input(false);
-  /** How long the faint digits take to fade out, in milliseconds. */
-  readonly fadeDuration = input(SHOWN_FADE);
+  /**
+   * Fades the digits out from a place, as Discover hands a turn over: from `from`, over `duration` milliseconds, from
+   * the start again whenever `round` changes, as each digit the player types on starts the hand over again.
+   */
+  readonly fadeOut = input<{ readonly from: number; readonly round: number }>();
+  readonly fadeDuration = input(HAND_OVER);
   /** The finished groups, in order. */
   readonly words = input.required<readonly Word[]>();
   /** The digits typed so far, including those of the group being typed. */
@@ -106,7 +107,19 @@ export class TypedDigits {
   /** Room shown past the room left, for the tape to glide back from where it was, rather than jump, as it shortens. */
   private extra = 0;
 
+  /** The digits fading out, if any are, their tiles, and the round of the fade. */
+  private fades: Animation[] = [];
+  private readonly fading = new Set<HTMLElement>();
+  private fadeRound: number | undefined;
+
   constructor() {
+    afterRenderEffect(() => {
+      const fade = this.fadeOut();
+      this.words();
+      untracked(() => {
+        this.fade(fade);
+      });
+    });
     // On each word, which comes on or off the tape after the key that typed its last digit, if any.
     afterRenderEffect(() => {
       const words = this.words();
@@ -121,6 +134,36 @@ export class TypedDigits {
         cancelAnimationFrame(this.frame);
       }
     });
+  }
+
+  /** Fades the digits from a place out, from the start, or none, those fading before back as they were. */
+  private fade(fade: { readonly from: number; readonly round: number } | undefined): void {
+    const running = fade !== undefined && this.fadeRound === fade.round;
+    this.fadeRound = fade?.round;
+    const tiles = Array.from(
+      this.wordsElement().nativeElement.querySelectorAll<HTMLElement>('[data-place]'),
+    ).filter((tile) => fade !== undefined && Number(tile.dataset['place']) >= fade.from);
+    if (running && tiles.every((tile) => this.fading.has(tile))) {
+      return;
+    }
+    for (const animation of this.fades) {
+      animation.cancel();
+    }
+    this.fades = [];
+    this.fading.clear();
+    for (const tile of tiles) {
+      if (typeof tile.animate !== 'function') {
+        continue;
+      }
+      this.fading.add(tile);
+      this.fades.push(
+        tile.animate([{}, { opacity: 0 }], {
+          duration: this.fadeDuration(),
+          easing: 'linear',
+          fill: 'forwards',
+        }),
+      );
+    }
   }
 
   /**
