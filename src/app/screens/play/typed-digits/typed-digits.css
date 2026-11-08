@@ -107,5 +107,5 @@
 /* Once shown, fading out, before they leave the tape. */
 :host(.fading) .tile.faint {
   opacity: 0;
-  transition: opacity 1s linear;
+  transition: opacity var(--shown-fade) linear;
 }

@@ -37,3 +37,16 @@ export function isDiscoverSpeed(value: unknown): value is number {
 export function isPaceStep(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) >= 0 && Number(value) <= MAX_PACE_STEP;
 }
+
+/**
+ * How long the digits the game showed take to fade out of the tape once it's the player's turn, in milliseconds: long
+ * enough to catch a last glimpse of them, short enough not to hold the player up.
+ */
+export const SHOWN_FADE = 1000;
+/** The longest fade developer mode can tune, in milliseconds. */
+export const MAX_SHOWN_FADE = 3000;
+
+/** Whether a value is a fade developer mode can tune. */
+export function isShownFade(value: unknown): value is number {
+  return Number.isInteger(value) && Number(value) >= 0 && Number(value) <= MAX_SHOWN_FADE;
+}

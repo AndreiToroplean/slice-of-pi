@@ -12,7 +12,9 @@ import {
   DISCOVER_SPEEDS,
   DiscoverPace,
   MAX_PACE_STEP,
+  MAX_SHOWN_FADE,
   PACE_STEP,
+  SHOWN_FADE,
 } from '../../game/modes/discover-pace';
 import { VibrationSetting } from '../../player-data/vibration-setting';
 import { SoundSetting } from '../../player-data/sound-setting';
@@ -195,6 +197,16 @@ import { YourData } from './your-data';
             [defaultValue]="defaultPaceStep"
             (changed)="setPaceStep($event)"
           />
+          <app-slider
+            label="Shown Fade"
+            [value]="tweaks.shownFade()"
+            [min]="0"
+            [max]="maxShownFade"
+            [step]="100"
+            [valueText]="tweaks.shownFade() + ' ms'"
+            [defaultValue]="defaultShownFade"
+            (changed)="setShownFade($event)"
+          />
           <div class="row">
             <label class="setting">
               <span>
@@ -319,6 +331,8 @@ export class Settings {
   protected readonly defaultSpeed = DISCOVER_SPEED;
   protected readonly maxPaceStep = MAX_PACE_STEP;
   protected readonly defaultPaceStep = PACE_STEP;
+  protected readonly maxShownFade = MAX_SHOWN_FADE;
+  protected readonly defaultShownFade = SHOWN_FADE;
   protected readonly keyLooks: readonly Segment<'clear' | 'solid'>[] = [
     { value: 'clear', label: 'Clear Keys' },
     { value: 'solid', label: 'Solid Keys' },
@@ -351,7 +365,8 @@ export class Settings {
       !this.tweaks.solidKeys() &&
       this.tweaks.keyLinger() === KEY_LINGER &&
       this.tweaks.discoverSpeed() === DISCOVER_SPEED &&
-      this.tweaks.paceStep() === PACE_STEP,
+      this.tweaks.paceStep() === PACE_STEP &&
+      this.tweaks.shownFade() === SHOWN_FADE,
   );
 
   protected setCountdown(event: Event): void {
@@ -360,6 +375,10 @@ export class Settings {
 
   protected setKeyLinger(linger: number | undefined): void {
     void this.tweaks.setKeyLinger(linger);
+  }
+
+  protected setShownFade(fade: number | undefined): void {
+    void this.tweaks.setShownFade(fade);
   }
 
   protected setDiscoverSpeed(speed: number | undefined): void {
@@ -435,6 +454,7 @@ export class Settings {
       this.setKeyLinger(undefined);
       this.setDiscoverSpeed(undefined);
       this.setPaceStep(undefined);
+      this.setShownFade(undefined);
       this.resetCountdown();
       this.resetSoundNotes();
       this.resetChecking();
