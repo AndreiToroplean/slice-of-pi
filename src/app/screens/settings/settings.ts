@@ -289,8 +289,8 @@ export class Settings {
     { value: 'faster', label: 'Faster' },
   ];
   protected readonly keyLooks: readonly Segment<'clear' | 'solid'>[] = [
-    { value: 'solid', label: 'Solid Keys' },
     { value: 'clear', label: 'Clear Keys' },
+    { value: 'solid', label: 'Solid Keys' },
   ];
   protected readonly developerMode = inject(DeveloperMode);
   protected readonly tweaks = inject(Tweaks);

@@ -6,13 +6,13 @@ import { MERCURY } from './mercury';
 import { TERRA } from './terra';
 import { VENUS } from './venus';
 
-/** The break models, picked in developer mode. */
+/** The break models, picked in developer mode: the game's first, then the others, newest first. */
 export const BREAK_MODELS: readonly [BreakModelKind, ...BreakModelKind[]] = [
-  MERCURY,
-  VENUS,
-  LUNA,
-  TERRA,
   MARS,
+  TERRA,
+  LUNA,
+  VENUS,
+  MERCURY,
 ];
 
 /** The break model the game takes the groups from. */
