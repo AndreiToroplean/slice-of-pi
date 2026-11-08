@@ -60,7 +60,9 @@ import { ReplayButton } from './replay-button';
     >
       <app-replay-button cornerStart [disabled]="!replayable()" (pressed)="void stopAndReplay()" />
       <button type="button" appCandy="primary" (click)="playAgain()">Play Again</button>
-      <button type="button" appCandy (click)="continueInFreePlay()">Continue in Free Play</button>
+      @if (continuable()) {
+        <button type="button" appCandy (click)="continueInFreePlay()">Continue in Free Play</button>
+      }
       <button type="button" appCandy (click)="void endGame()">Main Menu</button>
     </app-choice-dialog>
     <app-choice-dialog #replayDialog heading="Watch the Replay?" [inReach]="true">
@@ -78,6 +80,8 @@ export class Pause {
   readonly restart = output();
   /** The player chose to carry a lost game on in free play, as the game over dialog closes. */
   readonly freePlay = output();
+  /** Whether a lost game can go on in free play, as a challenge can. */
+  readonly continuable = input(true);
   /** Whether there's a run to replay. */
   readonly replayable = input(false);
   /** The player chose to stop the game and replay the run, once the dialog has closed. */

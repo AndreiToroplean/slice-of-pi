@@ -116,3 +116,14 @@
   opacity: var(--linger);
   pointer-events: none;
 }
+
+/* The discover key: rimmed in gold, see-through; held down while the game shows the round, gold all over. */
+.key.discover {
+  --candy-edge: var(--candy-primary);
+}
+
+.key.discover.pressed {
+  background: var(--candy-primary);
+  color: var(--ink);
+  text-shadow: none;
+}

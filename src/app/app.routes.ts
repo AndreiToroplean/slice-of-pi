@@ -17,6 +17,12 @@ export const routes: Routes = [
     canDeactivate: [pauseOnBack],
   },
   {
+    path: 'discover',
+    loadComponent: () => import('./screens/play/play').then((m) => m.Play),
+    data: { mode: 'discover' },
+    canDeactivate: [pauseOnBack],
+  },
+  {
     path: 'challenge',
     loadComponent: () => import('./screens/play/play').then((m) => m.Play),
     data: { mode: 'challenge' },

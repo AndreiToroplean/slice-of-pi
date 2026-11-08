@@ -85,3 +85,8 @@
     transform: scale(0.7);
   }
 }
+
+/* Digits the game shows, rather than typed, as in Discover: half there. */
+:host(.faint) .slot.filled {
+  opacity: 0.45;
+}

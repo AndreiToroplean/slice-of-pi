@@ -25,6 +25,10 @@ const ABOUT: Readonly<Record<Vibration, { readonly name: string; readonly when: 
   backspace: { name: 'Backspace', when: 'Deleting a digit.' },
   pluck: { name: 'Pluck', when: 'Each digit plucking itself off its slot, as its word ends.' },
   landing: { name: 'Landing', when: 'Each digit landing on the tape.' },
+  turn: {
+    name: 'Turn',
+    when: 'The game handing Discover’s round to the player, or taking it back to show it.',
+  },
 };
 
 /** The steps of the slider, from 0 to its end. */
