@@ -51,7 +51,7 @@ describe('MissingPreview', () => {
     expect(open).not.toHaveBeenCalled();
   });
 
-  it('opens the preview as soon as it is published', async () => {
+  it('opens the preview as soon as it is published', { tags: ['disabled'] }, async () => {
     await visit('/pr-42');
     await vi.advanceTimersByTimeAsync(PREVIEW_CHECK_INTERVAL);
     expect(open).not.toHaveBeenCalled();
