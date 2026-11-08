@@ -10,7 +10,8 @@ export type CandyLook = 'clear' | 'white' | 'primary' | 'danger';
 export const SHORTEST_PRESS = 150;
 
 /**
- * A candy button, the game's button (see `candy.css`): a button, a link, or a label for an input within it, such as
+ * A candy button, the game's button (see `candy.css`): a button, a link, a label for an input within it, or a box for
+ * another control within it, such as a spinner, such as
  * `<button appCandy="primary">`, white without a look. A mouse over a solid one picks it out, as the keyboard does
  * (see `App`), unless it can't take the focus, as keys typed from the keyboard's own keys needn't. Pressed, it sinks
  * into its edge, for `SHORTEST_PRESS` at least, even if what it opens shows at once. Given a press color, a see-through
@@ -19,7 +20,8 @@ export const SHORTEST_PRESS = 150;
 @Component({
   // On the native elements themselves, which keep all they do: an attribute rather than an element of its own.
   // eslint-disable-next-line @angular-eslint/component-selector
-  selector: 'button[appCandy], a[appCandy], label[appCandy]',
+  selector: 'button[appCandy], a[appCandy], label[appCandy], div[appCandy]',
+  exportAs: 'appCandy',
   host: {
     class: 'candy',
     '[class.clear]': "look() === 'clear'",
@@ -54,8 +56,8 @@ export class Candy {
    */
   readonly pressed = input<boolean>();
 
-  /** Whether it's pressed, or was a moment ago. */
-  protected readonly held = signal(false);
+  /** Whether it's pressed, or was a moment ago: for a button it's part of to show pressed along with it. */
+  readonly held = signal(false);
   private heldSince = 0;
   private timer: ReturnType<typeof setTimeout> | undefined;
 

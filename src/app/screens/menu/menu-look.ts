@@ -60,6 +60,11 @@ export interface MenuLook {
 
 /** How many buttons the menu has, one above the other. */
 export const BUTTON_COUNT = 3;
+/**
+ * How many buttons the menu has room for: one more, empty, under the last, for what a split button opens to show
+ * there, over the buttons below it, if any.
+ */
+export const BUTTON_SLOTS = BUTTON_COUNT + 1;
 
 /** The menu's own look. */
 export const MENU_LOOK: MenuLook = {
@@ -186,7 +191,7 @@ export function withLight(
 /**
  * The look as the CSS lengths the menu lays out with: `--icon-size` and `--icon-y`, `--icon-light-y`, `--slice-size`
  * and `--slice-y`, `--pi-size` and `--pi-y`, `--buttons-y`, `--buttons-height`, `--buttons-gap`, and `--buttons-span`,
- * how tall the buttons are together. Each `-y` is the height of a middle, up from the menu's bottom, as a percentage of
+ * how tall the buttons are together, with the room under them (see {@link BUTTON_SLOTS}). Each `-y` is the height of a middle, up from the menu's bottom, as a percentage of
  * the menu's height plus a length.
  */
 export function menuStyles(look: MenuLook): Readonly<Record<string, string>> {
@@ -206,7 +211,7 @@ export function menuStyles(look: MenuLook): Readonly<Record<string, string>> {
     '--buttons-y': `${String(buttons.y)}%`,
     '--buttons-height': rem(buttons.height),
     '--buttons-gap': rem(buttons.gap),
-    '--buttons-span': rem(BUTTON_COUNT * buttons.height + (BUTTON_COUNT - 1) * buttons.gap),
+    '--buttons-span': rem(BUTTON_SLOTS * buttons.height + (BUTTON_SLOTS - 1) * buttons.gap),
   };
 }
 

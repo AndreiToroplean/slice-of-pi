@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { DeveloperMode } from '../developer-mode/developer-mode';
 import { Tweaks } from '../developer-mode/tweaks';
+import { Checkpoint } from './checkpoint';
 import { DiscoverPaceSetting } from './discover-pace-setting';
 import { GroupSizeSetting } from './group-size-setting';
 import { KeypadLayoutSetting } from './keypad-layout-setting';
@@ -20,6 +21,7 @@ export async function loadPlayerData(): Promise<void> {
     inject(KeypadLayoutSetting).loaded,
     inject(DiscoverPaceSetting).loaded,
     inject(GroupSizeSetting).loaded,
+    inject(Checkpoint).loaded,
     inject(VibrationSetting).loaded,
     inject(SoundSetting).loaded,
   ]);

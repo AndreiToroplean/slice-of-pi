@@ -25,8 +25,8 @@ export function spun(
  * A number set by pressing it and dragging up or right, to raise it, or down or left, to lower it, a step for each
  * little way the finger travels, with a tick of vibration at each step: both ways at once, the way up and the way
  * right add up, down and left counting against them. Back where it started, it's back to the value it started from.
- * The up and down arrow keys step it too, and Home and End go to its ends, as for any spin button. A press that drags
- * isn't a click, so that what holds it, such as a button starting a game, only acts on a tap.
+ * The up and down arrow keys step it too, and Home and End go to its ends, as for any spin button; left and right are
+ * left to what holds it, to move between its buttons. A press that drags isn't a click on what holds it.
  */
 @Component({
   selector: 'app-spinner',
@@ -89,7 +89,6 @@ export class Spinner {
   readonly min = input.required<number>();
   readonly max = input.required<number>();
   readonly step = input(1);
-
   private readonly vibrator = inject(Vibrator);
   /** The press being dragged, if any: where it started, and the value then. */
   private press:

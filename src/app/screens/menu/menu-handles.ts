@@ -1,7 +1,7 @@
 import { Handle } from '../../ui/handles/handle';
 import { EditedPart } from '../../ui/handles/parts';
 import {
-  BUTTON_COUNT,
+  BUTTON_SLOTS,
   ICON_LIGHT_OFFSET,
   LAYOUT_FIELDS,
   LIGHT_FIELDS,
@@ -189,14 +189,14 @@ export const PART_HANDLES: Readonly<Record<MenuPart, readonly Handle<MenuLook>[]
   buttons: [
     BUTTONS_HEIGHT,
     // The top of the group, which grows by half as much on each side as all the buttons together.
-    buttons('height', 'Button size', 'Size', 'var(--buttons-span) / 2', BUTTON_COUNT / 2, '82%'),
+    buttons('height', 'Button size', 'Size', 'var(--buttons-span) / 2', BUTTON_SLOTS / 2, '82%'),
     // The bottom of the first, above the first gap.
     buttons(
       'gap',
       'Button gap',
       'Gap',
       'var(--buttons-span) / 2 - var(--buttons-height)',
-      (BUTTON_COUNT - 1) / 2,
+      (BUTTON_SLOTS - 1) / 2,
       '50%',
     ),
   ],

@@ -5,6 +5,7 @@ import { ButtonList } from '../../ui/button-list';
 import { backupFileName, readBackup, writeBackup } from '../../player-data/backup';
 import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
 import { GroupSizeSetting } from '../../player-data/group-size-setting';
+import { Checkpoint } from '../../player-data/checkpoint';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { VibrationSetting } from '../../player-data/vibration-setting';
 import { SoundSetting } from '../../player-data/sound-setting';
@@ -98,6 +99,7 @@ export class YourData {
   private readonly keypadLayout = inject(KeypadLayoutSetting);
   private readonly discoverPace = inject(DiscoverPaceSetting);
   private readonly groupSize = inject(GroupSizeSetting);
+  private readonly checkpoint = inject(Checkpoint);
   private readonly vibration = inject(VibrationSetting);
   private readonly sound = inject(SoundSetting);
   protected readonly store = inject(RunStore);
@@ -151,6 +153,7 @@ export class YourData {
       this.keypadLayout.reload(),
       this.discoverPace.reload(),
       this.groupSize.reload(),
+      this.checkpoint.reload(),
       this.vibration.reload(),
       this.sound.reload(),
     ]);

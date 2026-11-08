@@ -265,8 +265,14 @@ export class Play implements PausesOnBack {
   /** Whether slots don't fly into their words, nor anything sounds, as while a replay skips ahead. */
   quiet = false;
 
-  /** The checkpoint picked on the main menu, which a game starts from, if not from the start of π. */
-  private readonly checkpoint = inject(Checkpoint).start();
+  private readonly checkpointSetting = inject(Checkpoint);
+  /**
+   * The checkpoint the main menu asked the game to start from (`from` in the route's query), if not from the start of
+   * π, as far as it's unlocked.
+   */
+  private readonly checkpoint = this.checkpointSetting.reachable(
+    Number(inject(ActivatedRoute).snapshot.queryParamMap.get('from') ?? 0),
+  );
   /** The place the game starts from: the checkpoint picked, or that of the run replayed. */
   private readonly startPlace = computed(() => {
     const log = this.replay();
@@ -851,6 +857,8 @@ export class Play implements PausesOnBack {
 
   /** Starts Discover's rounds from a checkpoint they've reached: the round shown again from there, if being shown. */
   protected startFrom(checkpoint: number): void {
+    // Where Discover starts from next time, too.
+    void this.checkpointSetting.pick('discover', checkpoint);
     this.rounds.update((rounds) => moveTo(rounds, checkpoint));
     if (this.turn() === 'game' && !this.paused()) {
       this.playRound();
