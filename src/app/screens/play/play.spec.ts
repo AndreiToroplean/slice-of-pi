@@ -24,7 +24,7 @@ import { atTempo, SoundModel } from '../../game/layers/sound/sound-model';
 import { routes } from '../../app.routes';
 import { KEEP_HISTORY } from '../../app.config';
 import { Menu } from '../menu/menu';
-import { PALETTE, placeColors } from '../../game/layers/place-colors';
+import { keyColorIndices, PALETTE, placeColors } from '../../game/layers/place-colors';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { IDBFactory } from 'fake-indexeddb';
 import { newTouchLog } from '../../player-data/touch-log';
@@ -39,10 +39,15 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LAYOUT } from '../../ui/layout';
-import { GAME_OVER_DELAY, Play } from './play';
+import { GAME_OVER_DELAY, Play, SHOWN_FADE } from './play';
+import { paceInterval } from '../../game/modes/discover-pace';
+import { DiscoverRecorder } from '../../player-data/discover-recorder';
 import { Keypad } from './keypad/keypad';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 import { GAME_BREAK_MODEL } from '../../game/grouping/break-models/break-models';
+
+/** The time between two digits Discover plays, at its default pace. */
+const MEDIUM_INTERVAL = paceInterval('medium');
 
 /** A pause clearly longer than the time between digits, in milliseconds. */
 const PAUSE = 2000;
@@ -1787,6 +1792,297 @@ describe('Play', () => {
         expect(dialogs.filter(Boolean)).toHaveLength(1);
         expect(gameOver(host).open).toBe(true);
       });
+    });
+  });
+  describe('in Discover', () => {
+    beforeEach(() => {
+      installDialogs();
+    });
+
+    afterEach(() => {
+      uninstallDialogs();
+    });
+
+    interface Round {
+      host: HTMLElement;
+      /** Lets the time go by. */
+      wait: (milliseconds: number) => Promise<void>;
+      /** Types keys on the keypad. */
+      type: (keys: string) => Promise<void>;
+    }
+
+    /** Opens Discover, once the earlier runs, if any, are kept. */
+    async function discover(runs: readonly number[][] = []): Promise<Round> {
+      const indexedDb = new IDBFactory();
+      TestBed.overrideProvider(INDEXED_DB, { useValue: indexedDb });
+      const store = TestBed.inject(RunStore);
+      for (const [i, times] of runs.entries()) {
+        await store.save(
+          Array.from(PI_DECIMALS.slice(0, times.length)).reduce(
+            (log, digit, place) => typeKey(log, digit as Digit, times[place] ?? 0),
+            newTouchLog(`earlier-${String(i)}`, i),
+          ),
+        );
+      }
+      const harness = await RouterTestingHarness.create('/discover');
+      const host = harness.routeNativeElement;
+      if (host === null) {
+        throw new Error('No play screen');
+      }
+      await store.runs();
+      const wait = async (milliseconds: number): Promise<void> => {
+        time.advance(milliseconds);
+        await harness.fixture.whenStable();
+      };
+      const type = async (keys: string): Promise<void> => {
+        for (const key of keys) {
+          time.advance(150);
+          host.querySelector<HTMLButtonElement>(`button[data-key="${key}"]`)?.click();
+          await harness.fixture.whenStable();
+        }
+      };
+      await wait(0);
+      return { host, wait, type };
+    }
+
+    function shownKey(host: HTMLElement): string | undefined {
+      return host.querySelector<HTMLElement>('app-keypad .key.pressed:not(.discover)')?.dataset[
+        'key'
+      ];
+    }
+
+    function discoverKey(host: HTMLElement): HTMLButtonElement {
+      const key = host.querySelector<HTMLButtonElement>('button[data-key="backspace"]');
+      if (key === null) {
+        throw new Error('No discover key');
+      }
+      return key;
+    }
+
+    /** The faint digits on the tape: those the game showed. */
+    function faint(host: HTMLElement): string {
+      return Array.from(host.querySelectorAll('app-typed-digits .tile.faint'), (tile) =>
+        tile.textContent.trim(),
+      ).join('');
+    }
+
+    /** Lets the game play a round of `length` digits, up to the player's turn. */
+    async function listen({ wait }: Round, length: number): Promise<void> {
+      await wait((length + 1) * MEDIUM_INTERVAL);
+    }
+
+    /** Asks the game to show the round, with the discover key. */
+    async function showMe({ host, wait }: Round): Promise<void> {
+      discoverKey(host).click();
+      await wait(0);
+    }
+
+    /**
+     * Plays the rounds reaching these places, as the player retypes each, from the start of π, asking for the next one
+     * but after the last.
+     */
+    async function playRounds(round: Round, ...reached: number[]): Promise<void> {
+      for (const [i, place] of reached.entries()) {
+        await listen(round, place);
+        await round.type(PI_DECIMALS.slice(0, place));
+        if (i < reached.length - 1) {
+          await showMe(round);
+        }
+      }
+    }
+
+    it('plays the first group, keys pressed, the discover key held, then hands it over, faint and fading off the tape', async () => {
+      const round = await discover();
+      expect(discoverKey(round.host).getAttribute('aria-label')).toBe('Show me');
+      expect(discoverKey(round.host).classList).toContain('pressed');
+
+      await round.wait(MEDIUM_INTERVAL);
+      expect(slots(round.host)[0]).toBe('1');
+      expect(shownKey(round.host)).toBe('1');
+
+      await round.wait(5 * MEDIUM_INTERVAL);
+      expect(faint(round.host)).toBe('14159');
+      expect(discoverKey(round.host).classList).not.toContain('pressed');
+
+      await round.wait(SHOWN_FADE);
+      expect(faint(round.host)).toBe('');
+      expect(words(round.host)).toEqual([]);
+    });
+
+    it('vibrates as the turn goes to the game, and back to the player', async () => {
+      const vibrate = vi.spyOn(Vibrator.prototype, 'play');
+      const round = await discover();
+      await listen(round, 5);
+
+      expect(vibrate.mock.calls.filter(([vibration]) => vibration === 'turn')).toHaveLength(2);
+    });
+
+    it('shows the key colors and the season of the player’s place on their turn, not of the digits shown', async () => {
+      const round = await discover();
+      await listen(round, 5);
+
+      expect(faint(round.host)).toBe('14159');
+      expect(round.host.querySelector('app-season-header .count')?.textContent.trim()).toBe(
+        'Digit 0',
+      );
+      expect(
+        round.host
+          .querySelector<HTMLElement>('button[data-key="1"]')
+          ?.style.getPropertyValue('--press-color'),
+      ).toBe(PALETTE[keyColorIndices('')['1']]);
+    });
+
+    it('clears the digits shown as the player starts retyping them', async () => {
+      const round = await discover();
+      await listen(round, 5);
+
+      await round.type('1');
+
+      expect(faint(round.host)).toBe('');
+      expect(slots(round.host)[0]).toBe('1');
+    });
+
+    it('lands each group as its slots fill, never as the player’s timing would', async () => {
+      const round = await discover();
+      await listen(round, 5);
+
+      await round.type('1415');
+      await round.wait(3 * PAUSE);
+      expect(words(round.host)).toEqual([]);
+
+      await round.type('9');
+      expect(words(round.host)).toEqual(['14159']);
+    });
+
+    it('waits for the player to ask for the next round, one more group', async () => {
+      const round = await discover();
+      await playRounds(round, 5);
+      await round.wait(5 * PAUSE);
+      expect(faint(round.host)).toBe('');
+
+      await showMe(round);
+      await listen(round, 10);
+
+      expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 10));
+    });
+
+    it('shows the round again when asked before it’s retyped', async () => {
+      const round = await discover();
+      await listen(round, 5);
+      await round.type('14');
+
+      await showMe(round);
+      await listen(round, 5);
+
+      expect(faint(round.host)).toBe('14159');
+    });
+
+    it('counts the whole groups typed past the round shown, not the digits of a group begun', async () => {
+      const round = await discover();
+      await listen(round, 5);
+      await round.type(PI_DECIMALS.slice(0, 12));
+
+      await showMe(round);
+      await listen(round, 15);
+
+      expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 15));
+    });
+
+    it('plays the player’s own groups', async () => {
+      const grouped = await discover(Array.from({ length: 4 }, (_, run) => by3(30, run)));
+      await listen(grouped, 3);
+      expect(faint(grouped.host)).toBe('141');
+    });
+
+    it('shows as many digits as the slots, past the player’s groups too', async () => {
+      // Grouped by 3, the runs ending at 7: the game trusts the first group only, then groups of the default size.
+      const round = await discover(Array.from({ length: 4 }, (_, run) => by3(7, run)));
+      await playRounds(round, 3);
+      await showMe(round);
+
+      await listen(round, 8);
+
+      expect(words(round.host)).toEqual(['141', '59265']);
+      expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 8));
+    });
+
+    it('takes no keys while the game plays the round', async () => {
+      const round = await discover();
+
+      await round.type('3');
+      await listen(round, 5);
+
+      expect(faint(round.host)).toBe('14159');
+      expect(round.host.querySelector('app-slots .wrong')).toBeNull();
+    });
+
+    it('loses on the first wrong digit, playing again from the start', async () => {
+      const round = await discover();
+      await playRounds(round, 5, 10);
+      await showMe(round);
+      await listen(round, 15);
+
+      await round.type('13');
+      expect(round.host.querySelector('.game-over')).not.toBeNull();
+      await round.wait(GAME_OVER_DELAY);
+      const over = dialogNamed(round.host, 'Game Over');
+      expect(over.open).toBe(true);
+      expect(
+        Array.from(over.querySelectorAll('app-button-list button'), (button) =>
+          button.textContent.trim(),
+        ),
+      ).toEqual(['Play Again', 'Main Menu']);
+
+      over.querySelector<HTMLButtonElement>('app-button-list button')?.click();
+      await round.wait(MEDIUM_INTERVAL);
+      expect(round.host.querySelector('.game-over')).toBeNull();
+      expect(slots(round.host)[0]).toBe('1');
+    });
+
+    it('pops up each checkpoint reached, starting the rounds from it once tapped', async () => {
+      const round = await discover();
+      const checkpoints = (): string[] =>
+        Array.from(round.host.querySelectorAll('.checkpoint'), (button) =>
+          button.textContent.trim(),
+        );
+
+      await playRounds(round, 5);
+      expect(checkpoints()).toEqual([]);
+      await showMe(round);
+      await playRounds(round, 10);
+      expect(checkpoints()).toEqual(['10']);
+
+      round.host.querySelector<HTMLButtonElement>('.checkpoint')?.click();
+      await round.wait(0);
+      expect(checkpoints()).toEqual([]);
+      expect(words(round.host)).toEqual([PI_DECIMALS.slice(0, 10)]);
+
+      await showMe(round);
+      await round.wait(MEDIUM_INTERVAL);
+      expect(slots(round.host)[0]).toBe(PI_DECIMALS.charAt(10));
+    });
+
+    it('records each digit retyped at its place, in its overwriting run', async () => {
+      const record = vi.spyOn(DiscoverRecorder.prototype, 'record');
+      const round = await discover();
+
+      await playRounds(round, 5);
+
+      expect(record.mock.calls.map(([, place]) => place)).toEqual([0, 1, 2, 3, 4]);
+    });
+
+    it('stops the round while paused, playing it again from its start once resumed', async () => {
+      const round = await discover();
+
+      round.host.querySelector<HTMLButtonElement>('button[title="Pause"]')?.click();
+      await round.wait(10 * MEDIUM_INTERVAL);
+      expect(slots(round.host).join('')).toBe('');
+
+      dialogNamed(round.host, 'Paused')
+        .querySelector<HTMLButtonElement>('app-button-list button')
+        ?.click();
+      await round.wait(MEDIUM_INTERVAL);
+      expect(slots(round.host)[0]).toBe('1');
     });
   });
 });

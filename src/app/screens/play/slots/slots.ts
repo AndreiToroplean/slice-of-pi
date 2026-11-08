@@ -46,6 +46,7 @@ export interface SlotHandover {
     'aria-hidden': 'true',
     '[style.--columns]': 'count()',
     '[class.overflowing]': 'overflowing()',
+    '[class.faint]': 'faint()',
     '[style.--empty-opacity]': 'emptyOpacity()',
   },
   template: `
@@ -77,6 +78,8 @@ export class Slots {
   readonly size = input.required<number>();
   /** How many of the last digits are mistakes. */
   readonly wrong = input(0);
+  /** Whether its digits are faint, as those the game shows in Discover, rather than typed. */
+  readonly faint = input(false);
   /** How opaque the empty slots are, from 1 down to 0, as they fade out. */
   readonly emptyOpacity = input(1);
   /** How the slots of the group that just ended hand over to these, if they do. */

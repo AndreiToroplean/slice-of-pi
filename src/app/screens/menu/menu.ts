@@ -61,8 +61,9 @@ export const RELOAD_PAGE = new InjectionToken<() => void>('RELOAD_PAGE', {
 const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], pi: [] };
 
 /**
- * The main menu, where the app opens: the game's icon and name, a button to start a challenge and one above it to free play,
- * beside which, once the player has unlocked a checkpoint, a small one shows the place games start from, and picks it,
+ * The main menu, where the app opens: the game's icon and name, a button to start a challenge, one above it to free play,
+ * and one above that to Discover, beside which, once the player has unlocked a checkpoint, a small one shows the place
+ * every game starts from, and picks it,
  * the settings behind a gear in a corner, and in developer mode, its pages, the player's runs among them, in an overflow menu in the other, with its
  * editor (see `menu-editor.ts`). The name's letters are lanterns, in the key colors, and the icon is lit from behind:
  * three layers of light (see `light-layer.ts`), "Pi" nearest, then "Slice of", then the icon, each lighting everything
@@ -167,9 +168,9 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
       {{ taps.message() }}
     </p>
     <app-button-list class="actions" [style.gap]="'var(--buttons-gap)'">
-      <!-- Started from the checkpoint picked beside it, once there's one to pick. -->
+      <!-- Every game starts from the checkpoint picked beside Discover, once there is one to pick. -->
       <div class="row" appOverlayHost>
-        <a appCandy routerLink="/play" data-vibration="play">Free Play</a>
+        <a appCandy routerLink="/discover" data-vibration="play">Discover</a>
         @if (checkpoint.unlocked().length > 0) {
           <button
             type="button"
@@ -196,6 +197,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
           }
         </div>
       </ng-template>
+      <a appCandy routerLink="/play" data-vibration="play">Free Play</a>
       <a #play appCandy="primary" routerLink="/challenge" data-vibration="play">Challenge</a>
     </app-button-list>
     <!-- After the middle of the menu, for Tab to go through it from the left to the right. -->

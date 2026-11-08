@@ -98,3 +98,14 @@
   color: var(--on-place-color);
   text-shadow: none;
 }
+
+/* A digit the game shows, rather than one typed, as in Discover: half there, until the player types. */
+.tile.faint {
+  opacity: 0.45;
+}
+
+/* Once shown, fading out, before they leave the tape. */
+:host(.fading) .tile.faint {
+  opacity: 0;
+  transition: opacity 1s linear;
+}

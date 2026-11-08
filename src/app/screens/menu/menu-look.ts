@@ -59,7 +59,7 @@ export interface MenuLook {
 }
 
 /** How many buttons the menu has, one above the other. */
-export const BUTTON_COUNT = 2;
+export const BUTTON_COUNT = 3;
 
 /** The menu's own look. */
 export const MENU_LOOK: MenuLook = {

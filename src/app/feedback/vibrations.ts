@@ -7,6 +7,7 @@ export const VIBRATIONS = [
   'backspace',
   'pluck',
   'landing',
+  'turn',
 ] as const;
 
 export type Vibration = (typeof VIBRATIONS)[number];
@@ -28,6 +29,7 @@ export const VIBRATION_PATTERNS: VibrationPatterns = {
   backspace: [30],
   pluck: [5],
   landing: [2],
+  turn: [20, 80, 20],
 };
 
 /** The longest step of a pattern, buzz or pause, in ms. */

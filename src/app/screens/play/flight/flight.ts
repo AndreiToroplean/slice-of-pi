@@ -325,6 +325,7 @@ export function flyIntoWord(
     const colors = getComputedStyle(tile);
     copy.style.background = colors.backgroundColor;
     copy.style.color = colors.color;
+    copy.style.opacity = colors.opacity;
     const at = boxIn(layer, tile);
     const to = { ...at, left: at.left - shift };
     tile.style.visibility = 'hidden';

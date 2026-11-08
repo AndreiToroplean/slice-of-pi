@@ -62,6 +62,12 @@ interface Press {
 }
 
 /**
+ * What the key in backspace's place is: backspace, as in free play; the discover key, which asks the game to show the
+ * round, as in Discover; or nothing, as in a challenge.
+ */
+export type CornerKey = 'backspace' | 'discover' | 'blank';
+
+/**
  * On-screen keypad: digits and backspace, in the layout given.
  *
  * Touches are handled on the whole keypad rather than on each button, for speed and reliability while typing fast:
@@ -73,8 +79,10 @@ interface Press {
  *   then: another key, or nothing, off the keypad. Released farther, it types nothing. Only where it's released counts.
  * - Several fingers can press keys at once; each key is typed when its finger is released.
  * - Holding backspace repeats it, while near enough to type it; digits don't repeat.
- * - Where the game mode has no backspace, its key shows blank and is inert: touches on it type nothing, and neither
- *   does the keyboard's Backspace. Its shape stays, so that the keypad looks the same in every mode.
+ * - The key in backspace's place is what the game mode makes it (see {@link CornerKey}): backspace; the discover key,
+ *   which asks the game to show the round, gold-rimmed, and held down in gold while the game shows it; or nothing,
+ *   blank and inert, touches on it typing nothing. Its shape stays, so that the keypad looks the same in every mode.
+ *   On a keyboard, Backspace types backspace and the space bar the discover key.
  *
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
  * repeats it.
@@ -120,21 +128,31 @@ interface Press {
           class="key"
           [focusable]="false"
           [class.backspace]="position.key === 'backspace'"
+          [class.discover]="position.key === 'backspace' && corner() === 'discover'"
           [pressed]="shownPressed(position.key)"
           [pressColor]="pressColor(position.key)"
           [attr.data-key]="position.key"
-          [attr.aria-label]="position.key === 'backspace' ? 'Delete last digit' : null"
-          [inert]="position.key === 'backspace' && !backspace()"
+          [attr.aria-label]="position.key === 'backspace' ? cornerLabel() : null"
+          [inert]="position.key === 'backspace' && corner() === 'blank'"
           [style.grid-row]="position.row + 1"
           [style.grid-column]="position.column + 1"
           (click)="onClick($event, position.key)"
         >
           @if (position.key === 'backspace') {
-            @if (backspace()) {
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M8.5 5h11a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1-1.5 1.5h-11L3 12z" />
-                <path d="m11 9 6 6m0-6-6 6" />
-              </svg>
+            @switch (corner()) {
+              @case ('backspace') {
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8.5 5h11a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1-1.5 1.5h-11L3 12z" />
+                  <path d="m11 9 6 6m0-6-6 6" />
+                </svg>
+              }
+              @case ('discover') {
+                <!-- An eye: show me. -->
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              }
             }
           } @else {
             {{ position.key }}
@@ -183,8 +201,12 @@ export class Keypad {
   readonly solid = input(false);
   /** Whether to show the area of each key, where touches type it. */
   readonly showAreas = input(false);
-  /** Whether backspace works, as it does unless the game mode has none: its key then shows blank, and is inert. */
-  readonly backspace = input(true);
+  /** What the key in backspace's place is, as the game mode makes it. */
+  readonly corner = input<CornerKey>('backspace');
+  /** Whether the discover key shows held down, as while the game shows the round. */
+  readonly held = input(false);
+  /** The discover key was pressed: the player asks the game to show the round. */
+  readonly discover = output();
   /**
    * How long a digit key's color lingers on its face once it stops showing pressed, in milliseconds, fading out to the
    * color its digit takes next: none at 0.
@@ -270,6 +292,9 @@ export class Keypad {
 
   /** Whether a key shows pressed: while pressed, and, for a digit key, for a moment after. */
   protected shownPressed(key: KeypadKey): boolean {
+    if (key === 'backspace' && this.corner() === 'discover') {
+      return this.held();
+    }
     return this.isPressed(key) || (key !== 'backspace' && this.splashing().includes(key));
   }
 
@@ -312,7 +337,7 @@ export class Keypad {
       start: point,
       point,
       timer:
-        key === 'backspace'
+        key === 'backspace' && this.corner() === 'backspace'
           ? setTimeout(() => {
               this.repeat(event.pointerId);
             }, REPEAT_DELAY)
@@ -344,7 +369,7 @@ export class Keypad {
     this.checkDistance(press);
     this.dropPress(event.pointerId);
     if (!press.repeated) {
-      this.touched.emit({ key: press.far ? null : press.key, ...press.start });
+      this.report({ key: press.far ? null : press.key, ...press.start });
     }
   }
 
@@ -393,7 +418,7 @@ export class Keypad {
   }
 
   protected onKeydown(event: KeyboardEvent): void {
-    const key = keyFor(event);
+    const key = keyFor(event, this.corner());
     if (key === null || this.disabled() || !this.works(key)) {
       return;
     }
@@ -408,7 +433,7 @@ export class Keypad {
   }
 
   protected onKeyup(event: KeyboardEvent): void {
-    const key = keyFor(event);
+    const key = keyFor(event, this.corner());
     if (key !== null) {
       this.heldKeys.update((keys) => keys.filter((held) => held !== key));
     }
@@ -416,8 +441,22 @@ export class Keypad {
 
   /** Types a key without touching the keypad. */
   private type(key: KeypadKey): void {
-    this.touched.emit({ key });
+    this.report({ key });
   }
+
+  /** Reports a touch, or a key typed, but the discover key's, which asks the game to show the round instead. */
+  private report(touch: KeypadTouch): void {
+    if (touch.key === 'backspace' && this.corner() === 'discover') {
+      this.discover.emit();
+    } else {
+      this.touched.emit(touch);
+    }
+  }
+
+  /** What the key in backspace's place is called. */
+  protected readonly cornerLabel = computed(() =>
+    this.corner() === 'discover' ? 'Show me' : 'Delete last digit',
+  );
 
   private repeat(pointerId: number): void {
     const press = this.presses.get(pointerId);
@@ -510,18 +549,21 @@ export class Keypad {
     return { key: key !== null && this.works(key) ? key : null, point };
   }
 
-  /** Whether a key works: every one does, but backspace where the game mode has none. */
+  /** Whether a key works: every one does, but the key in backspace's place where it's blank. */
   private works(key: KeypadKey): boolean {
-    return key !== 'backspace' || this.backspace();
+    return key !== 'backspace' || this.corner() !== 'blank';
   }
 }
 
-/** The keypad key a physical key press stands for, if any. */
-function keyFor(event: KeyboardEvent): KeypadKey | null {
+/**
+ * The keypad key a physical key press stands for, if any: the key in backspace's place is typed with Backspace, but
+ * with the space bar where it's the discover key.
+ */
+function keyFor(event: KeyboardEvent, corner: CornerKey): KeypadKey | null {
   if (event.ctrlKey || event.metaKey || event.altKey) {
     return null;
   }
-  if (event.key === 'Backspace') {
+  if (event.key === (corner === 'discover' ? ' ' : 'Backspace')) {
     return 'backspace';
   }
   return isDigit(event.key) ? event.key : null;

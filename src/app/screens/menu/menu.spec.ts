@@ -171,9 +171,10 @@ describe('Menu', () => {
     );
   }
 
-  it('starts a game in free play, or a challenge', async () => {
+  it('starts a game in Discover, free play, or a challenge', async () => {
     const host = await setUp();
 
+    expect(link(host, 'Discover')?.getAttribute('href')).toBe('/discover');
     expect(link(host, 'Free Play')?.getAttribute('href')).toBe('/play');
     expect(link(host, 'Challenge')?.getAttribute('href')).toBe('/challenge');
   });
@@ -249,9 +250,11 @@ describe('Menu', () => {
       press('ArrowUp');
       expect(focused()).toBe('Free Play');
       press('ArrowUp');
+      expect(focused()).toBe('Discover');
+      press('ArrowUp');
       expect(focused()).toBe('Challenge');
       press('ArrowDown');
-      expect(focused()).toBe('Free Play');
+      expect(focused()).toBe('Discover');
 
       host.querySelector<HTMLElement>('[title="Settings"]')?.focus();
       expect(press('ArrowDown').defaultPrevented).toBe(false);

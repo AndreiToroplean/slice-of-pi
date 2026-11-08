@@ -28,6 +28,7 @@ export const SCROLL_BACK_DURATION = 400;
 @Component({
   selector: 'app-typed-digits',
   host: {
+    '[class.fading]': 'fading()',
     role: 'region',
     'aria-label': 'Typed digits',
     tabindex: '0',
@@ -41,12 +42,16 @@ export const SCROLL_BACK_DURATION = 400;
         ><span class="tile">π</span><span class="tile shade">=</span><span class="tile">3</span
         ><span class="tile shade">.</span></span
       >
+      @let faint = faintFrom();
       @for (word of words(); track word.firstPlace) {
         <span class="word" [attr.data-first-place]="word.firstPlace">
           @for (digit of word.digits; track $index) {
-            <span class="tile" [style.--place-color]="colors()[word.firstPlace + $index]">{{
-              digit
-            }}</span>
+            <span
+              class="tile"
+              [class.faint]="faint !== undefined && word.firstPlace + $index >= faint"
+              [style.--place-color]="colors()[word.firstPlace + $index]"
+              >{{ digit }}</span
+            >
           }
         </span>
       }
@@ -56,6 +61,10 @@ export const SCROLL_BACK_DURATION = 400;
   styleUrl: './typed-digits.css',
 })
 export class TypedDigits {
+  /** The place from which the digits are faint, as those the game shows in Discover, if any are. */
+  readonly faintFrom = input<number>();
+  /** Whether the faint digits are fading out, as once the game has shown them, on the player's turn. */
+  readonly fading = input(false);
   /** The finished groups, in order. */
   readonly words = input.required<readonly Word[]>();
   /** The digits typed so far, including those of the group being typed. */

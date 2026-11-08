@@ -703,7 +703,7 @@ describe('Keypad', () => {
 
   describe('without backspace', () => {
     beforeEach(() => {
-      fixture.componentRef.setInput('backspace', false);
+      fixture.componentRef.setInput('corner', 'blank');
       fixture.detectChanges();
     });
 
@@ -723,6 +723,47 @@ describe('Keypad', () => {
       expect(touches.map(({ key }) => key)).toEqual([null, '3']);
       expect(event.defaultPrevented).toBe(false);
       expect(pressedKeys()).toEqual(['3']);
+    });
+  });
+
+  describe('with the discover key in backspace’s place', () => {
+    let discovers: number;
+
+    beforeEach(() => {
+      discovers = 0;
+      fixture.componentInstance.discover.subscribe(() => discovers++);
+      fixture.componentRef.setInput('corner', 'discover');
+      fixture.detectChanges();
+    });
+
+    it('asks to show the round on a touch, a click or the space bar, typing nothing, and never repeats', () => {
+      expect(button('backspace').getAttribute('aria-label')).toBe('Show me');
+
+      tap('backspace');
+      down('backspace');
+      vi.advanceTimersByTime(REPEAT_DELAY + 3 * REPEAT_INTERVAL);
+      up('backspace');
+      const space = keyboard('keydown', { key: ' ' });
+      button('backspace').dispatchEvent(new MouseEvent('click', { detail: 0 }));
+
+      expect(discovers).toBe(4);
+      expect(typed).toEqual([]);
+      expect(space.defaultPrevented).toBe(true);
+    });
+
+    it('leaves Backspace alone', () => {
+      const event = keyboard('keydown', { key: 'Backspace' });
+
+      expect(discovers).toBe(0);
+      expect(event.defaultPrevented).toBe(false);
+    });
+
+    it('shows held down while told to, as while the game shows the round', () => {
+      expect(pressedKeys()).toEqual([]);
+
+      fixture.componentRef.setInput('held', true);
+
+      expect(pressedKeys()).toEqual(['backspace']);
     });
   });
 
@@ -767,6 +808,7 @@ describe('Keypad', () => {
     it.each<[string, KeyboardEventInit]>([
       ['other keys', { key: 'a' }],
       ['Delete', { key: 'Delete' }],
+      ['the space bar', { key: ' ' }],
       ['Ctrl shortcuts', { key: '4', ctrlKey: true }],
       ['Meta shortcuts', { key: '4', metaKey: true }],
       ['Alt shortcuts', { key: 'Backspace', altKey: true }],
