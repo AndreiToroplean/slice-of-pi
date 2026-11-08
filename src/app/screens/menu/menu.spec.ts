@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { pressKey } from '../../../testing/keys';
 import { menuItem, menuItems, openMenu } from '../../../testing/menus';
+import { startFrom } from '../../../testing/checkpoints';
 import { Checkpoint } from '../../player-data/checkpoint';
 import { provideRouter } from '@angular/router';
 import { routes } from '../../app.routes';
@@ -189,11 +190,9 @@ describe('Menu', () => {
     });
 
     it('shows the place games start from, and picks another unlocked', async () => {
+      await startFrom(100);
       const checkpoint = TestBed.inject(Checkpoint);
-      vi.spyOn(checkpoint, 'refresh').mockImplementation(() => {
-        checkpoint.unlocked.set([50, 100]);
-        return Promise.resolve();
-      });
+      checkpoint.pick(0);
       const fixture = TestBed.createComponent(Menu);
       await fixture.whenStable();
       const host = fixture.nativeElement as HTMLElement;
@@ -201,7 +200,10 @@ describe('Menu', () => {
 
       picker(host)?.click();
       await fixture.whenStable();
-      expect(menuItems()).toEqual(['Start of π', 'Place 50', 'Place 100']);
+      expect(menuItems()).toEqual([
+        'Start of π',
+        ...[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((place) => `Place ${String(place)}`),
+      ]);
       menuItem('Place 100').click();
       await fixture.whenStable();
 

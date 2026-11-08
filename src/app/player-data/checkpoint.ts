@@ -12,16 +12,17 @@ import { RunStore } from './run-store';
 export class Checkpoint {
   private readonly store = inject(RunStore);
   /** The checkpoints unlocked, in order. */
-  readonly unlocked = signal<readonly number[]>([]);
+  readonly unlocked = computed(() =>
+    unlockedCheckpoints(
+      this.store
+        .runs()
+        .filter((run) => run.checked)
+        .map(reachedPlace),
+    ),
+  );
   private readonly picked = signal(0);
   /** The place picked, if it's still unlocked, or the start of π. */
   readonly start = computed(() => (this.unlocked().includes(this.picked()) ? this.picked() : 0));
-
-  /** Works out the checkpoints unlocked again, from the runs as they are now. */
-  async refresh(): Promise<void> {
-    const runs = await this.store.runs();
-    this.unlocked.set(unlockedCheckpoints(runs.filter((run) => run.checked).map(reachedPlace)));
-  }
 
   /** Picks the place the next games start from. */
   pick(place: number): void {

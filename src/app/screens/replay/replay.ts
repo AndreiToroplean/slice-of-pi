@@ -4,7 +4,6 @@ import {
   computed,
   DestroyRef,
   inject,
-  Injector,
   signal,
   viewChild,
 } from '@angular/core';
@@ -14,7 +13,7 @@ import { touchPoint } from '../../game/layers/keypad-layout';
 import { RUN_CLOCK } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { SoundSetting } from '../../player-data/sound-setting';
-import { Touch, TouchLog } from '../../player-data/touch-log';
+import { Touch } from '../../player-data/touch-log';
 import { injectBackTo } from '../../ui/back-to-menu';
 import { Candy } from '../../ui/candy';
 import { CdkMenuItemRadio } from '@angular/cdk/menu';
@@ -196,10 +195,14 @@ export const TAIL = 1500;
   styleUrl: './replay.css',
 })
 export class Replay {
-  /** The touch log of the run replayed, once read. */
-  protected readonly log = signal<TouchLog | undefined>(undefined);
+  private readonly id = inject(ActivatedRoute).snapshot.paramMap.get('id');
+  private readonly store = inject(RunStore);
+  /** The touch log of the run replayed. */
+  protected readonly log = computed(() =>
+    this.store.logs().find((stored) => stored.id === this.id),
+  );
   /** Whether there's no run kept under the id asked for. */
-  protected readonly missing = signal(false);
+  protected readonly missing = computed(() => this.log() === undefined);
   /** Where the replay is, in milliseconds of the run since its first digit. */
   protected readonly time = signal(0);
   /** How many of the run's touches have been played. */
@@ -257,24 +260,12 @@ export class Replay {
   private lastFrame = 0;
 
   constructor() {
-    const id = inject(ActivatedRoute).snapshot.paramMap.get('id');
-    const injector = inject(Injector);
-    void inject(RunStore)
-      .touchLogs()
-      .then((logs) => {
-        const log = logs.find((stored) => stored.id === id);
-        this.log.set(log);
-        this.missing.set(log === undefined);
-        if (log !== undefined) {
-          // Once the play screen is there to play it on.
-          afterNextRender(
-            () => {
-              this.toggle();
-            },
-            { injector },
-          );
-        }
-      });
+    // Once the play screen is there to play it on.
+    afterNextRender(() => {
+      if (this.log() !== undefined) {
+        this.toggle();
+      }
+    });
     inject(DestroyRef).onDestroy(() => {
       this.stop();
     });

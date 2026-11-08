@@ -17,9 +17,7 @@ describe('Checkpoint', () => {
 
   async function setUp(runs: TouchLog[]): Promise<Checkpoint> {
     await setUpPlayerData({ runs });
-    const checkpoint = TestBed.inject(Checkpoint);
-    await checkpoint.refresh();
-    return checkpoint;
+    return TestBed.inject(Checkpoint);
   }
 
   it('unlocks the checkpoints the checked runs reached, from a checkpoint too', async () => {

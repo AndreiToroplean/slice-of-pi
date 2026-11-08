@@ -38,23 +38,21 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
   template: `
     <section class="panel" aria-labelledby="data-title">
       <h2 id="data-title">Your Data</h2>
-      @if (loaded()) {
-        @if (separatePreview()) {
-          <p>
-            This preview of the game keeps its data apart from the main game: it has a copy of the
-            main game's, and what you do here stays here.
-          </p>
-        }
+      @if (store.separate()) {
         <p>
-          @if (persisted()) {
-            Your runs and settings stay on this device until this site's data is cleared.
-          } @else {
-            Your runs and settings stay on this device, though your browser may delete them when it
-            runs low on space.
-          }
-          A backup file keeps them safe even then.
+          This preview of the game keeps its data apart from the main game: it has a copy of the
+          main game's, and what you do here stays here.
         </p>
       }
+      <p>
+        @if (store.persisted()) {
+          Your runs and settings stay on this device until this site's data is cleared.
+        } @else {
+          Your runs and settings stay on this device, though your browser may delete them when it
+          runs low on space.
+        }
+        A backup file keeps them safe even then.
+      </p>
       <app-button-list class="buttons">
         <button type="button" appCandy (click)="save()">Save a Backup</button>
         <label appCandy>
@@ -91,11 +89,6 @@ export const SAVE_FILE = new InjectionToken<(name: string, text: string) => void
   styleUrl: './your-data.css',
 })
 export class YourData {
-  /** Whether where the data stands has been read. */
-  protected readonly loaded = signal(false);
-  protected readonly persisted = signal(false);
-  /** Whether this is a preview keeping its data apart from the main game's (see {@link RunStore}). */
-  protected readonly separatePreview = signal(false);
   protected readonly message = signal('');
   private readonly deleteDialog = viewChild.required<ChoiceDialog>('deleteDialog');
 
@@ -105,18 +98,15 @@ export class YourData {
   private readonly discoverPace = inject(DiscoverPaceSetting);
   private readonly vibration = inject(VibrationSetting);
   private readonly sound = inject(SoundSetting);
-  private readonly store = inject(RunStore);
+  protected readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
   private readonly clock = inject(RUN_CLOCK);
   private readonly saveFile = inject(SAVE_FILE);
 
-  constructor() {
-    void this.refresh();
-  }
-
   protected async save(): Promise<void> {
     await this.recorder.saved();
-    const [runs, settings] = await Promise.all([this.store.touchLogs(), this.store.settings()]);
+    const settings = await this.store.settings();
+    const runs = this.store.logs();
     const now = this.clock.epoch();
     this.saveFile(backupFileName(now), writeBackup(runs, settings, now));
     this.message.set('Saved a backup of your data.');
@@ -160,18 +150,6 @@ export class YourData {
       this.discoverPace.reload(),
       this.vibration.reload(),
       this.sound.reload(),
-      this.refresh(),
     ]);
-  }
-
-  private async refresh(): Promise<void> {
-    await this.recorder.saved();
-    const [persisted, separate] = await Promise.all([
-      this.store.persisted(),
-      this.store.separate(),
-    ]);
-    this.separatePreview.set(separate);
-    this.persisted.set(persisted);
-    this.loaded.set(true);
   }
 }

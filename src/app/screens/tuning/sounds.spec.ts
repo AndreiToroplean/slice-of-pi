@@ -175,8 +175,6 @@ describe('Sounds', () => {
     const play = vi.spyOn(TestBed.inject(Speaker), 'play');
     await TestBed.inject(Tweaks).setSoundMix({ ...SOUND_MIX, landings: 1 });
     const { host, stable } = await setUp();
-    await store.runs();
-    await stable();
     button(host, 'Play π').click();
     await stable();
 

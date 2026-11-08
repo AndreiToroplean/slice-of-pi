@@ -14,7 +14,7 @@ import {
 import { isDigit } from '../../game/pi/digit';
 import { KNOWN_DECIMALS } from '../../game/pi/pi';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
-import { groupRuns, Run } from '../../player-data/run';
+import { groupRuns } from '../../player-data/run';
 import { RUN_CLOCK } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { Candy } from '../../ui/candy';
@@ -227,7 +227,7 @@ export class Sounds {
     souring: this.souring(),
   }));
   /** The player's runs, to play the song in their groups. */
-  private readonly runs = signal<readonly Run[]>([]);
+  private readonly runs = inject(RunStore).runs;
   /** The sizes of the player's groups, as the break model finds them, those it knows the end of. */
   private readonly groups = computed(() =>
     this.tweaks
@@ -256,11 +256,6 @@ export class Sounds {
         this.souring.set(this.tweaks.values().souring ?? SOURING);
       }
     });
-    void inject(RunStore)
-      .runs()
-      .then((runs) => {
-        this.runs.set(runs);
-      });
     inject(DestroyRef).onDestroy(() => {
       this.stop();
     });

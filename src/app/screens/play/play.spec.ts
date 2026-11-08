@@ -36,6 +36,7 @@ import { INDEXED_DB, RunStore } from '../../player-data/run-store';
 import { SCROLL_BACK_DURATION, TypedDigits } from './typed-digits/typed-digits';
 import { backgroundsFrom, seasonAt } from '../../game/layers/seasons';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
+import { startFrom } from '../../../testing/checkpoints';
 import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LAYOUT } from '../../ui/layout';
@@ -165,11 +166,7 @@ describe('Play', () => {
         ),
       );
     }
-    const setup = await setUp();
-    // Reads come back in order: once this one is back, so is the play screen's.
-    await store.runs();
-    await setup.stable();
-    return setup;
+    return setUp();
   }
 
   /**
@@ -428,9 +425,8 @@ describe('Play', () => {
         4,
         true,
         () => {
-          const checkpoint = TestBed.inject(Checkpoint);
-          checkpoint.unlocked.set([50]);
-          checkpoint.pick(50);
+          // The runs, of 60 digits, unlock it.
+          TestBed.inject(Checkpoint).pick(50);
           return Promise.resolve();
         },
         60,
@@ -629,10 +625,8 @@ describe('Play', () => {
   });
 
   describe('from a checkpoint', () => {
-    beforeEach(() => {
-      const checkpoint = TestBed.inject(Checkpoint);
-      checkpoint.unlocked.set([50]);
-      checkpoint.pick(50);
+    beforeEach(async () => {
+      await startFrom(50);
     });
 
     it('gives the digits before it, in words of 10 on the tape, checking those after it', async () => {
@@ -1575,7 +1569,7 @@ describe('Play', () => {
         replaceUrl: true,
         state: { menuBehind: false },
       });
-      expect((await TestBed.inject(RunStore).runs()).map((run) => run.id)).toEqual(['run-1']);
+      expect((await TestBed.inject(RunStore).touchLogs()).map((run) => run.id)).toEqual(['run-1']);
     });
 
     /** Ends the game, letting it navigate once the dialog has closed. */
@@ -1829,7 +1823,6 @@ describe('Play', () => {
       if (host === null) {
         throw new Error('No play screen');
       }
-      await store.runs();
       const wait = async (milliseconds: number): Promise<void> => {
         time.advance(milliseconds);
         await harness.fixture.whenStable();
