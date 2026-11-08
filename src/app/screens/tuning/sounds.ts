@@ -211,7 +211,6 @@ export class Sounds {
   protected readonly mix = signal<SoundMix>(this.tweaks.values().sound ?? SOUND_MIX);
   /** How a wrong key's note goes off, being tuned. */
   protected readonly souring = signal<Souring>(this.tweaks.values().souring ?? SOURING);
-  private edited = false;
   /** The note being tried, until it's soured. */
   private tried: Playing | undefined;
   /** Stops the song playing, if it is. */
@@ -249,13 +248,6 @@ export class Sounds {
   );
 
   constructor() {
-    void this.tweaks.loaded.then(() => {
-      if (!this.edited) {
-        this.kind.set(this.storedKind());
-        this.mix.set(this.tweaks.values().sound ?? SOUND_MIX);
-        this.souring.set(this.tweaks.values().souring ?? SOURING);
-      }
-    });
     inject(DestroyRef).onDestroy(() => {
       this.stop();
     });
@@ -264,26 +256,22 @@ export class Sounds {
   protected pick(id: string): void {
     const kind = soundModelKindById(id);
     if (kind !== undefined) {
-      this.edited = true;
       this.kind.set(kind);
       void this.tweaks.setSoundModel(kind);
     }
   }
 
   protected set(key: keyof SoundMix, value: number): void {
-    this.edited = true;
     this.mix.update((mix) => ({ ...mix, [key]: value }));
     void this.tweaks.setSoundMix(this.mix());
   }
 
   protected setSouring(key: keyof Souring, value: number): void {
-    this.edited = true;
     this.souring.update((souring) => ({ ...souring, [key]: value }));
     void this.tweaks.setSouring(this.souring());
   }
 
   protected reset(): void {
-    this.edited = true;
     this.kind.set(SOUND_MODEL);
     this.mix.set(SOUND_MIX);
     this.souring.set(SOURING);
