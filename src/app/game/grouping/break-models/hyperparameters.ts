@@ -40,8 +40,6 @@ export type BreakSettings = Readonly<{
   breakThreshold: number;
   /** The share of the runs' weight, from 0 to 1, that must break at a place for it to be a usual break spot. */
   usualThreshold: number;
-  /** How many slots a group past the trust horizon starts with. */
-  startingSlots: number;
 }>;
 
 /** The slider of each hyperparameter. */
@@ -228,19 +226,6 @@ export const HYPERPARAMETERS: { readonly [K in keyof BreakSettings]: Hyperparame
       why: 'Your groups are where you usually break, and “usually” needs a line: ½ is as likely a break as not. The confidence, and so the trust horizon, measure how sure the game is that the place is on the same side of this line as its verdict.',
       moving:
         'Higher keeps only the breaks you make nearly every time, so longer groups; lower counts breaks you make now and then too, so shorter ones. Near the line, runs are split, so the confidence there is low and the horizon comes sooner.',
-    },
-  },
-  startingSlots: {
-    key: 'startingSlots',
-    label: 'Starting slots',
-    min: 1,
-    max: 10,
-    step: 1,
-    format: (value) => `${String(value)} slots`,
-    help: {
-      what: 'How many slots a group starts with where the game doesn’t know your groups yet: past the trust horizon, and everywhere for a new player.',
-      why: 'Groups of 5 are a common way to learn π, and a good default until your own show. The group still grows a slot with each digit typed past them until you pause, so it never forces a size on you.',
-      moving: 'Only what the empty slots show: the group still ends where you pause.',
     },
   },
 };

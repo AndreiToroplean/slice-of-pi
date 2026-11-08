@@ -4,6 +4,9 @@ import { Tweaks } from '../../developer-mode/tweaks';
 import { DEFAULT_KEYPAD_LAYOUT, KeypadLayout } from '../../game/layers/keypad-layout';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { Slider } from '../../ui/slider';
+import { Spinner } from '../../ui/spinner';
+import { GroupSizeSetting } from '../../player-data/group-size-setting';
+import { DEFAULT_GROUP_SIZE, GROUP_SIZES } from '../../game/grouping/group-size';
 import { KEY_LINGER, MAX_KEY_LINGER } from '../../game/layers/place-colors';
 import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
 import {
@@ -36,7 +39,7 @@ import { YourData } from './your-data';
  */
 @Component({
   selector: 'app-settings',
-  imports: [ButtonList, Candy, ChoiceDialog, Page, Segmented, Slider, YourData],
+  imports: [ButtonList, Candy, ChoiceDialog, Page, Segmented, Slider, Spinner, YourData],
   template: `
     <app-page heading="Settings">
       <button
@@ -64,6 +67,36 @@ import { YourData } from './your-data';
             title="Back to Default"
             [disabled]="layoutDefault()"
             (click)="resetLayout()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 14 4 9l5-5" />
+              <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+            </svg>
+          </button>
+        </div>
+      </section>
+      <section class="panel" aria-labelledby="groups-title">
+        <h2 id="groups-title">Groups</h2>
+        <div class="row">
+          <div class="setting">
+            <span>
+              Group Size
+              <small>The slots a group starts with, until the game knows your own groups.</small>
+            </span>
+            <app-spinner
+              label="Group size"
+              [min]="groupSizes.min"
+              [max]="groupSizes.max"
+              [value]="groupSize.size()"
+              (valueChange)="groupSize.set($event)"
+            />
+          </div>
+          <button
+            type="button"
+            class="round"
+            title="Back to Default"
+            [disabled]="groupSizeDefault()"
+            (click)="resetGroupSize()"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M9 14 4 9l5-5" />
@@ -321,6 +354,8 @@ export class Settings {
   ];
   protected readonly maxKeyLinger = MAX_KEY_LINGER;
   protected readonly defaultKeyLinger = KEY_LINGER;
+  protected readonly groupSize = inject(GroupSizeSetting);
+  protected readonly groupSizes = GROUP_SIZES;
   protected readonly discoverPace = inject(DiscoverPaceSetting);
   protected readonly paces: readonly Segment<DiscoverPace>[] = [
     { value: 'slower', label: 'Slower' },
@@ -344,6 +379,9 @@ export class Settings {
   /** Whether nothing is tuned in developer mode. */
   protected readonly untuned = computed(() => Object.keys(this.tweaks.values()).length === 0);
 
+  protected readonly groupSizeDefault = computed(
+    () => this.groupSize.size() === DEFAULT_GROUP_SIZE,
+  );
   protected readonly layoutDefault = computed(
     () => this.keypadLayout.layout() === DEFAULT_KEYPAD_LAYOUT,
   );
@@ -356,6 +394,7 @@ export class Settings {
   protected readonly allDefault = computed(
     () =>
       this.layoutDefault() &&
+      this.groupSizeDefault() &&
       this.paceDefault() &&
       this.vibration.enabled() &&
       this.sound.enabled() &&
@@ -421,6 +460,10 @@ export class Settings {
     void this.keypadLayout.set(DEFAULT_KEYPAD_LAYOUT);
   }
 
+  protected resetGroupSize(): void {
+    void this.groupSize.set(DEFAULT_GROUP_SIZE);
+  }
+
   protected setSoundNotes(event: Event): void {
     void this.tweaks.setSoundNotes((event.target as HTMLInputElement).checked);
   }
@@ -446,6 +489,7 @@ export class Settings {
   /** Brings back the default value of every setting shown. */
   protected resetAll(): void {
     this.resetLayout();
+    this.resetGroupSize();
     this.resetPace();
     this.resetVibration();
     this.resetSound();

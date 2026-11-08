@@ -102,7 +102,6 @@ export const MARS_DEFAULTS: MarsSettings = {
   fullTrustUnevenness: 0.3,
   breakThreshold: 0.25,
   level: 0,
-  startingSlots: 5,
   priorUnevenness: 0.2,
   trustInfluence: 1,
   currentDecay: 0.5,
@@ -440,7 +439,7 @@ export const MARS: BreakModelKind = {
     },
     {
       name: 'Groups',
-      hyperparameters: [H.breakThreshold, H.level, H.startingSlots],
+      hyperparameters: [H.breakThreshold, H.level],
     },
     { name: 'Envelope', hyperparameters: ENVELOPE_HYPERPARAMETERS },
   ],

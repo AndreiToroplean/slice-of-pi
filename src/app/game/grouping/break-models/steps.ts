@@ -76,7 +76,7 @@ export type Steps = {
     }
   | {
       readonly settings: Settings &
-        Pick<BreakSettings, 'breakThreshold' | 'usualThreshold' | 'level' | 'startingSlots'>;
+        Pick<BreakSettings, 'breakThreshold' | 'usualThreshold' | 'level'>;
       readonly mixture?: undefined;
     }
 );

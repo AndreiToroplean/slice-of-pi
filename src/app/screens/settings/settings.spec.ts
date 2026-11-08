@@ -1,3 +1,5 @@
+import { pressKey } from '../../../testing/keys';
+import { GroupSizeSetting } from '../../player-data/group-size-setting';
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -146,6 +148,19 @@ describe('Settings', () => {
     expect(TestBed.inject(KeypadLayoutSetting).layout()).toBe('telephone');
   });
 
+  it('sets the group size with its spinner', async () => {
+    const host = await setUp();
+    const spinner = host.querySelector<HTMLElement>('[role="spinbutton"][aria-label="Group size"]');
+    expect(spinner?.getAttribute('aria-valuenow')).toBe('5');
+
+    pressKey('ArrowUp', spinner);
+    expect(TestBed.inject(GroupSizeSetting).size()).toBe(6);
+    await TestBed.inject(ApplicationRef).whenStable();
+
+    backToDefault(host, 'Group Size')?.click();
+    expect(TestBed.inject(GroupSizeSetting).size()).toBe(5);
+  });
+
   function button(host: HTMLElement, label: string): HTMLButtonElement | undefined {
     return Array.from(host.querySelectorAll('button')).find(
       (each) => each.title === label || each.textContent.trim() === label,
@@ -202,9 +217,11 @@ describe('Settings', () => {
     await setting.set('telephone');
     await TestBed.inject(VibrationSetting).set(false);
     await TestBed.inject(SoundSetting).set(false);
+    await TestBed.inject(GroupSizeSetting).set(8);
     await fixture.whenStable();
     button(host, 'Reset Settings')?.click();
 
+    expect(TestBed.inject(GroupSizeSetting).size()).toBe(5);
     expect(TestBed.inject(VibrationSetting).enabled()).toBe(true);
     expect(TestBed.inject(SoundSetting).enabled()).toBe(true);
     expect(tweaks.solidKeys()).toBe(false);

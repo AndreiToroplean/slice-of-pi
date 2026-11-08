@@ -24,14 +24,15 @@ function by3(length: number): number[] {
 }
 
 /** How Mercury plays the groups of a player who grouped the first `length` decimals by 3, `count` times. */
-function gameplay(count: number, length = 30, tuned: BreakSettings = settings) {
+function gameplay(count: number, length = 30, tuned: BreakSettings = settings, groupSize = 5) {
   const runs = Array.from({ length: count }, () => timesOf(length, by3(length)));
-  return MERCURY.create(tuned).play(runs);
+  return MERCURY.create(tuned).play(runs, groupSize);
 }
 
 describe('groupAt', () => {
-  it('is a group of 5 that grows for a new player', () => {
+  it("is a group of the player's size, which grows, for a new player", () => {
     expect(gameplay(0).groupAt([], 0)).toEqual({ size: 5, trusted: false });
+    expect(gameplay(0, 30, settings, 3).groupAt([], 0)).toEqual({ size: 3, trusted: false });
   });
 
   it("follows the player's groups within the trust horizon", () => {
@@ -93,10 +94,6 @@ describe('groupEnds', () => {
 });
 
 describe('the thresholds', () => {
-  it('starts groups with the starting slots', () => {
-    expect(gameplay(0, 30, { ...settings, startingSlots: 3 }).groupAt([], 0).size).toBe(3);
-  });
-
   it('asks for a likelier break past the trust horizon at a higher break threshold', () => {
     // A borderline wait: the first one this new player's break is about even odds for, judged by the synthetic runs.
     const borderline = Array.from({ length: 60 }, (_, k) => {

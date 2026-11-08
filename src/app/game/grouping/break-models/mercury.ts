@@ -45,7 +45,6 @@ export const MERCURY_DEFAULTS: BreakSettings = {
   priorBreakSpread: 0.4,
   breakThreshold: 0.5,
   usualThreshold: 0.5,
-  startingSlots: 5,
 };
 
 const H = HYPERPARAMETERS;
@@ -77,7 +76,7 @@ export const MERCURY: BreakModelKind = {
     },
     {
       name: 'Groups',
-      hyperparameters: [H.breakThreshold, H.usualThreshold, H.level, H.startingSlots],
+      hyperparameters: [H.breakThreshold, H.usualThreshold, H.level],
     },
   ],
   create: (tuned) => {

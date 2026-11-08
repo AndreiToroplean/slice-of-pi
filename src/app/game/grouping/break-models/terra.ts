@@ -43,7 +43,7 @@ import type { Workings } from './workings';
  */
 export type TerraSettings = Pick<
   BreakSettings,
-  'window' | 'recencyDecay' | 'level' | 'breakThreshold' | 'usualThreshold' | 'startingSlots'
+  'window' | 'recencyDecay' | 'level' | 'breakThreshold' | 'usualThreshold'
 > &
   Readonly<{
     /** The smallest local spread, in log-interval: where a run is steadier than this, it's taken as this steady. */
@@ -67,7 +67,6 @@ export const TERRA_DEFAULTS: TerraSettings = {
   usualThreshold: 0.4,
   breakThreshold: 0.5,
   level: 0.9,
-  startingSlots: 5,
 };
 
 /** The prior of the run being typed stays this far from 0 and 1, so that a long enough pause can always outweigh it. */
@@ -432,7 +431,7 @@ export const TERRA: BreakModelKind = {
     },
     {
       name: 'Groups',
-      hyperparameters: [H.breakThreshold, H.usualThreshold, H.level, H.startingSlots],
+      hyperparameters: [H.breakThreshold, H.usualThreshold, H.level],
     },
   ],
   create: (tuned) => terraModel(withDefaults(tuned)),

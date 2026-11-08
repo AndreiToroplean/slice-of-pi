@@ -45,10 +45,10 @@ export const LUNA_DEFAULTS: LunaSettings = {
 };
 
 /**
- * What Luna decides by: a run's verdict is a break or not, a place is a usual break spot where most of the votes say
- * break, and a group past the trust horizon starts with 5 slots.
+ * What Luna decides by: a run's verdict is a break or not, and a place is a usual break spot where most of the votes say
+ * break.
  */
-const DECIDING = { breakThreshold: 0.5, usualThreshold: 0.5, startingSlots: 5 } as const;
+const DECIDING = { breakThreshold: 0.5, usualThreshold: 0.5 } as const;
 
 /** With fewer neighbors than this, a run is too short to judge: it falls back on a fixed pause and a middling trust. */
 const MINIMUM_NEIGHBORS = 3;
