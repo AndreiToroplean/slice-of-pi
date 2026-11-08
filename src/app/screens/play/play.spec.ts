@@ -637,9 +637,9 @@ describe('Play', () => {
       await startFrom(50);
     });
 
-    it('gives the digits before it, in words of 10 on the tape, checking those after it', async () => {
+    it('puts the digits before it on the tape, in groups of the group size where the player has none, checking those after it', async () => {
       const { host, type } = await setUp();
-      expect(words(host)).toEqual(PI_DECIMALS.slice(0, 50).match(/.{10}/g));
+      expect(words(host)).toEqual(PI_DECIMALS.slice(0, 50).match(/.{5}/g));
 
       // Places 50 and 51 are 5 and 8.
       await typeAll(type, '58');
@@ -648,13 +648,16 @@ describe('Play', () => {
       expect(host.querySelector('app-slots .wrong')?.textContent).toBe('0');
     });
 
-    it('never deletes the digits given', async () => {
+    it('deletes the digits before it as any other, the run starting anew from where it goes on', async () => {
       const { host, type } = await setUp();
 
       await typeAll(type, '5<<');
 
-      expect(slots(host)).toEqual(['', '', '', '', '']);
-      expect(words(host)).toHaveLength(5);
+      expect(words(host)).toHaveLength(9);
+      expect(slots(host)).toEqual([...Array.from(PI_DECIMALS.slice(45, 49)), '']);
+      expect(TestBed.inject(RunRecorder).start()).toBe(49);
+      await typeAll(type, PI_DECIMALS.charAt(49));
+      expect(TestBed.inject(RunRecorder).run()?.start).toBe(49);
     });
 
     it('records its run from the checkpoint', async () => {
@@ -662,6 +665,12 @@ describe('Play', () => {
 
       expect(TestBed.inject(RunRecorder).start()).toBe(50);
     });
+  });
+
+  it('cuts the digits before the checkpoint it starts from in the groups the player is known by', async () => {
+    const { host } = await setUpWithRuns(4, true, () => startFrom(10), 15);
+
+    expect(words(host).map((word) => word.length)).toEqual([3, 3, 3, 1]);
   });
 
   describe('mistakes', () => {
@@ -2065,10 +2074,11 @@ describe('Play', () => {
       await playRounds(round, 10);
       expect(checkpoints()).toEqual(['10']);
 
+      const before = words(round.host);
       round.host.querySelector<HTMLButtonElement>('.checkpoint')?.click();
       await round.wait(0);
       expect(checkpoints()).toEqual([]);
-      expect(words(round.host)).toEqual([PI_DECIMALS.slice(0, 10)]);
+      expect(words(round.host)).toEqual(before);
 
       await showMe(round);
       await round.wait(MEDIUM_INTERVAL);
