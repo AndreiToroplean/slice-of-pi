@@ -62,10 +62,10 @@ interface Press {
 }
 
 /**
- * What the key in backspace's place is: backspace, as in free play; the discover key, which switches turns, as in
- * Discover; or nothing, as in a challenge.
+ * What the key in backspace's place is: backspace, as in free play, and in a challenge, where it's disabled; or the
+ * discover key, which switches turns, as in Discover.
  */
-export type CornerKey = 'backspace' | 'discover' | 'blank';
+export type CornerKey = 'backspace' | 'discover';
 
 /**
  * On-screen keypad: digits and backspace, in the layout given.
@@ -80,9 +80,9 @@ export type CornerKey = 'backspace' | 'discover' | 'blank';
  * - Several fingers can press keys at once; each key is typed when its finger is released.
  * - Holding backspace repeats it, while near enough to type it; digits don't repeat.
  * - The key in backspace's place is what the game mode makes it (see {@link CornerKey}): backspace; the discover key,
- *   which switches turns, gold-rimmed, and gold all over while the game shows the round; or nothing, blank and
- *   inert, touches on it typing nothing. Its shape stays, so that the keypad looks the same in every mode. The digit
- *   keys can be locked, as on the game's turn: they look as ever, but type nothing.
+ *   which switches turns, gold-rimmed, and gold all over while the game shows the round. Disabled, as backspace is in
+ *   a challenge, it shows half there, and touches on it type nothing. The digit keys can be locked, as on the game's
+ *   turn: they look as ever, but type nothing.
  *   On a keyboard, Backspace types backspace and the space bar the discover key.
  *
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
@@ -137,7 +137,6 @@ export type CornerKey = 'backspace' | 'discover' | 'blank';
           [pressColor]="pressColor(position.key)"
           [attr.data-key]="position.key"
           [attr.aria-label]="position.key === 'backspace' ? cornerLabel() : null"
-          [inert]="position.key === 'backspace' && corner() === 'blank'"
           [style.grid-row]="position.row + 1"
           [style.grid-column]="position.column + 1"
           (click)="onClick($event, position.key)"
@@ -212,8 +211,8 @@ export class Keypad {
   /** Whether the digit keys type nothing, as while the game shows the round, looking as ever all the same. */
   readonly digitsLocked = input(false);
   /**
-   * Whether the key in backspace's place works for now, as the discover key does only once the player has retyped the
-   * round: otherwise it shows half there, and touches on it type nothing.
+   * Whether the key in backspace's place doesn't work, as backspace in a challenge, or the discover key until the
+   * player has retyped the round: it shows half there, and touches on it type nothing.
    */
   readonly cornerDisabled = input(false);
   /** The discover key was pressed: the player switches turns. */
@@ -557,11 +556,9 @@ export class Keypad {
     return { key: key !== null && this.works(key) ? key : null, point };
   }
 
-  /** Whether a key works: every one does, but the key in backspace's place where it's blank, or disabled for now, and locked digits. */
+  /** Whether a key works: every one does, but the key in backspace's place while it's disabled, and locked digits. */
   private works(key: KeypadKey): boolean {
-    return key === 'backspace'
-      ? this.corner() !== 'blank' && !this.cornerDisabled()
-      : !this.digitsLocked();
+    return key === 'backspace' ? !this.cornerDisabled() : !this.digitsLocked();
   }
 }
 

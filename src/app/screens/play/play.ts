@@ -209,7 +209,7 @@ const TICK = 16;
       [corner]="cornerKey()"
       [lit]="turn() === 'game'"
       [digitsLocked]="turn() === 'game'"
-      [cornerDisabled]="discovering && turn() === 'player' && !done()"
+      [cornerDisabled]="cornerDisabled()"
       [linger]="linger()"
       [shown]="playedKey() ?? shownKey()"
       [marks]="marks()"
@@ -385,11 +385,19 @@ export class Play implements PausesOnBack {
   protected readonly picked = signal<number | undefined>(undefined);
   /** Stops the wait for the next round to start, once the player has retyped the round. */
   private stopHandOver = (): void => undefined;
-  /** What the key in backspace's place is: backspace in free play, the discover key in Discover, nothing otherwise. */
-  protected readonly cornerKey = computed((): CornerKey => {
-    const mode = this.mode();
-    return mode === 'free' ? 'backspace' : mode === 'discover' ? 'discover' : 'blank';
-  });
+  /** What the key in backspace's place is: the discover key in Discover, backspace otherwise. */
+  protected readonly cornerKey = computed((): CornerKey =>
+    this.mode() === 'discover' ? 'discover' : 'backspace',
+  );
+  /**
+   * Whether it doesn't work: backspace in a challenge, the discover key on the player's turn until they have retyped
+   * the round.
+   */
+  protected readonly cornerDisabled = computed(
+    () =>
+      this.mode() === 'challenge' ||
+      (this.mode() === 'discover' && this.turn() === 'player' && !this.done()),
+  );
   /** The checkpoints Discover's rounds have reached, which they can start from. */
   protected readonly checkpoints = computed(() =>
     this.discovering ? checkpointsAhead(this.rounds()) : [],

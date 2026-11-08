@@ -1708,11 +1708,11 @@ describe('Play', () => {
         expect(gameOver(host).open).toBe(true);
       });
 
-      it('has no backspace', async () => {
+      it('has backspace disabled', async () => {
         const { host } = await challenge();
 
         const backspace = host.querySelector<HTMLButtonElement>('button[data-key="backspace"]');
-        expect(backspace?.inert).toBe(true);
+        expect(backspace?.getAttribute('aria-disabled')).toBe('true');
       });
 
       it('checks every digit, even when developer mode turns checking off', async () => {
@@ -1759,7 +1759,7 @@ describe('Play', () => {
         expect(host.querySelector('.game-over')).toBeNull();
         const backspace = (): HTMLButtonElement | null =>
           host.querySelector<HTMLButtonElement>('button[data-key="backspace"]');
-        expect(backspace()?.inert).toBe(false);
+        expect(backspace()?.getAttribute('aria-disabled')).toBeNull();
 
         await type('2');
         expect(slots(host)).toEqual(['1', '4', '0', '2', '']);
@@ -1773,7 +1773,7 @@ describe('Play', () => {
         pauseItem(host, 'Pause').click();
         pauseItem(host, 'Restart').click();
         await stable();
-        expect(backspace()?.inert).toBe(true);
+        expect(backspace()?.getAttribute('aria-disabled')).toBe('true');
       });
 
       it('plays again from the game over dialog, from the start, the keys typing again', async () => {
