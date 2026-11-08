@@ -43,7 +43,7 @@ export function isPaceStep(value: unknown): value is number {
  * fade out of the tape over it; once the player has typed the round, their digits fade out over it too, and the game
  * then shows the next one, each digit they type on starting it over, so that they can type on as far as they know.
  */
-export const HAND_OVER = 1000;
+export const HAND_OVER = 2000;
 /** The longest hand over developer mode can tune, in milliseconds. */
 export const MAX_HAND_OVER = 3000;
 
@@ -56,7 +56,7 @@ export function isHandOver(value: unknown): value is number {
  * How much longer the game waits between two groups than between two digits, as it plays a round, in percent: a break,
  * as players make between their groups.
  */
-export const GROUP_PAUSE = 15;
+export const GROUP_PAUSE = 50;
 /** The longest group pause developer mode can tune, in percent: twice the time between two digits. */
 export const MAX_GROUP_PAUSE = 100;
 
@@ -69,7 +69,7 @@ export function isGroupPause(value: unknown): value is number {
  * How many times longer a key's color lingers as the game plays it, on Discover's turn, than as the player types it:
  * the player, watching, takes in each color.
  */
-export const GAME_LINGER = 2;
+export const GAME_LINGER = 3;
 /** The longest game linger developer mode can tune, as a multiple. */
 export const MAX_GAME_LINGER = 5;
 

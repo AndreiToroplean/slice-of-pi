@@ -86,9 +86,9 @@ function asDigit(value: string): Digit {
  * How long a digit key's color lingers on its face once released, in milliseconds, fading out to the color its digit
  * takes next: the player sees each color they type, however fast.
  */
-export const KEY_LINGER = 200;
+export const KEY_LINGER = 500;
 /** The longest linger developer mode can tune, in milliseconds. */
-export const MAX_KEY_LINGER = 500;
+export const MAX_KEY_LINGER = 1000;
 
 /** Whether a value is a linger developer mode can tune. */
 export function isKeyLinger(value: unknown): value is number {

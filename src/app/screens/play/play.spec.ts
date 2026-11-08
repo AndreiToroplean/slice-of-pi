@@ -42,7 +42,7 @@ import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LAYOUT } from '../../ui/layout';
 import { GAME_OVER_DELAY, Play } from './play';
-import { GAME_LINGER, HAND_OVER, paceInterval } from '../../game/modes/discover-pace';
+import { GAME_LINGER, GROUP_PAUSE, HAND_OVER, paceInterval } from '../../game/modes/discover-pace';
 import { DiscoverRecorder } from '../../player-data/discover-recorder';
 import { Keypad } from './keypad/keypad';
 import { KEY_LINGER } from '../../game/layers/place-colors';
@@ -1882,11 +1882,11 @@ describe('Play', () => {
     }
 
     /**
-     * Lets the game play a round of `length` digits, up to the player's turn: a little longer than a digit's time after
-     * the last, for the pauses between groups, but not so long that the digits shown are gone.
+     * Lets the game play a round of `length` digits, in groups of 5, up to the player's turn: a little longer than a
+     * digit's time after the last, with the pause after each group, but not so long that the digits shown are gone.
      */
     async function listen({ wait }: Round, length: number): Promise<void> {
-      await wait((length + 1.5) * MEDIUM_INTERVAL);
+      await wait((length + 1.5 + (Math.ceil(length / 5) * GROUP_PAUSE) / 100) * MEDIUM_INTERVAL);
     }
 
     /** Whether the discover key works, as once the player has retyped the round. */
@@ -1936,7 +1936,7 @@ describe('Play', () => {
     it('hands over for as long as developer mode sets', async () => {
       const round = await discover();
       await TestBed.inject(DeveloperMode).set(true);
-      await TestBed.inject(Tweaks).setHandOver(2000);
+      await TestBed.inject(Tweaks).setHandOver(HAND_OVER + 1000);
 
       await listen(round, 5);
       await round.wait(HAND_OVER);
