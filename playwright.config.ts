@@ -10,7 +10,9 @@ export default defineConfig({
   // Tests on trial, thought not worth their time, only run with `npm run test:e2e:all` (see CLAUDE.md).
   ...(process.env['npm_lifecycle_event'] === 'test:e2e:all' ? {} : { grepInvert: /@disabled/ }),
   reporter: process.env['CI'] === undefined ? 'list' : [['github'], ['list']],
-  use: { baseURL: 'http://localhost:4200', trace: 'retain-on-failure' },
+  // Without motion, as nothing they check hangs on time (see CLAUDE.md): what moves on its own, such as a button picked
+  // out breathing, holds still.
+  use: { baseURL: 'http://localhost:4200', trace: 'retain-on-failure', reducedMotion: 'reduce' },
   projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'npm start',

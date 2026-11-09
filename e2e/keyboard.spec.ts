@@ -22,7 +22,8 @@ test('plays from the keyboard: Enter on the main menu, Escape to pause, up and d
   await page.keyboard.press('ArrowUp');
   const endGame = paused.getByRole('button', { name: 'End Game' });
   await expect(endGame).toBeFocused();
-  await expect(endGame).toHaveCSS('animation-name', /breathe/);
+  // Picked out: without motion, it holds grown rather than breathing.
+  await expect(endGame).toHaveCSS('--candy-breath', '2');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL('/');
   await expect(play).toBeFocused();
