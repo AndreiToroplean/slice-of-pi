@@ -95,3 +95,8 @@
   border-radius: 50%;
   pointer-events: none;
 }
+
+/* The handles on the menu measure heights in hundredths of its free space (see `menuStyles`). */
+.on-menu {
+  --handles-height: var(--menu-free);
+}
