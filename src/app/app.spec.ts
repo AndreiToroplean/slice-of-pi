@@ -207,6 +207,20 @@ describe('zoom', () => {
     expect([...transitionTo('')]).toEqual(['zoom-out']);
   });
 
+  it('skips the transition without motion, the next screen showing at once', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce') }));
+    const skipTransition = vi.fn();
+
+    zoom({
+      transition: { types: new Set(), skipTransition } as unknown as ViewTransition,
+      from: {} as ActivatedRouteSnapshot,
+      to: { firstChild: { routeConfig: { path: 'play' } } } as unknown as ActivatedRouteSnapshot,
+    });
+
+    expect(skipTransition).toHaveBeenCalledOnce();
+    vi.unstubAllGlobals();
+  });
+
   it('only cross-fades where view transitions have no types', () => {
     expect(() => {
       zoom({
