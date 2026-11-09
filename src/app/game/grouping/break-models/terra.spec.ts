@@ -25,11 +25,25 @@ describe('Terra', () => {
 
   it('tells a pause from the pace around it in the run', () => {
     const { places } = judge(timesOf(30, by3(30)), TERRA_DEFAULTS);
-    const pauses = places.flatMap((at, p) => (at.z > TERRA_DEFAULTS.breakShift ? [p + 1] : []));
+    const pauses = places.flatMap((at, p) =>
+      (at?.z ?? 0) > TERRA_DEFAULTS.breakShift ? [p + 1] : [],
+    );
 
     expect(pauses).toEqual(by3(30));
     expect(places[10]?.pace).toBeGreaterThan(180);
     expect(places[10]?.pace).toBeLessThan(700);
+  });
+
+  it('groups the places runs from a checkpoint reached with those of the others', () => {
+    // Runs from the start of π that stop past 15, and runs from the checkpoint at 15 on to 30.
+    const early = Array.from({ length: 4 }, () => fromStartOfPi(timesOf(20, by3(20))));
+    const later = Array.from({ length: 4 }, () => ({ start: 15, times: timesOf(15, by3(15)) }));
+
+    expect(
+      TERRA.create({})
+        .stats([...early, ...later])
+        .groups.map((group) => group.size),
+    ).toEqual(Array<number>(10).fill(3));
   });
 
   it('shows how it judged each run, weighing it by its recency and its trust', () => {
@@ -38,9 +52,9 @@ describe('Terra', () => {
     const judged = judge(timesOf(30, []), TERRA_DEFAULTS);
 
     expect(workings?.runs.map((run) => run.recency)).toEqual([TERRA_DEFAULTS.recencyDecay, 1]);
-    expect(workings?.runs[1]?.z.slice(1)).toEqual(judged.places.map((at) => at.z));
+    expect(workings?.runs[1]?.z.slice(1)).toEqual(judged.places.map((at) => at?.z));
     expect(workings?.runs[1]?.trust.slice(1)).toEqual(
-      judged.places.map((at) => trustOfPlace(at, TERRA_DEFAULTS)),
+      judged.places.map((at) => at && trustOfPlace(at, TERRA_DEFAULTS)),
     );
     expect(workings?.pool).toBeUndefined();
   });

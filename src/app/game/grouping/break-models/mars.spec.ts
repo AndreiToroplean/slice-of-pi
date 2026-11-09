@@ -56,6 +56,33 @@ describe('Mars', () => {
     expect(stats.groups.map((group) => group.size)).toEqual(Array<number>(10).fill(3));
   });
 
+  describe('with runs from a checkpoint', () => {
+    // Runs from the start of π that stop past 15, and runs from the checkpoint at 15 on to 30, grouped by 3 as they go.
+    const early = Array.from({ length: 4 }, () => fromStartOfPi(timesOf(20, by3(20))));
+    const later = Array.from({ length: 4 }, () => ({ start: 15, times: timesOf(15, by3(15)) }));
+
+    it('groups the places they reached from the checkpoint on with the others', () => {
+      const stats = MARS.create({}).stats([...early, ...later]);
+
+      expect(stats.groups.map((group) => group.size)).toEqual(Array<number>(10).fill(3));
+      expect(stats.groups.every((group) => group.trusted || group.open)).toBe(true);
+    });
+
+    it('says nothing of the places before the checkpoint, nor of the break it starts at', () => {
+      // The run from the checkpoint is the oldest, so that the others weigh as much without it.
+      const without = MARS.steps?.({}, early);
+      const steps = MARS.steps?.({}, [later[0] ?? fromStartOfPi([]), ...early]);
+      const before = (values: readonly (number | undefined)[] = []) => values.slice(0, 16);
+
+      expect(before(steps?.runs[0]?.breakProbability).every((p) => p === undefined)).toBe(true);
+      expect(steps?.runs[0]?.breakProbability[16]).toBeDefined();
+      expect(before(steps?.workings?.pool?.logOdds)).toEqual(
+        before(without?.workings?.pool?.logOdds),
+      );
+      expect(before(steps?.coverage)).toEqual(before(without?.coverage));
+    });
+  });
+
   it('ends a group at a long enough pause, however many runs carried on there', () => {
     // Before index 14, where no run breaks.
     expect(waitToEnd(grouped.slice(0, 1), 14, FLAT)).toBeLessThan(10_000);
