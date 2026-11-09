@@ -20,6 +20,7 @@ import { SOUND_MIX } from '../feedback/sound-mix';
 import { SOUND_MODEL } from '../game/layers/sound/sound-models';
 import { MENU_LOOK, TWILIGHT, withLight } from '../screens/menu/menu-look';
 import { BREATH } from '../ui/breath';
+import { CHECKPOINT_LAG } from '../game/modes/discover-rounds';
 import { PLAY_WITH_MERCURY } from '../../testing/game-break-model';
 
 describe('Tweaks', () => {
@@ -348,6 +349,23 @@ describe('Tweaks', () => {
 
     await tweaks.setBreath(undefined);
     expect(tweaks.breath()).toBe(BREATH);
+  });
+
+  it('moves Discover on to checkpoints by themselves, as far behind as tuned, unless picked, only in developer mode', async () => {
+    const tweaks = await load();
+    await tweaks.setManualCheckpoints(true);
+    await tweaks.setCheckpointLag(0);
+    expect(tweaks.manualCheckpoints()).toBe(false);
+    expect(tweaks.checkpointLag()).toBe(CHECKPOINT_LAG);
+
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.manualCheckpoints()).toBe(true);
+    expect(tweaks.checkpointLag()).toBe(0);
+    expect(parseTweaks({ format: TWEAKS_FORMAT, checkpointLag: 11 })).toEqual({});
+
+    await tweaks.setManualCheckpoints(false);
+    await tweaks.setCheckpointLag(CHECKPOINT_LAG);
+    expect((await load()).values()).toEqual({});
   });
 
   it('reads the stored tweaks again once something else changed them', async () => {

@@ -14,6 +14,7 @@ import {
 } from '../game/modes/discover-pace';
 import { isKeyLinger, KEY_LINGER, Palette, PALETTE } from '../game/layers/place-colors';
 import { BREATH, isBreath } from '../ui/breath';
+import { CHECKPOINT_LAG, isCheckpointLag } from '../game/modes/discover-rounds';
 import { writeBackup } from '../player-data/backup';
 import { migrate, Migration } from '../player-data/migration';
 import { RunOrder } from '../player-data/run';
@@ -106,6 +107,13 @@ export interface TweakValues {
   readonly checking?: false;
   /** `true` to show the countdown to the end of the group being typed, in developer mode, which is otherwise hidden. */
   readonly countdown?: true;
+  /**
+   * `true` for Discover's rounds to move on to checkpoints as the player picks them, which they otherwise do by
+   * themselves, lagging behind (see `laggingCheckpoint`).
+   */
+  readonly manualCheckpoints?: true;
+  /** How many checkpoints behind the farthest reached the rounds move on to by themselves, for {@link CHECKPOINT_LAG}. */
+  readonly checkpointLag?: number;
   /** `'solid'` for keys solid, in their colors, which are otherwise see-through. */
   readonly keys?: 'solid';
   /** `true` to include unchecked runs: shown on the pages of runs, and counted in the player's groups. */
@@ -230,6 +238,15 @@ export class Tweaks {
   /** Whether the game counts down to the end of the group being typed, which only developer mode does, once told to. */
   readonly countdown = computed(
     () => this.developerMode.enabled() && this.tweaks().countdown === true,
+  );
+  /** Whether Discover's rounds move on to checkpoints as the player picks them, rather than by themselves. */
+  readonly manualCheckpoints = computed(
+    () => this.developerMode.enabled() && this.tweaks().manualCheckpoints === true,
+  );
+  /** How many checkpoints behind the farthest reached the rounds move on to by themselves. */
+  readonly checkpointLag = computed(
+    () =>
+      (this.developerMode.enabled() ? this.tweaks().checkpointLag : undefined) ?? CHECKPOINT_LAG,
   );
 
   /** Whether the keys are solid, in their colors, rather than see-through. */
@@ -403,6 +420,18 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), checking: checking ? undefined : false }));
   }
 
+  /** Has Discover's rounds move on to checkpoints as the player picks them, or by themselves. */
+  setManualCheckpoints(manual: boolean): Promise<void> {
+    return this.save(
+      tweakValues({ ...this.tweaks(), manualCheckpoints: manual ? true : undefined }),
+    );
+  }
+
+  /** Sets how many checkpoints the rounds lag behind; `undefined` brings back the game's. */
+  setCheckpointLag(checkpointLag: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), checkpointLag }));
+  }
+
   /** Shows the countdown to the end of the group being typed, or hides it. */
   setCountdown(countdown: boolean): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), countdown: countdown ? true : undefined }));
@@ -527,6 +556,8 @@ export function parseTweaks(stored: unknown): TweakValues {
     gameLinger,
     checking,
     countdown,
+    manualCheckpoints,
+    checkpointLag,
     keys,
     includeUnchecked,
     runOrder,
@@ -559,6 +590,8 @@ export function parseTweaks(stored: unknown): TweakValues {
     gameLinger: isGameLinger(gameLinger) ? gameLinger : undefined,
     checking: checking === false ? checking : undefined,
     countdown: countdown === true ? countdown : undefined,
+    manualCheckpoints: manualCheckpoints === true ? manualCheckpoints : undefined,
+    checkpointLag: isCheckpointLag(checkpointLag) ? checkpointLag : undefined,
     keys: keys === 'solid' ? keys : undefined,
     includeUnchecked: includeUnchecked === true ? includeUnchecked : undefined,
     runOrder: runOrderOf(runOrder),
@@ -592,6 +625,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     handOver,
     groupPause,
     gameLinger,
+    checkpointLag,
     layout,
     menu,
     vibrations,
@@ -621,6 +655,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     handOver: handOver === HAND_OVER ? undefined : handOver,
     groupPause: groupPause === GROUP_PAUSE ? undefined : groupPause,
     gameLinger: gameLinger === GAME_LINGER ? undefined : gameLinger,
+    checkpointLag: checkpointLag === CHECKPOINT_LAG ? undefined : checkpointLag,
     layout: equal(layout, LAYOUT) ? undefined : layout,
     menu: equal(menu, MENU_LOOK) ? undefined : menu,
     vibrations: vibrationsOf(vibrations),
@@ -664,6 +699,8 @@ function tweakValues({
   gameLinger,
   checking,
   countdown,
+  manualCheckpoints,
+  checkpointLag,
   keys,
   includeUnchecked,
   runOrder,
@@ -695,6 +732,8 @@ function tweakValues({
     ...(gameLinger === undefined ? {} : { gameLinger }),
     ...(checking === undefined ? {} : { checking }),
     ...(countdown === undefined ? {} : { countdown }),
+    ...(manualCheckpoints === undefined ? {} : { manualCheckpoints }),
+    ...(checkpointLag === undefined ? {} : { checkpointLag }),
     ...(keys === undefined ? {} : { keys }),
     ...(includeUnchecked === undefined ? {} : { includeUnchecked }),
     ...(runOrder === undefined ? {} : { runOrder }),
