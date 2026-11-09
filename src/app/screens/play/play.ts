@@ -44,7 +44,6 @@ import { LiveRun, RunSession } from '../../player-data/live-run';
 import { newTouchLog, startOf, TouchLog } from '../../player-data/touch-log';
 import { Checkpoint } from '../../player-data/checkpoint';
 import { groupStart, wordsUpTo } from '../../game/grouping/prefilled-words';
-import { timesFromPlace } from '../../game/grouping/from-checkpoint';
 import {
   checkpointsAhead,
   laggingCheckpoint,
@@ -459,7 +458,7 @@ export class Play implements PausesOnBack {
   /** How the break model plays the groups over the earlier runs that count in them, before this one. */
   private readonly groupSize = inject(GroupSizeSetting).size;
   private readonly gameplay = computed(() =>
-    this.tweaks.breakModel().play(this.countedRuns(), this.groupSize()),
+    this.tweaks.breakModel().play(this.countedRuns(), this.groupSize(), this.runStart()),
   );
 
   /**
@@ -1120,14 +1119,10 @@ export class Play implements PausesOnBack {
     return last !== undefined && this.gameplay().groupEnds([...times, last + wait], start, trusted);
   }
 
-  /**
-   * The times of the run so far, as the break model takes them, place by place from the start of π: from a checkpoint,
-   * the places before it timed so that a group starts exactly there (see `timesFromPlace`).
-   */
+  /** The times of the run so far, from its start, as the break model takes them. */
   private runTimes(): readonly number[] {
     // Discover's own typing never counts: its groups are the player's, as the game plays them.
-    const own = this.discovering ? [] : (this.session.run()?.times ?? []);
-    return timesFromPlace(this.runStart(), own, this.countedRuns());
+    return this.discovering ? [] : (this.session.run()?.times ?? []);
   }
 
   /** The words on the tape up to a place: those of `kept` that end by it, then the player's groups (see `wordsUpTo`). */

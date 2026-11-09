@@ -48,17 +48,18 @@ export function fromStartOfPi(times: readonly number[]): TimedRun {
 /** A break model with its hyperparameters set: all the game sees of it. */
 export interface BreakModel {
   /**
-   * How the groups are played over the player's finished runs, oldest first, for the run about to be typed: groups of
-   * `groupSize`, the player's setting, where the model doesn't know theirs.
+   * How the groups are played over the player's finished runs, oldest first, for the run about to be typed from the
+   * place `from`, 0 at the start of π: groups of `groupSize`, the player's setting, where the model doesn't know theirs.
    */
-  play(finished: readonly TimedRun[], groupSize: number): Gameplay;
+  play(finished: readonly TimedRun[], groupSize: number, from?: number): Gameplay;
   /** What the model makes of the player's finished runs, oldest first, for them to see. */
   stats(finished: readonly TimedRun[]): Stats;
 }
 
 /**
  * How the groups are played while the player types a run. Each answer takes the run as typed so far, `current`, since
- * the model follows it too.
+ * the model follows it too: when each digit was typed, in milliseconds since its first, which is at the place the run
+ * started from. Indices are places from the start of π.
  */
 export interface Gameplay {
   /** How the group starting at index `start` is played. */

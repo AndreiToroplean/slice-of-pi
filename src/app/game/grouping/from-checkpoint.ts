@@ -7,10 +7,11 @@ export const EVEN_INTERVAL = 300;
 export const CHECKPOINT_BREAK = 3000;
 
 /**
- * The times of a run starting from a place, as the break model takes them, place by place from the start of π: the
- * places before it as the latest earlier run from the start of π typed them, or at an even pace if none got that far,
- * then a clear break, then the run's own. A group then starts exactly at the place the run starts from, and the
- * player's groups are worked out from there as usual. From the start of π, the run's own times, as they are.
+ * The times of a run starting from a place, as a break model that only takes runs from the start of π takes them,
+ * place by place from there: the places before it as the latest earlier run from the start of π typed them, or at an
+ * even pace if none got that far, then a clear break, then the run's own. A group then starts exactly at the place the
+ * run starts from, and the player's groups are worked out from there as usual. From the start of π, the run's own
+ * times, as they are.
  *
  * @param own The run's times, from its first digit.
  * @param earlier The earlier runs, oldest first.

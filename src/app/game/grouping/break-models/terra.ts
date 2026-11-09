@@ -212,14 +212,15 @@ function breakProbability(prior: number, likelihood: number): number {
 
 /**
  * Runs the model over the judged finished runs, oldest first, and, if given, the times of the run in progress (in
- * milliseconds since its first digit), which is then the newest.
+ * milliseconds since its first digit, at the place `from`), which is then the newest.
  */
 export function terra(
   finished: readonly JudgedRun[],
   current: readonly number[] | undefined,
   settings: TerraSettings,
+  from = 0,
 ): Steps {
-  const runs = current === undefined ? finished : [...finished, judge(current, settings)];
+  const runs = current === undefined ? finished : [...finished, judge(current, settings, from)];
   const logs = runs.map((run) => run.logs);
   // Each run's own P(break), and its weight at each interval: its recency times its trust there.
   const own = runs.map((run) => ({
@@ -356,9 +357,9 @@ export function paceOf(sums: PaceSums): Values {
  */
 function terraModel(settings: TerraSettings): BreakModel {
   return modelFromSteps(
-    (finished) => {
+    (finished, from) => {
       const judged = finished.map((run) => judge(run.times, settings, run.start));
-      return (current) => terra(judged, current, settings);
+      return (current) => terra(judged, current, settings, from);
     },
     (steps, next) => groupEnds(steps, next, false),
   );

@@ -133,7 +133,7 @@ export function mars(
 }
 
 /**
- * {@link mars} over the judged finished runs, for any run in progress: what the finished runs add up to with one is
+ * {@link mars} over the judged finished runs, for any run in progress from the place `from`: what the finished runs add up to with one is
  * worked out once, so that each run in progress only adds its own share to it, as the game asks about the same run
  * again and again with its next digit timed differently. With the index where its group being typed starts, the groups
  * before it are taken as played.
@@ -141,6 +141,7 @@ export function mars(
 export function marsOver(
   finished: readonly JudgedRun[],
   settings: MarsSettings,
+  from = 0,
 ): (current?: readonly number[], start?: number) => Steps {
   const decays = (count: number): number[] => recencyOf(count, settings);
   let withCurrent: Pool | undefined;
@@ -159,8 +160,8 @@ export function marsOver(
       decays(finished.length + 1),
       settings,
     );
-    const pool = pooled(withCurrent, [judge(current, settings)], [1], [1], settings);
-    const played = start === undefined ? undefined : { start, last: current.length - 1 };
+    const pool = pooled(withCurrent, [judge(current, settings, from)], [1], [1], settings);
+    const played = start === undefined ? undefined : { start, last: from + current.length - 1 };
     return stepsOf(pool, settings, envelopeOver(pool, settings, played));
   };
 }
@@ -354,10 +355,11 @@ function trustOfPlace(at: Judged, settings: MarsSettings): number {
  */
 function marsModel(settings: MarsSettings): BreakModel {
   return modelFromSteps(
-    (finished) => {
+    (finished, from) => {
       const over = marsOver(
         finished.map((run) => judge(run.times, settings, run.start)),
         settings,
+        from,
       );
       return (current, _init, start) => over(current, start);
     },
