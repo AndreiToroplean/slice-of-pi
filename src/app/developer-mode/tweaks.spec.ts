@@ -19,6 +19,7 @@ import { VIBRATION_PATTERNS } from '../feedback/vibrations';
 import { SOUND_MIX } from '../feedback/sound-mix';
 import { SOUND_MODEL } from '../game/layers/sound/sound-models';
 import { MENU_LOOK, TWILIGHT, withLight } from '../screens/menu/menu-look';
+import { BREATH } from '../ui/breath';
 import { PLAY_WITH_MERCURY } from '../../testing/game-break-model';
 
 describe('Tweaks', () => {
@@ -333,6 +334,20 @@ describe('Tweaks', () => {
 
     await TestBed.inject(Tweaks).setSoundNotes(false);
     expect((await load()).values()).toEqual({});
+  });
+
+  it('breathes the buttons as far as tuned only while developer mode is on, kept until undone', async () => {
+    const tweaks = await load();
+    await tweaks.setBreath(6);
+    expect(tweaks.breath()).toBe(BREATH);
+
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.breath()).toBe(6);
+    expect((await load()).values()).toEqual({ breath: 6 });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, breath: 100 })).toEqual({});
+
+    await tweaks.setBreath(undefined);
+    expect(tweaks.breath()).toBe(BREATH);
   });
 
   it('reads the stored tweaks again once something else changed them', async () => {

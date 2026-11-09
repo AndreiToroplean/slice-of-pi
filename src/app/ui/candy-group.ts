@@ -32,7 +32,7 @@ import { breatheEvenly } from './breath';
       grid-auto-flow: column;
       grid-template-columns: 1fr;
       grid-auto-columns: auto;
-      scale: calc(1 + var(--candy-breath) * var(--candy-breath-step, 0));
+      scale: calc(1 + var(--candy-breath) / 3 * var(--breath, 3) * var(--candy-breath-step, 0));
     }
 
     .candy-group > .candy:not(:last-child) {

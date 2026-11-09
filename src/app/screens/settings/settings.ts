@@ -8,6 +8,7 @@ import { Spinner } from '../../ui/spinner';
 import { GroupSizeSetting } from '../../player-data/group-size-setting';
 import { DEFAULT_GROUP_SIZE, GROUP_SIZES } from '../../game/grouping/group-size';
 import { KEY_LINGER, MAX_KEY_LINGER } from '../../game/layers/place-colors';
+import { BREATH, MAX_BREATH } from '../../ui/breath';
 import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
 import {
   DEFAULT_DISCOVER_PACE,
@@ -215,6 +216,16 @@ import { YourData } from './your-data';
             (changed)="setKeyLinger($event)"
           />
           <app-slider
+            label="Breath"
+            [value]="tweaks.breath()"
+            [min]="0"
+            [max]="maxBreath"
+            [step]="0.5"
+            [valueText]="tweaks.breath() + ' px'"
+            [defaultValue]="defaultBreath"
+            (changed)="setBreath($event)"
+          />
+          <app-slider
             label="Discover Speed"
             [value]="tweaks.discoverSpeed()"
             [min]="speeds.min"
@@ -378,6 +389,8 @@ export class Settings {
   ];
   protected readonly maxKeyLinger = MAX_KEY_LINGER;
   protected readonly defaultKeyLinger = KEY_LINGER;
+  protected readonly defaultBreath = BREATH;
+  protected readonly maxBreath = MAX_BREATH;
   protected readonly groupSize = inject(GroupSizeSetting);
   protected readonly groupSizes = GROUP_SIZES;
   protected readonly discoverPace = inject(DiscoverPaceSetting);
@@ -431,6 +444,7 @@ export class Settings {
       this.tweaks.checking() &&
       !this.tweaks.solidKeys() &&
       this.tweaks.keyLinger() === KEY_LINGER &&
+      this.tweaks.breath() === BREATH &&
       this.tweaks.discoverSpeed() === DISCOVER_SPEED &&
       this.tweaks.paceStep() === PACE_STEP &&
       this.tweaks.handOver() === HAND_OVER &&
@@ -444,6 +458,10 @@ export class Settings {
 
   protected setKeyLinger(linger: number | undefined): void {
     void this.tweaks.setKeyLinger(linger);
+  }
+
+  protected setBreath(breath: number | undefined): void {
+    void this.tweaks.setBreath(breath);
   }
 
   protected setHandOver(handOver: number | undefined): void {
@@ -534,6 +552,7 @@ export class Settings {
     if (this.developerMode.enabled()) {
       this.setSolidKeys(false);
       this.setKeyLinger(undefined);
+      this.setBreath(undefined);
       this.setDiscoverSpeed(undefined);
       this.setPaceStep(undefined);
       this.setHandOver(undefined);
