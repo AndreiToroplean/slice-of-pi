@@ -14,7 +14,7 @@ import { migrate, Migration, SavedRecord } from './migration';
  * than it knows (written by a pull request preview sharing the site's storage) leaves it alone rather than misreading
  * it. It carries on from the runs' format, which touch logs replaced.
  */
-export const TOUCH_LOG_FORMAT = 6;
+export const TOUCH_LOG_FORMAT = 7;
 
 /**
  * A touch on the keypad, or a key typed without touching it, in a touch log: what it typed, if anything, where it
@@ -113,11 +113,10 @@ export function parseTouchLog(value: unknown): TouchLog | undefined {
   if (typeof value !== 'object' || value === null) {
     return undefined;
   }
-  const { format, id, checked, keypadLayout, startedAt, start, recording, touches } = migrate(
-    value,
-    TOUCH_LOG_MIGRATIONS,
-  );
+  const migrated = migrate(value, TOUCH_LOG_MIGRATIONS);
+  const { format, id, checked, keypadLayout, startedAt, start, recording, touches } = migrated;
   if (
+    isDropped(migrated) ||
     format !== TOUCH_LOG_FORMAT ||
     typeof id !== 'string' ||
     id === '' ||
@@ -161,7 +160,15 @@ export const TOUCH_LOG_MIGRATIONS: readonly Migration[] = [
   // Format 5 touch logs are from before checkpoints and Discover: from the start of π, every touch kept, as they say
   // by leaving out where they start and how they were recorded.
   (log) => log,
+  // Format 6 Discover runs timed the first digit of each turn of the player's against the digit before it, typed in an
+  // earlier turn, the game's turns between them: they're dropped.
+  (log) => (log['recording'] === 'overwrite' ? { ...log, dropped: true } : log),
 ];
+
+/** Whether a record, once migrated, is no longer kept: a touch log to delete, not to read. */
+export function isDropped(record: SavedRecord): boolean {
+  return record['dropped'] === true;
+}
 
 /** A format 4 touch log without the places of its touches: each a key typed, those typing nothing left out. */
 function withoutPlaces(record: SavedRecord): SavedRecord {

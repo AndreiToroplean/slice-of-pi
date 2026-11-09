@@ -1,8 +1,14 @@
 import { DOCUMENT } from '@angular/common';
 import { computed, inject, InjectionToken, Service, signal } from '@angular/core';
-import { isOlderFormat } from './migration';
+import { isOlderFormat, migrate } from './migration';
 import { runOf } from './run';
-import { parseTouchLog, TOUCH_LOG_FORMAT, TouchLog } from './touch-log';
+import {
+  isDropped,
+  parseTouchLog,
+  TOUCH_LOG_FORMAT,
+  TOUCH_LOG_MIGRATIONS,
+  TouchLog,
+} from './touch-log';
 
 /** The browser's IndexedDB, where runs are stored, as their touch logs; missing in browsers without it. */
 export const INDEXED_DB = new InjectionToken<IDBFactory | undefined>('INDEXED_DB', {
@@ -350,8 +356,8 @@ async function copyFromMain(main: IDBDatabase, own: IDBDatabase): Promise<void> 
 }
 
 /**
- * Brings the runs stored in older formats, touch logs or the runs before them, to the current touch log format, and
- * notes it as the main game's format, all at once. Only the main game does: previews never write runs the main game
+ * Brings the runs stored in older formats, touch logs or the runs before them, to the current touch log format,
+ * deleting those the migration drops, and notes it as the main game's format, all at once. Only the main game does: previews never write runs the main game
  * couldn't load.
  */
 async function migrateRuns(database: IDBDatabase): Promise<void> {
@@ -363,6 +369,8 @@ async function migrateRuns(database: IDBDatabase): Promise<void> {
     const log = parseTouchLog(record);
     if (log !== undefined) {
       runs.put(log);
+    } else if (isDropped(migrate(record as object, TOUCH_LOG_MIGRATIONS))) {
+      runs.delete((record as { readonly id: IDBValidKey }).id);
     }
   }
   await completion(transaction);

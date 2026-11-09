@@ -893,6 +893,7 @@ export class Play implements PausesOnBack {
     this.stopRounds();
     this.playedKey.set(undefined);
     this.turn.set('player');
+    this.discoverRecorder.newTurn();
     this.vibrate('turn');
     this.target.set(early ? 'end' : this.digits().length);
     const from = this.rounds().from;

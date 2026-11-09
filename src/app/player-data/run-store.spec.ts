@@ -263,6 +263,19 @@ describe('RunStore', () => {
     expect(await storedRecords()).toEqual([migrated]);
   });
 
+  it('deletes the runs the migration drops: Discover’s of format 6', async () => {
+    await storeWith().writable();
+    TestBed.resetTestingModule();
+    const database = await openDirectly();
+    const kept = { ...first, format: 6 };
+    await put(database, [kept, { ...second, format: 6, recording: 'overwrite' }]);
+    database.close();
+
+    const migrated = { ...first, format: TOUCH_LOG_FORMAT };
+    expect(await storeWith().touchLogs()).toEqual([migrated]);
+    expect(await storedRecords()).toEqual([migrated]);
+  });
+
   it('opens a database a newer version of the game upgraded', async () => {
     const database = await openDirectly(DATABASE_VERSION + 1, (upgraded) => {
       upgraded.createObjectStore(RUNS, { keyPath: 'id' });
