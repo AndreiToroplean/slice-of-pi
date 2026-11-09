@@ -39,9 +39,14 @@ export const appConfig: ApplicationConfig = {
 
 /**
  * Zooms in, through the main menu, into the screen opening over it, such as a game starting, and back out to the main
- * menu (see `styles.css`).
+ * menu (see `styles.css`); without motion, skips it, the next screen showing at once.
  */
 export function zoom({ transition, to }: ViewTransitionInfo): void {
+  // Without motion, the next screen shows at once. Where there's no media query to ask, as in tests, with motion.
+  if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    transition.skipTransition();
+    return;
+  }
   // Older browsers have view transitions without types: they cross-fade only.
   (transition.types as ViewTransitionTypeSet | undefined)?.add(
     to.firstChild?.routeConfig?.path === '' ? 'zoom-out' : 'zoom-in',
