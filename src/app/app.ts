@@ -34,16 +34,17 @@ export class App {
   protected readonly layout = computed(() => layoutStyles(this.tweaks.layout()));
 
   /**
-   * A mouse over a candy button gives it the focus, as in a game's menu, where the mouse and the keys pick out the same
-   * button, one at a time (see `Candy`): only a solid one, that can take the focus, or holds what does, such as a
-   * spinner. Other buttons hover as usual.
+   * A mouse or a stylus over a candy button gives it the focus, as in a game's menu, where they and the keys pick out
+   * the same button, one at a time (see `Candy`): only a solid one, that can take the focus, or holds what does, such
+   * as a spinner. Other buttons hover as usual.
    */
   protected hover(event: PointerEvent): void {
     const candy =
       event.target instanceof Element
         ? event.target.closest('.candy:not(.clear, .unfocusable)')
         : null;
-    if (event.pointerType !== 'mouse' || candy === null) {
+    // A finger is over a button only as it touches it, to press it.
+    if (event.pointerType === 'touch' || candy === null) {
       return;
     }
     // A candy label stands for the input within it, and a candy part of a button for what it holds, such as a spinner.
