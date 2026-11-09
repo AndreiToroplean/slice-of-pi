@@ -1,4 +1,5 @@
-import { Component, DestroyRef, inject, input, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, inject, input, signal } from '@angular/core';
+import { breatheEvenly } from './breath';
 
 /**
  * What a candy button looks like: see-through, all alike, for buttons on the background that shouldn't stand out, such
@@ -62,7 +63,9 @@ export class Candy {
   private timer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => {
+    const destroyRef = inject(DestroyRef);
+    breatheEvenly(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement, destroyRef);
+    destroyRef.onDestroy(() => {
       clearTimeout(this.timer);
     });
   }

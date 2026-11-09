@@ -3,22 +3,14 @@
   /* How thick its edge is, and the shadow it drops. */
   --candy-depth: 0.3125rem;
   --candy-drop: 0 0.5rem 1.25rem rgb(40 20 60 / 18%);
-  /*
-   * Breathing, it grows by as much on every side, however wide it is (see `breathe` in `styles.css`): its padding, by
-   * a sixteenth of a rem per breath, over a negative margin as wide, so that nothing around it moves; its face, shine
-   * and edge with it.
-   */
-  --grown: calc(var(--candy-breath) * 0.0625rem);
   display: block;
   /*
    * Positioned, so that pressing it, which moves it, never lifts it over the buttons after it: each covers those before
    * it, as on a keypad, where the rows below, nearer to the player, cover those above.
    */
   position: relative;
-  margin: calc(-1 * var(--grown));
   /* Room around what it says, and how large it says it, which a row of smaller ones sets around them. */
-  padding: calc(var(--candy-padding-block, 0.75rem) + var(--grown))
-    calc(var(--candy-padding-inline, 0.75rem) + var(--grown));
+  padding: var(--candy-padding-block, 0.75rem) var(--candy-padding-inline, 0.75rem);
   border: none;
   border-radius: var(--radius-key);
   /* Its face, and its shine, off it until it's picked out (see below). */
@@ -34,6 +26,11 @@
   font-weight: 600;
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
+  /*
+   * Breathing, it scales up evenly, by as much as moves its sides by as many pixels, however wide it is (see `breath.ts`
+   * and `breathe` in `styles.css`): what it says, its corners, edge and shine with it, nothing around it moving.
+   */
+  scale: calc(1 + var(--candy-breath) * var(--candy-breath-step, 0));
   transition:
     translate 0.08s,
     box-shadow 0.08s;
@@ -132,13 +129,11 @@
 }
 
 /*
- * What it says grows with its face, by two-thirds as much. A see-through one lays out what it holds as if bare. It takes
- * no touches of its own: they go to the button, since a browser takes over a touch on text once the finger moves,
+ * What it says. A see-through one lays out what it holds as if bare. It takes no touches of its own: they go to the button, since a browser takes over a touch on text once the finger moves,
  * cancelling it, as on a key slid off.
  */
 .content {
   display: inline-block;
-  scale: calc(1 + var(--candy-breath) * 0.0133);
   pointer-events: none;
 }
 

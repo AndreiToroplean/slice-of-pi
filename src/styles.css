@@ -252,10 +252,6 @@ body {
 }
 
 /*
- * How far a candy button has breathed out, from 0, at rest, to 3: its face and what it says grow from it (see `Candy`).
- * One value for both, so that they keep in step.
- */
-/*
  * How much of a digit key's lingering color shows, from 1, just released, to 0 (see `Keypad`): animated, so registered,
  * and inherited, so that the layer showing it, the key's `::before`, reads it from the key.
  */
@@ -265,9 +261,13 @@ body {
   initial-value: 0;
 }
 
+/*
+ * How far a candy button has breathed out, from 0, at rest, to 3: it scales up from it (see `Candy`). Its own, so that
+ * the buttons a group holds don't breathe again inside it (see `CandyGroup`).
+ */
 @property --candy-breath {
   syntax: '<number>';
-  inherits: true;
+  inherits: false;
   initial-value: 0;
 }
 
