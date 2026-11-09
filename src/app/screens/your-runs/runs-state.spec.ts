@@ -68,6 +68,20 @@ describe('RunsState', () => {
     expect(state.charts()[2]?.breaks).toHaveLength(9);
   });
 
+  it('charts a run from a checkpoint from it on, and spans the charts to the place it reached', async () => {
+    const fromCheckpoint = typeKey(
+      typeKey(newTouchLog('d', 4_000, true, 'calculator', { start: 40 }), '6', 0),
+      '9',
+      300,
+    );
+    const state = await setUp([first, fromCheckpoint]);
+
+    expect(ids(state)).toEqual(['a', 'd']);
+    expect(state.charts()[1]?.meta).toBe('2 digits from 40 in 0.3 s · 1 group');
+    expect(state.charts()[1]?.times.slice(40)).toEqual([undefined, 300]);
+    expect(state.places()).toBe(42);
+  });
+
   it('spans every chart over the places of the longest run shown', async () => {
     expect((await setUp([first, second, unchecked])).places()).toBe(2);
     TestBed.resetTestingModule();
