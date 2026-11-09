@@ -1,7 +1,12 @@
 import type { BreakModelKind, Settings, Values } from './break-model';
 import { BreakSettings, HYPERPARAMETERS } from './hyperparameters';
 import { MERCURY_DEFAULTS } from './mercury';
-import { modelFromSteps } from './model-from-steps';
+import {
+  fromStartOfPiOnly,
+  modelFromSteps,
+  timesFromStartOfPi,
+  withRunsLeftOut,
+} from './model-from-steps';
 import { neighborsOf } from './statistics';
 import { groupsOf, Steps, trustOf } from './steps';
 
@@ -230,17 +235,22 @@ export const LUNA: BreakModelKind = {
   ],
   create: (tuned) => {
     const settings = withDefaults(tuned);
-    return modelFromSteps((finished) => {
-      const done = finished.map((times) => verdictsOf(times, settings));
-      return (current) => luna(done, current, settings);
-    });
+    return modelFromSteps(
+      fromStartOfPiOnly((finished) => {
+        const done = finished.map((times) => verdictsOf(times, settings));
+        return (current) => luna(done, current, settings);
+      }),
+    );
   },
   steps: (tuned, finished) => {
     const settings = withDefaults(tuned);
-    return luna(
-      finished.map((times) => verdictsOf(times, settings)),
-      undefined,
-      settings,
+    return withRunsLeftOut(
+      luna(
+        timesFromStartOfPi(finished).map((times) => verdictsOf(times, settings)),
+        undefined,
+        settings,
+      ),
+      finished,
     );
   },
 };

@@ -1,3 +1,4 @@
+import { fromStartOfPi } from '../../../game/grouping/break-models/break-model';
 import { MARS } from '../../../game/grouping/break-models/mars';
 import type { Steps } from '../../../game/grouping/break-models/steps';
 import { TERRA } from '../../../game/grouping/break-models/terra';
@@ -36,7 +37,7 @@ describe('the views of a model that judges each run on its own', () => {
   }
 
   const runs = [run(30), run(30), run(24)];
-  const mars = stepsOf(MARS.steps?.({}, runs));
+  const mars = stepsOf(MARS.steps?.({}, runs.map(fromStartOfPi)));
   const { workings } = mars;
   const pool = workings.pool ?? fail();
 
@@ -58,7 +59,10 @@ describe('the views of a model that judges each run on its own', () => {
         (each) => each.kind === 'line' && each.color === ENVELOPE_COLOR,
       );
     const flat = stepsOf(
-      MARS.steps?.({ envelopeFactor1: 1, envelopeFactor3: 1, envelopeFactor4: 1 }, runs),
+      MARS.steps?.(
+        { envelopeFactor1: 1, envelopeFactor3: 1, envelopeFactor4: 1 },
+        runs.map(fromStartOfPi),
+      ),
     );
 
     expect(enveloped(mars)).toHaveLength(1);
@@ -83,7 +87,7 @@ describe('the views of a model that judges each run on its own', () => {
   });
 
   it('shows how each run is judged, but not how they add up, for a model that averages their verdicts', () => {
-    const terra = stepsOf(TERRA.steps?.({}, runs));
+    const terra = stepsOf(TERRA.steps?.({}, runs.map(fromStartOfPi)));
 
     expect(judgedViews(input(terra), terra.workings).map((plot) => plot.title)).toEqual([
       'Pace',

@@ -1,3 +1,4 @@
+import { fromStartOfPi } from './break-model';
 import { judge, terra, TERRA, TERRA_DEFAULTS, trustOfPlace } from './terra';
 
 describe('Terra', () => {
@@ -33,7 +34,7 @@ describe('Terra', () => {
 
   it('shows how it judged each run, weighing it by its recency and its trust', () => {
     const runs = [timesOf(30, by3(30)), timesOf(30, [])];
-    const workings = TERRA.steps?.({}, runs).workings;
+    const workings = TERRA.steps?.({}, runs.map(fromStartOfPi)).workings;
     const judged = judge(timesOf(30, []), TERRA_DEFAULTS);
 
     expect(workings?.runs.map((run) => run.recency)).toEqual([TERRA_DEFAULTS.recencyDecay, 1]);
@@ -45,7 +46,7 @@ describe('Terra', () => {
   });
 
   it('finds where the runs usually break, and groups them there', () => {
-    const stats = TERRA.create({}).stats(grouped);
+    const stats = TERRA.create({}).stats(grouped.map(fromStartOfPi));
 
     expect(stats.usual.map((found) => found.place)).toEqual(by3(30));
     expect(stats.groups.map((group) => group.size)).toEqual(Array<number>(10).fill(3));
@@ -53,8 +54,8 @@ describe('Terra', () => {
   });
 
   it('judges a run the same however many runs there are', () => {
-    const one = TERRA.steps?.({}, [timesOf(30, by3(30))]);
-    const many = TERRA.steps?.({}, [...grouped, timesOf(30, by3(30), 900, 1.5)]);
+    const one = TERRA.steps?.({}, [timesOf(30, by3(30))].map(fromStartOfPi));
+    const many = TERRA.steps?.({}, [...grouped, timesOf(30, by3(30), 900, 1.5)].map(fromStartOfPi));
 
     expect(many?.runs[0]?.breakProbability).toEqual(one?.runs[0]?.breakProbability);
   });
@@ -62,7 +63,7 @@ describe('Terra', () => {
   it('finds the same groups after one run as after many', () => {
     const groups = (runs: number) =>
       TERRA.create({})
-        .stats(grouped.slice(0, runs))
+        .stats(grouped.slice(0, runs).map(fromStartOfPi))
         .groups.map((group) => group.size);
 
     expect(groups(1)).toEqual(groups(4));
@@ -70,7 +71,7 @@ describe('Terra', () => {
 
   it('ends a group at one pause long enough, where earlier runs carried on', () => {
     // A 10 s pause before index 2, where none of the earlier runs breaks.
-    const play = TERRA.create({}).play(grouped, 5);
+    const play = TERRA.create({}).play(grouped.map(fromStartOfPi), 5);
 
     expect(play.groupEnds([0, 200, 10200], 0, true)).toBe(true);
     expect(play.groupEnds([0, 200, 600], 0, true)).toBe(false);
@@ -78,14 +79,17 @@ describe('Terra', () => {
 
   it('ends a group sooner where the player usually breaks', () => {
     // 300 ms after the third digit, where the runs break, and after the second, where they don't.
-    const play = TERRA.create({}).play(grouped, 5);
+    const play = TERRA.create({}).play(grouped.map(fromStartOfPi), 5);
 
     expect(play.groupEnds([0, 180, 380, 680], 0, true)).toBe(true);
     expect(play.groupEnds([0, 180, 480], 0, true)).toBe(false);
   });
 
   it("follows the player's groups within the trust horizon", () => {
-    expect(TERRA.create({}).play(grouped, 5).groupAt([], 3)).toEqual({ size: 3, trusted: true });
+    expect(TERRA.create({}).play(grouped.map(fromStartOfPi), 5).groupAt([], 3)).toEqual({
+      size: 3,
+      trusted: true,
+    });
   });
 
   it('trusts more as more runs agree', () => {

@@ -1,6 +1,12 @@
 import type { BreakModel, BreakModelKind, Hyperparameter, Settings, Values } from './break-model';
 import { BreakSettings, HYPERPARAMETERS, oneIn } from './hyperparameters';
-import { groupEnds, modelFromSteps } from './model-from-steps';
+import {
+  fromStartOfPiOnly,
+  groupEnds,
+  modelFromSteps,
+  timesFromStartOfPi,
+  withRunsLeftOut,
+} from './model-from-steps';
 import { logit, neighborsOf } from './statistics';
 import { byIndex, groupsOf, logIntervals, RunSteps, Steps, trustOf, usualBreaks } from './steps';
 import type { Workings } from './workings';
@@ -333,10 +339,10 @@ export function paceOf(sums: PaceSums): Values {
  */
 function terraModel(settings: TerraSettings): BreakModel {
   return modelFromSteps(
-    (finished) => {
+    fromStartOfPiOnly((finished) => {
       const judged = finished.map((times) => judge(times, settings));
       return (current) => terra(judged, current, settings);
-    },
+    }),
     (steps, next) => groupEnds(steps, next, false),
   );
 }
@@ -437,12 +443,15 @@ export const TERRA: BreakModelKind = {
   create: (tuned) => terraModel(withDefaults(tuned)),
   steps: (tuned, finished) => {
     const settings = withDefaults(tuned);
-    const judged = finished.map((times) => judge(times, settings));
+    const judged = timesFromStartOfPi(finished).map((times) => judge(times, settings));
     const recency = judged.map((_, k) => settings.recencyDecay ** (judged.length - 1 - k));
-    return {
-      ...terra(judged, undefined, settings),
-      workings: judgedWorkings(judged, recency, (at) => trustOfPlace(at, settings), settings),
-    };
+    return withRunsLeftOut(
+      {
+        ...terra(judged, undefined, settings),
+        workings: judgedWorkings(judged, recency, (at) => trustOfPlace(at, settings), settings),
+      },
+      finished,
+    );
   },
 };
 

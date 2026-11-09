@@ -1,3 +1,4 @@
+import { fromStartOfPi } from './break-model';
 import { BreakSettings } from './hyperparameters';
 import { finishedRuns, mercury, MERCURY, MERCURY_DEFAULTS } from './mercury';
 
@@ -26,7 +27,7 @@ function by3(length: number): number[] {
 /** How Mercury plays the groups of a player who grouped the first `length` decimals by 3, `count` times. */
 function gameplay(count: number, length = 30, tuned: BreakSettings = settings, groupSize = 5) {
   const runs = Array.from({ length: count }, () => timesOf(length, by3(length)));
-  return MERCURY.create(tuned).play(runs, groupSize);
+  return MERCURY.create(tuned).play(runs.map(fromStartOfPi), groupSize);
 }
 
 describe('groupAt', () => {
@@ -117,9 +118,21 @@ describe('the thresholds', () => {
     // Two runs out of three break at index 3, so about 63% of the weight.
     const runs = [timesOf(30, by3(30).slice(1)), timesOf(30, by3(30)), timesOf(30, by3(30))];
     const at = (usualThreshold: number): number | undefined =>
-      MERCURY.create({ ...settings, usualThreshold }).stats(runs).groups[0]?.size;
+      MERCURY.create({ ...settings, usualThreshold }).stats(runs.map(fromStartOfPi)).groups[0]
+        ?.size;
 
     expect(at(0.5)).toBe(3);
     expect(at(0.8)).toBe(6);
+  });
+});
+
+describe('a model that only takes runs from the start of π', () => {
+  it('leaves runs from a checkpoint out, each in its place with no steps of its own', () => {
+    const grouped = fromStartOfPi(timesOf(30, by3(30)));
+    const fromCheckpoint = { start: 10, times: timesOf(20, [5]) };
+    const stats = MERCURY.create(settings).stats([grouped, fromCheckpoint, grouped]);
+
+    expect(stats.groups).toEqual(MERCURY.create(settings).stats([grouped, grouped]).groups);
+    expect(stats.runs.map((run) => run.baseline.length > 0)).toEqual([true, false, true]);
   });
 });

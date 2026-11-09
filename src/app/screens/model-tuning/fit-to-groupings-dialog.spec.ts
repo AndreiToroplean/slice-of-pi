@@ -1,3 +1,4 @@
+import { fromStartOfPi } from '../../game/grouping/break-models/break-model';
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { installDialogs, uninstallDialogs } from '../../../testing/fake-dialogs';
@@ -84,7 +85,7 @@ describe('FitToGroupingsDialog', () => {
     await TestBed.inject(Tweaks).loaded;
     await saveMyGroupings(TestBed.inject(RunStore), stored);
     const fixture = TestBed.createComponent(FitToGroupingsDialog);
-    fixture.componentRef.setInput('runs', [run(), run(), run(), run()]);
+    fixture.componentRef.setInput('runs', [run(), run(), run(), run()].map(fromStartOfPi));
     fixture.detectChanges();
     await fixture.componentInstance.open();
     fixture.detectChanges();

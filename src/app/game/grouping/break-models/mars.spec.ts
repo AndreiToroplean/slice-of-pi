@@ -1,4 +1,4 @@
-import type { Settings } from './break-model';
+import { type Settings, fromStartOfPi } from './break-model';
 import { mars, MARS, MARS_DEFAULTS, marsOver } from './mars';
 import { logistic, logit } from './statistics';
 import { judge } from './terra';
@@ -37,7 +37,7 @@ describe('Mars', () => {
     typed: number,
     settings: Settings = {},
   ): number {
-    const play = MARS.create(settings).play(earlier, 5);
+    const play = MARS.create(settings).play(earlier.map(fromStartOfPi), 5);
     const times = timesOf(typed, by3(30));
     const last = times.at(-1) ?? 0;
     // The group being typed starts at the last break typed.
@@ -50,7 +50,7 @@ describe('Mars', () => {
   }
 
   it('finds where the runs usually break, and groups them there', () => {
-    const stats = MARS.create({}).stats(grouped);
+    const stats = MARS.create({}).stats(grouped.map(fromStartOfPi));
 
     expect(stats.usual.map((found) => found.place)).toEqual(by3(30));
     expect(stats.groups.map((group) => group.size)).toEqual(Array<number>(10).fill(3));
@@ -80,7 +80,7 @@ describe('Mars', () => {
     );
     const places = (runs: readonly (readonly number[])[]) =>
       MARS.create({})
-        .stats(runs)
+        .stats(runs.map(fromStartOfPi))
         .usual.map((found) => found.place);
 
     expect(places(grouped)).toContain(15);
@@ -123,7 +123,7 @@ describe('Mars', () => {
 
   it('trusts the groups in Discover only once enough runs agree, by its own level', () => {
     const trusted = (runs: readonly (readonly number[])[]) => {
-      const stats = MARS.create({}).stats(runs);
+      const stats = MARS.create({}).stats(runs.map(fromStartOfPi));
       return {
         anywhere: stats.groups.filter((group) => group.trusted).length,
         inDiscover: stats.discoverGroups.filter((group) => group.trusted).length,
@@ -134,7 +134,7 @@ describe('Mars', () => {
     expect(trusted(grouped.slice(0, 1)).anywhere).toBeGreaterThan(5);
     expect(trusted(grouped.slice(0, 1)).inDiscover).toBe(0);
     // A few agreeing: Discover shows them too, cut the same way.
-    const stats = MARS.create({}).stats(grouped);
+    const stats = MARS.create({}).stats(grouped.map(fromStartOfPi));
     expect(trusted(grouped).inDiscover).toBeGreaterThan(5);
     expect(stats.discoverGroups.map(({ start, size }) => [start, size])).toEqual(
       stats.groups.map(({ start, size }) => [start, size]),
@@ -142,7 +142,10 @@ describe('Mars', () => {
   });
 
   it("follows the player's groups within the trust horizon", () => {
-    expect(MARS.create({}).play(grouped, 5).groupAt([], 3)).toEqual({ size: 3, trusted: true });
+    expect(MARS.create({}).play(grouped.map(fromStartOfPi), 5).groupAt([], 3)).toEqual({
+      size: 3,
+      trusted: true,
+    });
   });
 
   it("tells a new player's breaks from their first run", () => {
@@ -160,7 +163,8 @@ describe('Mars', () => {
     // A metronome: no unevenness, so no trust, but steady all along, so evidence against a break everywhere.
     const steady = [Array.from({ length: 12 }, (_, i) => 200 * i)];
     const usual = (trustInfluence: number) =>
-      MARS.steps?.({ ...FLAT, priorUnevenness: 0, trustInfluence }, steady).usual[6];
+      MARS.steps?.({ ...FLAT, priorUnevenness: 0, trustInfluence }, steady.map(fromStartOfPi))
+        .usual[6];
 
     expect(usual(1)).toBeCloseTo(MARS_DEFAULTS.breakShare, 5);
     expect(usual(0)).toBeLessThan(MARS_DEFAULTS.breakShare - 0.1);
@@ -175,8 +179,8 @@ describe('Mars', () => {
   it('weighs no run by the current decay without a run being typed', () => {
     const uneven = [timesOf(30, by3(30)), timesOf(30, [5, 10, 20]), timesOf(30, [])];
 
-    expect(MARS.steps?.({ currentDecay: 0.1 }, uneven).usual).toEqual(
-      MARS.steps?.({ currentDecay: 1 }, uneven).usual,
+    expect(MARS.steps?.({ currentDecay: 0.1 }, uneven.map(fromStartOfPi)).usual).toEqual(
+      MARS.steps?.({ currentDecay: 1 }, uneven.map(fromStartOfPi)).usual,
     );
   });
 
@@ -217,7 +221,7 @@ describe('Mars', () => {
 
   describe('working out its steps', () => {
     const runs = [timesOf(30, by3(30)), timesOf(20, [5, 10, 15]), timesOf(30, [])];
-    const steps = MARS.steps?.({}, runs);
+    const steps = MARS.steps?.({}, runs.map(fromStartOfPi));
     const workings = steps?.workings;
     const pool = workings?.pool;
     const { breakShift, breakShare, breakThreshold, currentDecay } = MARS_DEFAULTS;
@@ -282,7 +286,7 @@ describe('Mars', () => {
       const largest = (settings: Settings) =>
         Math.max(
           ...MARS.create(settings)
-            .stats(runs)
+            .stats(runs.map(fromStartOfPi))
             .groups.filter((group) => !group.open)
             .map((group) => group.size),
         );
@@ -293,7 +297,7 @@ describe('Mars', () => {
 
     it('ends a group being typed at once once it has the most digits allowed', () => {
       const steady = Array.from({ length: 4 }, () => timesOf(30, []));
-      const play = MARS.create({}).play(steady, 5);
+      const play = MARS.create({}).play(steady.map(fromStartOfPi), 5);
       const endsAt = (typed: number) => {
         const times = timesOf(typed, []);
         return play.groupEnds([...times, times.at(-1) ?? 0], 0, true);
@@ -308,7 +312,7 @@ describe('Mars', () => {
       const times = timesOf(13, by3(30));
       const ends = (settings: Settings) =>
         MARS.create(settings)
-          .play(grouped, 5)
+          .play(grouped.map(fromStartOfPi), 5)
           .groupEnds([...times, (times.at(-1) ?? 0) + 1e6], 12, true);
 
       expect(ends(FLAT)).toBe(true);
@@ -316,9 +320,9 @@ describe('Mars', () => {
     });
 
     it('adds nothing to the runs’ evidence at 1 for every size', () => {
-      expect(MARS.steps?.(FLAT, grouped).workings?.pool?.envelope.slice(1)).toEqual(
-        Array<number>(29).fill(0),
-      );
+      expect(
+        MARS.steps?.(FLAT, grouped.map(fromStartOfPi)).workings?.pool?.envelope.slice(1),
+      ).toEqual(Array<number>(29).fill(0));
     });
   });
 

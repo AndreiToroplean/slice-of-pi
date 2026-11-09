@@ -1,3 +1,4 @@
+import { fromStartOfPi } from './break-model';
 import { luna, LUNA, LUNA_DEFAULTS, verdictsOf } from './luna';
 
 describe('Luna', () => {
@@ -42,7 +43,7 @@ describe('Luna', () => {
   });
 
   it('finds where the runs usually break, and groups them there', () => {
-    const stats = LUNA.create({}).stats(grouped);
+    const stats = LUNA.create({}).stats(grouped.map(fromStartOfPi));
 
     expect(stats.usual.map((found) => found.place)).toEqual(by3(30));
     expect(stats.groups.map((group) => group.size)).toEqual(Array<number>(10).fill(3));
@@ -50,7 +51,7 @@ describe('Luna', () => {
   });
 
   it("follows the player's groups within the trust horizon", () => {
-    const play = LUNA.create({}).play(grouped, 5);
+    const play = LUNA.create({}).play(grouped.map(fromStartOfPi), 5);
 
     expect(play.groupAt([], 3)).toEqual({ size: 3, trusted: true });
     expect(play.groupEnds(timesOf(4, []), 0, true)).toBe(true);
@@ -68,7 +69,10 @@ describe('Luna', () => {
 
   it('trusts nothing past the places the runs reached', () => {
     expect(steps(grouped).horizon).toBeLessThanOrEqual(29);
-    expect(LUNA.create({}).play(grouped, 5).groupAt([], 30)).toEqual({ size: 5, trusted: false });
+    expect(LUNA.create({}).play(grouped.map(fromStartOfPi), 5).groupAt([], 30)).toEqual({
+      size: 5,
+      trusted: false,
+    });
   });
 
   it('ends a group where this run pauses, past the trust horizon', () => {

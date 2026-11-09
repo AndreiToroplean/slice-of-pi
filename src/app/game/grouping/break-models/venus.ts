@@ -1,7 +1,12 @@
 import type { BreakModelKind, Settings } from './break-model';
 import { BreakSettings } from './hyperparameters';
 import { MERCURY, MERCURY_DEFAULTS } from './mercury';
-import { modelFromSteps } from './model-from-steps';
+import {
+  fromStartOfPiOnly,
+  modelFromSteps,
+  timesFromStartOfPi,
+  withRunsLeftOut,
+} from './model-from-steps';
 import { centeredMedian, Mixture } from './statistics';
 import {
   byIndex,
@@ -115,10 +120,11 @@ export const VENUS: BreakModelKind = {
   create: (tuned) => {
     const settings = withDefaults(tuned);
     return modelFromSteps(
-      (finished) => (current, init) => venus(finished, current, settings, init),
+      fromStartOfPiOnly((finished) => (current, init) => venus(finished, current, settings, init)),
     );
   },
-  steps: (tuned, finished) => venus(finished, undefined, withDefaults(tuned)),
+  steps: (tuned, finished) =>
+    withRunsLeftOut(venus(timesFromStartOfPi(finished), undefined, withDefaults(tuned)), finished),
 };
 
 /** Venus's hyperparameters, each one not tuned at its default. */

@@ -1,4 +1,4 @@
-import type { BreakModelKind, Group, Hyperparameter, Settings } from './break-model';
+import type { BreakModelKind, Group, Hyperparameter, Settings, TimedRun } from './break-model';
 
 /**
  * Fits a break model's hyperparameters to the groups a player says they make: a hyperparameter search, with the
@@ -148,7 +148,7 @@ const FIT_SETS_PER_COUNT = 2;
 export async function fitToGroupings(
   kind: BreakModelKind,
   start: Settings,
-  runs: readonly (readonly number[])[],
+  runs: readonly TimedRun[],
   labels: Labels,
   { pause, signal, curve = false, pinned = new Set() }: FitOptions = {},
 ): Promise<GroupingsFit> {
@@ -314,8 +314,8 @@ function nearestIndex(grid: readonly number[], value: number): number {
  * sets of 1, 2, 4 and so on fewer, drawn at random once (each kept oldest first) and the same for every set of values.
  */
 function scoredSets(
-  runs: readonly (readonly number[])[],
-): { readonly runs: readonly (readonly number[])[]; readonly weight: number }[] {
+  runs: readonly TimedRun[],
+): { readonly runs: readonly TimedRun[]; readonly weight: number }[] {
   const counts: number[] = [];
   for (let count = 1; count < runs.length; count *= 2) {
     counts.push(count);
@@ -323,7 +323,7 @@ function scoredSets(
   const random = mulberry32(SEED);
   const fewer = counts.flatMap((count) =>
     Array.from({ length: FIT_SETS_PER_COUNT }, () => ({
-      runs: drawSet(runs.length, count, random).map((index) => runs[index] ?? []),
+      runs: drawSet(runs.length, count, random).flatMap((index) => runs.slice(index, index + 1)),
       weight: (1 - ALL_RUNS_SHARE) / (counts.length * FIT_SETS_PER_COUNT),
     })),
   );
@@ -348,7 +348,7 @@ export interface CurveOptions {
 export async function runCountCurve(
   kind: BreakModelKind,
   settings: Settings,
-  runs: readonly (readonly number[])[],
+  runs: readonly TimedRun[],
   labels: Labels,
   { pause, signal }: CurveOptions = {},
 ): Promise<number[][]> {
@@ -363,7 +363,9 @@ export async function runCountCurve(
       if (signal?.aborted === true) {
         return curve;
       }
-      const picked = drawSet(runs.length, count, random).map((index) => runs[index] ?? []);
+      const picked = drawSet(runs.length, count, random).flatMap((index) =>
+        runs.slice(index, index + 1),
+      );
       scores.push(scoreGroups(model.stats(picked).groups, labels).f1);
       scored++;
       await pause?.(scored / total);

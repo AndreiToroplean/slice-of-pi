@@ -1,3 +1,4 @@
+import { fromStartOfPi } from '../../../game/grouping/break-models/break-model';
 import { MARS } from '../../../game/grouping/break-models/mars';
 import {
   finishedRuns,
@@ -21,7 +22,7 @@ describe('the analysis of a place', () => {
   }
 
   const runs = [run(30), run(30), run(24)];
-  const mars = stepsOf(MARS.steps?.({}, runs));
+  const mars = stepsOf(MARS.steps?.({}, runs.map(fromStartOfPi)));
 
   function stepsOf(steps: Steps | undefined): Steps {
     if (steps === undefined) {

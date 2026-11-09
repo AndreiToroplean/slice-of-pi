@@ -11,7 +11,13 @@ import {
 } from './envelope';
 import { HYPERPARAMETERS } from './hyperparameters';
 import { logistic, logit } from './statistics';
-import { groupEnds, modelFromSteps } from './model-from-steps';
+import {
+  fromStartOfPiOnly,
+  groupEnds,
+  modelFromSteps,
+  timesFromStartOfPi,
+  withRunsLeftOut,
+} from './model-from-steps';
 import {
   breakSums,
   BreakSums,
@@ -344,13 +350,13 @@ function trustOfPlace(at: Judged, settings: MarsSettings): number {
  */
 function marsModel(settings: MarsSettings): BreakModel {
   return modelFromSteps(
-    (finished) => {
+    fromStartOfPiOnly((finished) => {
       const over = marsOver(
         finished.map((times) => judge(times, settings)),
         settings,
       );
       return (current, _init, start) => over(current, start);
-    },
+    }),
     (steps, next) => groupEnds(steps, next, true),
   );
 }
@@ -473,9 +479,12 @@ export const MARS: BreakModelKind = {
   create: (tuned) => marsModel(withDefaults(tuned)),
   steps: (tuned, finished) => {
     const settings = withDefaults(tuned);
-    return marsSteps(
-      finished.map((times) => judge(times, settings)),
-      settings,
+    return withRunsLeftOut(
+      marsSteps(
+        timesFromStartOfPi(finished).map((times) => judge(times, settings)),
+        settings,
+      ),
+      finished,
     );
   },
 };

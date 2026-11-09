@@ -31,15 +31,29 @@ export interface Group {
   readonly trusted: boolean;
 }
 
+/**
+ * A finished run as a break model takes it: the place of its first digit (0, the start of π, or a checkpoint) and when
+ * each digit was typed, in milliseconds since its first. A run (`run.ts`) is one.
+ */
+export interface TimedRun {
+  readonly start: number;
+  readonly times: readonly number[];
+}
+
+/** A run from the start of π, as a break model takes it, from when each digit was typed. */
+export function fromStartOfPi(times: readonly number[]): TimedRun {
+  return { start: 0, times };
+}
+
 /** A break model with its hyperparameters set: all the game sees of it. */
 export interface BreakModel {
   /**
    * How the groups are played over the player's finished runs, oldest first, for the run about to be typed: groups of
    * `groupSize`, the player's setting, where the model doesn't know theirs.
    */
-  play(finished: readonly (readonly number[])[], groupSize: number): Gameplay;
+  play(finished: readonly TimedRun[], groupSize: number): Gameplay;
   /** What the model makes of the player's finished runs, oldest first, for them to see. */
-  stats(finished: readonly (readonly number[])[]): Stats;
+  stats(finished: readonly TimedRun[]): Stats;
 }
 
 /**
@@ -120,5 +134,5 @@ export interface BreakModelKind {
   /** The model, with these hyperparameters, each of them it isn't given at its default. */
   readonly create: (settings: Settings) => BreakModel;
   /** What it makes of the finished runs step by step, with these hyperparameters, if developer mode can show it. */
-  readonly steps?: (settings: Settings, finished: readonly (readonly number[])[]) => Steps;
+  readonly steps?: (settings: Settings, finished: readonly TimedRun[]) => Steps;
 }

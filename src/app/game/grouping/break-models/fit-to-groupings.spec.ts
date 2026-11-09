@@ -1,4 +1,11 @@
-import type { BreakModelKind, Group, Hyperparameter, Settings } from './break-model';
+import {
+  type BreakModelKind,
+  type Group,
+  type Hyperparameter,
+  type Settings,
+  type TimedRun,
+  fromStartOfPi,
+} from './break-model';
 import {
   fitToGroupings,
   labelsOf,
@@ -53,8 +60,8 @@ describe('Fitting to groupings', () => {
           play: () => {
             throw new Error('Not played');
           },
-          stats: (runs: readonly (readonly number[])[]) => {
-            const digits = Math.max(0, ...runs.map((run) => run.length));
+          stats: (runs: readonly TimedRun[]) => {
+            const digits = Math.max(0, ...runs.map((run) => run.times.length));
             const size = sizeOf(settings, runs.length);
             const sizes = Array.from({ length: Math.ceil(digits / size) }, (_, k) =>
               Math.min(size, digits - k * size),
@@ -106,7 +113,12 @@ describe('Fitting to groupings', () => {
   });
 
   it('finds the hyperparameters whose groups are the labels', async () => {
-    const fit = await fitToGroupings(sizedModel(), {}, [run], labelsOf(Array<number>(10).fill(3)));
+    const fit = await fitToGroupings(
+      sizedModel(),
+      {},
+      [fromStartOfPi(run)],
+      labelsOf(Array<number>(10).fill(3)),
+    );
 
     expect(fit.settings['size']).toBe(3);
     expect(fit.score).toBe(1);
@@ -116,7 +128,7 @@ describe('Fitting to groupings', () => {
     const fit = await fitToGroupings(
       sizedModel(),
       { size: 3, ignored: 4 },
-      [run],
+      [fromStartOfPi(run)],
       labelsOf(Array<number>(10).fill(3)),
     );
 
@@ -128,7 +140,7 @@ describe('Fitting to groupings', () => {
     const fit = await fitToGroupings(
       sizedModel((settings) => (settings['size'] === 3 ? 3 : 30)),
       { size: 9, ignored: 0 },
-      [run],
+      [fromStartOfPi(run)],
       labelsOf(Array<number>(10).fill(3)),
     );
 
@@ -137,7 +149,7 @@ describe('Fitting to groupings', () => {
 
   it('tells how far it has gone', async () => {
     const seen: Progress[] = [];
-    await fitToGroupings(sizedModel(), {}, [run], labelsOf([3, 3, 3]), {
+    await fitToGroupings(sizedModel(), {}, [fromStartOfPi(run)], labelsOf([3, 3, 3]), {
       pause: (progress) => {
         seen.push(progress);
         return Promise.resolve();
@@ -169,7 +181,7 @@ describe('Fitting to groupings', () => {
     const fit = await fitToGroupings(
       sizedModel(),
       { size: 4 },
-      [run],
+      [fromStartOfPi(run)],
       labelsOf(Array<number>(10).fill(3)),
       { pinned: new Set(['size']) },
     );
@@ -182,7 +194,12 @@ describe('Fitting to groupings', () => {
     const kind = sizedModel((settings) =>
       settings['ignored'] === 3 ? (settings['size'] ?? 5) : 5,
     );
-    const fit = await fitToGroupings(kind, {}, [run], labelsOf(Array<number>(10).fill(3)));
+    const fit = await fitToGroupings(
+      kind,
+      {},
+      [fromStartOfPi(run)],
+      labelsOf(Array<number>(10).fill(3)),
+    );
 
     expect(fit.score).toBe(1);
     expect(fit.settings).toEqual({ size: 3, ignored: 3 });
@@ -191,7 +208,7 @@ describe('Fitting to groupings', () => {
   it('stops when asked, with the best found so far', async () => {
     const kind = sizedModel();
     const abort = new AbortController();
-    const fit = await fitToGroupings(kind, {}, [run], labelsOf([3, 3, 3]), {
+    const fit = await fitToGroupings(kind, {}, [fromStartOfPi(run)], labelsOf([3, 3, 3]), {
       signal: abort.signal,
       pause: () => {
         abort.abort();
@@ -213,9 +230,9 @@ describe('Fitting to groupings', () => {
     });
     const runs = Array.from({ length: 8 }, () => run);
     const labels = labelsOf(Array<number>(10).fill(3));
-    const fit = await fitToGroupings(kind, {}, runs, labels, { curve: true });
+    const fit = await fitToGroupings(kind, {}, runs.map(fromStartOfPi), labels, { curve: true });
 
-    const plain = (await fitToGroupings(kind, {}, runs, labels)).settings;
+    const plain = (await fitToGroupings(kind, {}, runs.map(fromStartOfPi), labels)).settings;
     expect(plain['size']).toBe(3);
     expect(plain['ignored']).not.toBe(3);
     // Groups of 3 with fewer runs, of 6 with all of them, rather than of 3 with all of them and of 5 with fewer.
@@ -238,8 +255,8 @@ describe('Fitting to groupings', () => {
           play: () => {
             throw new Error('Not played');
           },
-          stats: (runs: readonly (readonly number[])[]) => {
-            kind.given.push(runs.map((each) => each[0] ?? -1));
+          stats: (runs: readonly TimedRun[]) => {
+            kind.given.push(runs.map((each) => each.times[0] ?? -1));
             const size = runs.length;
             const groups = groupsOf(Array<number>(12 / size).fill(size));
             return {
@@ -260,7 +277,12 @@ describe('Fitting to groupings', () => {
     const runs = [[0], [1], [2], [3]];
 
     it('scores sets of each number of runs, up to all of them', async () => {
-      const curve = await runCountCurve(countingModel(), {}, runs, labelsOf([3, 3, 3, 3]));
+      const curve = await runCountCurve(
+        countingModel(),
+        {},
+        runs.map(fromStartOfPi),
+        labelsOf([3, 3, 3, 3]),
+      );
 
       expect(curve.map((scores) => scores.length)).toEqual([5, 5, 5, 1]);
       expect(curve[2]).toEqual([1, 1, 1, 1, 1]);
@@ -269,10 +291,10 @@ describe('Fitting to groupings', () => {
 
     it('draws different sets of runs, each oldest first, the same every time', async () => {
       const kind = countingModel();
-      await runCountCurve(kind, {}, runs, labelsOf([3, 3, 3, 3]));
+      await runCountCurve(kind, {}, runs.map(fromStartOfPi), labelsOf([3, 3, 3, 3]));
       const first = kind.given;
       kind.given = [];
-      await runCountCurve(kind, {}, runs, labelsOf([3, 3, 3, 3]));
+      await runCountCurve(kind, {}, runs.map(fromStartOfPi), labelsOf([3, 3, 3, 3]));
 
       expect(kind.given).toEqual(first);
       expect(new Set(first.filter((set) => set.length === 2).map(String)).size).toBeGreaterThan(1);
@@ -285,16 +307,22 @@ describe('Fitting to groupings', () => {
     it('tells how far it has gone, and stops when asked', async () => {
       const seen: number[] = [];
       const abort = new AbortController();
-      const curve = await runCountCurve(countingModel(), {}, runs, labelsOf([3, 3, 3, 3]), {
-        signal: abort.signal,
-        pause: (done) => {
-          seen.push(done);
-          if (seen.length === 7) {
-            abort.abort();
-          }
-          return Promise.resolve();
+      const curve = await runCountCurve(
+        countingModel(),
+        {},
+        runs.map(fromStartOfPi),
+        labelsOf([3, 3, 3, 3]),
+        {
+          signal: abort.signal,
+          pause: (done) => {
+            seen.push(done);
+            if (seen.length === 7) {
+              abort.abort();
+            }
+            return Promise.resolve();
+          },
         },
-      });
+      );
 
       expect(seen.at(-1)).toBe(7 / 16);
       expect(curve).toHaveLength(1);

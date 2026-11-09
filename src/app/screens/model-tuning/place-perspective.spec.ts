@@ -1,3 +1,4 @@
+import { fromStartOfPi } from '../../game/grouping/break-models/break-model';
 import { TestBed } from '@angular/core/testing';
 import { MARS } from '../../game/grouping/break-models/mars';
 import type { Steps } from '../../game/grouping/break-models/steps';
@@ -16,7 +17,7 @@ describe('PlacePerspective', () => {
   }
 
   function steps(): Steps {
-    const found = MARS.steps?.({}, [run(30), run(30), run(24)]);
+    const found = MARS.steps?.({}, [run(30), run(30), run(24)].map(fromStartOfPi));
     if (found === undefined) {
       throw new Error('No steps');
     }

@@ -1,3 +1,4 @@
+import { fromStartOfPi } from './break-model';
 import { MERCURY, MERCURY_DEFAULTS } from './mercury';
 import { venus, VENUS } from './venus';
 
@@ -27,7 +28,7 @@ describe('Venus', () => {
   const grouped = Array.from({ length: 4 }, () => timesOf(30, by3(30)));
 
   it('finds where the runs usually break, and groups them there', () => {
-    const stats = VENUS.create(alone).stats(grouped);
+    const stats = VENUS.create(alone).stats(grouped.map(fromStartOfPi));
 
     expect(stats.usual.map((found) => found.place)).toEqual(by3(30));
     expect(stats.groups.map((group) => group.size)).toEqual(Array<number>(10).fill(3));
@@ -38,16 +39,25 @@ describe('Venus', () => {
     // A 10 s pause before index 2, where none of the earlier runs breaks.
     const pausing = [0, 200, 10200];
 
-    expect(VENUS.create(alone).play(grouped, 5).groupEnds(pausing, 0, true)).toBe(true);
-    expect(MERCURY.create(alone).play(grouped, 5).groupEnds(pausing, 0, true)).toBe(false);
+    expect(
+      VENUS.create(alone).play(grouped.map(fromStartOfPi), 5).groupEnds(pausing, 0, true),
+    ).toBe(true);
+    expect(
+      MERCURY.create(alone).play(grouped.map(fromStartOfPi), 5).groupEnds(pausing, 0, true),
+    ).toBe(false);
   });
 
   it('carries on through a short wait where earlier runs carried on', () => {
-    expect(VENUS.create(alone).play(grouped, 5).groupEnds([0, 200, 600], 0, true)).toBe(false);
+    expect(
+      VENUS.create(alone).play(grouped.map(fromStartOfPi), 5).groupEnds([0, 200, 600], 0, true),
+    ).toBe(false);
   });
 
   it("follows the player's groups within the trust horizon", () => {
-    expect(VENUS.create(alone).play(grouped, 5).groupAt([], 3)).toEqual({ size: 3, trusted: true });
+    expect(VENUS.create(alone).play(grouped.map(fromStartOfPi), 5).groupAt([], 3)).toEqual({
+      size: 3,
+      trusted: true,
+    });
   });
 
   it('trusts nothing a single run says', () => {

@@ -1,7 +1,7 @@
 import type { GroupPlan } from '../groups';
-import type { BreakModel, Gameplay, Stats } from './break-model';
+import type { BreakModel, Gameplay, Stats, TimedRun } from './break-model';
 import type { Mixture } from './statistics';
-import { breaksOf, Steps } from './steps';
+import { breaksOf, RunSteps, Steps } from './steps';
 
 /**
  * Works out the steps over the finished runs it was given and, if given, the run in progress, which is then the newest.
@@ -20,13 +20,46 @@ export type Ends = (steps: Steps, next: number, trusted: boolean) => boolean;
  * default {@link groupEnds}.
  */
 export function modelFromSteps(
-  prepare: (finished: readonly (readonly number[])[]) => Fit,
+  prepare: (finished: readonly TimedRun[]) => Fit,
   ends: Ends = groupEnds,
 ): BreakModel {
   return {
     play: (finished, groupSize) => gameplayOf(prepare(finished), ends, groupSize),
     stats: (finished) => statsOf(prepare(finished)()),
   };
+}
+
+/**
+ * What a model that only takes runs from the start of π fits, from `prepare` given their times alone: runs from a
+ * checkpoint are left out, each with no steps of its own, so that the steps' runs stay those given.
+ */
+export function fromStartOfPiOnly(
+  prepare: (finished: readonly (readonly number[])[]) => Fit,
+): (finished: readonly TimedRun[]) => Fit {
+  return (finished) => {
+    const fit = prepare(timesFromStartOfPi(finished));
+    return (current, init, start) => withRunsLeftOut(fit(current, init, start), finished);
+  };
+}
+
+/** The times of the runs from the start of π, in order: a model that only takes those leaves the others out. */
+export function timesFromStartOfPi(finished: readonly TimedRun[]): (readonly number[])[] {
+  return finished.flatMap((run) => (run.start === 0 ? [run.times] : []));
+}
+
+/** No steps: those of a run left out. */
+const LEFT_OUT: RunSteps = { baseline: [], breakProbability: [], residual: [] };
+
+/**
+ * The steps over the runs from the start of π among `finished`, and any run in progress after them, with the runs left
+ * out back in their places, each with no steps of its own.
+ */
+export function withRunsLeftOut(steps: Steps, finished: readonly TimedRun[]): Steps {
+  const fitted = steps.runs.values();
+  const runs = finished.map(
+    (run) => (run.start === 0 ? fitted.next().value : LEFT_OUT) ?? LEFT_OUT,
+  );
+  return { ...steps, runs: [...runs, ...fitted] };
 }
 
 /**

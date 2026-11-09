@@ -223,7 +223,7 @@ import { TIMES, TimesView } from '../your-runs/times-view';
           Fit to My Groupings
         </button>
       </app-grouping-settings-panel>
-      <app-fit-to-groupings-dialog #fitDialog [runs]="state.countedTimes()" />
+      <app-fit-to-groupings-dialog #fitDialog [runs]="state.counted()" />
       <ng-template #panelMenu>
         <div appDropdown aria-label="More">
           <button type="button" cdkMenuItem (cdkMenuItemTriggered)="void panel.copy()">
@@ -277,7 +277,7 @@ export class ModelTuning {
   );
   /** What the break model makes of the runs step by step, if it can show that. */
   private readonly steps = computed(() =>
-    this.tweaks.breakModelKind().steps?.(this.tweaks.grouping(), this.state.countedTimes()),
+    this.tweaks.breakModelKind().steps?.(this.tweaks.grouping(), this.state.counted()),
   );
   protected readonly charts = this.state.charts;
   protected readonly places = this.state.places;

@@ -14,7 +14,7 @@ import { Dropdown, MenuTrigger } from '../../ui/menu';
 import { OverlayHost } from '../../ui/overlay-host';
 import type { Plot } from '../your-runs/views/plot';
 import { PlotChart } from '../your-runs/views/plot-chart';
-import type { BreakModelKind } from '../../game/grouping/break-models/break-model';
+import type { BreakModelKind, TimedRun } from '../../game/grouping/break-models/break-model';
 import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import {
   fitToGroupings,
@@ -292,8 +292,8 @@ export const FIT_TO_GROUPINGS = new InjectionToken<typeof fitToGroupings>('FIT_T
   `,
 })
 export class FitToGroupingsDialog {
-  /** The times of the runs the groups come from, oldest first. */
-  readonly runs = input.required<readonly (readonly number[])[]>();
+  /** The runs the groups come from, oldest first. */
+  readonly runs = input.required<readonly TimedRun[]>();
 
   protected readonly models = BREAK_MODELS;
   private readonly tweaks = inject(Tweaks);

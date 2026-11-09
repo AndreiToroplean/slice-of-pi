@@ -1,3 +1,4 @@
+import { fromStartOfPi } from '../../../game/grouping/break-models/break-model';
 import { MARS } from '../../../game/grouping/break-models/mars';
 import type { Steps } from '../../../game/grouping/break-models/steps';
 import { groupSizesView, withinGroupsView } from './group-views';
@@ -22,7 +23,7 @@ describe('the views of the groups', () => {
     return steps;
   }
 
-  const model = stepsOf(MARS.steps?.({}, [run(30), run(30), run(24)]));
+  const model = stepsOf(MARS.steps?.({}, [run(30), run(30), run(24)].map(fromStartOfPi)));
   const input: ViewInput = { model, picked: [], aggregate: true, places: 30 };
 
   /** The heights of the bars of each layer, those faded aside. */
@@ -59,13 +60,13 @@ describe('the views of the groups', () => {
       envelopeSize4: 11,
       envelopeFactor4: 0,
     };
-    const shaped = stepsOf(MARS.steps?.(envelope, [run(30), run(30), run(24)]));
+    const shaped = stepsOf(MARS.steps?.(envelope, [run(30), run(30), run(24)].map(fromStartOfPi)));
     const plot = groupSizesView({ ...input, model: shaped });
     const at = (size: number) =>
       curve(plot).find((point) => point !== undefined && Math.abs(point[0] - size) < 1e-9)?.[1];
     const flat = stepsOf(
       MARS.steps?.({ ...envelope, envelopeFactor1: 1, envelopeFactor3: 1, envelopeFactor4: 1 }, [
-        run(30),
+        fromStartOfPi(run(30)),
       ]),
     );
 
@@ -89,7 +90,10 @@ describe('the views of the groups', () => {
         return time;
       });
     });
-    const plot = groupSizesView({ ...input, model: stepsOf(MARS.steps?.({}, long)) });
+    const plot = groupSizesView({
+      ...input,
+      model: stepsOf(MARS.steps?.({}, long.map(fromStartOfPi))),
+    });
     const at12 = (faded: boolean, role: string) =>
       plot.layers.flatMap((layer) =>
         layer.kind === 'bars' && layer.role === role && (layer.faded ?? false) === faded

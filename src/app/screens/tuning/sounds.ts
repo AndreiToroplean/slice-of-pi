@@ -231,11 +231,7 @@ export class Sounds {
   private readonly groups = computed(() =>
     this.tweaks
       .breakModel()
-      .stats(
-        groupRuns(this.runs(), this.tweaks.includeUnchecked(), this.tweaks.runOrder()).map(
-          (run) => run.times,
-        ),
-      )
+      .stats(groupRuns(this.runs(), this.tweaks.includeUnchecked(), this.tweaks.runOrder()))
       .groups.filter((group) => !group.open)
       .map((group) => group.size),
   );
