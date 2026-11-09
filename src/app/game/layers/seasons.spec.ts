@@ -77,10 +77,11 @@ describe('seasonAt', () => {
   it('blends the colors in OKLCH, or the color space given, the same at the start of each season', () => {
     expect(seasonAt(0, SEASON_BACKGROUNDS, 'srgb').background).toEqual(seasonAt(0).background);
     // Autumn turning into winter: 22 places in, 35.2% of the way after easing.
+    const { autumn, winter } = SEASON_BACKGROUNDS;
     expect(seasonAt(72).background).toEqual(
       mixGradients(
-        mixGradients(['#ee8a45', '#9b4f86'], ['#d9683a', '#7a3f78'], 1, 'oklch'),
-        ['#9bb4dc', '#46598f'],
+        mixGradients(autumn.early, autumn.late, 1, 'oklch'),
+        winter.early,
         0.352,
         'oklch',
       ),

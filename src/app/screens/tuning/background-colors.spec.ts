@@ -69,7 +69,7 @@ describe('BackgroundColors', () => {
     const { host } = await setUp();
 
     expect(host.querySelectorAll('button.swatch')).toHaveLength(10);
-    expect(swatch(host, 'Winter bottom').style.background).toBe('rgb(70, 89, 143)');
+    expect(swatch(host, 'Winter bottom').style.background).toBe('rgb(45, 58, 92)');
     expect(swatch(host, 'Spring top').getAttribute('aria-pressed')).toBe('true');
     expect(host.querySelector('app-color-picker .name')?.textContent).toBe('Spring top');
     expect(host.querySelector('app-color-picker .hex')?.textContent).toBe(SEASON_STARTS.spring[0]);
