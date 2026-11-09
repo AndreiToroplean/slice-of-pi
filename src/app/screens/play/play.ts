@@ -452,16 +452,14 @@ export class Play implements PausesOnBack {
       ...this.playedHere(),
     ];
   });
-  /** The times of the earlier runs that count in the groups, oldest first. */
-  private readonly earlierTimes = computed(() =>
-    groupRuns(this.earlierRuns(), this.tweaks.includeUnchecked(), this.tweaks.runOrder()).map(
-      (run) => run.times,
-    ),
+  /** The earlier runs that count in the groups, oldest first. */
+  private readonly countedRuns = computed(() =>
+    groupRuns(this.earlierRuns(), this.tweaks.includeUnchecked(), this.tweaks.runOrder()),
   );
   /** How the break model plays the groups over the earlier runs that count in them, before this one. */
   private readonly groupSize = inject(GroupSizeSetting).size;
   private readonly gameplay = computed(() =>
-    this.tweaks.breakModel().play(this.earlierTimes(), this.groupSize()),
+    this.tweaks.breakModel().play(this.countedRuns(), this.groupSize()),
   );
 
   /**
@@ -469,7 +467,7 @@ export class Play implements PausesOnBack {
    * as the model trusts them for it.
    */
   private readonly knownGroups = computed(() => {
-    const stats = this.tweaks.breakModel().stats(this.earlierTimes());
+    const stats = this.tweaks.breakModel().stats(this.countedRuns());
     return this.discovering ? stats.discoverGroups : stats.groups;
   });
   /**
@@ -1129,7 +1127,7 @@ export class Play implements PausesOnBack {
   private runTimes(): readonly number[] {
     // Discover's own typing never counts: its groups are the player's, as the game plays them.
     const own = this.discovering ? [] : (this.session.run()?.times ?? []);
-    return timesFromPlace(this.runStart(), own, this.earlierTimes());
+    return timesFromPlace(this.runStart(), own, this.countedRuns());
   }
 
   /** The words on the tape up to a place: those of `kept` that end by it, then the player's groups (see `wordsUpTo`). */

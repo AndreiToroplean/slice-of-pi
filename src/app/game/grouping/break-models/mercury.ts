@@ -1,6 +1,11 @@
 import type { BreakModelKind, Settings } from './break-model';
 import { BreakSettings, HYPERPARAMETERS } from './hyperparameters';
-import { modelFromSteps } from './model-from-steps';
+import {
+  fromStartOfPiOnly,
+  modelFromSteps,
+  timesFromStartOfPi,
+  withRunsLeftOut,
+} from './model-from-steps';
 import { centeredMedian, median, Mixture, trailingMedian } from './statistics';
 import {
   byIndex,
@@ -81,14 +86,19 @@ export const MERCURY: BreakModelKind = {
   ],
   create: (tuned) => {
     const settings = withDefaults(tuned);
-    return modelFromSteps((finished) => {
-      const done = finishedRuns(finished, settings.window);
-      return (current, init) => mercury(done, current, settings, init);
-    });
+    return modelFromSteps(
+      fromStartOfPiOnly((finished) => {
+        const done = finishedRuns(finished, settings.window);
+        return (current, init) => mercury(done, current, settings, init);
+      }),
+    );
   },
   steps: (tuned, finished) => {
     const settings = withDefaults(tuned);
-    return mercury(finishedRuns(finished, settings.window), undefined, settings);
+    return withRunsLeftOut(
+      mercury(finishedRuns(timesFromStartOfPi(finished), settings.window), undefined, settings),
+      finished,
+    );
   },
 };
 

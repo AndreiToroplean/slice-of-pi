@@ -1,3 +1,4 @@
+import { fromStartOfPi } from '../../../game/grouping/break-models/break-model';
 import { MARS } from '../../../game/grouping/break-models/mars';
 import {
   finishedRuns,
@@ -32,7 +33,7 @@ describe('the keys to the views of the break model', () => {
   }
 
   const models: Record<string, Steps> = {
-    Mars: stepsOf(MARS.steps?.({}, runs)),
+    Mars: stepsOf(MARS.steps?.({}, runs.map(fromStartOfPi))),
     Mercury: mercury(finishedRuns(runs, MERCURY_DEFAULTS.window), undefined, MERCURY_DEFAULTS),
   };
 

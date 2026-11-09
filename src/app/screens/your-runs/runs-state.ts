@@ -33,9 +33,8 @@ export class RunsState {
   );
   /** The runs in the order the game takes them, and how many are above the line played from, if any. */
   readonly order = computed(() => orderRuns(this.runs(), this.tweaks.runOrder()));
-  readonly countedTimes = computed(() => this.counted().map((run) => run.times));
   /** What the break model makes of them: the groups the game plays with. */
-  readonly stats = computed(() => this.tweaks.breakModel().stats(this.countedTimes()));
+  readonly stats = computed(() => this.tweaks.breakModel().stats(this.counted()));
   /** The runs shown, by their chart, in the order the game takes them. */
   readonly charts = computed(() =>
     this.order().runs.flatMap((run, index): RunCardChart[] => {
