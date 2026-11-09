@@ -35,7 +35,8 @@ export class App {
 
   /**
    * A mouse over a candy button gives it the focus, as in a game's menu, where the mouse and the keys pick out the same
-   * button, one at a time (see `Candy`): only a solid one, that can take the focus. Other buttons hover as usual.
+   * button, one at a time (see `Candy`): only a solid one, that can take the focus, or holds what does, such as a
+   * spinner. Other buttons hover as usual.
    */
   protected hover(event: PointerEvent): void {
     const candy =
@@ -45,8 +46,10 @@ export class App {
     if (event.pointerType !== 'mouse' || candy === null) {
       return;
     }
-    // A candy label stands for the input within it.
-    const button = candy.matches('a, button') ? candy : candy.querySelector('input');
+    // A candy label stands for the input within it, and a candy part of a button for what it holds, such as a spinner.
+    const button = candy.matches('a, button')
+      ? candy
+      : candy.querySelector('input, [tabindex]:not([tabindex="-1"])');
     if (button instanceof HTMLElement && !button.matches(':focus')) {
       button.focus({ focusVisible: true });
     }

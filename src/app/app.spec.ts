@@ -72,7 +72,8 @@ describe('App', () => {
       'beforeend',
       '<button class="candy">Candy</button><button class="frosted">Frosted</button>' +
         '<button class="candy clear">Clear</button>' +
-        '<button class="candy unfocusable" tabindex="-1">Key</button>',
+        '<button class="candy unfocusable" tabindex="-1">Key</button>' +
+        '<div class="candy"><span role="spinbutton" tabindex="0">40</span></div>',
     );
     const [candy, frosted, clear, key] = Array.from(
       document.querySelectorAll<HTMLElement>('.candy, .frosted'),
@@ -93,6 +94,11 @@ describe('App', () => {
     expect(document.activeElement).toBe(candy);
     hover(key, 'mouse');
     expect(document.activeElement).toBe(candy);
+    // A part of a button holding a spinner gives it the focus.
+    const spinner = document.querySelector('[role="spinbutton"]') ?? undefined;
+    hover(spinner, 'mouse');
+    expect(document.activeElement).toBe(spinner);
+    spinner?.parentElement?.remove();
 
     candy?.remove();
     frosted?.remove();
