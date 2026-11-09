@@ -344,3 +344,25 @@ export const PART_BOXES: readonly EditedPart<MenuPart>[] = [
 function centered(y: string, width: string, height: string): Readonly<Record<string, string>> {
   return { left: '50%', bottom: y, width, height, translate: '-50% 50%' };
 }
+
+/** How far down the editor shows the screen's top, at most, in CSS pixels. */
+export const MOST_SCREEN_CUT = 400;
+
+/**
+ * The screen's top, dragged down to see the menu on a screen that much less tall, as when the system's bars show: how
+ * far, in CSS pixels. Only the editor shows it.
+ */
+export const SCREEN_TOP: Handle<number> = {
+  label: 'Screen top',
+  text: 'Screen top',
+  axis: 'y',
+  sign: 1,
+  unit: 'px',
+  scale: 1,
+  step: 1,
+  get: (cut) => cut,
+  set: (_cut, to) => clamp(to, 0, MOST_SCREEN_CUT),
+  line: { top: '0' },
+  // Just below it, in the middle, clear of the corner buttons.
+  knob: { left: '50%', translate: '-50% 0.25rem' },
+};

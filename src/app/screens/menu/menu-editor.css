@@ -100,3 +100,16 @@
 .on-menu {
   --handles-height: var(--menu-free);
 }
+
+/* Above the menu, where a less tall screen ends: what it no longer shows, dimmed. */
+.cut {
+  position: absolute;
+  bottom: 100%;
+  inset-inline: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgb(0 0 0 / 55%) 0 0.5rem,
+    rgb(0 0 0 / 40%) 0.5rem 1rem
+  );
+  pointer-events: none;
+}

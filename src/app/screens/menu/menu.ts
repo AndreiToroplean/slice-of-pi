@@ -98,6 +98,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
     class: 'screen',
     '[class.loading]': '!assets.ready()',
     '[style]': 'styles()',
+    '[style.margin-top.px]': 'cut() || null',
     '[style.--light-fade]': 'lightFade',
     '[style.--light-stagger]': 'lightStagger',
     '(document:keydown.arrowup)': 'startOnPlay($event)',
@@ -274,7 +275,10 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
         (layoutChange)="editedLayout.set($event)"
         [lights]="lights()"
         [(previewing)]="previewing"
-        (done)="editedLook.set(undefined); editedLayout.set(undefined); previewing.set(false)"
+        [(cut)]="cut"
+        (done)="
+          editedLook.set(undefined); editedLayout.set(undefined); previewing.set(false); cut.set(0)
+        "
       />
     }
   `,
@@ -298,6 +302,8 @@ export class Menu {
   protected readonly editedLook = signal<MenuLook | undefined>(undefined);
   /** Whether the editor hides its handles, for the menu to show as in the game. */
   protected readonly previewing = signal(false);
+  /** How far down the editor shows the screen's top, for the menu to lay out on a screen that much less tall. */
+  protected readonly cut = signal(0);
   /** The margins and corner buttons being edited there, in the layout of every screen, shown as they change. */
   protected readonly editedLayout = signal<Layout | undefined>(undefined);
   protected readonly look = computed(() => this.editedLook() ?? this.tweaks.menu());
