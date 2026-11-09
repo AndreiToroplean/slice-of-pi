@@ -11,6 +11,11 @@ import { addTouch, newTouchLog, TouchLog } from './touch-log';
  * drops those of the places after it, typed in an earlier round, so that the touches stay in order of time. Wrong
  * digits aren't kept: they end the session. Saved after every digit, so that leaving at any moment loses nothing. Its
  * clock stops while the game is paused.
+ *
+ * Only digits typed one after the other in the same turn of the player's are timed against each other: the first digit
+ * of a turn, after the game's, keeps the interval it had when last typed straight after the digit before it, in an
+ * earlier turn, as the time since the digit before, typed in an earlier turn too, would hold the game's turns between
+ * them. The run's clock goes on from there, so that the whole run reads as if typed in one go.
  */
 @Injectable()
 export class DiscoverRecorder {
@@ -22,6 +27,12 @@ export class DiscoverRecorder {
   private log: TouchLog | undefined;
   /** When its first digit was typed, on the clock. */
   private startedAt = 0;
+  /** How far behind the clock the run's times are, in milliseconds: the time between turns left out. */
+  private shift = 0;
+  /** Whether the player has typed a digit in this turn of theirs. */
+  private continuing = false;
+  /** When the player's turn started, on the clock. */
+  private turnStartedAt = 0;
   /** How long the clock has been stopped, in milliseconds, and since when, while it is. */
   private stopped = 0;
   private stoppedAt: number | undefined;
@@ -46,8 +57,19 @@ export class DiscoverRecorder {
         },
       );
     }
-    const kept = { ...this.log, touches: this.log.touches.slice(0, place - start) } as TouchLog;
-    const log = addTouch(kept, touch, this.now() - this.startedAt);
+    const index = place - start;
+    const kept = { ...this.log, touches: this.log.touches.slice(0, index) } as TouchLog;
+    const last = kept.touches.at(-1);
+    if (!this.continuing && last !== undefined) {
+      const typed = this.log.touches[index];
+      // Always typed in an earlier turn, as the turn starts where the rounds do, which earlier ones went past; else the
+      // time since the turn started.
+      const interval =
+        typed === undefined ? this.now() - this.turnStartedAt : typed.time - last.time;
+      this.shift = this.now() - this.startedAt - (last.time + interval);
+    }
+    this.continuing = true;
+    const log = addTouch(kept, touch, this.now() - this.startedAt - this.shift);
     this.log = log;
     this.writing = this.writing.then(async () => {
       try {
@@ -58,9 +80,17 @@ export class DiscoverRecorder {
     });
   }
 
+  /** Starts a turn of the player's: its first digit isn't timed against the digit before it. */
+  newTurn(): void {
+    this.continuing = false;
+    this.turnStartedAt = this.now();
+  }
+
   /** Ends the session: the next digit starts a new run. */
   end(): void {
     this.log = undefined;
+    this.shift = 0;
+    this.continuing = false;
   }
 
   /** Stops the clock, as while the game is paused. */

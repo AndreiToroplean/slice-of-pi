@@ -71,6 +71,23 @@ describe('DiscoverRecorder', () => {
     expect(saves.at(-1)?.touches.map(({ key }) => key)).toEqual(['1']);
   });
 
+  it('times the first digit of a turn as when last typed straight after the digit before', async () => {
+    const recorder = TestBed.inject(DiscoverRecorder);
+
+    recorder.newTurn();
+    round(recorder, 0, '141');
+    time += 100;
+    round(recorder, 3, '5');
+    // The game's turn, then the player's, from a checkpoint's group at 3, after a while.
+    time += 10_000;
+    recorder.newTurn();
+    time += 2_000;
+    round(recorder, 3, '59');
+    await recorder.saved();
+
+    expect(saves.at(-1)?.touches.map(({ time }) => time)).toEqual([0, 200, 400, 700, 900]);
+  });
+
   it('records a session from a checkpoint from its place, its clock stopped while paused', async () => {
     const recorder = TestBed.inject(DiscoverRecorder);
 
