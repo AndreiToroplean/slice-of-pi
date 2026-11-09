@@ -82,6 +82,22 @@ describe('RunsState', () => {
     expect(state.places()).toBe(42);
   });
 
+  it('charts Discover’s runs as they’re kept, without groups, as they don’t count in them', async () => {
+    const discovered = typeKey(
+      typeKey(newTouchLog('e', 5_000, true, 'calculator', { recording: 'overwrite' }), '1', 0),
+      '4',
+      300,
+    );
+    const without = groups(await setUp([grouped]));
+    TestBed.resetTestingModule();
+    const state = await setUp([grouped, discovered]);
+
+    expect(ids(state)).toEqual(['c', 'e']);
+    expect(state.charts()[1]?.meta).toBe('2 digits in 0.3 s');
+    expect(state.charts()[1]?.times).toEqual([undefined, 300]);
+    expect(groups(state)).toEqual(without);
+  });
+
   it('spans every chart over the places of the longest run shown', async () => {
     expect((await setUp([first, second, unchecked])).places()).toBe(2);
     TestBed.resetTestingModule();

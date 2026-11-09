@@ -1,15 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
-import {
-  countsInGroups,
-  groupRuns,
-  moveRun,
-  orderRuns,
-  reachedPlace,
-  Run,
-  RunOrder,
-} from '../../player-data/run';
+import { groupRuns, moveRun, orderRuns, reachedPlace, Run, RunOrder } from '../../player-data/run';
 import { RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { CONFIRM } from '../../ui/confirm';
@@ -22,7 +14,7 @@ import type { RunCardChart } from './run-card';
  * The player's runs as a page of them shows them, provided by each such page: read as it opens, in the order the game
  * takes them, what the break model makes of them, the chart of each and of all of them, and deleting them. The tweaks
  * apply, as they do to the whole game: unchecked runs, which may hold mistakes, are only shown while they count in the
- * groups. Neither are Discover's.
+ * groups.
  */
 @Injectable()
 export class RunsState {
@@ -49,7 +41,7 @@ export class RunsState {
       if (!this.shows(run)) {
         return [];
       }
-      // Runs left out of the groups have only their times.
+      // Runs left out of the groups, as Discover's, have only their times.
       const found = this.stats().runs[this.counted().indexOf(run)];
       const breaks = found?.breaks ?? [];
       return [
@@ -60,7 +52,9 @@ export class RunsState {
           later: index >= (this.order().line ?? Infinity),
           meta:
             `${plural(run.digits.length, 'digit')}${run.start > 0 ? ` from ${String(run.start)}` : ''} in ${seconds(run.times.at(-1) ?? 0)}` +
-            (run.digits.length > 0 ? ` · ${plural(breaks.length + 1, 'group')}` : ''),
+            (run.digits.length > 0 && !run.overwritten
+              ? ` · ${plural(breaks.length + 1, 'group')}`
+              : ''),
           times: digitTimes(run),
           baseline: found?.baseline ?? [],
           breaks,
@@ -188,11 +182,11 @@ export class RunsState {
   }
 
   /**
-   * Whether it shows a run: those counted in the groups, unchecked ones only while they're included. Discover's aren't
-   * charted, every touch not kept.
+   * Whether it shows a run: unchecked ones only while they're included. Discover's are charted as they're kept, the
+   * latest typing of each place, which reads as one run.
    */
   private shows(run: Run): boolean {
-    return countsInGroups(run, this.tweaks.includeUnchecked());
+    return run.checked || this.tweaks.includeUnchecked();
   }
 }
 
