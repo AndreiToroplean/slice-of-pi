@@ -63,6 +63,8 @@ export interface Stats {
   /** Where the player usually breaks. */
   readonly usual: readonly Break[];
   readonly groups: readonly Group[];
+  /** The groups as Discover plays them: the same, but trusted as far as the model trusts them for it. */
+  readonly discoverGroups: readonly Group[];
   /** The time per digit the model expects at each index over the runs, without breaks, in milliseconds. */
   readonly speedCurve: Values;
   /** The time per digit at each index over the runs, recent ones weighing more, in milliseconds. */

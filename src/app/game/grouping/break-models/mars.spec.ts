@@ -121,6 +121,26 @@ describe('Mars', () => {
     expect(horizon(many)).toBeGreaterThan(20);
   });
 
+  it('trusts the groups in Discover only once enough runs agree, by its own level', () => {
+    const trusted = (runs: readonly (readonly number[])[]) => {
+      const stats = MARS.create({}).stats(runs);
+      return {
+        anywhere: stats.groups.filter((group) => group.trusted).length,
+        inDiscover: stats.discoverGroups.filter((group) => group.trusted).length,
+      };
+    };
+
+    // One run: its groups are followed as you play, but not shown in Discover yet.
+    expect(trusted(grouped.slice(0, 1)).anywhere).toBeGreaterThan(5);
+    expect(trusted(grouped.slice(0, 1)).inDiscover).toBe(0);
+    // A few agreeing: Discover shows them too, cut the same way.
+    const stats = MARS.create({}).stats(grouped);
+    expect(trusted(grouped).inDiscover).toBeGreaterThan(5);
+    expect(stats.discoverGroups.map(({ start, size }) => [start, size])).toEqual(
+      stats.groups.map(({ start, size }) => [start, size]),
+    );
+  });
+
   it("follows the player's groups within the trust horizon", () => {
     expect(MARS.create({}).play(grouped, 5).groupAt([], 3)).toEqual({ size: 3, trusted: true });
   });

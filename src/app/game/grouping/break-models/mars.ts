@@ -1,4 +1,4 @@
-import type { BreakModel, BreakModelKind, Settings } from './break-model';
+import type { BreakModel, BreakModelKind, Group, Settings } from './break-model';
 import {
   ENVELOPE_DEFAULTS,
   ENVELOPE_HYPERPARAMETERS,
@@ -18,6 +18,7 @@ import {
   byIndex,
   groupsBetween,
   groupsOf,
+  horizonAt,
   longestOf,
   RunSteps,
   Steps,
@@ -84,6 +85,11 @@ export type MarsSettings = Omit<TerraSettings, 'usualThreshold'> &
      * pages of the runs, the newest recorded run counts 1, so this changes nothing there.
      */
     currentDecay: number;
+    /**
+     * The confidence required for the trust horizon in Discover, from 0 to 1: the game shows the player's groups there
+     * only as far as it's this sure of them, and groups of their group size past that.
+     */
+    discoverLevel: number;
   }>;
 
 /** How many neighbors' worth the prior unevenness weighs against a place's own neighbors. */
@@ -91,7 +97,8 @@ const PRIOR_NEIGHBORS = 2;
 
 /**
  * Tuned by the owner's play testing, the level at 0 so that the game follows the groups wherever a run reached: from
- * the second run on, it plays the player's own groups.
+ * the second run on, it plays the player's own groups. Discover's level is higher, so that it shows them only once a
+ * few runs agree on them: groups typed hesitantly, not yet formed, would teach the player the wrong ones.
  */
 export const MARS_DEFAULTS: MarsSettings = {
   window: 9,
@@ -102,6 +109,7 @@ export const MARS_DEFAULTS: MarsSettings = {
   fullTrustUnevenness: 0.3,
   breakThreshold: 0.25,
   level: 0,
+  discoverLevel: 0.7,
   priorUnevenness: 0.2,
   trustInfluence: 1,
   currentDecay: 0.5,
@@ -299,6 +307,10 @@ function stepsOf(pool: Pool, settings: MarsSettings, shaped: Enveloped | undefin
     level: settings.level,
   });
   const digits = digitsOf(pool);
+  const groupsWithin = (horizon: number): Group[] =>
+    shaped === undefined
+      ? groupsOf(usual, settings.breakThreshold, digits, horizon)
+      : groupsBetween(shaped.breaks, digits, horizon);
   return {
     // One threshold for every break: where the runs usually break is where they break, pooled.
     settings: { ...settings, usualThreshold: settings.breakThreshold },
@@ -309,10 +321,8 @@ function stepsOf(pool: Pool, settings: MarsSettings, shaped: Enveloped | undefin
     speedCurve: paceOf(pool.pace),
     averageTime,
     // The envelope's own breaks rather than the probability's over the threshold, which they only miss on a tie.
-    groups:
-      shaped === undefined
-        ? groupsOf(usual, settings.breakThreshold, digits, trust.horizon)
-        : groupsBetween(shaped.breaks, digits, trust.horizon),
+    groups: groupsWithin(trust.horizon),
+    discoverGroups: groupsWithin(horizonAt(trust.confidenceTrend, settings.discoverLevel)),
   };
 }
 
@@ -439,7 +449,24 @@ export const MARS: BreakModelKind = {
     },
     {
       name: 'Groups',
-      hyperparameters: [H.breakThreshold, H.level],
+      hyperparameters: [
+        H.breakThreshold,
+        H.level,
+        {
+          key: 'discoverLevel',
+          label: 'Discover level',
+          min: 0,
+          max: 1,
+          step: 0.01,
+          format: (value) => value.toFixed(2),
+          help: {
+            what: 'The level, in Discover: how confident the game must be of its verdict at a place to show your groups there. Past the trust horizon it makes, Discover shows groups of your group size.',
+            why: 'Discover teaches the digits in groups: groups you typed hesitantly, not yet formed, would teach you the wrong ones, while those a few runs agree on help you review what you know.',
+            moving:
+              'Higher asks more of your runs to agree before Discover shows your groups, so it shows groups of your group size sooner. At 0, it shows your groups wherever your runs reached, as the level at 0 does as you play.',
+          },
+        },
+      ],
     },
     { name: 'Envelope', hyperparameters: ENVELOPE_HYPERPARAMETERS },
   ],

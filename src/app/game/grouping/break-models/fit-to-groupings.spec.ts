@@ -59,10 +59,12 @@ describe('Fitting to groupings', () => {
             const sizes = Array.from({ length: Math.ceil(digits / size) }, (_, k) =>
               Math.min(size, digits - k * size),
             );
+            const groups = groupsOf(sizes);
             return {
               runs: [],
               usual: [],
-              groups: groupsOf(sizes),
+              groups,
+              discoverGroups: groups,
               speedCurve: [],
               averageTime: [],
               confidence: [],
@@ -239,10 +241,12 @@ describe('Fitting to groupings', () => {
           stats: (runs: readonly (readonly number[])[]) => {
             kind.given.push(runs.map((each) => each[0] ?? -1));
             const size = runs.length;
+            const groups = groupsOf(Array<number>(12 / size).fill(size));
             return {
               runs: [],
               usual: [],
-              groups: groupsOf(Array<number>(12 / size).fill(size)),
+              groups,
+              discoverGroups: groups,
               speedCurve: [],
               averageTime: [],
               confidence: [],
