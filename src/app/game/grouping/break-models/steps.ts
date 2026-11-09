@@ -83,6 +83,12 @@ export type Steps = {
     }
 );
 
+/**
+ * The log of each interval of a run, by index p for the interval before digit p + 1: none where the run never timed one,
+ * as before the start of a run from a checkpoint.
+ */
+export type Logs = ArrayLike<number | undefined>;
+
 /** No interval is taken as shorter than this, in milliseconds, so it has a log. */
 const SHORTEST_INTERVAL = 1;
 
@@ -179,7 +185,7 @@ export function fitBreaks(
  * interval. Each run weighs its weight, or its weight at each interval.
  */
 export function usualBreaks(
-  logs: readonly Float64Array[],
+  logs: readonly Logs[],
   runs: readonly Pick<RunSteps, 'breakProbability'>[],
   weights: readonly (number | Float64Array)[],
   synthetic: Synthetic = NO_SYNTHETIC,
@@ -217,7 +223,7 @@ export interface BreakSums {
  * to the synthetic runs' alone.
  */
 export function breakSums(
-  logs: readonly Float64Array[],
+  logs: readonly Logs[],
   runs: readonly Pick<RunSteps, 'breakProbability'>[],
   weights: readonly (number | Float64Array)[],
   synthetic: Synthetic = NO_SYNTHETIC,
@@ -342,6 +348,6 @@ export function breaksOf(probabilities: Values, threshold: number): Break[] {
 }
 
 /** How many intervals the longest run has. */
-export function longestOf(logs: readonly Float64Array[]): number {
+export function longestOf(logs: readonly Logs[]): number {
   return Math.max(0, ...logs.map((log) => log.length));
 }

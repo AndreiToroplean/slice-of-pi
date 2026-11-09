@@ -92,11 +92,11 @@ export function runOf(log: TouchLog): Run {
 
 /**
  * Whether the player's groups are computed from this run: a checked one does, an unchecked one, which may hold
- * mistakes, only when unchecked runs are included. Only runs from the start of π count, every touch kept: the groups
- * are worked out place by place from there, and Discover's runs are paced by its rounds.
+ * mistakes, only when unchecked runs are included. Runs from a checkpoint count from it on, as far as the break model
+ * takes them. Discover's runs don't, every touch not kept, paced by its rounds.
  */
 export function countsInGroups(run: Run, includeUnchecked: boolean): boolean {
-  return run.start === 0 && !run.overwritten && (run.checked || includeUnchecked);
+  return !run.overwritten && (run.checked || includeUnchecked);
 }
 
 /** The place a run reached: that of the digit after its last, as the digit reached in the season header. */

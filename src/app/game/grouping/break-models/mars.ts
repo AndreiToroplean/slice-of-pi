@@ -11,13 +11,7 @@ import {
 } from './envelope';
 import { HYPERPARAMETERS } from './hyperparameters';
 import { logistic, logit } from './statistics';
-import {
-  fromStartOfPiOnly,
-  groupEnds,
-  modelFromSteps,
-  timesFromStartOfPi,
-  withRunsLeftOut,
-} from './model-from-steps';
+import { groupEnds, modelFromSteps } from './model-from-steps';
 import {
   breakSums,
   BreakSums,
@@ -39,6 +33,7 @@ import {
   paceOf,
   PaceSums,
   paceSums,
+  residualOf,
   TERRA_HYPERPARAMETERS,
   TerraSettings,
 } from './terra';
@@ -70,6 +65,9 @@ import {
  * 4. The confidence is how surely enough runs agree with the verdict at a place, as in Mercury: the weighted share of
  *    runs whose own P(break) there says break, with the break share as the prior, against the threshold. So one run's
  *    long pause can make a break, but not one the game trusts.
+ *
+ * A run from a checkpoint counts from it on, judged against its own neighbors as any run: it says nothing of the places
+ * before it, nor of the break it starts at, which it never timed.
  *
  * Nothing here is stored; it's always computed from the times of the runs.
  */
@@ -184,17 +182,20 @@ export function marsSteps(finished: readonly JudgedRun[], settings: MarsSettings
   const threshold = logit(settings.breakThreshold);
   const workings = judgedWorkings(finished, recency, (at) => trustOfPlace(at, settings), settings);
   const envelope = byIndex(pool.logOdds.map((_, p) => shaped?.evidence[p + 1] ?? 0));
-  // Each run's own breaks, as the envelope weighs them over that run alone.
+  // Each run's own breaks, as the envelope weighs them over that run alone, from its start.
   const runBreaks =
     shaped === undefined
       ? undefined
-      : finished.map(
-          (run) =>
+      : finished.map((run) =>
+          (
             enveloped(
-              byIndex(run.places.map((at) => prior + at.evidence - threshold)),
-              run.digits,
+              byIndex(
+                run.places.slice(run.start).map((at) => prior + (at?.evidence ?? 0) - threshold),
+              ),
+              run.digits - run.start,
               envelopeIn(settings),
-            )?.breaks ?? [],
+            )?.breaks ?? []
+          ).map((place) => run.start + place),
         );
   return {
     ...stepsOf(pool, settings, shaped),
@@ -272,15 +273,18 @@ function pooled(
   settings: MarsSettings,
 ): Pool {
   const prior = logit(settings.breakShare);
+  // A run weighs nothing where it never timed an interval: before its start.
   const weights = runs.map((run, k) =>
-    Float64Array.from(run.places, (at) => (recency[k] ?? 0) * trustOfPlace(at, settings)),
+    Float64Array.from(run.places, (at) =>
+      at === undefined ? 0 : (recency[k] ?? 0) * trustOfPlace(at, settings),
+    ),
   );
   const steps = runs.map((run): RunSteps => ({
-    baseline: byIndex(run.places.map((at) => at.pace)),
-    breakProbability: byIndex(run.places.map((at) => logistic(prior + at.evidence))),
-    residual: byIndex(
-      run.places.map((at) => (at.pace === undefined ? undefined : Math.log(at.time / at.pace))),
+    baseline: byIndex(run.places.map((at) => at?.pace)),
+    breakProbability: byIndex(
+      run.places.map((at) => (at === undefined ? undefined : logistic(prior + at.evidence))),
     ),
+    residual: byIndex(run.places.map(residualOf)),
   }));
   const logs = runs.map((run) => run.logs);
   return {
@@ -350,13 +354,13 @@ function trustOfPlace(at: Judged, settings: MarsSettings): number {
  */
 function marsModel(settings: MarsSettings): BreakModel {
   return modelFromSteps(
-    fromStartOfPiOnly((finished) => {
+    (finished) => {
       const over = marsOver(
-        finished.map((times) => judge(times, settings)),
+        finished.map((run) => judge(run.times, settings, run.start)),
         settings,
       );
       return (current, _init, start) => over(current, start);
-    }),
+    },
     (steps, next) => groupEnds(steps, next, true),
   );
 }
@@ -479,12 +483,9 @@ export const MARS: BreakModelKind = {
   create: (tuned) => marsModel(withDefaults(tuned)),
   steps: (tuned, finished) => {
     const settings = withDefaults(tuned);
-    return withRunsLeftOut(
-      marsSteps(
-        timesFromStartOfPi(finished).map((times) => judge(times, settings)),
-        settings,
-      ),
-      finished,
+    return marsSteps(
+      finished.map((run) => judge(run.times, settings, run.start)),
+      settings,
     );
   },
 };

@@ -112,13 +112,13 @@ describe('run', () => {
     expect(countsInGroups(unchecked, true)).toBe(true);
   });
 
-  it('leaves runs from a checkpoint and Discover’s out of the groups', () => {
+  it('counts runs from a checkpoint in the groups, but leaves Discover’s out', () => {
     const fromCheckpoint = runOf(newTouchLog('later', 0, true, 'calculator', { start: 50 }));
     const discovered = runOf(
       newTouchLog('discovered', 0, true, 'calculator', { recording: 'overwrite' }),
     );
 
-    expect(countsInGroups(fromCheckpoint, true)).toBe(false);
+    expect(countsInGroups(fromCheckpoint, false)).toBe(true);
     expect(countsInGroups(discovered, true)).toBe(false);
     expect(discovered.overwritten).toBe(true);
   });

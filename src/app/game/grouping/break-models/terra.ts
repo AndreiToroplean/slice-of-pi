@@ -1,12 +1,6 @@
 import type { BreakModel, BreakModelKind, Hyperparameter, Settings, Values } from './break-model';
 import { BreakSettings, HYPERPARAMETERS, oneIn } from './hyperparameters';
-import {
-  fromStartOfPiOnly,
-  groupEnds,
-  modelFromSteps,
-  timesFromStartOfPi,
-  withRunsLeftOut,
-} from './model-from-steps';
+import { groupEnds, modelFromSteps } from './model-from-steps';
 import { logit, neighborsOf } from './statistics';
 import { byIndex, groupsOf, logIntervals, RunSteps, Steps, trustOf, usualBreaks } from './steps';
 import type { Workings } from './workings';
@@ -100,25 +94,29 @@ export interface Judged {
 }
 
 /**
- * One run, judged: how many digits it has, its log intervals, and its verdict at each interval (index p is the one
- * before digit p + 1).
+ * One run, judged: the place of its first digit and the place it reached, and its log intervals and its verdict at each
+ * interval, by place from the start of π (index p is the interval before digit p + 1): none before its start, whose
+ * interval it never timed, so that a run from a checkpoint says nothing of the places before it, nor of the break it
+ * starts at.
  */
 export interface JudgedRun {
+  readonly start: number;
   readonly digits: number;
-  readonly logs: Float64Array;
-  readonly places: readonly Judged[];
+  readonly logs: Values;
+  readonly places: readonly (Judged | undefined)[];
 }
 
 /**
- * Judges every place of one run, from its times (in milliseconds since its first digit), each against its neighbors in
- * the run.
+ * Judges every place of one run, from its times (in milliseconds since its first digit) and the place of its first
+ * digit, each against its neighbors in the run.
  */
 export function judge(
   times: readonly number[],
   settings: Pick<TerraSettings, 'window' | 'spreadFloor' | 'breakShift'>,
+  start = 0,
 ): JudgedRun {
   const logs = logIntervals(times);
-  const places = Array.from(logs, (log, p): Judged => {
+  const own = Array.from(logs, (log, p): Judged => {
     const { mean: pace, spread: unevenness, count } = neighborsOf(logs, p, settings.window);
     const time = Math.exp(log);
     if (count === 0) {
@@ -146,7 +144,13 @@ export function judge(
       neighbors: count,
     };
   });
-  return { digits: times.length, logs, places };
+  const before = Array.from({ length: start }, () => undefined);
+  return {
+    start,
+    digits: start + times.length,
+    logs: [...before, ...logs],
+    places: [...before, ...own],
+  };
 }
 
 /**
@@ -167,15 +171,17 @@ export function judgedWorkings(
     runs: runs.map((run, k) => {
       // Without neighbors, a place isn't judged: it has none of these.
       const judged = (value: (at: Judged) => number): Values =>
-        byIndex(run.places.map((at) => (at.neighbors === 0 ? undefined : value(at))));
+        byIndex(
+          run.places.map((at) => (at === undefined || at.neighbors === 0 ? undefined : value(at))),
+        );
       return {
-        logInterval: byIndex(Array.from(run.logs)),
+        logInterval: byIndex(run.logs),
         pace: judged((at) => Math.log(at.pace ?? 1)),
         unevenness: judged((at) => at.unevenness),
         spread: judged((at) => Math.max(at.unevenness, settings.spreadFloor)),
         z: judged((at) => at.z),
         evidence: judged((at) => at.evidence),
-        trust: byIndex(run.places.map(trust)),
+        trust: byIndex(run.places.map((at) => (at === undefined ? undefined : trust(at)))),
         recency: recency[k] ?? 0,
       };
     }),
@@ -218,13 +224,16 @@ export function terra(
   // Each run's own P(break), and its weight at each interval: its recency times its trust there.
   const own = runs.map((run) => ({
     breakProbability: byIndex(
-      run.places.map((at) => breakProbability(settings.breakShare, at.likelihood)),
+      run.places.map((at) =>
+        at === undefined ? undefined : breakProbability(settings.breakShare, at.likelihood),
+      ),
     ),
   }));
   const weights = runs.map((run, k) =>
-    Float64Array.from(
-      run.places,
-      (at) => settings.recencyDecay ** (runs.length - 1 - k) * trustOfPlace(at, settings),
+    Float64Array.from(run.places, (at) =>
+      at === undefined
+        ? 0
+        : settings.recencyDecay ** (runs.length - 1 - k) * trustOfPlace(at, settings),
     ),
   );
   const { usual, coverage, breaks, averageTime } = usualBreaks(logs, own, weights);
@@ -235,11 +244,9 @@ export function terra(
   );
 
   const steps = (run: JudgedRun, breakProbability: Values): RunSteps => ({
-    baseline: byIndex(run.places.map((at) => at.pace)),
+    baseline: byIndex(run.places.map((at) => at?.pace)),
     breakProbability,
-    residual: byIndex(
-      run.places.map((at) => (at.pace === undefined ? undefined : Math.log(at.time / at.pace))),
-    ),
+    residual: byIndex(run.places.map(residualOf)),
   });
   // The run being typed breaks with the finished runs' usual-break probability as its prior, where they reached.
   const runSteps = runs.map((run, k) =>
@@ -249,13 +256,15 @@ export function terra(
           run,
           byIndex(
             run.places.map((at, p) =>
-              breakProbability(
-                Math.min(
-                  Math.max(before.usual[p + 1] ?? settings.breakShare, SUREST_PRIOR),
-                  1 - SUREST_PRIOR,
-                ),
-                at.likelihood,
-              ),
+              at === undefined
+                ? undefined
+                : breakProbability(
+                    Math.min(
+                      Math.max(before.usual[p + 1] ?? settings.breakShare, SUREST_PRIOR),
+                      1 - SUREST_PRIOR,
+                    ),
+                    at.likelihood,
+                  ),
             ),
           ),
         ),
@@ -277,6 +286,14 @@ export function terra(
       trust.horizon,
     ),
   };
+}
+
+/**
+ * The residual at a place judged: the log of its time over its pace; none without a pace, nor where the run never timed
+ * it.
+ */
+export function residualOf(at: Judged | undefined): number | undefined {
+  return at?.pace === undefined ? undefined : Math.log(at.time / at.pace);
 }
 
 /** The recency-weighted mean of the runs' local paces at each index, in milliseconds. */
@@ -339,10 +356,10 @@ export function paceOf(sums: PaceSums): Values {
  */
 function terraModel(settings: TerraSettings): BreakModel {
   return modelFromSteps(
-    fromStartOfPiOnly((finished) => {
-      const judged = finished.map((times) => judge(times, settings));
+    (finished) => {
+      const judged = finished.map((run) => judge(run.times, settings, run.start));
       return (current) => terra(judged, current, settings);
-    }),
+    },
     (steps, next) => groupEnds(steps, next, false),
   );
 }
@@ -443,15 +460,12 @@ export const TERRA: BreakModelKind = {
   create: (tuned) => terraModel(withDefaults(tuned)),
   steps: (tuned, finished) => {
     const settings = withDefaults(tuned);
-    const judged = timesFromStartOfPi(finished).map((times) => judge(times, settings));
+    const judged = finished.map((run) => judge(run.times, settings, run.start));
     const recency = judged.map((_, k) => settings.recencyDecay ** (judged.length - 1 - k));
-    return withRunsLeftOut(
-      {
-        ...terra(judged, undefined, settings),
-        workings: judgedWorkings(judged, recency, (at) => trustOfPlace(at, settings), settings),
-      },
-      finished,
-    );
+    return {
+      ...terra(judged, undefined, settings),
+      workings: judgedWorkings(judged, recency, (at) => trustOfPlace(at, settings), settings),
+    };
   },
 };
 
