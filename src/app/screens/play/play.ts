@@ -463,10 +463,14 @@ export class Play implements PausesOnBack {
     this.tweaks.breakModel().play(this.earlierTimes(), this.groupSize()),
   );
 
-  /** The groups of the earlier runs, as the break model knows them, which the words given are cut in. */
-  private readonly knownGroups = computed(
-    () => this.tweaks.breakModel().stats(this.earlierTimes()).groups,
-  );
+  /**
+   * The groups of the earlier runs, as the break model knows them, which the words given are cut in: in Discover, as far
+   * as the model trusts them for it.
+   */
+  private readonly knownGroups = computed(() => {
+    const stats = this.tweaks.breakModel().stats(this.earlierTimes());
+    return this.discovering ? stats.discoverGroups : stats.groups;
+  });
   /**
    * Where the group holding the checkpoint picked starts, in the player's groups: the game starts there, so that it
    * never splits a group.
