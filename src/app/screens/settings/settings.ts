@@ -9,6 +9,7 @@ import { GroupSizeSetting } from '../../player-data/group-size-setting';
 import { DEFAULT_GROUP_SIZE, GROUP_SIZES } from '../../game/grouping/group-size';
 import { KEY_LINGER, MAX_KEY_LINGER } from '../../game/layers/place-colors';
 import { BREATH, MAX_BREATH } from '../../ui/breath';
+import { CHECKPOINT_LAG, MAX_CHECKPOINT_LAG } from '../../game/modes/discover-rounds';
 import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
 import {
   DEFAULT_DISCOVER_PACE,
@@ -278,6 +279,45 @@ import { YourData } from './your-data';
           <div class="row">
             <label class="setting">
               <span>
+                Manual Checkpoints
+                <small
+                  >In Discover, picked by tapping them, rather than reached by themselves.</small
+                >
+              </span>
+              <input
+                type="checkbox"
+                [checked]="tweaks.manualCheckpoints()"
+                (change)="setManualCheckpoints($event)"
+              />
+            </label>
+            <button
+              type="button"
+              class="round"
+              title="Back to Default"
+              [disabled]="!tweaks.manualCheckpoints()"
+              (click)="resetManualCheckpoints()"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 14 4 9l5-5" />
+                <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+              </svg>
+            </button>
+          </div>
+          @if (!tweaks.manualCheckpoints()) {
+            <app-slider
+              label="Checkpoint Lag"
+              [value]="tweaks.checkpointLag()"
+              [min]="0"
+              [max]="maxCheckpointLag"
+              [step]="1"
+              [valueText]="tweaks.checkpointLag() + ' behind'"
+              [defaultValue]="defaultCheckpointLag"
+              (changed)="setCheckpointLag($event)"
+            />
+          }
+          <div class="row">
+            <label class="setting">
+              <span>
                 Countdown
                 <small
                   >In the top right corner, the seconds until the group being typed ends.</small
@@ -390,6 +430,8 @@ export class Settings {
   protected readonly maxKeyLinger = MAX_KEY_LINGER;
   protected readonly defaultKeyLinger = KEY_LINGER;
   protected readonly defaultBreath = BREATH;
+  protected readonly defaultCheckpointLag = CHECKPOINT_LAG;
+  protected readonly maxCheckpointLag = MAX_CHECKPOINT_LAG;
   protected readonly maxBreath = MAX_BREATH;
   protected readonly groupSize = inject(GroupSizeSetting);
   protected readonly groupSizes = GROUP_SIZES;
@@ -449,7 +491,9 @@ export class Settings {
       this.tweaks.paceStep() === PACE_STEP &&
       this.tweaks.handOver() === HAND_OVER &&
       this.tweaks.groupPause() === GROUP_PAUSE &&
-      this.tweaks.gameLinger() === GAME_LINGER,
+      this.tweaks.gameLinger() === GAME_LINGER &&
+      !this.tweaks.manualCheckpoints() &&
+      this.tweaks.checkpointLag() === CHECKPOINT_LAG,
   );
 
   protected setCountdown(event: Event): void {
@@ -462,6 +506,18 @@ export class Settings {
 
   protected setBreath(breath: number | undefined): void {
     void this.tweaks.setBreath(breath);
+  }
+
+  protected setManualCheckpoints(event: Event): void {
+    void this.tweaks.setManualCheckpoints((event.target as HTMLInputElement).checked);
+  }
+
+  protected resetManualCheckpoints(): void {
+    void this.tweaks.setManualCheckpoints(false);
+  }
+
+  protected setCheckpointLag(lag: number | undefined): void {
+    void this.tweaks.setCheckpointLag(lag);
   }
 
   protected setHandOver(handOver: number | undefined): void {
@@ -558,6 +614,8 @@ export class Settings {
       this.setHandOver(undefined);
       this.setGroupPause(undefined);
       this.setGameLinger(undefined);
+      this.resetManualCheckpoints();
+      this.setCheckpointLag(undefined);
       this.resetCountdown();
       this.resetSoundNotes();
       this.resetChecking();

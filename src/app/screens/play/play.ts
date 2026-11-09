@@ -47,6 +47,7 @@ import { groupStart, wordsUpTo } from '../../game/grouping/prefilled-words';
 import { timesFromPlace } from '../../game/grouping/from-checkpoint';
 import {
   checkpointsAhead,
+  laggingCheckpoint,
   completeRound,
   moveTo,
   newRounds,
@@ -399,9 +400,9 @@ export class Play implements PausesOnBack {
       this.mode() === 'challenge' ||
       (this.mode() === 'discover' && this.turn() === 'player' && !this.done()),
   );
-  /** The checkpoints Discover's rounds have reached, which they can start from. */
+  /** The checkpoints Discover's rounds have reached, which they can start from, if the player picks them. */
   protected readonly checkpoints = computed(() =>
-    this.discovering ? checkpointsAhead(this.rounds()) : [],
+    this.discovering && this.tweaks.manualCheckpoints() ? checkpointsAhead(this.rounds()) : [],
   );
   private readonly pace = inject(DiscoverPaceSetting).pace;
   private readonly discoverRecorder = inject(DiscoverRecorder);
@@ -850,11 +851,14 @@ export class Play implements PausesOnBack {
    * pace picked, its key shown pressed, in its color, and sounding, the groups landing as they fill, up to the place
    * reached, then on to the end of the group the slots show there: as many digits as there are slots, a little longer
    * between groups (see `GROUP_PAUSE`). Then it's the player's turn (see {@link handToPlayer}). The rounds start at the
-   * checkpoint picked meanwhile, if any.
+   * checkpoint picked meanwhile, if any, or, unless the player picks them in developer mode, at the one so many behind
+   * the farthest reached (see `laggingCheckpoint`).
    */
   private playRound(): void {
     this.stopRounds();
-    const picked = this.picked();
+    const picked = this.tweaks.manualCheckpoints()
+      ? this.picked()
+      : laggingCheckpoint(this.rounds(), this.tweaks.checkpointLag());
     if (picked !== undefined) {
       this.picked.set(undefined);
       this.moveRoundsTo(picked);

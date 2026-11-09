@@ -45,3 +45,23 @@ export function moveTo(rounds: Rounds, checkpoint: number, from = checkpoint): R
     ? { ...rounds, checkpoint, from: Math.max(rounds.from, from) }
     : rounds;
 }
+
+/** How many checkpoints behind the farthest reached Discover's rounds start, when they move on by themselves. */
+export const CHECKPOINT_LAG = 1;
+/** The most checkpoints behind they may lag. */
+export const MAX_CHECKPOINT_LAG = 10;
+
+/** Whether a value is how many checkpoints the rounds lag behind: a whole number, from none to the most. */
+export function isCheckpointLag(value: unknown): value is number {
+  return Number.isInteger(value) && Number(value) >= 0 && Number(value) <= MAX_CHECKPOINT_LAG;
+}
+
+/**
+ * The checkpoint the rounds move on to by themselves, if any: `lag` checkpoints behind the farthest one reached, once
+ * it's ahead of the one they start at. At 0, the farthest reached; at 1, the one before, once the player has gone past
+ * the next.
+ */
+export function laggingCheckpoint(rounds: Rounds, lag: number): number | undefined {
+  const ahead = checkpointsAhead(rounds);
+  return ahead[ahead.length - 1 - lag];
+}

@@ -1,4 +1,12 @@
-import { checkpointsAhead, completeRound, moveTo, newRounds } from './discover-rounds';
+import {
+  checkpointsAhead,
+  completeRound,
+  isCheckpointLag,
+  laggingCheckpoint,
+  MAX_CHECKPOINT_LAG,
+  moveTo,
+  newRounds,
+} from './discover-rounds';
 
 describe('Discover rounds', () => {
   it('reaches the place after the round retyped, never back', () => {
@@ -26,5 +34,23 @@ describe('Discover rounds', () => {
     expect(moved.checkpoint).toBe(20);
     expect(checkpointsAhead(moved)).toEqual([]);
     expect(checkpointsAhead(completeRound(newRounds(198, 200), 215))).toEqual([210]);
+  });
+
+  it('moves on by itself to the checkpoint so many behind the farthest reached, once it is ahead', () => {
+    const rounds = completeRound(newRounds(0), 43);
+
+    expect(laggingCheckpoint(rounds, 0)).toBe(40);
+    expect(laggingCheckpoint(rounds, 1)).toBe(30);
+    expect(laggingCheckpoint(rounds, 3)).toBe(10);
+    // Not yet: the rounds start at the start of π until a fifth checkpoint is reached.
+    expect(laggingCheckpoint(rounds, 4)).toBeUndefined();
+    // Nor back: the rounds start at 30 already.
+    expect(laggingCheckpoint(moveTo(rounds, 30), 1)).toBeUndefined();
+    expect(laggingCheckpoint(moveTo(rounds, 30), 0)).toBe(40);
+  });
+
+  it('lags by whole checkpoints, from none to the most', () => {
+    expect([0, 3, MAX_CHECKPOINT_LAG].every(isCheckpointLag)).toBe(true);
+    expect([-1, 1.5, MAX_CHECKPOINT_LAG + 1, '3'].some(isCheckpointLag)).toBe(false);
   });
 });

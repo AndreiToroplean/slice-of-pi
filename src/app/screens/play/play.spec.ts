@@ -1826,10 +1826,23 @@ describe('Play', () => {
     }
 
     /** Opens Discover, once the earlier runs, if any, are kept. */
-    async function discover(runs: readonly number[][] = []): Promise<Round> {
+    /**
+     * Discover, after the runs given, in developer mode if told how its rounds move on to checkpoints: as the player
+     * picks them, `'manual'`, or by themselves, so many behind the farthest reached.
+     */
+    async function discover(
+      runs: readonly number[][] = [],
+      checkpoints?: 'manual' | number,
+    ): Promise<Round> {
       const indexedDb = new IDBFactory();
       TestBed.overrideProvider(INDEXED_DB, { useValue: indexedDb });
       const store = TestBed.inject(RunStore);
+      if (checkpoints !== undefined) {
+        await TestBed.inject(DeveloperMode).set(true);
+        await (checkpoints === 'manual'
+          ? TestBed.inject(Tweaks).setManualCheckpoints(true)
+          : TestBed.inject(Tweaks).setCheckpointLag(checkpoints));
+      }
       for (const [i, times] of runs.entries()) {
         await store.save(
           Array.from(PI_DECIMALS.slice(0, times.length)).reduce(
@@ -2140,8 +2153,8 @@ describe('Play', () => {
       expect(slots(round.host)[0]).toBe('1');
     });
 
-    it('pops up each checkpoint reached, pressed once tapped, until the game’s next turn starts the rounds at it', async () => {
-      const round = await discover();
+    it('pops up each checkpoint reached, picked by the player, pressed once tapped, until the game’s next turn starts the rounds at it', async () => {
+      const round = await discover([], 'manual');
       const checkpoints = (): string[] =>
         Array.from(round.host.querySelectorAll('.checkpoint'), (button) =>
           button.textContent.trim(),
@@ -2174,8 +2187,19 @@ describe('Play', () => {
       expect(slots(round.host)[0]).toBe(PI_DECIMALS.charAt(10));
     });
 
+    it('moves the rounds on by themselves, so many checkpoints behind the farthest reached, without popping any up', async () => {
+      const round = await discover([], 0);
+      await playRounds(round, 5, 10);
+      expect(round.host.querySelector('.checkpoint')).toBeNull();
+
+      // Its next round starts at the checkpoint reached.
+      await showMe(round);
+      await round.wait(MEDIUM_INTERVAL);
+      expect(slots(round.host)[0]).toBe(PI_DECIMALS.charAt(10));
+    });
+
     it('waits for the game’s next turn for a checkpoint tapped on its turn', async () => {
-      const round = await discover();
+      const round = await discover([], 'manual');
       await playRounds(round, 5, 10);
       await showMe(round);
 
@@ -2192,7 +2216,7 @@ describe('Play', () => {
     });
 
     it('takes a checkpoint back when tapped again', async () => {
-      const round = await discover();
+      const round = await discover([], 'manual');
       await playRounds(round, 5, 10);
       const button = round.host.querySelector<HTMLButtonElement>('.checkpoint');
 
