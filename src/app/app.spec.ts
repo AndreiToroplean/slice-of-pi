@@ -65,7 +65,7 @@ describe('App', () => {
     expect(vibrated).toEqual([[...VIBRATION_PATTERNS.button]]);
   });
 
-  it('gives a solid candy button the focus under the mouse, and only a solid one that takes it', async () => {
+  it('gives a solid candy button the focus under the mouse or a stylus, and only a solid one that takes it', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     document.body.insertAdjacentHTML(
@@ -87,6 +87,13 @@ describe('App', () => {
     hover(candy, 'touch');
     expect(document.activeElement).not.toBe(candy);
     hover(candy, 'mouse');
+    expect(document.activeElement).toBe(candy);
+    // A stylus too.
+    hover(frosted, 'pen');
+    hover(key, 'pen');
+    expect(document.activeElement).toBe(candy);
+    candy?.blur();
+    hover(candy, 'pen');
     expect(document.activeElement).toBe(candy);
     hover(frosted, 'mouse');
     expect(document.activeElement).toBe(candy);
