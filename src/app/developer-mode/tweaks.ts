@@ -13,6 +13,7 @@ import {
   PACE_STEP,
 } from '../game/modes/discover-pace';
 import { isKeyLinger, KEY_LINGER, Palette, PALETTE } from '../game/layers/place-colors';
+import { BREATH, isBreath } from '../ui/breath';
 import { writeBackup } from '../player-data/backup';
 import { migrate, Migration } from '../player-data/migration';
 import { RunOrder } from '../player-data/run';
@@ -89,6 +90,8 @@ export interface TweakValues {
   readonly seasonTurn?: number;
   /** How long a digit key's color lingers once released, in milliseconds, for {@link KEY_LINGER}. */
   readonly keyLinger?: number;
+  /** How far a candy button's sides move as it breathes out all the way, in CSS pixels, for {@link BREATH}. */
+  readonly breath?: number;
   /** How many digits a second Discover plays at its medium pace, for {@link DISCOVER_SPEED}. */
   readonly discoverSpeed?: number;
   /** How much slower or faster than the medium pace Discover's others are, in percent, for {@link PACE_STEP}. */
@@ -192,6 +195,10 @@ export class Tweaks {
   /** How long a digit key's color lingers once released, in milliseconds. */
   readonly keyLinger = computed(
     () => (this.developerMode.enabled() ? this.tweaks().keyLinger : undefined) ?? KEY_LINGER,
+  );
+  /** How far a candy button's sides move as it breathes out all the way, in CSS pixels. */
+  readonly breath = computed(
+    () => (this.developerMode.enabled() ? this.tweaks().breath : undefined) ?? BREATH,
   );
   /** How many digits a second Discover plays at its medium pace. */
   readonly discoverSpeed = computed(
@@ -361,6 +368,11 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), keyLinger }));
   }
 
+  /** Sets how far candy buttons breathe; `undefined` brings back the game's. */
+  setBreath(breath: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), breath }));
+  }
+
   /** Sets how many digits a second Discover plays at its medium pace; `undefined` brings back the game's. */
   setDiscoverSpeed(discoverSpeed: number | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), discoverSpeed }));
@@ -507,6 +519,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     colorSpace,
     seasonTurn,
     keyLinger,
+    breath,
     discoverSpeed,
     paceStep,
     handOver,
@@ -538,6 +551,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     colorSpace: isColorSpace(colorSpace) ? colorSpace : undefined,
     seasonTurn: isSeasonTurn(seasonTurn) ? seasonTurn : undefined,
     keyLinger: isKeyLinger(keyLinger) ? keyLinger : undefined,
+    breath: isBreath(breath) ? breath : undefined,
     discoverSpeed: isDiscoverSpeed(discoverSpeed) ? discoverSpeed : undefined,
     paceStep: isPaceStep(paceStep) ? paceStep : undefined,
     handOver: isHandOver(handOver) ? handOver : undefined,
@@ -572,6 +586,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     colorSpace,
     seasonTurn,
     keyLinger,
+    breath,
     discoverSpeed,
     paceStep,
     handOver,
@@ -600,6 +615,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     colorSpace: colorSpace === SEASON_COLOR_SPACE ? undefined : colorSpace,
     seasonTurn: seasonTurn === SEASON_TURN ? undefined : seasonTurn,
     keyLinger: keyLinger === KEY_LINGER ? undefined : keyLinger,
+    breath: breath === BREATH ? undefined : breath,
     discoverSpeed: discoverSpeed === DISCOVER_SPEED ? undefined : discoverSpeed,
     paceStep: paceStep === PACE_STEP ? undefined : paceStep,
     handOver: handOver === HAND_OVER ? undefined : handOver,
@@ -640,6 +656,7 @@ function tweakValues({
   colorSpace,
   seasonTurn,
   keyLinger,
+  breath,
   discoverSpeed,
   paceStep,
   handOver,
@@ -670,6 +687,7 @@ function tweakValues({
     ...(colorSpace === undefined ? {} : { colorSpace }),
     ...(seasonTurn === undefined ? {} : { seasonTurn }),
     ...(keyLinger === undefined ? {} : { keyLinger }),
+    ...(breath === undefined ? {} : { breath }),
     ...(discoverSpeed === undefined ? {} : { discoverSpeed }),
     ...(paceStep === undefined ? {} : { paceStep }),
     ...(handOver === undefined ? {} : { handOver }),

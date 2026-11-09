@@ -30,7 +30,7 @@
    * Breathing, it scales up evenly, by as much as moves its sides by as many pixels, however wide it is (see `breath.ts`
    * and `breathe` in `styles.css`): what it says, its corners, edge and shine with it, nothing around it moving.
    */
-  scale: calc(1 + var(--candy-breath) * var(--candy-breath-step, 0));
+  scale: calc(1 + var(--candy-breath) / 3 * var(--breath, 3) * var(--candy-breath-step, 0));
   transition:
     translate 0.08s,
     box-shadow 0.08s;

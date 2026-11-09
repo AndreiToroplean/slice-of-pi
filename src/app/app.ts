@@ -27,7 +27,7 @@ import { Speaker } from './feedback/speaker';
 })
 export class App {
   protected readonly background = inject(Background);
-  private readonly tweaks = inject(Tweaks);
+  protected readonly tweaks = inject(Tweaks);
   protected readonly vibrator = inject(Vibrator);
   protected readonly speaker = inject(Speaker);
   /** The margins and corner buttons of every screen (see `layout.ts`). */
