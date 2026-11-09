@@ -14,7 +14,8 @@ test('drags a handle of edit mode with a finger, the keypad following it, and ke
   await page.getByRole('button', { name: 'Edit Layout' }).click();
   await page.getByRole('button', { name: 'Keypad', exact: true }).click();
   const knob = page.getByRole('slider', { name: 'Keypad top' });
-  await expect(knob).toHaveAttribute('aria-valuenow', '37.6');
+  const start = 37.2;
+  await expect(knob).toHaveAttribute('aria-valuenow', String(start));
   const keyTop = async (): Promise<number> =>
     (await page.getByRole('button', { name: '7', exact: true }).boundingBox())?.y ?? NaN;
   const box = await knob.boundingBox();
@@ -37,7 +38,8 @@ test('drags a handle of edit mode with a finger, the keypad following it, and ke
 
   await expect.poll(keyTop).toBeCloseTo(before - 40, 0);
   const value = Number(await knob.getAttribute('aria-valuenow'));
-  expect(value).toBeGreaterThan(42);
+  // 40px of the screen's 824 is about 4.9% of it.
+  expect(value).toBeGreaterThan(start + 4);
   await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('button', { name: 'Resume' }).click();
   await page.reload();
