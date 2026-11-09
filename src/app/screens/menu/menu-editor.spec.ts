@@ -158,7 +158,7 @@ describe('MenuEditor', () => {
     await stable();
 
     const color = hslToHex({ ...hexToHsl(MENU_LOOK.iconLight.color), hue: 200 });
-    const iconLight = { offset: MENU_LOOK.iconLight.offset + 0.1, color };
+    const iconLight = { offset: Number((MENU_LOOK.iconLight.offset + 0.1).toFixed(4)), color };
     expect(editor.look().iconLight).toEqual(iconLight);
     expect(TestBed.inject(Tweaks).menu().iconLight).toEqual(iconLight);
 

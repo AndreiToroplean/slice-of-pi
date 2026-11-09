@@ -75,16 +75,16 @@ export const BUTTON_SLOTS = BUTTON_COUNT + 1;
 /** The menu's own look. */
 export const MENU_LOOK: MenuLook = {
   layout: {
-    title: { y: 63 },
-    icon: { size: 48.7, offset: 11.8 },
+    title: { y: 61.3 },
+    icon: { size: 55.2, offset: 14.7 },
     slice: { size: 7.9, offset: -20.7 },
     pi: { size: 13.5, offset: -40.9 },
-    buttons: { y: 17, height: 3.25, width: 16, gap: 0.75 },
+    buttons: { y: 19, height: 3.1875, width: 18.375, gap: 0.8125 },
   },
   light: {
     icon: {
       intensity: 0.97,
-      core: 7.7,
+      core: 11.2,
       falloff: 2.3,
       reach: 26,
       rays: 0.92,
@@ -92,10 +92,10 @@ export const MENU_LOOK: MenuLook = {
       saturation: 1.5,
     },
     slice: {
-      intensity: 0.38,
+      intensity: 0.67,
       core: 5.1,
-      falloff: 3.95,
-      reach: 12,
+      falloff: 5.3,
+      reach: 10,
       rays: 0.64,
       rayCount: 4,
       saturation: 3,
@@ -110,7 +110,7 @@ export const MENU_LOOK: MenuLook = {
       saturation: 1.2,
     },
   },
-  iconLight: { offset: -3.6, color: '#ff6857' },
+  iconLight: { offset: -5.2, color: '#ff6857' },
 };
 
 /** A value of the look, as the editor shows it: what it's called, its range, and how finely it moves. */
