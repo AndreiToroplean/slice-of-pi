@@ -20,10 +20,10 @@ export type SeasonBackgrounds = Readonly<
 
 /** The seasons' backgrounds, unless tuned in developer mode. */
 export const SEASON_BACKGROUNDS: SeasonBackgrounds = {
-  spring: { early: ['#ffb3d1', '#7fd6a6'], late: ['#ff9fc4', '#5fc993'] },
-  summer: { early: ['#ffc35a', '#38b6ea'], late: ['#ffab3d', '#1fa2df'] },
-  autumn: { early: ['#ee8a45', '#9b4f86'], late: ['#d9683a', '#7a3f78'] },
-  winter: { early: ['#9bb4dc', '#46598f'], late: ['#8299c9', '#30406f'] },
+  spring: { early: ['#ffa3c7', '#55e295'], late: ['#ff8fba', '#35d582'] },
+  summer: { early: ['#f4af48', '#177fab'], late: ['#f4972b', '#006ba0'] },
+  autumn: { early: ['#c95d12', '#6f3960'], late: ['#b43b07', '#4e2952'] },
+  winter: { early: ['#6088c7', '#2d3a5c'], late: ['#476db4', '#17213c'] },
 };
 
 /**
