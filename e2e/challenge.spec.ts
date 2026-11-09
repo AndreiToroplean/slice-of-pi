@@ -20,6 +20,8 @@ test('loses a challenge on its first mistake, the game over dialog staying open 
 
   await page.keyboard.press('Enter');
   await expect(over).toBeHidden();
+  // The game starts again once it no longer shows itself over.
+  await expect(page.locator('.game-over')).toHaveCount(0);
   await page.keyboard.press('1');
   await expect(page.locator('app-slots .slot').first()).toHaveText('1');
 });
@@ -33,6 +35,8 @@ test('continues a lost challenge in free play, deleting the mistake with backspa
   const over = page.getByRole('dialog', { name: 'Game Over' });
   await over.getByRole('button', { name: 'Continue in Free Play' }).click();
   await expect(over).toBeHidden();
+  // The game carries on once it no longer shows itself over.
+  await expect(page.locator('.game-over')).toHaveCount(0);
 
   await page.keyboard.press('Backspace');
   await page.keyboard.press('1');

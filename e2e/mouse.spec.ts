@@ -6,11 +6,6 @@ test('stops showing a key pressed once the mouse is dragged too far off it to ty
   await page.goto('/play');
   const keypad = page.getByRole('group', { name: 'Keypad' });
   await keypad.waitFor();
-  // Where the keys are once the screen has come in: its view transition over, which takes every touch meanwhile, and
-  // which the keypad is already in before its animations start.
-  await page.waitForFunction(
-    () => document.activeViewTransition === null && document.getAnimations().length === 0,
-  );
   const four = keypad.locator('[data-key="4"]');
   const six = keypad.locator('[data-key="6"]');
   const center = async (key: typeof four): Promise<{ x: number; y: number }> => {
