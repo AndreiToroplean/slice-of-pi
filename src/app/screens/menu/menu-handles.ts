@@ -3,6 +3,7 @@ import { EditedPart } from '../../ui/handles/parts';
 import {
   BUTTON_SLOTS,
   ICON_LIGHT_OFFSET,
+  LANTERN_HEIGHT,
   LAYOUT_FIELDS,
   LIGHT_FIELDS,
   LightLayer,
@@ -29,8 +30,8 @@ export const PART_NAMES: Readonly<Record<MenuPart, string>> = {
  * within a word and 0.55 between words (see `menu.css`).
  */
 export const LINE_SIZES: Readonly<Record<'slice' | 'pi', { width: number; height: number }>> = {
-  slice: { width: 7 * 1.25 + 5 * 0.19 + 0.55, height: 1.625 },
-  pi: { width: 2 * 1.25 + 0.19, height: 1.625 },
+  slice: { width: 7 * 1.25 + 5 * 0.19 + 0.55, height: LANTERN_HEIGHT },
+  pi: { width: 2 * 1.25 + 0.19, height: LANTERN_HEIGHT },
 };
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -47,8 +48,9 @@ const ABOVE: Readonly<Record<'icon' | 'slice', readonly ('icon' | 'slice')[]>> =
 
 /**
  * A part's height, dragged up and down, carrying along the parts above it, as they stand on one another: "Pi", at the
- * bottom, moves the whole group, its center, in hundredths of the menu's height; "Slice of" moves itself and the icon,
- * and the icon itself alone, their offsets from the center, in hundredths of the column's width, as their sizes are.
+ * bottom, moves the whole group, its share of the free space above it, in hundredths of the free space (see
+ * `MenuLayout`); "Slice of" moves itself and the icon, and the icon itself alone, their offsets from the center, in
+ * hundredths of the column's width, as their sizes are.
  */
 function height(part: Height, knob: string): Handle<MenuLook> {
   const shape = {
@@ -64,9 +66,11 @@ function height(part: Height, knob: string): Handle<MenuLook> {
     const field = LAYOUT_FIELDS.title[0];
     return {
       ...shape,
+      // Down, the space above grows.
+      sign: 1,
       unit: 'height',
-      get: (look) => look.layout.title.y,
-      set: (look, y) => withLayout(look, 'title', 'y', clamp(y, field.min, field.max)),
+      get: (look) => look.layout.title.above,
+      set: (look, above) => withLayout(look, 'title', 'above', clamp(above, field.min, field.max)),
     };
   }
   const field = LAYOUT_FIELDS[part][1];
@@ -147,7 +151,7 @@ function buttons(
   };
 }
 
-/** Where the buttons stand: their middle's height, dragged by their bottom edge. */
+/** Where the buttons stand: their share of the free space below them, in hundredths of it, dragged by their bottom edge. */
 const BUTTONS_HEIGHT: Handle<MenuLook> = {
   label: 'Buttons height',
   text: 'Height',
@@ -155,8 +159,8 @@ const BUTTONS_HEIGHT: Handle<MenuLook> = {
   sign: -1,
   unit: 'height',
   scale: 1,
-  get: (look) => look.layout.buttons.y,
-  set: (look, y) => withLayout(look, 'buttons', 'y', clamp(y, 0, 100)),
+  get: (look) => look.layout.buttons.below,
+  set: (look, below) => withLayout(look, 'buttons', 'below', clamp(below, 0, 100)),
   line: { bottom: 'calc(var(--buttons-y) - var(--buttons-span) / 2)' },
   knob: { left: '18%' },
 };

@@ -2,7 +2,7 @@ import { dragged, Handle, UnitSizes } from '../../ui/handles/handle';
 import { coreHandle, lightKnobs, PART_HANDLES } from './menu-handles';
 import { BUTTON_SLOTS, MENU_LOOK, MenuLook } from './menu-look';
 
-/** A rem of 16 pixels, a menu 800 pixels tall and a column 400 wide. */
+/** A rem of 16 pixels, a menu with 800 pixels of free space and a column 400 wide. */
 const SIZES: UnitSizes = { rem: 16, height: 8, column: 4 };
 
 function handle(handles: readonly Handle<MenuLook>[], label: string): Handle<MenuLook> {
@@ -31,8 +31,11 @@ describe('menu handles', () => {
     });
     expect(icon).toEqual({ ...MENU_LOOK.layout, icon: raised('icon') });
     expect(slice).toEqual({ ...MENU_LOOK.layout, icon: raised('icon'), slice: raised('slice') });
-    // The group's center, in hundredths of the menu's height, 8 pixels each.
-    expect(pi).toEqual({ ...MENU_LOOK.layout, title: { y: MENU_LOOK.layout.title.y + 2 } });
+    // Raised, less free space above the group, in hundredths of it, 8 pixels each.
+    expect(pi).toEqual({
+      ...MENU_LOOK.layout,
+      title: { above: Number((MENU_LOOK.layout.title.above - 2).toFixed(4)) },
+    });
   });
 
   it('grows a part by its right edge, which moves half as far as it widens, as it stays centered', () => {
@@ -46,7 +49,7 @@ describe('menu handles', () => {
     ).toBe(MENU_LOOK.layout.pi.size + 1);
   });
 
-  it('sets the buttons’ middle as a height of the menu, and their size and gap in rem, round it', () => {
+  it('sets the free space below the buttons, as a share of it, and their size and gap in rem', () => {
     const { buttons } = PART_HANDLES;
     const look = [
       dragged(handle(buttons, 'Buttons height'), MENU_LOOK, -16, SIZES),
@@ -57,7 +60,7 @@ describe('menu handles', () => {
     ].map((each) => each.layout.buttons);
 
     expect(look).toEqual([
-      { ...MENU_LOOK.layout.buttons, y: MENU_LOOK.layout.buttons.y + 2 },
+      { ...MENU_LOOK.layout.buttons, below: MENU_LOOK.layout.buttons.below + 2 },
       { ...MENU_LOOK.layout.buttons, height: MENU_LOOK.layout.buttons.height + 0.5 },
       { ...MENU_LOOK.layout.buttons, gap: MENU_LOOK.layout.buttons.gap + 0.5 },
     ]);

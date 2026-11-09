@@ -144,7 +144,8 @@ function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
       @if (ring !== undefined) {
         <div class="reach" aria-hidden="true" [style]="ring"></div>
       }
-      <app-handles #onMenu [handles]="handles()" (released)="save()" />
+      <!-- Heights in hundredths of the menu's free space, as the title and the buttons stand in it. -->
+      <app-handles #onMenu class="on-menu" [handles]="handles()" (released)="save()" />
     }
     <app-choice-dialog #cancelDialog heading="Cancel Your Tweaks?">
       <button type="button" appCandy (click)="void cancelDialog.close()">Continue Editing</button>

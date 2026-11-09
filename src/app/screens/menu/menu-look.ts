@@ -5,25 +5,27 @@ export const TWILIGHT: BackgroundColors = ['#19224d', '#be5a23'];
 
 /**
  * How the main menu looks: where its parts sit, and the light its lanterns and icon give. Everything stays centered
- * across: only sizes and heights are set. The icon and the name's lines are a group, kept together whatever the menu's
- * height: only the group's center is a height of the menu, in hundredths of it, up from its bottom; each part's middle
- * is an offset from that center, up, and each part's size, both in hundredths of the column's width (see `app.css`).
- * The buttons are a group too: its middle is a height of the menu, as the title's is, and each button's height and
- * width, and the gap between any two, are in rem, as every page's controls are sized, the width no wider than the
- * screen within its margins.
+ * across: only sizes and heights are set. The icon and the name's lines are a group, the title, kept together whatever
+ * the menu's height: each part's middle is an offset from the group's center, up, and each part's size, both in
+ * hundredths of the column's width (see `app.css`). The buttons are a group too: each button's height and width, and
+ * the gap between any two, are in rem, as every page's controls are sized, the width no wider than the screen within
+ * its margins. Neither group grows nor shrinks with the menu's height: what's left of it, the free space, is shared
+ * between above the title, below the buttons, in hundredths of it, and between them, the rest. As the screen gets less
+ * tall, as when the system's bars show, each space shrinks by its share, everything moving proportionally, until
+ * there's none left (see {@link menuStyles}).
  */
 export interface MenuLayout {
-  /** The height of the center of the icon and the name, together. */
-  readonly title: { readonly y: number };
+  /** The share of the free space above the title. */
+  readonly title: { readonly above: number };
   /** The icon's width, and how far its middle is above the center. */
   readonly icon: { readonly size: number; readonly offset: number };
   /** The size of the letters of "Slice of", and how far their middle is above the center. */
   readonly slice: { readonly size: number; readonly offset: number };
   /** The size of the letters of "Pi", and how far their middle is above the center. */
   readonly pi: { readonly size: number; readonly offset: number };
-  /** The height of the buttons' middle, and each button's height and width, and the gap between any two, in rem. */
+  /** The share of the free space below the buttons, and each button's height and width, and the gap between any two, in rem. */
   readonly buttons: {
-    readonly y: number;
+    readonly below: number;
     readonly height: number;
     readonly width: number;
     readonly gap: number;
@@ -75,11 +77,11 @@ export const BUTTON_SLOTS = BUTTON_COUNT + 1;
 /** The menu's own look. */
 export const MENU_LOOK: MenuLook = {
   layout: {
-    title: { y: 61.3 },
+    title: { above: 84.6 },
     icon: { size: 55.2, offset: 14.7 },
     slice: { size: 7.9, offset: -20.7 },
     pi: { size: 13.5, offset: -40.9 },
-    buttons: { y: 19, height: 3.1875, width: 18.375, gap: 0.8125 },
+    buttons: { below: 5.9, height: 3.1875, width: 18.375, gap: 0.8125 },
   },
   light: {
     icon: {
@@ -124,7 +126,7 @@ export interface LookField<T> {
 
 /** The values of each part of the layout. */
 export const LAYOUT_FIELDS = {
-  title: [{ key: 'y', label: 'Height', min: 0, max: 100, step: 0.5 }],
+  title: [{ key: 'above', label: 'Space above', min: 0, max: 100, step: 0.1 }],
   icon: [
     { key: 'size', label: 'Size', min: 5, max: 90, step: 0.5 },
     { key: 'offset', label: 'Offset', min: -150, max: 150, step: 0.1 },
@@ -141,7 +143,7 @@ export const LAYOUT_FIELDS = {
     { key: 'height', label: 'Height', min: 2, max: 6, step: 0.0625 },
     { key: 'width', label: 'Width', min: 8, max: 32, step: 0.0625 },
     { key: 'gap', label: 'Gap', min: 0, max: 4, step: 0.0625 },
-    { key: 'y', label: 'Height', min: 0, max: 100, step: 0.1 },
+    { key: 'below', label: 'Space below', min: 0, max: 100, step: 0.1 },
   ],
 } as const satisfies {
   readonly [K in keyof MenuLayout]: readonly LookField<MenuLayout[K]>[];
@@ -195,18 +197,43 @@ export function withLight(
   return { ...look, light: { ...look.light, [layer]: { ...look.light[layer], [key]: value } } };
 }
 
+/** How tall the name's lanterns are, in their letters' size (see `menu.css`). */
+export const LANTERN_HEIGHT = 1.625;
+
+/**
+ * How far the title reaches above its center, and below it, in hundredths of the column's width: from the top of its
+ * highest part, to the bottom of its lowest. The icon is square, and the name's lines as tall as their lanterns.
+ */
+export function titleReach(layout: MenuLayout): { readonly up: number; readonly down: number } {
+  const { icon, slice, pi } = layout;
+  const parts = [
+    { offset: icon.offset, half: icon.size / 2 },
+    { offset: slice.offset, half: (LANTERN_HEIGHT * slice.size) / 2 },
+    { offset: pi.offset, half: (LANTERN_HEIGHT * pi.size) / 2 },
+  ];
+  return {
+    up: Math.max(...parts.map((part) => part.offset + part.half)),
+    down: Math.max(...parts.map((part) => part.half - part.offset)),
+  };
+}
+
 /**
  * The look as the CSS lengths the menu lays out with: `--icon-size` and `--icon-y`, `--icon-light-y`, `--slice-size`
- * and `--slice-y`, `--pi-size` and `--pi-y`, `--buttons-y`, `--buttons-height`, `--buttons-width`, `--buttons-gap`, and `--buttons-span`,
- * how tall the buttons are together, with the room under them (see {@link BUTTON_SLOTS}). Each `-y` is the height of a middle, up from the menu's bottom, as a percentage of
- * the menu's height plus a length.
+ * and `--slice-y`, `--pi-size` and `--pi-y`, `--buttons-y`, `--buttons-height`, `--buttons-width`, `--buttons-gap`,
+ * `--buttons-span`, how tall the buttons are together, with the room under them (see {@link BUTTON_SLOTS}), and
+ * `--menu-free`, the free space: the menu's height but the title's and the buttons'. Each `-y` is the height of a
+ * middle, up from the menu's bottom: the buttons' their share of the free space below them, and half their span; the
+ * title's center the menu's height but its share of the free space above it, and how far it reaches up.
  */
 export function menuStyles(look: MenuLook): Readonly<Record<string, string>> {
   const { title, icon, slice, pi, buttons } = look.layout;
   const across = (value: number): string => `calc(${String(value)} * var(--column) / 100)`;
-  const up = (offset: number): string =>
-    `calc(${String(title.y)}% + ${String(offset)} * var(--column) / 100)`;
   const rem = (value: number): string => `${String(value)}rem`;
+  const span = rem(BUTTON_SLOTS * buttons.height + (BUTTON_SLOTS - 1) * buttons.gap);
+  const reach = titleReach(look.layout);
+  const free = `(100% - ${String(reach.up + reach.down)} * var(--column) / 100 - ${span})`;
+  const up = (offset: number): string =>
+    `calc(100% - ${String(title.above)} * ${free} / 100 + ${String(offset - reach.up)} * var(--column) / 100)`;
   return {
     '--icon-size': across(icon.size),
     '--icon-y': up(icon.offset),
@@ -215,11 +242,12 @@ export function menuStyles(look: MenuLook): Readonly<Record<string, string>> {
     '--slice-y': up(slice.offset),
     '--pi-size': across(pi.size),
     '--pi-y': up(pi.offset),
-    '--buttons-y': `${String(buttons.y)}%`,
+    '--buttons-y': `calc(${String(buttons.below)} * ${free} / 100 + ${span} / 2)`,
     '--buttons-height': rem(buttons.height),
     '--buttons-width': rem(buttons.width),
     '--buttons-gap': rem(buttons.gap),
-    '--buttons-span': rem(BUTTON_SLOTS * buttons.height + (BUTTON_SLOTS - 1) * buttons.gap),
+    '--buttons-span': span,
+    '--menu-free': `calc${free}`,
   };
 }
 
