@@ -15,6 +15,17 @@ describe('run charts', () => {
       expect(digitTimes(runAt([0, 300, 450, 1450]))).toEqual([undefined, 300, 150, 1000]);
     });
 
+    it('gives nothing before the start of a run from a checkpoint', () => {
+      const run = runOf(
+        [0, 300].reduce(
+          (log, time) => typeKey(log, '1', time),
+          newTouchLog('run', 0, false, 'calculator', { start: 2 }),
+        ),
+      );
+
+      expect(digitTimes(run)).toEqual([undefined, undefined, undefined, 300]);
+    });
+
     it('gives nothing for a run without digits', () => {
       expect(digitTimes(runAt([]))).toEqual([]);
     });

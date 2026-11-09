@@ -4,11 +4,14 @@ import { Run } from '../../player-data/run';
 export type Series = readonly (number | undefined)[];
 
 /**
- * How long the player took to type each digit of a run, in milliseconds: the time since the digit before. The first
- * digit has none, as the run's clock starts on it.
+ * How long the player took to type each digit of a run, in milliseconds, by place: the time since the digit before.
+ * The first digit has none, as the run's clock starts on it, nor have the places before it, in a run from a checkpoint.
  */
 export function digitTimes(run: Run): Series {
-  return run.times.map((time, i) => (i === 0 ? undefined : time - (run.times[i - 1] ?? 0)));
+  return [
+    ...Array.from({ length: run.start }, () => undefined),
+    ...run.times.map((time, i) => (i === 0 ? undefined : time - (run.times[i - 1] ?? 0))),
+  ];
 }
 
 /**

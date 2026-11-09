@@ -1,7 +1,15 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
-import { groupRuns, moveRun, orderRuns, Run, RunOrder } from '../../player-data/run';
+import {
+  countsInGroups,
+  groupRuns,
+  moveRun,
+  orderRuns,
+  reachedPlace,
+  Run,
+  RunOrder,
+} from '../../player-data/run';
 import { RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
 import { CONFIRM } from '../../ui/confirm';
@@ -14,7 +22,7 @@ import type { RunCardChart } from './run-card';
  * The player's runs as a page of them shows them, provided by each such page: read as it opens, in the order the game
  * takes them, what the break model makes of them, the chart of each and of all of them, and deleting them. The tweaks
  * apply, as they do to the whole game: unchecked runs, which may hold mistakes, are only shown while they count in the
- * groups. Neither are runs from a checkpoint, nor Discover's.
+ * groups. Neither are Discover's.
  */
 @Injectable()
 export class RunsState {
@@ -51,7 +59,7 @@ export class RunsState {
           checked: run.checked,
           later: index >= (this.order().line ?? Infinity),
           meta:
-            `${plural(run.digits.length, 'digit')} in ${seconds(run.times.at(-1) ?? 0)}` +
+            `${plural(run.digits.length, 'digit')}${run.start > 0 ? ` from ${String(run.start)}` : ''} in ${seconds(run.times.at(-1) ?? 0)}` +
             (run.digits.length > 0 ? ` · ${plural(breaks.length + 1, 'group')}` : ''),
           times: digitTimes(run),
           baseline: found?.baseline ?? [],
@@ -66,7 +74,7 @@ export class RunsState {
       1,
       ...this.runs()
         .filter((run) => this.shows(run))
-        .map((run) => run.digits.length),
+        .map(reachedPlace),
     ),
   );
   /** The top of every chart's scale. */
@@ -180,11 +188,11 @@ export class RunsState {
   }
 
   /**
-   * Whether it shows a run: unchecked ones only while they're included. Runs from a checkpoint and Discover's aren't
-   * charted, as the charts go place by place from the start of π, every touch kept.
+   * Whether it shows a run: those counted in the groups, unchecked ones only while they're included. Discover's aren't
+   * charted, every touch not kept.
    */
   private shows(run: Run): boolean {
-    return run.start === 0 && !run.overwritten && (run.checked || this.tweaks.includeUnchecked());
+    return countsInGroups(run, this.tweaks.includeUnchecked());
   }
 }
 
