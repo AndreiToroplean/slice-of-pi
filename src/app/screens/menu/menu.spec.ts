@@ -385,6 +385,12 @@ describe('Menu', () => {
       ).not.toBeNull();
       // The room under the buttons, for what a split button opens there, shows, but does nothing.
       expect(host.querySelector('.room')?.hasAttribute('inert')).toBe(true);
+      // Previewed, the menu shows as in the game, without it.
+      host.querySelector<HTMLElement>('app-menu-editor .preview')?.click();
+      await fixture.whenStable();
+      expect(host.querySelector('.room')).toBeNull();
+      host.querySelector<HTMLElement>('app-menu-editor .preview')?.click();
+      await fixture.whenStable();
 
       Array.from(host.querySelectorAll('app-menu-editor button'))
         .find((each) => each.textContent.trim() === 'Done')
