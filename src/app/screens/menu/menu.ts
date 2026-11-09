@@ -211,8 +211,8 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
           />
         }
       </app-split-button>
-      @if (editedLook() !== undefined) {
-        <!-- Editing the menu, the room under the buttons shows what a split button opens there, faint. -->
+      @if (editedLook() !== undefined && !previewing()) {
+        <!-- Editing the menu, the room under the buttons shows what a split button opens there, faint, unless previewed. -->
         <app-start-from
           class="room"
           mode="challenge"
@@ -273,7 +273,8 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
         [layout]="editedLayout() ?? tweaks.layout()"
         (layoutChange)="editedLayout.set($event)"
         [lights]="lights()"
-        (done)="editedLook.set(undefined); editedLayout.set(undefined)"
+        [(previewing)]="previewing"
+        (done)="editedLook.set(undefined); editedLayout.set(undefined); previewing.set(false)"
       />
     }
   `,
@@ -295,6 +296,8 @@ export class Menu {
 
   /** The look being edited, in developer mode's editor, shown as it changes. */
   protected readonly editedLook = signal<MenuLook | undefined>(undefined);
+  /** Whether the editor hides its handles, for the menu to show as in the game. */
+  protected readonly previewing = signal(false);
   /** The margins and corner buttons being edited there, in the layout of every screen, shown as they change. */
   protected readonly editedLayout = signal<Layout | undefined>(undefined);
   protected readonly look = computed(() => this.editedLook() ?? this.tweaks.menu());
