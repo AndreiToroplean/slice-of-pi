@@ -178,6 +178,44 @@ describe('Pause', () => {
     expect(replay).toHaveBeenCalledOnce();
   });
 
+  it('pauses again on an Escape right after the dialog has gone, before it says it has closed', async () => {
+    const { pause, dialog } = await setUp();
+    const escape = (): void => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    };
+    escape();
+    // Gone, as the browser hides it at once without motion, its close event yet to come.
+    dialog.removeAttribute('open');
+
+    escape();
+    dialog.dispatchEvent(new Event('close'));
+
+    expect(dialog.open).toBe(true);
+    expect(pause.paused()).toBe(true);
+  });
+
+  it('pauses again on Back right after the dialog has gone, before it says it has closed', async () => {
+    const { pause, dialog } = await setUp();
+    pause.back();
+    dialog.removeAttribute('open');
+
+    pause.back();
+    dialog.dispatchEvent(new Event('close'));
+
+    expect(dialog.open).toBe(true);
+    expect(pause.paused()).toBe(true);
+  });
+
+  it('keeps the game over dialog open on Back, the game staying paused', async () => {
+    const { host, pause } = await setUp();
+    pause.gameOver();
+
+    pause.back();
+
+    expect(dialogNamed(host, 'Game Over').open).toBe(true);
+    expect(pause.paused()).toBe(true);
+  });
+
   it('resumes when the dialog closes on its own, as with Escape', async () => {
     const { pause, dialog, click } = await setUp();
     await click('Pause');

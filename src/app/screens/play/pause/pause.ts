@@ -120,30 +120,40 @@ export class Pause {
   /** Restarts the game, from the game over dialog, which closes. */
   protected playAgain(): void {
     this.restart.emit();
+    // At once, rather than once the dialog has closed: keys typed as it goes count.
+    this.paused.set(false);
     void this.overDialog().close();
   }
 
   /** Carries the lost game on in free play, from the game over dialog, which closes. */
   protected continueInFreePlay(): void {
     this.freePlay.emit();
+    // At once, rather than once the dialog has closed: keys typed as it goes count.
+    this.paused.set(false);
     void this.overDialog().close();
   }
 
-  /** Going back: pauses, or resumes, or goes back from the confirmation, as Escape does. */
+  /**
+   * Going back: pauses, or resumes, or goes back from the confirmation, as Escape does, by whether the dialogs are open
+   * (see `escape`); the game over dialog stays, as the game can't resume.
+   */
   back(): void {
     const replayDialog = this.replayDialog();
     if (replayDialog.isOpen) {
       void replayDialog.close();
-    } else if (this.paused()) {
+    } else if (this.dialog().isOpen) {
       this.resume();
-    } else {
+    } else if (!this.overDialog().isOpen) {
       this.pause();
     }
   }
 
-  /** Pauses, unless already paused: the dialog then closes on Escape by itself. */
+  /**
+   * Pauses, unless the dialog is open: it then closes on Escape by itself. Whether it's open, rather than paused, which
+   * only follows once it has closed: closed at once, without motion, it opens again on the next Escape, however soon.
+   */
   protected escape(event: Event): void {
-    if (!this.paused()) {
+    if (!this.dialog().isOpen && !this.overDialog().isOpen && !this.replayDialog().isOpen) {
       // So that the browser doesn't take the same Escape to close the dialog just opened.
       event.preventDefault();
       this.pause();
@@ -157,18 +167,22 @@ export class Pause {
 
   /**
    * A dialog closed: the game resumes, unless the player chose to edit the layout, or the game over dialog took the
-   * pause dialog's place.
+   * pause dialog's place, or the pause dialog opened again since.
    */
   protected closed(): void {
     if (this.editing) {
       this.editing = false;
       this.edit.emit();
-    } else if (!this.overDialog().isOpen) {
+    } else if (!this.overDialog().isOpen && !this.dialog().isOpen) {
       this.paused.set(false);
     }
   }
 
+  /** Resumes at once, rather than once the dialog has closed, so that keys typed as it goes count, unless editing. */
   protected resume(): void {
+    if (!this.editing) {
+      this.paused.set(false);
+    }
     void this.dialog().close();
   }
 
