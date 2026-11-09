@@ -1,4 +1,5 @@
 import { fromStartOfPi } from './break-model';
+import { timesFromPlace } from '../from-checkpoint';
 import { BreakSettings } from './hyperparameters';
 import { finishedRuns, mercury, MERCURY, MERCURY_DEFAULTS } from './mercury';
 
@@ -134,5 +135,18 @@ describe('a model that only takes runs from the start of π', () => {
 
     expect(stats.groups).toEqual(MERCURY.create(settings).stats([grouped, grouped]).groups);
     expect(stats.runs.map((run) => run.baseline.length > 0)).toEqual([true, false, true]);
+  });
+
+  it('takes the run being typed from a checkpoint from the start of π, as an earlier run typed the places before it', () => {
+    const runs = [fromStartOfPi(timesOf(30, by3(30)))];
+    const current = [0, 200, 400, 1400];
+    const model = MERCURY.create(settings);
+
+    expect(model.play(runs, 5, 16).groupEnds(current, 15, false)).toBe(
+      model.play(runs, 5).groupEnds(timesFromPlace(16, current, runs), 15, false),
+    );
+    expect(model.play(runs, 5, 16).groupAt(current, 15)).toEqual(
+      model.play(runs, 5).groupAt(timesFromPlace(16, current, runs), 15),
+    );
   });
 });

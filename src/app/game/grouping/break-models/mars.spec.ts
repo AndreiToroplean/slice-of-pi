@@ -68,6 +68,16 @@ describe('Mars', () => {
       expect(stats.groups.every((group) => group.trusted || group.open)).toBe(true);
     });
 
+    it('plays the run being typed from the place it started from', () => {
+      // Two digits typed from 16, then the next one: at 18, where the runs usually break.
+      const fromCheckpoint = MARS.create({}).play(grouped.map(fromStartOfPi), 5, 16);
+      // From the start of π, the next digit is at 2, inside the first group.
+      const fromStart = MARS.create({}).play(grouped.map(fromStartOfPi), 5);
+
+      expect(fromCheckpoint.groupEnds([0, 200, 400], 15, true)).toBe(true);
+      expect(fromStart.groupEnds([0, 200, 400], 0, true)).toBe(false);
+    });
+
     it('says nothing of the places before the checkpoint, nor of the break it starts at', () => {
       // The run from the checkpoint is the oldest, so that the others weigh as much without it.
       const without = MARS.steps?.({}, early);

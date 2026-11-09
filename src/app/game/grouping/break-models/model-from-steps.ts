@@ -1,10 +1,12 @@
 import type { GroupPlan } from '../groups';
 import type { BreakModel, Gameplay, Stats, TimedRun } from './break-model';
+import { timesFromPlace } from '../from-checkpoint';
 import type { Mixture } from './statistics';
 import { breaksOf, RunSteps, Steps } from './steps';
 
 /**
- * Works out the steps over the finished runs it was given and, if given, the run in progress, which is then the newest.
+ * Works out the steps over the finished runs it was given and, if given, the run in progress, which is then the newest:
+ * its times since its first digit, at the place it was prepared for.
  * `init` is the last mixture fitted, if any, to start the fit from. `start`, with a run in progress, is the index where
  * its group being typed starts, which hasn't finished before its last digit: the groups before it are played, so a
  * model may take them as they are rather than as it would cut them.
@@ -15,30 +17,38 @@ export type Fit = (current?: readonly number[], init?: Mixture, start?: number) 
 export type Ends = (steps: Steps, next: number, trusted: boolean) => boolean;
 
 /**
- * The model the game sees, from a model that works out its steps (`steps.ts`): `prepare` takes the finished runs,
- * oldest first, and gives what fits them, with a run in progress or without. `ends` decides where groups end, by
- * default {@link groupEnds}.
+ * What fits the finished runs, oldest first, with a run in progress from the place `from` or without.
  */
-export function modelFromSteps(
-  prepare: (finished: readonly TimedRun[]) => Fit,
-  ends: Ends = groupEnds,
-): BreakModel {
+export type Prepare = (finished: readonly TimedRun[], from: number) => Fit;
+
+/**
+ * The model the game sees, from a model that works out its steps (`steps.ts`): `prepare` gives what fits the finished
+ * runs. `ends` decides where groups end, by default {@link groupEnds}.
+ */
+export function modelFromSteps(prepare: Prepare, ends: Ends = groupEnds): BreakModel {
   return {
-    play: (finished, groupSize) => gameplayOf(prepare(finished), ends, groupSize),
-    stats: (finished) => statsOf(prepare(finished)()),
+    play: (finished, groupSize, from = 0) =>
+      gameplayOf(prepare(finished, from), ends, groupSize, from),
+    stats: (finished) => statsOf(prepare(finished, 0)()),
   };
 }
 
 /**
- * What a model that only takes runs from the start of π fits, from `prepare` given their times alone: runs from a
- * checkpoint are left out, each with no steps of its own, so that the steps' runs stay those given.
+ * What a model that only takes runs from the start of π fits, from `prepare` given their times alone: finished runs
+ * from a checkpoint are left out, each with no steps of its own, so that the steps' runs stay those given; the run in
+ * progress from one is taken from the start of π, the places before it timed as an earlier run typed them (see
+ * `timesFromPlace`).
  */
 export function fromStartOfPiOnly(
   prepare: (finished: readonly (readonly number[])[]) => Fit,
-): (finished: readonly TimedRun[]) => Fit {
-  return (finished) => {
+): Prepare {
+  return (finished, from) => {
     const fit = prepare(timesFromStartOfPi(finished));
-    return (current, init, start) => withRunsLeftOut(fit(current, init, start), finished);
+    return (current, init, start) =>
+      withRunsLeftOut(
+        fit(current && timesFromPlace(from, current, finished), init, start),
+        finished,
+      );
   };
 }
 
@@ -68,7 +78,7 @@ export function withRunsLeftOut(steps: Steps, finished: readonly TimedRun[]): St
  * the finished runs' alone, frozen for the run, so that the groups shown don't flicker between the player's own and
  * growing ones as they type.
  */
-function gameplayOf(fit: Fit, ends: Ends, groupSize: number): Gameplay {
+function gameplayOf(fit: Fit, ends: Ends, groupSize: number, from: number): Gameplay {
   const horizon = fit().horizon;
   let mixture: Mixture | undefined;
   const withCurrent = (current: readonly number[], start: number): Steps => {
@@ -79,7 +89,7 @@ function gameplayOf(fit: Fit, ends: Ends, groupSize: number): Gameplay {
   return {
     groupAt: (current, start) => groupAt(withCurrent(current, start), start, horizon, groupSize),
     groupEnds: (current, start, trusted) =>
-      ends(withCurrent(current, start), current.length - 1, trusted),
+      ends(withCurrent(current, start), from + current.length - 1, trusted),
   };
 }
 
