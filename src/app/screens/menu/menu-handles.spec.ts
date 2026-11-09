@@ -1,5 +1,5 @@
 import { dragged, Handle, UnitSizes } from '../../ui/handles/handle';
-import { coreHandle, lightKnobs, PART_HANDLES } from './menu-handles';
+import { coreHandle, lightKnobs, MOST_SCREEN_CUT, PART_HANDLES, SCREEN_TOP } from './menu-handles';
 import { BUTTON_SLOTS, MENU_LOOK, MenuLook } from './menu-look';
 
 /** A rem of 16 pixels, a menu with 800 pixels of free space and a column 400 wide. */
@@ -111,5 +111,11 @@ describe('menu handles', () => {
       MENU_LOOK.light.pi.rayCount + 2,
     );
     expect(dragged(handle(knobs, 'Rays'), MENU_LOOK, 1000, SIZES).light.pi.rays).toBe(1);
+  });
+
+  it("moves the screen's top down as far as it's dragged, never past the most it shows", () => {
+    expect(dragged(SCREEN_TOP, 0, 120, SIZES)).toBe(120);
+    expect(dragged(SCREEN_TOP, 120, -500, SIZES)).toBe(0);
+    expect(dragged(SCREEN_TOP, 0, 2000, SIZES)).toBe(MOST_SCREEN_CUT);
   });
 });

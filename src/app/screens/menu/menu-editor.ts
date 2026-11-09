@@ -31,6 +31,7 @@ import {
   PART_LIGHTS,
   PART_NAMES,
   Point,
+  SCREEN_TOP,
 } from './menu-handles';
 import { LightLayer, MENU_LOOK, MenuLook, withIconLight } from './menu-look';
 
@@ -69,6 +70,8 @@ function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
  * Cancel, or Escape, asks whether to cancel the changes, bringing back what it started with, or to go on editing. Reset
  * brings back the menu's own look and the game's own margins, and Copy copies both, to go into the code. A toggle hides
  * the handles, to preview the menu as in the game, and shows them again, as does tapping a part, which picks it out.
+ * The screen's top, dragged down, shows the menu on a screen that much less tall, as when the system's bars show, what
+ * it no longer shows dimmed above it, until done.
  */
 @Component({
   selector: 'app-menu-editor',
@@ -139,11 +142,16 @@ function untunedMargins(layout: Layout, sizes?: UnitSizes): Layout {
       [unseen]="previewing()"
       (revealed)="previewing.set(false)"
     />
+    @if (cut() > 0) {
+      <!-- What the screen, less tall, no longer shows, above the menu. -->
+      <div class="cut" aria-hidden="true" [style.height.px]="cut()"></div>
+    }
     @if (!previewing()) {
       @let ring = reachRing();
       @if (ring !== undefined) {
         <div class="reach" aria-hidden="true" [style]="ring"></div>
       }
+      <app-handles [handles]="screenTop" />
       <!-- Heights in hundredths of the menu's free space, as the title and the buttons stand in it. -->
       <app-handles #onMenu class="on-menu" [handles]="handles()" (released)="save()" />
     }
@@ -165,6 +173,12 @@ export class MenuEditor implements OnInit {
   readonly done = output();
   /** Whether the handles are hidden, for the menu to show as in the game. */
   readonly previewing = model(false);
+  /**
+   * How far down the screen's top is, in CSS pixels, for the menu to show on a screen that much less tall, as when the
+   * system's bars show: for the editor alone, never saved.
+   */
+  readonly cut = model(0);
+  protected readonly screenTop = [bind(SCREEN_TOP, this.cut)];
 
   protected readonly parts = PART_BOXES;
   /** The part picked out, if any. */

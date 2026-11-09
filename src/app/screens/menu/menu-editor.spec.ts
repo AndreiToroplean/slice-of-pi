@@ -82,7 +82,9 @@ describe('MenuEditor', () => {
   it('shows the handles of the margins and corner buttons until a part is picked out', async () => {
     const { host } = await setUp();
 
+    // The screen's top, always, to see the menu on a less tall screen.
     expect(sliders(host)).toEqual([
+      'Screen top',
       'Top margin',
       'Corner size',
       'Corner radius',
@@ -102,6 +104,7 @@ describe('MenuEditor', () => {
       'Rays',
       'Ray count',
       'Saturation',
+      'Screen top',
       '“Slice of” height',
       '“Slice of” size',
       'Light core',
@@ -113,7 +116,13 @@ describe('MenuEditor', () => {
     expect([core?.style.left, core?.style.top]).toEqual(['150px', '400px']);
 
     await pick(host, 'Buttons', stable);
-    expect(sliders(host)).toEqual(['Buttons height', 'Button width', 'Button size', 'Button gap']);
+    expect(sliders(host)).toEqual([
+      'Screen top',
+      'Buttons height',
+      'Button width',
+      'Button size',
+      'Button gap',
+    ]);
 
     await pick(host, 'Buttons', stable);
     expect(sliders(host)).toContain('Top margin');
