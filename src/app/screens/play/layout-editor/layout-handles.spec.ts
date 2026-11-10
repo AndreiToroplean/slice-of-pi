@@ -120,8 +120,8 @@ describe('layout handles', () => {
 
   it('sizes the keys within the keypad, three of them across at most', () => {
     expect(dragged(handle('Key width'), LAYOUT, 1000, SIZES).keypad.keyWidth).toBe(33.3);
-    expect(dragged(handle('Key height'), LAYOUT, 8, SIZES).keypad.keyHeight).toBe(
-      LAYOUT.keypad.keyHeight + 1,
+    expect(dragged(handle('Key height'), LAYOUT, 4, SIZES).keypad.keyHeight).toBe(
+      LAYOUT.keypad.keyHeight + 0.5,
     );
   });
 
@@ -137,5 +137,11 @@ describe('layout handles', () => {
       const changed = stepped(each, LAYOUT, -1, SIZES);
       expect(each.set(changed, each.get(LAYOUT), SIZES)).toEqual(LAYOUT);
     }
+  });
+
+  it('stops the keys growing taller once their rows touch', () => {
+    // The keypad's top, less the bottom margin, in heights: 1.75 rem is 3.5 heights here.
+    const tall = dragged(handle('Key height'), LAYOUT, 1000, SIZES).keypad;
+    expect(tall.keyHeight).toBeCloseTo((LAYOUT.keypad.top - 3.5) / 4);
   });
 });
