@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794166685621,
+  "lastUpdate": 1794271349415,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3518,6 +3518,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 843,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "99294be5ef007b30992ad9460a791571f4b4ad80",
+          "message": "fix: time Discover's digits only against those typed in the same turn\n\n- The first digit of a turn of the player's was timed against the digit before it, typed in an earlier turn, so its interval held the game's turns between them, a long pause on its chart where the rounds moved on to a checkpoint.\n- It keeps the interval it had when last typed straight after the digit before, in an earlier turn, and the run's clock goes on from there, so the run reads as if typed in one go.\n- Discover's runs recorded before are dropped by a migration to touch log format 7, deleted from storage and skipped in backups; the other runs are kept as they are.\n\nClaude-Session: https://claude.ai/code/session_01X1XesqdRcJcQRb9RKhY8D2",
+          "timestamp": "2026-11-10T01:42:05+01:00",
+          "tree_id": "95c2775520ff90cf953cd3b82459506b2b4e83d4",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/99294be5ef007b30992ad9460a791571f4b4ad80"
+        },
+        "date": 1794271349033,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 16849,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 37147,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 992,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
