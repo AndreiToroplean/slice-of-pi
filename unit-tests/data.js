@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794343545686,
+  "lastUpdate": 1794346057819,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3638,6 +3638,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 953,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "7c78c72a40c98ac8a7f5794d2243c3f9a0df3f46",
+          "message": "feat: stop the key width and keypad top where the keys touch\n\n- Wider, the three keys of a row would overlap, no longer fitting between the side margins.\n- Lower, the keypad's top would squeeze its four rows of keys into each other on the bottom margin.\n- A limit only stops a drag, never moves a value already past it, such as a layout tuned on a larger screen: this goes for the key height too.\n\nClaude-Session: https://claude.ai/code/session_01X1Xesnnn6YZu8gQUnnAPc4",
+          "timestamp": "2026-11-10T22:27:11+01:00",
+          "tree_id": "697057608e186d5e3d265060aae5d49e331b5fd2",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/7c78c72a40c98ac8a7f5794d2243c3f9a0df3f46"
+        },
+        "date": 1794346057175,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 18503,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 41042,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1158,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
