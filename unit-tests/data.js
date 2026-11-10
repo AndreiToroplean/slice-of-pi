@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794296594399,
+  "lastUpdate": 1794343545686,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3598,6 +3598,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 744,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "8196a9bd4779b0743ea7a595f9309b60c001c1c5",
+          "message": "fix: show the main menu whole in developer mode\n\n- The overflow menu's button was in a `@defer` block loaded on idle, so it showed up after the rest of the menu; the menu now waits for it too, as it waits for its icon and fonts.\n- It's loaded right away (`on immediate`) rather than on idle, so the wait stays short.\n- If its code fails to load, the menu shows without it rather than never.\n- Once shown, the menu stays shown when developer mode is turned on from it.\n\nClaude-Session: https://claude.ai/code/session_01X1XespmWVxxraJGKJDG3dM",
+          "timestamp": "2026-11-10T21:45:21+01:00",
+          "tree_id": "2c339ee293b3f6fbc34825836bc0c975c3718c5b",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/8196a9bd4779b0743ea7a595f9309b60c001c1c5"
+        },
+        "date": 1794343544762,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 13336,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 28877,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 953,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
