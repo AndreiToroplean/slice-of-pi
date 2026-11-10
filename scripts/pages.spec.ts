@@ -196,6 +196,7 @@ describe('planRun', () => {
         pull_request: { body, head: { repo: { full_name: repository } } },
         ...extra,
       },
+      body,
     };
   }
 
@@ -263,6 +264,21 @@ describe('planRun', () => {
     expect(planRun(pullRequest('edited', link, { changes: { title: { from: 'Old' } } }))).toEqual({
       build: false,
     });
+  });
+
+  it('plans from the description as it is now, which an edit made since the event may have changed', () => {
+    // Opened without the link, which an edit added right after: both runs publish, whichever builds last.
+    expect(planRun({ ...pullRequest('opened', 'Soon a link.'), body: link })).toEqual({
+      build: true,
+      change: preview,
+    });
+    expect(planRun({ ...edited('Soon a link.', link), body: link })).toEqual({
+      build: true,
+      change: preview,
+    });
+    // An edit removing the link, which a later one put back: the preview stays.
+    expect(planRun({ ...edited(link, 'No link.'), body: link })).toEqual({ build: false });
+    expect(planRun({ ...pullRequest('synchronize', link), body: null })).toEqual({ build: true });
   });
 
   it('removes the preview when the pull request closes, whatever its description', () => {
