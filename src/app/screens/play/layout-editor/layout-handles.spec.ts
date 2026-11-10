@@ -118,8 +118,10 @@ describe('layout handles', () => {
     expect(dragged(handle('Key depth'), LAYOUT, -1000, SIZES).keypad.keyDepth).toBe(0);
   });
 
-  it('sizes the keys within the keypad, three of them across at most', () => {
-    expect(dragged(handle('Key width'), LAYOUT, 1000, SIZES).keypad.keyWidth).toBe(33.3);
+  it('sizes the keys within the keypad', () => {
+    expect(dragged(handle('Key width'), LAYOUT, -4, SIZES).keypad.keyWidth).toBe(
+      LAYOUT.keypad.keyWidth - 1,
+    );
     expect(dragged(handle('Key height'), LAYOUT, 4, SIZES).keypad.keyHeight).toBe(
       LAYOUT.keypad.keyHeight + 0.5,
     );
@@ -143,5 +145,28 @@ describe('layout handles', () => {
     // The keypad's top, less the bottom margin, in heights: 1.75 rem is 3.5 heights here.
     const tall = dragged(handle('Key height'), LAYOUT, 1000, SIZES).keypad;
     expect(tall.keyHeight).toBeCloseTo((LAYOUT.keypad.top - 3.5) / 4);
+  });
+
+  it('stops the keys growing wider once the three of a row touch', () => {
+    // The column, less the side margins: 1.25 rem is 5 hundredths of the column here.
+    const wide = dragged(handle('Key width'), LAYOUT, 1000, SIZES).keypad;
+    expect(wide.keyWidth).toBeCloseTo((100 - 2 * 5) / 3);
+  });
+
+  it('stops the keypad shrinking once its four rows of keys touch', () => {
+    const low = dragged(handle('Keypad top'), LAYOUT, 1000, SIZES).keypad;
+    expect(low.top).toBeCloseTo(3.5 + 4 * LAYOUT.keypad.keyHeight);
+  });
+
+  it('never moves a key’s size or the keypad’s top already past where the keys touch', () => {
+    // A rem as tall as the screen: the bottom margin alone fills the keypad.
+    const cramped: UnitSizes = { ...SIZES, height: 0.16 };
+    expect(dragged(handle('Keypad top'), LAYOUT, -8, cramped).keypad.top).toBe(
+      LAYOUT.keypad.top + 50,
+    );
+    expect(dragged(handle('Keypad top'), LAYOUT, 8, cramped).keypad.top).toBe(LAYOUT.keypad.top);
+    expect(dragged(handle('Key height'), LAYOUT, 8, cramped).keypad.keyHeight).toBe(
+      LAYOUT.keypad.keyHeight,
+    );
   });
 });
