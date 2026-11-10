@@ -1,5 +1,5 @@
 import { Layout } from '../../../ui/layout';
-import { Handle, rounded, STEPS } from '../../../ui/handles/handle';
+import { Handle, rounded, STEPS, UnitSizes } from '../../../ui/handles/handle';
 
 /**
  * A handle of edit mode, on an edge of a part of the play screen: dragging it, up and down or across, changes one value
@@ -22,6 +22,15 @@ const point = (left: string, top: string): Readonly<Record<string, string>> => (
 });
 
 const clamp = (value: number, min = 0, max = 100): number => Math.min(max, Math.max(min, value));
+
+/*
+ * The keys stop where they'd overlap: as the keypad shrinks, or as they grow. Such a limit only stops a drag, never
+ * moves a value already past it, as in a layout tuned on a larger screen.
+ */
+
+/** The bottom margin, in hundredths of the screen's height: the keypad's rows stand on it. */
+const bottomMargin = (layout: Layout, sizes: UnitSizes): number =>
+  (layout.margins.bottom * sizes.rem) / sizes.height;
 
 /** A part moved to a new bottom, its top along with it, staying on the screen. */
 function moved<T extends { readonly top: number; readonly bottom: number }>(
@@ -239,7 +248,17 @@ export const LAYOUT_HANDLES: readonly LayoutHandle[] = [
     unit: 'height',
     scale: 1,
     get: (layout) => layout.keypad.top,
-    set: (layout, top) => ({ ...layout, keypad: { ...layout.keypad, top: clamp(top, 5) } }),
+    // No lower than where the keys' four rows touch, standing on the bottom margin.
+    set: (layout, top, sizes) => {
+      const keys = bottomMargin(layout, sizes) + 4 * layout.keypad.keyHeight;
+      return {
+        ...layout,
+        keypad: {
+          ...layout.keypad,
+          top: clamp(top, Math.min(layout.keypad.top, Math.max(5, keys))),
+        },
+      };
+    },
     line: up('var(--keypad-top)'),
     knob: across('50%'),
   },
@@ -250,10 +269,17 @@ export const LAYOUT_HANDLES: readonly LayoutHandle[] = [
     unit: 'column',
     scale: 1,
     get: (layout) => layout.keypad.keyWidth,
-    set: (layout, width) => ({
-      ...layout,
-      keypad: { ...layout.keypad, keyWidth: clamp(width, 1, 33.3) },
-    }),
+    // No wider than where the three keys of a row touch, filling the column between the side margins.
+    set: (layout, width, sizes) => {
+      const keys = 100 - (2 * layout.margins.side * sizes.rem) / sizes.column;
+      return {
+        ...layout,
+        keypad: {
+          ...layout.keypad,
+          keyWidth: clamp(width, 1, Math.max(layout.keypad.keyWidth, keys / 3)),
+        },
+      };
+    },
     // The first key's right edge: the keys keep to the side margins, whatever their width.
     line: {
       left: 'calc(var(--margin) + var(--margin-side) + var(--keypad-key-width))',
@@ -271,8 +297,8 @@ export const LAYOUT_HANDLES: readonly LayoutHandle[] = [
     get: (layout) => layout.keypad.keyHeight,
     set: (layout, value, sizes) => {
       // No taller than where the rows touch, the keypad's four rows filling it, from its top to the bottom margin.
-      const keys = layout.keypad.top - (layout.margins.bottom * sizes.rem) / sizes.height;
-      const keyHeight = clamp(value, 1, Math.max(1, keys / 4));
+      const keys = layout.keypad.top - bottomMargin(layout, sizes);
+      const keyHeight = clamp(value, 1, Math.max(layout.keypad.keyHeight, keys / 4));
       const keyRadius = Math.min(layout.keypad.keyRadius, keyHeight / 2);
       return { ...layout, keypad: { ...layout.keypad, keyHeight, keyRadius } };
     },
