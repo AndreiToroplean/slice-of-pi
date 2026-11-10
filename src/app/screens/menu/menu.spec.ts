@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { DeferBlockBehavior, DeferBlockState, TestBed } from '@angular/core/testing';
 import { pressKey } from '../../../testing/keys';
 import { openMenu } from '../../../testing/menus';
 import { unlockTo } from '../../../testing/checkpoints';
@@ -331,6 +331,42 @@ describe('Menu', () => {
   });
 
   describe('in developer mode', () => {
+    it('shows only once its overflow menu has loaded, all at once, and stays when it is turned on', async () => {
+      TestBed.configureTestingModule({ deferBlockBehavior: DeferBlockBehavior.Manual });
+      await TestBed.inject(DeveloperMode).set(true);
+      const fixture = TestBed.createComponent(Menu);
+      await fixture.whenStable();
+      const host = fixture.nativeElement as HTMLElement;
+      host.querySelector('img')?.dispatchEvent(new Event('load'));
+      await fixture.whenStable();
+      expect(host.classList).toContain('loading');
+
+      const [more] = await fixture.getDeferBlocks();
+      await more?.render(DeferBlockState.Complete);
+      await fixture.whenStable();
+      expect(host.classList).not.toContain('loading');
+
+      await TestBed.inject(DeveloperMode).set(false);
+      await fixture.whenStable();
+      await TestBed.inject(DeveloperMode).set(true);
+      await fixture.whenStable();
+      expect(host.classList).not.toContain('loading');
+    });
+
+    it('shows even if its overflow menu fails to load', async () => {
+      TestBed.configureTestingModule({ deferBlockBehavior: DeferBlockBehavior.Manual });
+      await TestBed.inject(DeveloperMode).set(true);
+      const fixture = TestBed.createComponent(Menu);
+      await fixture.whenStable();
+      const host = fixture.nativeElement as HTMLElement;
+      host.querySelector('img')?.dispatchEvent(new Event('load'));
+      const [more] = await fixture.getDeferBlocks();
+      await more?.render(DeferBlockState.Error);
+      await fixture.whenStable();
+
+      expect(host.classList).not.toContain('loading');
+    });
+
     it('has an overflow menu of developer pages, only once developer mode is on', async () => {
       const fixture = TestBed.createComponent(Menu);
       await fixture.whenStable();
