@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794271349415,
+  "lastUpdate": 1794296594399,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3558,6 +3558,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 992,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "f62d8e3243b6c1457c29138422d38bd7eafb23cf",
+          "message": "ci: plan previews from the pull request's current description\n\n- Each run read the description from its event, as it was when the event fired: a pull request opened without the preview link, then edited to add it, started a run that would publish and one that wouldn't, and the latter's build could cancel the former's, leaving no preview.\n- The plan step now reads the description from GitHub's API as it plans, so both runs publish, whichever build cancels the other.\n- An edit removing the link, put back since, no longer removes the preview.\n\nClaude-Session: https://claude.ai/code/session_01X1XesrHESMc3LosuHRSNd3",
+          "timestamp": "2026-11-10T08:42:50+01:00",
+          "tree_id": "139dbc4ce61ca024a95cb9811ddd846051b5ca5c",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/f62d8e3243b6c1457c29138422d38bd7eafb23cf"
+        },
+        "date": 1794296593546,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 11122,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 23998,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 744,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
