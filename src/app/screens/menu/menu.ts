@@ -10,6 +10,7 @@ import {
   ElementRef,
   inject,
   InjectionToken,
+  linkedSignal,
   signal,
   viewChild,
 } from '@angular/core';
@@ -73,7 +74,8 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
  * behind it. Where each part sits, always centered across, and their light, come from its look (see `menu-look.ts`).
  * The lights switch on once the menu is in place, and off before another screen comes in, both from the top down, the
  * icon first, "Pi" last. It shows
- * once its icon and fonts have arrived, over the background alone until then. Tab, or left and right, go from one group of buttons to the next, from the left to the right, and up and
+ * whole, once its icon and fonts have arrived, and in developer mode its overflow menu's button too, over the background
+ * alone until then. Tab, or left and right, go from one group of buttons to the next, from the left to the right, and up and
  * down between its main buttons; Challenge has the focus from the start, picked out, for Enter to play.
  */
 @Component({
@@ -96,7 +98,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
   ],
   host: {
     class: 'screen',
-    '[class.loading]': '!assets.ready()',
+    '[class.loading]': '!shown()',
     '[style]': 'styles()',
     '[style.margin-top.px]': 'cut() || null',
     '[style.--light-fade]': 'lightFade',
@@ -227,9 +229,9 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
     </app-button-list>
     <!-- After the middle of the menu, for Tab to go through it from the left to the right. -->
     @if (developerMode.enabled()) {
-      <!-- Loaded only in developer mode, with the menu it opens. -->
-      @defer {
-        <div class="more" appOverlayHost>
+      <!-- Loaded only in developer mode, with the menu it opens, at once, as the menu waits for it to show. -->
+      @defer (on immediate) {
+        <div #more class="more" appOverlayHost>
           <button
             type="button"
             appCandy="clear"
@@ -264,6 +266,9 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
             </div>
           </div>
         </ng-template>
+      } @error {
+        <!-- Without it, rather than never showing. -->
+        <span #more hidden></span>
       }
     }
     @let edited = editedLook();
@@ -338,6 +343,17 @@ export class Menu {
   protected readonly lightStagger = `${String(LIGHT_STAGGER)}ms`;
 
   protected readonly assets = inject(MenuAssets);
+  /** The overflow menu's button, in developer mode, once it's loaded. */
+  private readonly more = viewChild<ElementRef<HTMLElement>>('more');
+  /**
+   * Whether the menu shows: once its icon and fonts have arrived, and in developer mode its overflow menu's button, so
+   * that it shows whole rather than piece by piece. Once it has, it stays, even when developer mode is turned on.
+   */
+  protected readonly shown = linkedSignal<boolean, boolean>({
+    source: () =>
+      this.assets.ready() && (!this.developerMode.enabled() || this.more() !== undefined),
+    computation: (whole, previous) => (previous?.value ?? false) || whole,
+  });
   private readonly document = inject(DOCUMENT);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly play = viewChild.required<string, ElementRef<HTMLElement>>('play', {
@@ -351,7 +367,7 @@ export class Menu {
     // show them laid over the background rather than added to it (see `styles.css`).
     const transitions = inject(ScreenTransitions);
     effect(() => {
-      if (this.assets.ready() && transitions.settled()) {
+      if (this.shown() && transitions.settled()) {
         this.lit.set(true);
       }
     });
@@ -375,7 +391,7 @@ export class Menu {
     // Once shown, as it can't take the focus before. Picked out even after a tap, on touch screens too, so that it
     // breathes and shines.
     afterRenderEffect(() => {
-      if (this.assets.ready()) {
+      if (this.shown()) {
         this.play().nativeElement.focus({ focusVisible: true });
       }
     });
