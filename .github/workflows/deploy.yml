@@ -15,6 +15,10 @@ jobs:
   # are opt-in: see planRun in scripts/pages.ts.
   plan:
     runs-on: ubuntu-latest
+    # To read the pull request's description as it is now (see plan-pages.ts).
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       build: ${{ steps.plan.outputs.build }}
       publish: ${{ steps.plan.outputs.publish }}
@@ -30,6 +34,8 @@ jobs:
           node-version-file: .nvmrc
       - id: plan
         run: node scripts/plan-pages.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
   build:
     needs: plan

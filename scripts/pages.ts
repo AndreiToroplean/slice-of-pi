@@ -166,6 +166,11 @@ export interface RunContext {
   readonly repository: string;
   /** The webhook payload of the event that started the run. */
   readonly event: unknown;
+  /**
+   * For a pull request event, its description as it is now, as the run plans, rather than the event's copy, as it was
+   * when the event fired, which a later edit may have changed.
+   */
+  readonly body?: string | null;
 }
 
 /**
@@ -174,7 +179,7 @@ export interface RunContext {
  * `previewUrl`). Editing the description to add the link publishes the preview, removing it deletes the preview, and so
  * does closing the pull request. Other edits do nothing.
  */
-export function planRun({ eventName, ref, repository, event }: RunContext): RunPlan {
+export function planRun({ eventName, ref, repository, event, body }: RunContext): RunPlan {
   if (eventName !== 'pull_request') {
     return ref === 'refs/heads/main'
       ? { build: true, change: { kind: 'publish-main' } }
@@ -193,7 +198,10 @@ export function planRun({ eventName, ref, repository, event }: RunContext): RunP
 
   const url = previewUrl(repository, pr);
   const links = (body: unknown): boolean => typeof body === 'string' && body.includes(url);
-  const wanted = links(valueAt(pullRequest, 'body'));
+  // As the description is now rather than as the event saw it: when an edit follows soon after an event, as one adding
+  // the link to a pull request just opened, both runs then publish, so the preview is out whichever build is cancelled
+  // by the other's.
+  const wanted = links(body);
   const preview: SiteChange = { kind: 'publish-preview', pr };
   const remove: SiteChange = { kind: 'remove-preview', pr };
 
