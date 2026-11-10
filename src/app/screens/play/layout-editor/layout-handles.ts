@@ -269,8 +269,10 @@ export const LAYOUT_HANDLES: readonly LayoutHandle[] = [
     unit: 'height',
     scale: 1,
     get: (layout) => layout.keypad.keyHeight,
-    set: (layout, value) => {
-      const keyHeight = clamp(value, 1, 50);
+    set: (layout, value, sizes) => {
+      // No taller than where the rows touch, the keypad's four rows filling it, from its top to the bottom margin.
+      const keys = layout.keypad.top - (layout.margins.bottom * sizes.rem) / sizes.height;
+      const keyHeight = clamp(value, 1, Math.max(1, keys / 4));
       const keyRadius = Math.min(layout.keypad.keyRadius, keyHeight / 2);
       return { ...layout, keypad: { ...layout.keypad, keyHeight, keyRadius } };
     },
