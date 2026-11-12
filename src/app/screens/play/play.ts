@@ -205,6 +205,7 @@ const TICK = 16;
       [colorIndices]="colorIndices()"
       [palette]="tweaks.palette()"
       [solid]="tweaks.solidKeys()"
+      [plain]="editedLayout() !== undefined"
       [showAreas]="editedLayout() !== undefined && !previewing()"
       [disabled]="replay() !== undefined || lost()"
       [corner]="cornerKey()"

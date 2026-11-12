@@ -1,4 +1,6 @@
 import {
+  afterNextRender,
+  ChangeDetectorRef,
   Component,
   computed,
   DestroyRef,
@@ -25,6 +27,28 @@ import {
   pointAt,
 } from '../../../game/layers/keypad-layout';
 import { Candy } from '../../../ui/candy';
+import { KEY_MOTION, KeyMotion, Joint, jointsOf, Merges, moving, stepMerges } from './key-merges';
+import { keyShapes } from './key-shapes';
+import { GlKey, GlScene, KeypadRenderer, premultiplied, rgba } from './keypad-gl';
+
+/** How far a frosted key blurs what's behind it, in CSS pixels: as the candy buttons' frost does (`--frost-blur`). */
+const FROST_BLUR = 10;
+
+/** An element's size, as laid out, in CSS pixels. */
+interface KeySize {
+  readonly width: number;
+  readonly height: number;
+}
+
+/** The sizes the keys are drawn from, measured on the grid, in CSS pixels. */
+interface KeyGeometry {
+  readonly width: number;
+  readonly height: number;
+  readonly gapX: number;
+  readonly gapY: number;
+  readonly radius: number;
+  readonly depth: number;
+}
 
 /** How long a key must be held before it starts repeating, in ms. */
 export const REPEAT_DELAY = 400;
@@ -122,6 +146,17 @@ export type CornerKey = 'backspace' | 'discover';
   },
   template: `
     <div #grid class="grid">
+      <!-- The digit keys, drawn in one canvas, under their buttons, which then only say their digits. -->
+      <canvas
+        #canvas
+        class="gl"
+        aria-hidden="true"
+        [hidden]="!drawing()"
+        [style.left.px]="-glMargin()"
+        [style.top.px]="-glMargin()"
+        [style.width]="'calc(100% + ' + 2 * glMargin() + 'px)'"
+        [style.height]="'calc(100% + ' + 2 * glMargin() + 'px)'"
+      ></canvas>
       @for (position of keys(); track position.key) {
         <button
           type="button"
@@ -139,6 +174,10 @@ export type CornerKey = 'backspace' | 'discover';
           [attr.aria-label]="position.key === 'backspace' ? cornerLabel() : null"
           [style.grid-row]="position.row + 1"
           [style.grid-column]="position.column + 1"
+          [class.drawn]="isDrawn(position.key)"
+          [class.driven]="isDriven(position.key)"
+          [style.--rim]="rimOf(position.key)"
+          [style.translate]="sinkOf(position.key)"
           (click)="onClick($event, position.key)"
         >
           @if (position.key === 'backspace') {
@@ -164,6 +203,10 @@ export type CornerKey = 'backspace' | 'discover';
       }
       <ng-content />
     </div>
+    <!-- The lengths the keys are drawn with, as the layout sets them, measured as they change. -->
+    <span class="metric radius" #radiusProbe aria-hidden="true"></span>
+    <span class="metric depth" #depthProbe aria-hidden="true"></span>
+    <span class="metric gaps" #gapsProbe aria-hidden="true"></span>
     @if (marks().length > 0) {
       <div class="marks" aria-hidden="true">
         @for (mark of marks(); track mark.id) {
@@ -202,6 +245,16 @@ export class Keypad {
   readonly layout = input<KeypadLayout>(DEFAULT_KEYPAD_LAYOUT);
   /** Whether the digit keys are solid, each in its color, rather than see-through. */
   readonly solid = input(false);
+  /** Whether keys next to each other of the same color merge into one piece. */
+  readonly mergeKeys = input(true);
+  /**
+   * Whether the keys are plain candy buttons, never merging, as while the layout is edited: they draw themselves,
+   * rather than the canvas, at once, those merged split. The canvas would have to follow the layout's every change,
+   * its size and its reach included, a frame behind.
+   */
+  readonly plain = input(false);
+  /** How long they take to merge, and to sink, pressed. */
+  readonly motion = input<KeyMotion>(KEY_MOTION);
   /** Whether to show the area of each key, where touches type it. */
   readonly showAreas = input(false);
   /** What the key in backspace's place is, as the game mode makes it. */
@@ -252,33 +305,389 @@ export class Keypad {
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly grid = viewChild.required<ElementRef<HTMLElement>>('grid');
+  private readonly radiusProbe = viewChild.required<ElementRef<HTMLElement>>('radiusProbe');
+  private readonly depthProbe = viewChild.required<ElementRef<HTMLElement>>('depthProbe');
+  private readonly gapsProbe = viewChild.required<ElementRef<HTMLElement>>('gapsProbe');
+  private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
+  /** What draws the digit keys, once the canvas is there, if WebGL works. */
+  protected readonly renderer = signal<KeypadRenderer | undefined>(undefined);
+  /** Whether the canvas draws the digit keys: once it can, unless they're plain. */
+  protected readonly drawing = computed(() => this.renderer() !== undefined && !this.plain());
+  private pendingScene: GlScene | undefined;
+  /** Whether the player asked for no motion, as the end-to-end tests do. */
+  private readonly still =
+    typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /** How far the canvas reaches past the grid, for the keys' edges. */
+  protected readonly glMargin = computed(() => Math.ceil((this.geometry()?.depth ?? 0) + 24));
+
+  /** The digit keys, as the canvas draws them. */
+  private readonly scene = computed((): GlScene | undefined => {
+    const geometry = this.geometry();
+    if (geometry === undefined) {
+      return undefined;
+    }
+    const solid = this.solid();
+    const keys = this.keys().flatMap(({ key, row, column }) =>
+      key === 'backspace'
+        ? []
+        : [
+            {
+              key,
+              row,
+              column,
+              box: {
+                x: column * (geometry.width + geometry.gapX),
+                y: row * (geometry.height + geometry.gapY),
+                width: geometry.width,
+                height: geometry.height,
+              },
+            },
+          ],
+    );
+    const shapes = keyShapes(
+      keys,
+      this.joints(),
+      this.merges(),
+      geometry.radius,
+      geometry.gapX,
+      geometry.gapY,
+    );
+    return {
+      width: 3 * geometry.width + 2 * geometry.gapX,
+      height: 4 * geometry.height + 3 * geometry.gapY,
+      margin: this.glMargin(),
+      depth: geometry.depth,
+      gapX: geometry.gapX,
+      gapY: geometry.gapY,
+      highlight: solid ? 0 : 0.45,
+      blur: FROST_BLUR,
+      frosted: !solid,
+      keys: shapes.map((shape): GlKey => {
+        const pressed = this.shownPressed(shape.key);
+        const color = this.pressColor(shape.key);
+        const base = color === undefined ? undefined : rgba(color);
+        const [r, g, b, a] = base ?? [1, 1, 1, 1];
+        const linger = this.lingers().get(shape.key);
+        // Fading out as an `ease-out` animation does.
+        const left = linger === undefined ? 0 : 1 - (this.clock() - linger.since) / this.linger();
+        const lingering = Math.min(1, Math.max(0, left)) ** 2;
+        const [lr, lg, lb] = linger === undefined ? [0, 0, 0] : rgba(linger.color);
+        return {
+          ...shape,
+          linger: [lr, lg, lb],
+          lingering: pressed ? 0 : lingering,
+          sink: this.sunk(shape.key),
+          face: solid || pressed ? premultiplied(base ?? [1, 1, 1, 1]) : [0.26, 0.26, 0.26, 0.26],
+          rim: solid
+            ? premultiplied([r * 0.72, g * 0.72, b * 0.72, a])
+            : base === undefined
+              ? premultiplied([40 / 255, 20 / 255, 60 / 255, 1], 0.22)
+              : premultiplied(base),
+        };
+      }),
+    };
+  });
+  private readonly changeDetector = inject(ChangeDetectorRef);
 
   /** The digit keys showing pressed, the last time it looked. */
   private wasPressed: readonly Digit[] = [];
-  /** The lingering color of each digit key, fading out. */
+  /**
+   * The color lingering on each digit key, and when it started fading out: drawn by the keypad, or, as the keys'
+   * buttons draw themselves, by an animation of theirs.
+   */
+  private readonly lingers = signal<
+    ReadonlyMap<Digit, { readonly color: string; readonly since: number }>
+  >(new Map());
   private readonly lingering = new Map<Digit, Animation>();
+  /** When the keypad last drew a frame, to time what fades. */
+  private readonly clock = signal(0);
+
+  /** The joints between the digit keys, where they merge. */
+  private readonly joints = computed(() => jointsOf(this.layout()));
+  /** How far each digit key has sunk, pressed, from 0, up, to 1, all the way. */
+  private readonly sinks = signal<ReadonlyMap<Digit, number>>(new Map());
+  /** Digit keys pressed that haven't sunk all the way yet: they do, however soon they're let go, before rising back. */
+  private readonly sinking = new Set<Digit>();
+  /** How far each joint has merged. */
+  private readonly merges = signal<Merges>(new Map());
+  /** The sizes the keys are drawn with, once laid out. */
+  private readonly geometry = signal<KeyGeometry | undefined>(undefined);
+  /** Whether the keys were plain, the last time it looked: turning plain, or back, settles the merges at once. */
+  private wasPlain = false;
+  private frame: number | undefined;
+  private lastFrame = 0;
+  /** Whether a key is drawn by the keypad's canvas, its button only saying its digit. */
+  protected isDrawn(key: KeypadKey): boolean {
+    return key !== 'backspace' && this.drawing();
+  }
+
+  /**
+   * Whether a digit key's button is moved by the keypad, rather than moving itself: its sink, and its edge (rim), as
+   * thick as its depth less how far it has sunk, whoever draws it, so that it looks the same either way, and as it
+   * swaps from one to the other.
+   */
+  protected isDriven(key: KeypadKey): boolean {
+    return key !== 'backspace' && this.geometry() !== undefined;
+  }
+
+  /** How thick a digit key's button's edge is, as it sinks: its depth, unless it has sunk. */
+  protected rimOf(key: KeypadKey): string | null {
+    if (!this.isDriven(key) || key === 'backspace') {
+      return null;
+    }
+    const sunk = this.sunk(key);
+    return sunk === 0 ? null : `${String(Math.max(0, (this.geometry()?.depth ?? 0) - sunk))}px`;
+  }
+
+  /** How far a digit key has sunk, pressed, in CSS pixels: as a candy button does, into its edge but a pixel. */
+  private sunk(digit: Digit): number {
+    const depth = this.geometry()?.depth ?? 0;
+    return (this.sinks().get(digit) ?? 0) * Math.max(0, depth - 1);
+  }
+
+  /**
+   * Where a digit key's button sits, sunk, the keypad moving it rather than the button itself, so that it's as deep
+   * whoever draws it: where it is, unless it has sunk or shows pressed.
+   */
+  protected sinkOf(key: KeypadKey): string | null {
+    if (key === 'backspace' || this.geometry() === undefined) {
+      return null;
+    }
+    const sunk = this.sunk(key);
+    // Pressed, from its first frame, before it has sunk any, so that its button never moves it itself.
+    return sunk === 0 && !this.shownPressed(key) ? null : `0 ${String(sunk)}px`;
+  }
+
+  /**
+   * Whether a joint's keys merge: while merging is on and both are the same color, pressed or not, as a key pressed
+   * keeps its color until it's let go.
+   */
+  private merging(joint: Joint): boolean {
+    const color = this.pressColor(joint.first);
+    return (
+      this.mergeKeys() &&
+      !this.plain() &&
+      !this.still &&
+      color !== undefined &&
+      color === this.pressColor(joint.second)
+    );
+  }
+
+  /** Where each digit key's sink is headed: all the way while it shows pressed, back up otherwise. */
+  private sinkTargets(): Map<Digit, number> {
+    return new Map(
+      DIGITS.map((digit) => [digit, this.shownPressed(digit) || this.sinking.has(digit) ? 1 : 0]),
+    );
+  }
+
+  /** Whether any merge, or any key's sink, is still under way. */
+  private animating(): boolean {
+    const sinks = this.sinks();
+    return (
+      [...this.lingers().values()].some(({ since }) => this.clock() - since < this.linger()) ||
+      moving(this.merges(), this.joints(), (joint) => this.merging(joint)) ||
+      [...this.sinkTargets()].some(([digit, target]) => (sinks.get(digit) ?? target) !== target)
+    );
+  }
+
+  /** Moves the merges and the keys' sinks on, a frame at a time, until they're all where they're headed. */
+  private animate(): void {
+    if (this.frame !== undefined || typeof requestAnimationFrame !== 'function') {
+      return;
+    }
+    this.lastFrame = performance.now();
+    const tick = (now: number): void => {
+      this.clock.set(now);
+      const elapsed = Math.max(0, now - this.lastFrame);
+      this.lastFrame = now;
+      this.merges.set(
+        stepMerges(
+          this.merges(),
+          this.joints(),
+          (joint) => this.merging(joint),
+          elapsed,
+          this.motion().merge,
+        ),
+      );
+      const sinks = this.sinks();
+      const press = this.motion().press;
+      const step = press > 0 ? elapsed / press : Infinity;
+      this.sinks.set(
+        new Map(
+          [...this.sinkTargets()].map(([digit, target]) => {
+            const sink = sinks.get(digit) ?? target;
+            return [
+              digit,
+              target > sink ? Math.min(target, sink + step) : Math.max(target, sink - step),
+            ];
+          }),
+        ),
+      );
+      for (const digit of this.sinking) {
+        if ((this.sinks().get(digit) ?? 0) >= 1) {
+          this.sinking.delete(digit);
+        }
+      }
+      this.frame = this.animating() ? requestAnimationFrame(tick) : undefined;
+      // Drawn in this very frame, rather than whenever the next check comes.
+      this.changeDetector.detectChanges();
+    };
+    this.frame = requestAnimationFrame(tick);
+  }
+
+  /**
+   * Measures what the keys are drawn from as it changes, as laid out, whatever transforms the screen around: the grid's
+   * size, and the lengths the layout sets, each on an element of its own sized by it: the keys' corners, their edges'
+   * depth, the gaps between them. Drawn at once, before the screen shows what changed.
+   */
+  private watchGeometry(destroyRef: DestroyRef): void {
+    if (typeof ResizeObserver !== 'function') {
+      // Not laid out, as in tests: the keys' buttons draw themselves.
+      return;
+    }
+    const elements = [this.grid(), this.gapsProbe(), this.radiusProbe(), this.depthProbe()].map(
+      (element) => element.nativeElement,
+    );
+    // At first as laid out now, before the screen first shows the keypad, so that it never shows the keys' buttons
+    // drawing themselves first; then as they change.
+    const sizes = new Map<Element, KeySize>(
+      elements.map((element) => {
+        const style = getComputedStyle(element);
+        return [
+          element,
+          { width: parseFloat(style.width) || 0, height: parseFloat(style.height) || 0 },
+        ];
+      }),
+    );
+    const size = (element: ElementRef<HTMLElement>): KeySize =>
+      sizes.get(element.nativeElement) ?? { width: 0, height: 0 };
+    const draw = (): void => {
+      const grid = size(this.grid());
+      const gaps = size(this.gapsProbe());
+      const width = (grid.width - 2 * gaps.width) / 3;
+      const height = (grid.height - 3 * gaps.height) / 4;
+      if (!(width > 0 && height > 0)) {
+        // Laid out at no size, as while hidden: the keys keep how they were drawn.
+        return;
+      }
+      this.geometry.set({
+        width,
+        height,
+        gapX: gaps.width,
+        gapY: gaps.height,
+        // As the browser draws them: no rounder than half the key.
+        radius: Math.min(size(this.radiusProbe()).width, width / 2, height / 2),
+        depth: size(this.depthProbe()).height,
+      });
+      this.changeDetector.detectChanges();
+    };
+    draw();
+    const observer = new ResizeObserver((entries) => {
+      for (const { target, contentRect } of entries) {
+        sizes.set(target, { width: contentRect.width, height: contentRect.height });
+      }
+      draw();
+    });
+    for (const element of elements) {
+      observer.observe(element);
+    }
+    destroyRef.onDestroy(() => {
+      observer.disconnect();
+    });
+  }
 
   constructor() {
+    // Keys next to each other merge while they're the same color.
+    effect(() => {
+      for (const digit of DIGITS) {
+        this.shownPressed(digit);
+        this.pressColor(digit);
+      }
+      const joints = this.joints();
+      this.mergeKeys();
+      const plain = this.plain();
+      untracked(() => {
+        const merging = (joint: Joint): boolean => this.merging(joint);
+        this.merges.set(stepMerges(this.merges(), joints, merging, 0));
+        // Plain or back, at once: the keys swap from one way of drawing to the other, unseen, with nothing to move.
+        if (plain !== this.wasPlain) {
+          this.wasPlain = plain;
+          this.merges.set(new Map(joints.map((joint) => [joint.id, merging(joint) ? 1 : 0])));
+        }
+        // A key first seen is where it's headed, as are the merges.
+        const sinks = this.sinks();
+        this.sinks.set(
+          new Map(
+            [...this.sinkTargets()].map(([digit, target]) => [digit, sinks.get(digit) ?? target]),
+          ),
+        );
+        if (this.animating()) {
+          this.animate();
+        }
+      });
+    });
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      this.watchGeometry(destroyRef);
+      // Without motion, as the end-to-end tests ask, the keys stay plain candy buttons, never merging: it's all looks.
+      if (!this.still) {
+        const renderer = KeypadRenderer.create(this.canvas().nativeElement);
+        if (typeof renderer !== 'string') {
+          this.renderer.set(renderer);
+        }
+      }
+    });
+    effect(() => {
+      const scene = this.scene();
+      const renderer = this.renderer();
+      if (scene === undefined || renderer === undefined || !this.drawing()) {
+        return;
+      }
+      // At most once a frame, however often what's drawn changes within it.
+      const first = this.pendingScene === undefined;
+      this.pendingScene = scene;
+      if (first) {
+        requestAnimationFrame(() => {
+          const pending = this.pendingScene;
+          this.pendingScene = undefined;
+          if (pending !== undefined) {
+            renderer.draw(pending);
+          }
+        });
+      }
+    });
     // A digit key that stops showing pressed keeps the color it took for a moment, fading out.
     effect(() => {
       const pressed = DIGITS.filter((digit) => this.shownPressed(digit));
       const released = this.wasPressed.filter((digit) => !pressed.includes(digit));
+      const newly = pressed.filter((digit) => !this.wasPressed.includes(digit));
       this.wasPressed = pressed;
       untracked(() => {
         for (const digit of pressed) {
           this.lingering.get(digit)?.cancel();
+        }
+        for (const digit of newly) {
+          this.sinking.add(digit);
+        }
+        if (pressed.some((digit) => this.lingers().has(digit))) {
+          this.lingers.update(
+            (lingers) => new Map([...lingers].filter(([digit]) => !pressed.includes(digit))),
+          );
         }
         for (const digit of released) {
           this.lingerOn(digit);
         }
       });
     });
-    inject(DestroyRef).onDestroy(() => {
+    destroyRef.onDestroy(() => {
       for (const press of this.presses.values()) {
         clearTimeout(press.timer);
       }
       for (const timer of this.splashTimers.values()) {
         clearTimeout(timer);
+      }
+      if (this.frame !== undefined) {
+        cancelAnimationFrame(this.frame);
       }
     });
   }
@@ -484,7 +893,17 @@ export class Keypad {
     const duration = this.linger();
     const key = this.host.querySelector<HTMLElement>(`.key[data-key="${digit}"]`);
     const color = this.splashColors()[digit];
-    if (duration <= 0 || key === null || color === undefined || typeof key.animate !== 'function') {
+    if (duration <= 0 || color === undefined) {
+      return;
+    }
+    if (this.drawing()) {
+      const since = performance.now();
+      this.clock.set(since);
+      this.lingers.update((lingers) => new Map(lingers).set(digit, { color, since }));
+      this.animate();
+      return;
+    }
+    if (key === null || typeof key.animate !== 'function') {
       return;
     }
     key.style.setProperty('--linger-color', color);

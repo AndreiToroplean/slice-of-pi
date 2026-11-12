@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { isDigit } from '../../../game/pi/digit';
 import { keyColorIndices, PALETTE } from '../../../game/layers/place-colors';
 import { Keypad, REPEAT_DELAY, REPEAT_INTERVAL, SPLASH_DURATION } from './keypad';
+import { KeypadRenderer } from './keypad-gl';
 import { KeypadKey, KeypadTouch } from '../../../game/layers/keypad-layout';
 
 /**
@@ -951,5 +952,32 @@ describe('Keypad', () => {
       keyboard('keydown', { key: 'Backspace' });
       expect(splash('backspace')).toBeNull();
     });
+  });
+});
+
+describe('Keypad drawn in its canvas', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('leaves the keys to their candy buttons while plain, as while the layout is edited, and takes them back after', async () => {
+    vi.spyOn(KeypadRenderer, 'create').mockReturnValue({
+      draw: vi.fn(),
+    } as unknown as KeypadRenderer);
+    const fixture = TestBed.createComponent(Keypad);
+    fixture.componentRef.setInput('colorIndices', keyColorIndices(''));
+    await fixture.whenStable();
+    const host = fixture.nativeElement as HTMLElement;
+    const canvas = host.querySelector('canvas');
+    const drawn = (): number => host.querySelectorAll('.key.drawn').length;
+    expect([drawn(), canvas?.hidden]).toEqual([10, false]);
+
+    fixture.componentRef.setInput('plain', true);
+    await fixture.whenStable();
+    expect([drawn(), canvas?.hidden]).toEqual([0, true]);
+
+    fixture.componentRef.setInput('plain', false);
+    await fixture.whenStable();
+    expect([drawn(), canvas?.hidden]).toEqual([10, false]);
   });
 });
