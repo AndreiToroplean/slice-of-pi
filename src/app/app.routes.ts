@@ -62,6 +62,10 @@ export const routes: Routes = [
     loadComponent: () => import('./screens/tuning/vibrations').then((m) => m.Vibrations),
   },
   {
+    path: 'developer/transitions',
+    loadComponent: () => import('./screens/tuning/transitions').then((m) => m.Transitions),
+  },
+  {
     matcher: missingPreview,
     loadComponent: () =>
       import('./screens/missing-preview/missing-preview').then((m) => m.MissingPreview),

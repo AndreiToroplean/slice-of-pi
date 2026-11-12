@@ -7,7 +7,6 @@ import { Slider } from '../../ui/slider';
 import { Spinner } from '../../ui/spinner';
 import { GroupSizeSetting } from '../../player-data/group-size-setting';
 import { DEFAULT_GROUP_SIZE, GROUP_SIZES } from '../../game/grouping/group-size';
-import { KEY_LINGER, MAX_KEY_LINGER } from '../../game/layers/place-colors';
 import { BREATH, MAX_BREATH } from '../../ui/breath';
 import { CHECKPOINT_LAG, MAX_CHECKPOINT_LAG } from '../../game/modes/discover-rounds';
 import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
@@ -230,16 +229,6 @@ import { YourData } from './your-data';
             </button>
           </div>
           <app-slider
-            label="Key Linger"
-            [value]="tweaks.keyLinger()"
-            [min]="0"
-            [max]="maxKeyLinger"
-            [step]="10"
-            [valueText]="tweaks.keyLinger() + ' ms'"
-            [defaultValue]="defaultKeyLinger"
-            (changed)="setKeyLinger($event)"
-          />
-          <app-slider
             label="Breath"
             [value]="tweaks.breath()"
             [min]="0"
@@ -451,8 +440,6 @@ export class Settings {
     { value: 'calculator', label: 'Calculator' },
     { value: 'telephone', label: 'Telephone' },
   ];
-  protected readonly maxKeyLinger = MAX_KEY_LINGER;
-  protected readonly defaultKeyLinger = KEY_LINGER;
   protected readonly defaultBreath = BREATH;
   protected readonly defaultCheckpointLag = CHECKPOINT_LAG;
   protected readonly maxCheckpointLag = MAX_CHECKPOINT_LAG;
@@ -510,7 +497,6 @@ export class Settings {
       !this.tweaks.soundNotes() &&
       this.tweaks.checking() &&
       !this.tweaks.solidKeys() &&
-      this.tweaks.keyLinger() === KEY_LINGER &&
       this.tweaks.breath() === BREATH &&
       this.tweaks.discoverSpeed() === DISCOVER_SPEED &&
       this.tweaks.paceStep() === PACE_STEP &&
@@ -523,10 +509,6 @@ export class Settings {
 
   protected setCountdown(event: Event): void {
     void this.tweaks.setCountdown((event.target as HTMLInputElement).checked);
-  }
-
-  protected setKeyLinger(linger: number | undefined): void {
-    void this.tweaks.setKeyLinger(linger);
   }
 
   protected setBreath(breath: number | undefined): void {
@@ -641,7 +623,6 @@ export class Settings {
     this.resetSound();
     if (this.developerMode.enabled()) {
       this.setSolidKeys(false);
-      this.setKeyLinger(undefined);
       this.setBreath(undefined);
       this.setDiscoverSpeed(undefined);
       this.setPaceStep(undefined);

@@ -208,6 +208,7 @@ const TICK = 16;
       [solid]="tweaks.solidKeys()"
       [mergeKeys]="mergeSetting.enabled()"
       [plain]="editedLayout() !== undefined"
+      [motion]="tweaks.keyMotion()"
       [showAreas]="editedLayout() !== undefined && !previewing()"
       [disabled]="replay() !== undefined || lost()"
       [corner]="cornerKey()"
