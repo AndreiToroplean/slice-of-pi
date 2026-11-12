@@ -73,6 +73,7 @@ import { Playing, Speaker } from '../../feedback/speaker';
 import { atTempo, Chime, Moment } from '../../game/layers/sound/sound-model';
 import { SoundLog } from './sound-log/sound-log';
 import { LONGEST_STEP, MOST_STEPS, Vibration } from '../../feedback/vibrations';
+import { MergeSetting } from '../../player-data/merge-setting';
 
 /** How many lines of what the keys played developer mode keeps. */
 const SOUND_LOG_LINES = 200;
@@ -205,6 +206,7 @@ const TICK = 16;
       [colorIndices]="colorIndices()"
       [palette]="tweaks.palette()"
       [solid]="tweaks.solidKeys()"
+      [mergeKeys]="mergeSetting.enabled()"
       [plain]="editedLayout() !== undefined"
       [showAreas]="editedLayout() !== undefined && !previewing()"
       [disabled]="replay() !== undefined || lost()"
@@ -304,6 +306,8 @@ export class Play implements PausesOnBack {
 
   /** The colors tuned in developer mode, or the game's own, and whether to count down to the end of the group. */
   protected readonly tweaks = inject(Tweaks);
+  /** Whether the keys of the same color side by side merge, as the player set it. */
+  protected readonly mergeSetting = inject(MergeSetting);
   /**
    * How long a digit key's color lingers once released, in milliseconds of the page's clock: the tuned linger, longer
    * as Discover's game plays the keys (see `GAME_LINGER`), at a replay's tempo.

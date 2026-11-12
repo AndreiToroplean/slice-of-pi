@@ -26,6 +26,7 @@ import {
   PACE_STEP,
 } from '../../game/modes/discover-pace';
 import { VibrationSetting } from '../../player-data/vibration-setting';
+import { MergeSetting } from '../../player-data/merge-setting';
 import { SoundSetting } from '../../player-data/sound-setting';
 import { Page } from '../../ui/page';
 import { Segment, Segmented } from '../../ui/segmented';
@@ -35,7 +36,8 @@ import { Candy } from '../../ui/candy';
 import { YourData } from './your-data';
 
 /**
- * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout, Discover's pace, whether the game
+ * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout and whether its keys of
+ * the same color merge, Discover's pace, whether the game
  * plays sounds and the phone vibrates, and in developer mode,
  * whether the keys are solid or see-through, whether to count down to the end of each group, whether to show what each
  * key typed played, and whether to leave the
@@ -73,6 +75,27 @@ import { YourData } from './your-data';
             title="Back to Default"
             [disabled]="layoutDefault()"
             (click)="resetLayout()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 14 4 9l5-5" />
+              <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+            </svg>
+          </button>
+        </div>
+        <div class="row">
+          <label class="setting">
+            <span>
+              Merge Keys
+              <small>Keys side by side of the same color join into one.</small>
+            </span>
+            <input type="checkbox" [checked]="merge.enabled()" (change)="setMerge($event)" />
+          </label>
+          <button
+            type="button"
+            class="round"
+            title="Back to Default"
+            [disabled]="merge.enabled()"
+            (click)="resetMerge()"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M9 14 4 9l5-5" />
@@ -422,6 +445,7 @@ import { YourData } from './your-data';
 export class Settings {
   protected readonly keypadLayout = inject(KeypadLayoutSetting);
   protected readonly vibration = inject(VibrationSetting);
+  protected readonly merge = inject(MergeSetting);
   protected readonly sound = inject(SoundSetting);
   protected readonly layouts: readonly Segment<KeypadLayout>[] = [
     { value: 'calculator', label: 'Calculator' },
@@ -477,6 +501,7 @@ export class Settings {
   protected readonly allDefault = computed(
     () =>
       this.layoutDefault() &&
+      this.merge.enabled() &&
       this.groupSizeDefault() &&
       this.paceDefault() &&
       this.vibration.enabled() &&
@@ -548,6 +573,14 @@ export class Settings {
     void this.tweaks.setChecking(!(event.target as HTMLInputElement).checked);
   }
 
+  protected setMerge(event: Event): void {
+    void this.merge.set((event.target as HTMLInputElement).checked);
+  }
+
+  protected resetMerge(): void {
+    void this.merge.set(true);
+  }
+
   protected setVibration(event: Event): void {
     void this.vibration.set((event.target as HTMLInputElement).checked);
   }
@@ -601,6 +634,7 @@ export class Settings {
   /** Brings back the default value of every setting shown. */
   protected resetAll(): void {
     this.resetLayout();
+    this.resetMerge();
     this.resetGroupSize();
     this.resetPace();
     this.resetVibration();

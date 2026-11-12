@@ -8,6 +8,7 @@ import { GroupSizeSetting } from '../../player-data/group-size-setting';
 import { Checkpoint } from '../../player-data/checkpoint';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
 import { VibrationSetting } from '../../player-data/vibration-setting';
+import { MergeSetting } from '../../player-data/merge-setting';
 import { SoundSetting } from '../../player-data/sound-setting';
 import { RUN_CLOCK, RunRecorder } from '../../player-data/run-recorder';
 import { RunStore } from '../../player-data/run-store';
@@ -101,6 +102,7 @@ export class YourData {
   private readonly groupSize = inject(GroupSizeSetting);
   private readonly checkpoint = inject(Checkpoint);
   private readonly vibration = inject(VibrationSetting);
+  private readonly merge = inject(MergeSetting);
   private readonly sound = inject(SoundSetting);
   protected readonly store = inject(RunStore);
   private readonly recorder = inject(RunRecorder);
@@ -155,6 +157,7 @@ export class YourData {
       this.groupSize.reload(),
       this.checkpoint.reload(),
       this.vibration.reload(),
+      this.merge.reload(),
       this.sound.reload(),
     ]);
   }
