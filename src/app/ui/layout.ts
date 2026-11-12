@@ -48,7 +48,7 @@ export const LAYOUT: Layout = {
   header: { size: 13 },
   tape: { top: 51.2, bottom: 43.2, words: 2.4 },
   slots: { top: 44.2, bottom: 39.2, width: 8.1, radius: 1.2, depth: 0.5 },
-  keypad: { top: 37.2, reach: 4.2, keyWidth: 29, keyHeight: 7.5, keyRadius: 2.8, keyDepth: 1 },
+  keypad: { top: 37.2, reach: 4.2, keyWidth: 29, keyHeight: 7.5, keyRadius: 2.8, keyDepth: 1.7 },
 };
 
 /** A length of so many hundredths of the screen's height, in CSS (see `--unit` in `play.css`). */
