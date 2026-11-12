@@ -1,7 +1,8 @@
 import { BackgroundColors } from '../../game/layers/seasons';
+import { GAME_VALUES } from '../../game-values';
 
 /** The main menu's background, a sky at twilight: deep blue at the top, the last of the light at the bottom. */
-export const TWILIGHT: BackgroundColors = ['#19224d', '#be5a23'];
+export const TWILIGHT: BackgroundColors = GAME_VALUES.twilight;
 
 /**
  * How the main menu looks: where its parts sit, and the light its lanterns and icon give. Everything stays centered
@@ -75,45 +76,7 @@ export const BUTTON_COUNT = 3;
 export const BUTTON_SLOTS = BUTTON_COUNT + 1;
 
 /** The menu's own look. */
-export const MENU_LOOK: MenuLook = {
-  layout: {
-    title: { above: 84.6 },
-    icon: { size: 55.2, offset: 14.7 },
-    slice: { size: 7.9, offset: -20.7 },
-    pi: { size: 13.5, offset: -40.9 },
-    buttons: { below: 5.9, height: 3.1875, width: 18.375, gap: 0.8125 },
-  },
-  light: {
-    icon: {
-      intensity: 0.97,
-      core: 11.2,
-      falloff: 2.3,
-      reach: 26,
-      rays: 0.92,
-      rayCount: 5,
-      saturation: 1.5,
-    },
-    slice: {
-      intensity: 0.67,
-      core: 5.1,
-      falloff: 5.3,
-      reach: 10,
-      rays: 0.64,
-      rayCount: 4,
-      saturation: 3,
-    },
-    pi: {
-      intensity: 0.45,
-      core: 4,
-      falloff: 1.3,
-      reach: 13,
-      rays: 1,
-      rayCount: 3,
-      saturation: 1.2,
-    },
-  },
-  iconLight: { offset: -5.2, color: '#ff6857' },
-};
+export const MENU_LOOK: MenuLook = GAME_VALUES.menu;
 
 /** A value of the look, as the editor shows it: what it's called, its range, and how finely it moves. */
 export interface LookField<T> {

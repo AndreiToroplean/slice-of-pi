@@ -1,4 +1,5 @@
 import { SoundSlider } from './sound-mix';
+import { GAME_VALUES } from '../game-values';
 
 /**
  * How a wrong key's note goes off as it rings, once typed, rather than played again: the same for every note, whatever
@@ -19,7 +20,7 @@ export interface Souring {
 }
 
 /** The game's own souring. */
-export const SOURING: Souring = { bend: -70, drift: 12, buzz: 0.5, rasp: 0.5, speed: 0.05 };
+export const SOURING: Souring = GAME_VALUES.souring;
 
 const cents = (value: number): string => `${String(Math.round(value))}¢`;
 const percent = (value: number): string => `${String(Math.round(value * 100))}%`;

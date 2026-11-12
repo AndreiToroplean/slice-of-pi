@@ -4,6 +4,7 @@ import { groupEnds, modelFromSteps } from './model-from-steps';
 import { logit, neighborsOf } from './statistics';
 import { byIndex, groupsOf, logIntervals, RunSteps, Steps, trustOf, usualBreaks } from './steps';
 import type { Workings } from './workings';
+import { GAME_VALUES } from '../../../game-values';
 
 /**
  * Terra: Venus's aim, a model whose hyperparameters mean the same whether the player has played one run or a hundred.
@@ -57,17 +58,7 @@ export type TerraSettings = Pick<
   }>;
 
 /** Fitted to Andrei's groupings over random sets of 1 to 24 of his runs at once, so as to suit every number of runs. */
-export const TERRA_DEFAULTS: TerraSettings = {
-  window: 11,
-  recencyDecay: 0.96,
-  spreadFloor: 0.17,
-  breakShift: 1.2,
-  breakShare: 0.3,
-  fullTrustUnevenness: 0.3,
-  usualThreshold: 0.4,
-  breakThreshold: 0.5,
-  level: 0.9,
-};
+export const TERRA_DEFAULTS: TerraSettings = GAME_VALUES.grouping.terra;
 
 /** The prior of the run being typed stays this far from 0 and 1, so that a long enough pause can always outweigh it. */
 const SUREST_PRIOR = 1e-3;

@@ -1,5 +1,6 @@
 import { Digit, isDigit } from '../../../game/pi/digit';
 import { KEY_POSITIONS, KeypadLayout } from '../../../game/layers/keypad-layout';
+import { GAME_VALUES } from '../../../game-values';
 
 /** How long the keypad's keys take to move, in milliseconds. */
 export interface KeyMotion {
@@ -10,7 +11,7 @@ export interface KeyMotion {
 }
 
 /** The game's own. */
-export const KEY_MOTION: KeyMotion = { merge: 160, press: 160 };
+export const KEY_MOTION: KeyMotion = GAME_VALUES.keyMotion;
 
 /**
  * Two digit keys next to each other, which merge into one while they're the same color:

@@ -1,4 +1,5 @@
 import { isCheckpoint } from './checkpoints';
+import { GAME_VALUES } from '../../game-values';
 
 /**
  * Where a Discover session is, round after round, as in the classic memory game: each round, the game plays the
@@ -47,7 +48,7 @@ export function moveTo(rounds: Rounds, checkpoint: number, from = checkpoint): R
 }
 
 /** How many checkpoints behind the farthest reached Discover's rounds start, when they move on by themselves. */
-export const CHECKPOINT_LAG = 1;
+export const CHECKPOINT_LAG = GAME_VALUES.checkpointLag;
 /** The most checkpoints behind they may lag. */
 export const MAX_CHECKPOINT_LAG = 10;
 

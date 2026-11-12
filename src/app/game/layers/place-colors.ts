@@ -1,4 +1,5 @@
 import { Digit, DIGITS, isDigit } from '../pi/digit';
+import { GAME_VALUES } from '../../game-values';
 
 /**
  * The palette: 10 solid colors around the color wheel, chosen to carry white digits and to look
@@ -8,18 +9,7 @@ import { Digit, DIGITS, isDigit } from '../pi/digit';
  * The colors come from π's own digits, not from a player seed, so every player sees the same ones: players can talk
  * about "the blue 7 around place 150", and there's nothing to lose with the player's data.
  */
-export const PALETTE = [
-  '#e3402f', // red
-  '#fd7225', // orange
-  '#f4ba0d', // yellow
-  '#a9c926', // lime
-  '#3cba60', // green
-  '#07bed4', // teal
-  '#3371fa', // blue
-  '#8225d7', // violet
-  '#bf56c1', // purple
-  '#ff82d1', // pink
-] as const;
+export const PALETTE = GAME_VALUES.palette;
 
 /** A palette: {@link PALETTE}, or one tuned in developer mode, with as many colors. */
 export type Palette = readonly string[];
@@ -86,7 +76,7 @@ function asDigit(value: string): Digit {
  * How long a digit key's color lingers on its face once released, in milliseconds, fading out to the color its digit
  * takes next: the player sees each color they type, however fast.
  */
-export const KEY_LINGER = 1600;
+export const KEY_LINGER = GAME_VALUES.keyLinger;
 /** The longest linger developer mode can tune, in milliseconds. */
 export const MAX_KEY_LINGER = 5000;
 

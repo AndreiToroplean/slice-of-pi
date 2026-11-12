@@ -1,4 +1,5 @@
 import { ColorSpace, GradientColors, mixGradients } from '../color/color-spaces';
+import { GAME_VALUES } from '../../game-values';
 
 /** The four seasons of a year, in order. */
 export const SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
@@ -18,26 +19,32 @@ export type SeasonBackgrounds = Readonly<
   Record<Season, { readonly early: BackgroundColors; readonly late: BackgroundColors }>
 >;
 
-/** The seasons' backgrounds, unless tuned in developer mode. */
-export const SEASON_BACKGROUNDS: SeasonBackgrounds = {
+/**
+ * The seasons' backgrounds the late colors drift from: each starting color drifts as far as it does here, wherever it
+ * starts.
+ */
+const DRIFTS: SeasonBackgrounds = {
   spring: { early: ['#ffa3c7', '#55e295'], late: ['#ff8fba', '#35d582'] },
   summer: { early: ['#f4af48', '#177fab'], late: ['#f4972b', '#006ba0'] },
   autumn: { early: ['#c95d12', '#6f3960'], late: ['#b43b07', '#4e2952'] },
   winter: { early: ['#6088c7', '#2d3a5c'], late: ['#476db4', '#17213c'] },
 };
 
+/** The seasons' backgrounds, unless tuned in developer mode. */
+export const SEASON_BACKGROUNDS: SeasonBackgrounds = backgroundsFrom(GAME_VALUES.seasons);
+
 /**
  * The color space the background blends its colors in, unless tuned in developer mode (see `color-spaces.ts`): OKLCH
  * keeps the middle tones between seasons, and from the top of the screen to its bottom, saturated and evenly lit.
  */
-export const SEASON_COLOR_SPACE: ColorSpace = 'oklch';
+export const SEASON_COLOR_SPACE: ColorSpace = GAME_VALUES.colorSpace;
 
 /**
  * How many places a season takes to turn into the next, at its end, unless tuned in developer mode: from 1, all at once
  * (though the background still eases from one digit to the next), to a whole season's, turning all season long.
  * Before its turn, a season only drifts.
  */
-export const SEASON_TURN = 5;
+export const SEASON_TURN = GAME_VALUES.seasonTurn;
 
 /** Where the player is in the year after typing `places` places, and what the screen looks like there. */
 export interface SeasonView {
@@ -118,15 +125,15 @@ function channels(color: string): number[] {
 
 /**
  * The seasons' backgrounds from their starting colors only: each season drifts from them as far, channel by channel, as
- * it does in {@link SEASON_BACKGROUNDS}.
+ * it does in {@link DRIFTS}.
  */
 export function backgroundsFrom(
   early: Readonly<Record<Season, BackgroundColors>>,
 ): SeasonBackgrounds {
   const drift = (season: Season, k: 0 | 1): string => {
     const start = channels(early[season][k]);
-    const from = channels(SEASON_BACKGROUNDS[season].early[k]);
-    const to = channels(SEASON_BACKGROUNDS[season].late[k]);
+    const from = channels(DRIFTS[season].early[k]);
+    const to = channels(DRIFTS[season].late[k]);
     return hex(start.map((value, i) => value + (to[i] ?? 0) - (from[i] ?? 0)));
   };
   const season = (name: Season): { early: BackgroundColors; late: BackgroundColors } => ({

@@ -93,7 +93,7 @@ describe('KeyColors', () => {
 
     await slide(host, 'Key 3, lime', 'hue', 200, stable);
 
-    const tuned = hslToHex({ ...hexToHsl(PALETTE[3]), hue: 200 });
+    const tuned = hslToHex({ ...hexToHsl(PALETTE[3] ?? ''), hue: 200 });
     expect(rows(host)[3]).toBe(tuned);
     expect(TestBed.inject(Tweaks).values().palette?.[3]).toBe(tuned);
 
@@ -114,7 +114,7 @@ describe('KeyColors', () => {
     await stable();
 
     // Violet onto blue.
-    const blue = hexToHsl(PALETTE[6]);
+    const blue = hexToHsl(PALETTE[6] ?? '');
     await slide(host, 'Key 7, violet', 'hue', Math.round(blue.hue), stable);
     await slide(host, 'Key 7, violet', 'saturation', Math.round(blue.saturation), stable);
     await slide(host, 'Key 7, violet', 'lightness', Math.round(blue.lightness), stable);

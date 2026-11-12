@@ -5,6 +5,7 @@ import { MARS } from './mars';
 import { MERCURY } from './mercury';
 import { TERRA } from './terra';
 import { VENUS } from './venus';
+import { GAME_VALUES } from '../../../game-values';
 
 /** The break models, picked in developer mode: the game's first, then the others, newest first. */
 export const BREAK_MODELS: readonly [BreakModelKind, ...BreakModelKind[]] = [
@@ -16,7 +17,7 @@ export const BREAK_MODELS: readonly [BreakModelKind, ...BreakModelKind[]] = [
 ];
 
 /** The break model the game takes the groups from. */
-export const BREAK_MODEL = MARS;
+export const BREAK_MODEL = breakModelKindById(GAME_VALUES.breakModel) ?? MARS;
 
 /**
  * The break model the game takes the groups from, as the game reads it: {@link BREAK_MODEL}, but tests of the screens

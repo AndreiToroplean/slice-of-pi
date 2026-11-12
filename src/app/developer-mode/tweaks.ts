@@ -148,8 +148,8 @@ export const SEASON_STARTS: SeasonStarts = Object.fromEntries(
 /**
  * The game's values as tuned in developer mode: they apply to the whole game while developer mode is on, and the
  * game's own values apply otherwise. Kept with the player's data, so they survive turning developer mode off and on.
- * The game's own values never change here: tuned values go into the code once the owner is happy with them, from the
- * backup each page copies ({@link tweaksBackup}).
+ * The game's own values never change here: tuned values become the game's own once the owner is happy with them, from
+ * the backup each page copies ({@link tweaksBackup}), promoted into `game-values.json` (see `GAME_VALUES`).
  */
 @Service()
 export class Tweaks {

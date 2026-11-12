@@ -1,3 +1,4 @@
+import { GAME_VALUES } from '../game-values';
 /** How loud the chords under the melody are, and words as they land: the rest is the sound model's, and the phone's volume. */
 export interface SoundMix {
   /** The volume of the chords and low notes, from 0 to 1, as a share of the melody's. */
@@ -7,7 +8,7 @@ export interface SoundMix {
 }
 
 /** The game's own mix. */
-export const SOUND_MIX: SoundMix = { chords: 0.6, landings: 0 };
+export const SOUND_MIX: SoundMix = GAME_VALUES.sound;
 
 /** A setting of the speaker, such as of the mix, as its slider shows it on the Sound Models page. */
 export interface SoundSlider<T> {

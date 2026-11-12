@@ -1,10 +1,11 @@
 import { DestroyRef } from '@angular/core';
+import { GAME_VALUES } from '../game-values';
 
 /**
  * How far each side of a candy button moves as it breathes out all the way, in CSS pixels, however wide it is, as
  * `--breath` (see `breathe` in `styles.css` and `candy.css`).
  */
-export const BREATH = 3;
+export const BREATH = GAME_VALUES.breath;
 /** The most a developer can make the buttons breathe, in CSS pixels. */
 export const MAX_BREATH = 12;
 
