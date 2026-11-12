@@ -59,11 +59,13 @@ test('records a touch slid too far off its key, and one elsewhere, as typing not
     throw new Error('No slots');
   }
 
-  await touchAlong(touches, [await center('1')]);
-  await touchAlong(touches, [await center('4'), await center('6')]);
+  // Where the keys are at rest, measured before any touch, as a key pressed moves a while after it's let go.
+  const [one, four, five, six] = await Promise.all(['1', '4', '5', '6'].map(center));
+  await touchAlong(touches, [one]);
+  await touchAlong(touches, [four, six]);
   // By the slots' top, the column of 5, past where the keypad's touches reach.
-  await touchAlong(touches, [{ x: (await center('5')).x, y: slots.y + 2 }]);
-  await touchAlong(touches, [await center('4')]);
+  await touchAlong(touches, [{ x: five.x, y: slots.y + 2 }]);
+  await touchAlong(touches, [four]);
 
   // Where each touch started, to a hundredth of a step (-0 as 0), and what it typed.
   await expect
