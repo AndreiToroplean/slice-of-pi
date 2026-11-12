@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794346057819,
+  "lastUpdate": 1794520821213,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3678,6 +3678,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1158,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "6d3230e5c7eb358dfabb099149d5d476fa4af83f",
+          "message": "ci: publish the preview without waiting for the checks\n\n- The formatting check, linter and unit tests move from the build job to a check job of their own, so the publish job only waits for the build.\n- The end-to-end tests already ran apart and never held the preview back.\n\nClaude-Session: https://claude.ai/code/session_01X1XesptSD9Wh3sgHewH22t",
+          "timestamp": "2026-11-12T22:59:57+01:00",
+          "tree_id": "035488a6d3a7843b7fd3a225c4c5dd11525e57ef",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/6d3230e5c7eb358dfabb099149d5d476fa4af83f"
+        },
+        "date": 1794520820520,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 16991,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 37422,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1092,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
