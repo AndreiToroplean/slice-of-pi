@@ -8,6 +8,7 @@ import { KeypadLayoutSetting } from './keypad-layout-setting';
 import { RunStore } from './run-store';
 import { SoundSetting } from './sound-setting';
 import { VibrationSetting } from './vibration-setting';
+import { MergeSetting } from './merge-setting';
 
 /**
  * Reads the player's data, the runs and every setting, before the app shows anything: every screen then shows it from
@@ -24,5 +25,6 @@ export async function loadPlayerData(): Promise<void> {
     inject(Checkpoint).loaded,
     inject(VibrationSetting).loaded,
     inject(SoundSetting).loaded,
+    inject(MergeSetting).loaded,
   ]);
 }
