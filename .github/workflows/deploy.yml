@@ -37,6 +37,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+  # Builds the app and hands it to the publish job, without waiting for the checks below: a pull request's preview goes
+  # up as soon as it's built, while they run.
   build:
     needs: plan
     if: needs.plan.outputs.build == 'true'
@@ -53,24 +55,6 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      # Pull requests are rebased onto main and checked before merging, so main only builds.
-      - if: needs.plan.outputs.publish != 'main'
-        run: npm run format:check
-      - if: needs.plan.outputs.publish != 'main'
-        run: npm run lint
-      - if: needs.plan.outputs.publish != 'main'
-        run: npm run test:coverage -- --reporters=default --reporters=json --output-file="$RUNNER_TEMP/test-report.json"
-      # Hard limits on how long the unit tests take: a generous backstop, creep is caught by the test-durations job below.
-      - if: needs.plan.outputs.publish != 'main'
-        run: node scripts/track-test-durations.ts limits "$RUNNER_TEMP/test-report.json"
-      # Keeps this run's test durations for the test-durations job below, which records the last run of a merged pull request.
-      - if: needs.plan.outputs.publish != 'main'
-        run: node scripts/track-test-durations.ts record "$RUNNER_TEMP/test-report.json" "$RUNNER_TEMP/benchmarks.json"
-      - if: needs.plan.outputs.publish != 'main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-durations
-          path: ${{ runner.temp }}/benchmarks.json
       - run: npm run build -- --base-href "${{ needs.plan.outputs.base-href }}"
       # Serve the app for unknown paths too, so client-side routes survive a reload.
       - run: cp dist/slice-of-pi/browser/index.html dist/slice-of-pi/browser/404.html
@@ -79,6 +63,34 @@ jobs:
         with:
           name: site
           path: dist/slice-of-pi/browser
+
+  # The formatting check, the linter and the unit tests, on pull requests: they're rebased onto main and checked before
+  # merging, so main only builds.
+  check:
+    needs: plan
+    if: needs.plan.outputs.build == 'true' && needs.plan.outputs.publish != 'main'
+    concurrency:
+      group: check-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run test:coverage -- --reporters=default --reporters=json --output-file="$RUNNER_TEMP/test-report.json"
+      # Hard limits on how long the unit tests take: a generous backstop, creep is caught by the test-durations job below.
+      - run: node scripts/track-test-durations.ts limits "$RUNNER_TEMP/test-report.json"
+      # Keeps this run's test durations for the test-durations job below, which records the last run of a merged pull request.
+      - run: node scripts/track-test-durations.ts record "$RUNNER_TEMP/test-report.json" "$RUNNER_TEMP/benchmarks.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-durations
+          path: ${{ runner.temp }}/benchmarks.json
 
   # The end-to-end tests, in Chromium, on pull requests: as for the unit tests, main only builds.
   e2e:
@@ -121,7 +133,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
-      # The durations the build job kept on the last run of the pull request that brought this commit, if any.
+      # The durations the check job kept on the last run of the pull request that brought this commit, if any.
       - id: durations
         env:
           GH_TOKEN: ${{ github.token }}
