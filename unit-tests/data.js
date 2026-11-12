@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794520821213,
+  "lastUpdate": 1794527881197,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3718,6 +3718,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1092,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "514df5867a51ea70d5ddd8e7d875393b99391de7",
+          "message": "feat: breathe candy buttons wider\n\n- Tuned in developer mode: their sides move 5 CSS pixels as they breathe out, rather than 3.\n\nClaude-Session: https://claude.ai/code/session_01X1XesrHESMc3LosuHRSNd3",
+          "timestamp": "2026-11-13T00:57:39+01:00",
+          "tree_id": "ecef9b54f2fe33e07dd3773b3ced16283854c37d",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/514df5867a51ea70d5ddd8e7d875393b99391de7"
+        },
+        "date": 1794527880676,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 11014,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 23463,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 704,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
