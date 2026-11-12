@@ -1,0 +1,232 @@
+{
+  "kind": "slice-of-pi-backup",
+  "format": 1,
+  "settings": {
+    "tweaks": {
+      "format": 4,
+      "palette": [
+        "#e3402f",
+        "#fd7225",
+        "#f4ba0d",
+        "#a9c926",
+        "#3cba60",
+        "#07bed4",
+        "#3371fa",
+        "#8225d7",
+        "#bf56c1",
+        "#ff82d1"
+      ],
+      "seasons": {
+        "spring": ["#ffa3c7", "#55e295"],
+        "summer": ["#f4af48", "#177fab"],
+        "autumn": ["#c95d12", "#6f3960"],
+        "winter": ["#6088c7", "#2d3a5c"]
+      },
+      "twilight": ["#19224d", "#be5a23"],
+      "breakModel": "mars",
+      "grouping": {
+        "mars": {
+          "window": 9,
+          "recencyDecay": 0.96,
+          "spreadFloor": 0.2,
+          "breakShift": 2.3,
+          "breakShare": 0.2,
+          "fullTrustUnevenness": 0.3,
+          "breakThreshold": 0.25,
+          "level": 0,
+          "discoverLevel": 0.7,
+          "priorUnevenness": 0.2,
+          "trustInfluence": 1,
+          "currentDecay": 0.5,
+          "envelopeStrength": 1,
+          "envelopeSize1": 1,
+          "envelopeFactor1": 0,
+          "envelopeSize2": 3,
+          "envelopeFactor2": 1,
+          "envelopeSize3": 6,
+          "envelopeFactor3": 1,
+          "envelopeSize4": 11,
+          "envelopeFactor4": 0
+        },
+        "terra": {
+          "window": 11,
+          "recencyDecay": 0.96,
+          "spreadFloor": 0.17,
+          "breakShift": 1.2,
+          "breakShare": 0.3,
+          "fullTrustUnevenness": 0.3,
+          "usualThreshold": 0.4,
+          "breakThreshold": 0.5,
+          "level": 0.9
+        },
+        "luna": {
+          "window": 21,
+          "pauseMargin": 0.8,
+          "minimumPause": 1.35,
+          "fullTrustUnevenness": 0.6,
+          "recencyDecay": 0.9,
+          "level": 0.9
+        },
+        "venus": {
+          "window": 21,
+          "recencyDecay": 0.9,
+          "level": 0.9,
+          "priorStrength": 5,
+          "syntheticRuns": 5,
+          "syntheticDecay": 0.5,
+          "priorBaseline": 300,
+          "priorBreakShare": 0.15,
+          "priorBreakSize": 2.5,
+          "priorNormalSpread": 0.25,
+          "priorBreakSpread": 0.4,
+          "breakThreshold": 0.5,
+          "usualThreshold": 0.5
+        },
+        "mercury": {
+          "window": 21,
+          "recencyDecay": 0.9,
+          "level": 0.9,
+          "priorStrength": 5,
+          "syntheticRuns": 5,
+          "syntheticDecay": 0.5,
+          "priorBaseline": 300,
+          "priorBreakShare": 0.15,
+          "priorBreakSize": 2.5,
+          "priorNormalSpread": 0.25,
+          "priorBreakSpread": 0.4,
+          "breakThreshold": 0.5,
+          "usualThreshold": 0.5
+        }
+      },
+      "colorSpace": "oklch",
+      "seasonTurn": 5,
+      "keyLinger": 1600,
+      "breath": 3,
+      "discoverSpeed": 2.3,
+      "paceStep": 30,
+      "handOver": 2000,
+      "groupPause": 50,
+      "gameLinger": 3,
+      "checkpointLag": 1,
+      "layout": {
+        "margins": {
+          "top": 1.625,
+          "side": 1.25,
+          "bottom": 1.75
+        },
+        "corner": {
+          "size": 2.875,
+          "radius": 0.875
+        },
+        "header": {
+          "size": 13
+        },
+        "tape": {
+          "top": 51.2,
+          "bottom": 43.2,
+          "words": 2.4
+        },
+        "slots": {
+          "top": 44.2,
+          "bottom": 39.2,
+          "width": 8.1,
+          "radius": 1.2,
+          "depth": 0.5
+        },
+        "keypad": {
+          "top": 37.2,
+          "reach": 4.2,
+          "keyWidth": 29,
+          "keyHeight": 7.5,
+          "keyRadius": 2.8,
+          "keyDepth": 1.7
+        }
+      },
+      "menu": {
+        "layout": {
+          "title": {
+            "above": 84.6
+          },
+          "icon": {
+            "size": 55.2,
+            "offset": 14.7
+          },
+          "slice": {
+            "size": 7.9,
+            "offset": -20.7
+          },
+          "pi": {
+            "size": 13.5,
+            "offset": -40.9
+          },
+          "buttons": {
+            "below": 5.9,
+            "height": 3.1875,
+            "width": 18.375,
+            "gap": 0.8125
+          }
+        },
+        "light": {
+          "icon": {
+            "intensity": 0.97,
+            "core": 11.2,
+            "falloff": 2.3,
+            "reach": 26,
+            "rays": 0.92,
+            "rayCount": 5,
+            "saturation": 1.5
+          },
+          "slice": {
+            "intensity": 0.67,
+            "core": 5.1,
+            "falloff": 5.3,
+            "reach": 10,
+            "rays": 0.64,
+            "rayCount": 4,
+            "saturation": 3
+          },
+          "pi": {
+            "intensity": 0.45,
+            "core": 4,
+            "falloff": 1.3,
+            "reach": 13,
+            "rays": 1,
+            "rayCount": 3,
+            "saturation": 1.2
+          }
+        },
+        "iconLight": {
+          "offset": -5.2,
+          "color": "#ff6857"
+        }
+      },
+      "vibrations": {
+        "play": [25],
+        "button": [5],
+        "digit": [10],
+        "mistake": [40, 60, 40],
+        "backspace": [30],
+        "pluck": [5],
+        "landing": [2],
+        "turn": [20, 80, 20],
+        "spin": [4]
+      },
+      "soundModel": "chorale",
+      "sound": {
+        "chords": 0.6,
+        "landings": 0
+      },
+      "souring": {
+        "bend": -70,
+        "drift": 12,
+        "buzz": 0.5,
+        "rasp": 0.5,
+        "speed": 0.05
+      },
+      "keyMotion": {
+        "merge": 160,
+        "press": 160
+      }
+    }
+  }
+}

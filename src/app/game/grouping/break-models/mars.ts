@@ -1,6 +1,5 @@
 import type { BreakModel, BreakModelKind, Group, Settings } from './break-model';
 import {
-  ENVELOPE_DEFAULTS,
   ENVELOPE_HYPERPARAMETERS,
   enveloped,
   Enveloped,
@@ -37,6 +36,7 @@ import {
   TERRA_HYPERPARAMETERS,
   TerraSettings,
 } from './terra';
+import { GAME_VALUES } from '../../../game-values';
 
 /**
  * Mars: Terra (`terra.ts`) pooling what the runs say rather than what they conclude. Terra averages each run's P(break)
@@ -104,21 +104,7 @@ const PRIOR_NEIGHBORS = 2;
  * the second run on, it plays the player's own groups. Discover's level is higher, so that it shows them only once a
  * few runs agree on them: groups typed hesitantly, not yet formed, would teach the player the wrong ones.
  */
-export const MARS_DEFAULTS: MarsSettings = {
-  window: 9,
-  recencyDecay: 0.96,
-  spreadFloor: 0.2,
-  breakShift: 2.3,
-  breakShare: 0.2,
-  fullTrustUnevenness: 0.3,
-  breakThreshold: 0.25,
-  level: 0,
-  discoverLevel: 0.7,
-  priorUnevenness: 0.2,
-  trustInfluence: 1,
-  currentDecay: 0.5,
-  ...ENVELOPE_DEFAULTS,
-};
+export const MARS_DEFAULTS: MarsSettings = GAME_VALUES.grouping.mars;
 
 /**
  * Runs the model over the judged finished runs, oldest first, and, if given, the times of the run in progress (in

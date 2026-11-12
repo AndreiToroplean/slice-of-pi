@@ -1,6 +1,7 @@
 import type { BreakModelKind, Settings } from './break-model';
 import { BreakSettings } from './hyperparameters';
-import { MERCURY, MERCURY_DEFAULTS } from './mercury';
+import { MERCURY } from './mercury';
+import { GAME_VALUES } from '../../../game-values';
 import {
   fromStartOfPiOnly,
   modelFromSteps,
@@ -113,8 +114,7 @@ export const VENUS: BreakModelKind = {
   label: 'Venus',
   description:
     'Mercury on the runs averaged place by place, so that one long pause can always end a group.',
-  // Mercury's, until Venus is tuned.
-  defaults: MERCURY_DEFAULTS,
+  defaults: GAME_VALUES.grouping.venus,
   // Mercury's hyperparameters, in its tabs.
   tabs: MERCURY.tabs,
   create: (tuned) => {
@@ -129,5 +129,5 @@ export const VENUS: BreakModelKind = {
 
 /** Venus's hyperparameters, each one not tuned at its default. */
 function withDefaults(tuned: Settings): BreakSettings {
-  return { ...MERCURY_DEFAULTS, ...tuned };
+  return { ...GAME_VALUES.grouping.venus, ...tuned };
 }

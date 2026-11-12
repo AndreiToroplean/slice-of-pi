@@ -1,3 +1,4 @@
+import { GAME_VALUES } from '../game-values';
 /** The events the phone vibrates on, each with its own pattern. */
 export const VIBRATIONS = [
   'play',
@@ -22,17 +23,7 @@ export type VibrationPattern = readonly number[];
 export type VibrationPatterns = Readonly<Record<Vibration, VibrationPattern>>;
 
 /** The game's own patterns. */
-export const VIBRATION_PATTERNS: VibrationPatterns = {
-  play: [25],
-  button: [5],
-  digit: [10],
-  mistake: [40, 60, 40],
-  backspace: [30],
-  pluck: [5],
-  landing: [2],
-  turn: [20, 80, 20],
-  spin: [4],
-};
+export const VIBRATION_PATTERNS: VibrationPatterns = GAME_VALUES.vibrations;
 
 /** The longest step of a pattern, buzz or pause, in ms. */
 export const LONGEST_STEP = 300;

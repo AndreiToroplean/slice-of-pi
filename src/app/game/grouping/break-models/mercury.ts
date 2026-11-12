@@ -18,6 +18,7 @@ import {
   trustOf,
   usualBreaks,
 } from './steps';
+import { GAME_VALUES } from '../../../game-values';
 
 /**
  * Mercury, the first break model: classifies the intervals of the player's runs as breaks or not, with a probability,
@@ -36,21 +37,7 @@ import {
  * Nothing here is stored; it's always computed from the times of the runs.
  */
 
-export const MERCURY_DEFAULTS: BreakSettings = {
-  window: 21,
-  recencyDecay: 0.9,
-  level: 0.9,
-  priorStrength: 5,
-  syntheticRuns: 5,
-  syntheticDecay: 0.5,
-  priorBaseline: 300,
-  priorBreakShare: 0.15,
-  priorBreakSize: 2.5,
-  priorNormalSpread: 0.25,
-  priorBreakSpread: 0.4,
-  breakThreshold: 0.5,
-  usualThreshold: 0.5,
-};
+export const MERCURY_DEFAULTS: BreakSettings = GAME_VALUES.grouping.mercury;
 
 const H = HYPERPARAMETERS;
 

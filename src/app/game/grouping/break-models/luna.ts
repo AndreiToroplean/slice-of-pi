@@ -1,6 +1,5 @@
 import type { BreakModelKind, Settings, Values } from './break-model';
 import { BreakSettings, HYPERPARAMETERS } from './hyperparameters';
-import { MERCURY_DEFAULTS } from './mercury';
 import {
   fromStartOfPiOnly,
   modelFromSteps,
@@ -9,6 +8,7 @@ import {
 } from './model-from-steps';
 import { neighborsOf } from './statistics';
 import { groupsOf, Steps, trustOf } from './steps';
+import { GAME_VALUES } from '../../../game-values';
 
 /**
  * Luna: each run is judged on its own first, at every place, whether the time the player took there is a pause (a break
@@ -40,14 +40,7 @@ export type LunaSettings = Pick<BreakSettings, 'window' | 'recencyDecay' | 'leve
     fullTrustUnevenness: number;
   }>;
 
-export const LUNA_DEFAULTS: LunaSettings = {
-  window: MERCURY_DEFAULTS.window,
-  pauseMargin: 0.8,
-  minimumPause: 1.35,
-  fullTrustUnevenness: 0.6,
-  recencyDecay: MERCURY_DEFAULTS.recencyDecay,
-  level: MERCURY_DEFAULTS.level,
-};
+export const LUNA_DEFAULTS: LunaSettings = GAME_VALUES.grouping.luna;
 
 /**
  * What Luna decides by: a run's verdict is a break or not, and a place is a usual break spot where most of the votes say

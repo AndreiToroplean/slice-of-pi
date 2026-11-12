@@ -16,7 +16,8 @@
     "lint": "ng lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "node scripts/check.ts"
+    "check": "node scripts/check.ts",
+    "promote": "node scripts/promote.ts"
   },
   "private": true,
   "type": "module",

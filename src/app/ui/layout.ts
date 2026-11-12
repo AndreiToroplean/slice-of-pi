@@ -1,3 +1,4 @@
+import { GAME_VALUES } from '../game-values';
 /**
  * Where things sit on the screens. The margins around every page and screen, which nothing is ever in, and the buttons
  * in the screens' corners, snug against them, keep their own size, in rem. The play screen's parts are sized with the
@@ -42,14 +43,7 @@ export interface Layout {
 }
 
 /** The game's own layout. */
-export const LAYOUT: Layout = {
-  margins: { top: 1.625, side: 1.25, bottom: 1.75 },
-  corner: { size: 2.875, radius: 0.875 },
-  header: { size: 13 },
-  tape: { top: 51.2, bottom: 43.2, words: 2.4 },
-  slots: { top: 44.2, bottom: 39.2, width: 8.1, radius: 1.2, depth: 0.5 },
-  keypad: { top: 37.2, reach: 4.2, keyWidth: 29, keyHeight: 7.5, keyRadius: 2.8, keyDepth: 1.7 },
-};
+export const LAYOUT: Layout = GAME_VALUES.layout;
 
 /** A length of so many hundredths of the screen's height, in CSS (see `--unit` in `play.css`). */
 function down(value: number): string {
