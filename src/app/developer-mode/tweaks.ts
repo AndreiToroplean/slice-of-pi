@@ -19,7 +19,7 @@ import {
 import { isKeyLinger, KEY_LINGER, Palette, PALETTE } from '../game/layers/place-colors';
 import { BREATH, isBreath } from '../ui/breath';
 import { isUnavailable, UNAVAILABLE } from '../ui/unavailable';
-import { OTHER_KEY_COLORS, OTHER_KEYS, OtherKeyColors } from '../screens/play/keypad/other-keys';
+import { ACTION_KEY_COLOR } from '../screens/play/keypad/action-keys';
 import { CHECKPOINT_LAG, isCheckpointLag } from '../game/modes/discover-rounds';
 import { writeBackup } from '../player-data/backup';
 import { migrate, Migration } from '../player-data/migration';
@@ -103,8 +103,8 @@ export interface TweakValues {
   readonly breath?: number;
   /** How much of an unavailable candy button's paint shows, in percent, for {@link UNAVAILABLE}. */
   readonly unavailable?: number;
-  /** The colors of the keys besides the digit keys, for {@link OTHER_KEY_COLORS}. */
-  readonly otherKeys?: OtherKeyColors;
+  /** The action keys' color, for {@link ACTION_KEY_COLOR}. */
+  readonly actionKeys?: string;
   /** How many digits a second Discover plays at its medium pace, for {@link DISCOVER_SPEED}. */
   readonly discoverSpeed?: number;
   /** How much slower or faster than the medium pace Discover's others are, in percent, for {@link PACE_STEP}. */
@@ -231,8 +231,8 @@ export class Tweaks {
     () => (this.developerMode.enabled() ? this.tweaks().unavailable : undefined) ?? UNAVAILABLE,
   );
   /** The colors of the keys besides the digit keys. */
-  readonly otherKeys = computed(
-    () => (this.developerMode.enabled() ? this.tweaks().otherKeys : undefined) ?? OTHER_KEY_COLORS,
+  readonly actionKeys = computed(
+    () => (this.developerMode.enabled() ? this.tweaks().actionKeys : undefined) ?? ACTION_KEY_COLOR,
   );
   /** How many digits a second Discover plays at its medium pace. */
   readonly discoverSpeed = computed(
@@ -428,8 +428,8 @@ export class Tweaks {
   }
 
   /** Sets the colors of the keys besides the digit keys; `undefined` brings back the game's. */
-  setOtherKeys(otherKeys: OtherKeyColors | undefined): Promise<void> {
-    return this.save(tweakValues({ ...this.tweaks(), otherKeys }));
+  setActionKeys(actionKeys: string | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), actionKeys }));
   }
 
   /** Sets how many digits a second Discover plays at its medium pace; `undefined` brings back the game's. */
@@ -611,7 +611,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     keyLinger,
     breath,
     unavailable,
-    otherKeys,
+    actionKeys,
     discoverSpeed,
     paceStep,
     handOver,
@@ -650,7 +650,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     keyLinger: isKeyLinger(keyLinger) ? keyLinger : undefined,
     breath: isBreath(breath) ? breath : undefined,
     unavailable: isUnavailable(unavailable) ? unavailable : undefined,
-    otherKeys: isOtherKeyColors(otherKeys) ? otherKeys : undefined,
+    actionKeys: isColor(actionKeys) ? actionKeys : undefined,
     discoverSpeed: isDiscoverSpeed(discoverSpeed) ? discoverSpeed : undefined,
     paceStep: isPaceStep(paceStep) ? paceStep : undefined,
     handOver: isHandOver(handOver) ? handOver : undefined,
@@ -692,7 +692,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     keyLinger,
     breath,
     unavailable,
-    otherKeys,
+    actionKeys,
     discoverSpeed,
     paceStep,
     handOver,
@@ -727,7 +727,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     keyLinger: keyLinger === KEY_LINGER ? undefined : keyLinger,
     breath: breath === BREATH ? undefined : breath,
     unavailable: unavailable === UNAVAILABLE ? undefined : unavailable,
-    otherKeys: equal(otherKeys, OTHER_KEY_COLORS) ? undefined : otherKeys,
+    actionKeys: actionKeys === ACTION_KEY_COLOR ? undefined : actionKeys,
     discoverSpeed: discoverSpeed === DISCOVER_SPEED ? undefined : discoverSpeed,
     paceStep: paceStep === PACE_STEP ? undefined : paceStep,
     handOver: handOver === HAND_OVER ? undefined : handOver,
@@ -774,7 +774,7 @@ function tweakValues({
   keyLinger,
   breath,
   unavailable,
-  otherKeys,
+  actionKeys,
   discoverSpeed,
   paceStep,
   handOver,
@@ -812,7 +812,7 @@ function tweakValues({
     ...(keyLinger === undefined ? {} : { keyLinger }),
     ...(breath === undefined ? {} : { breath }),
     ...(unavailable === undefined ? {} : { unavailable }),
-    ...(otherKeys === undefined ? {} : { otherKeys }),
+    ...(actionKeys === undefined ? {} : { actionKeys }),
     ...(discoverSpeed === undefined ? {} : { discoverSpeed }),
     ...(paceStep === undefined ? {} : { paceStep }),
     ...(handOver === undefined ? {} : { handOver }),
@@ -965,18 +965,6 @@ function isColor(value: unknown): value is string {
 
 function isPalette(value: unknown): value is Palette {
   return Array.isArray(value) && value.length === PALETTE.length && value.every(isColor);
-}
-
-/** Whether a value holds a color for each of the other keys, and nothing else. */
-function isOtherKeyColors(value: unknown): value is OtherKeyColors {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const colors = value as Record<string, unknown>;
-  return (
-    Object.keys(colors).length === OTHER_KEYS.length &&
-    OTHER_KEYS.every((key) => isColor(colors[key]))
-  );
 }
 
 function isColorPair(value: unknown): value is BackgroundColors {

@@ -3,7 +3,7 @@ import { isDigit } from '../../../game/pi/digit';
 import { keyColorIndices, PALETTE } from '../../../game/layers/place-colors';
 import { Keypad, REPEAT_DELAY, REPEAT_INTERVAL, SPLASH_DURATION } from './keypad';
 import { KeypadRenderer } from './keypad-gl';
-import { OTHER_KEY_COLORS } from './other-keys';
+import { ACTION_KEY_COLOR } from './action-keys';
 import { KeypadKey, KeypadTouch } from '../../../game/layers/keypad-layout';
 
 /**
@@ -910,25 +910,22 @@ describe('Keypad', () => {
       return button(key).classList.contains('pressed') ? color || null : null;
     }
 
-    it('shows each digit key its color on its edge, and backspace its own', () => {
+    it('shows each digit key its color on its edge, and the action keys theirs', () => {
       expect(['0', '1', '9'].map((key) => accent(key as KeypadKey))).toEqual([
         PALETTE[0],
         PALETTE[1],
         PALETTE[9],
       ]);
-      expect(accent('backspace')).toBe(OTHER_KEY_COLORS.backspace);
+      expect(accent('backspace')).toBe(ACTION_KEY_COLOR);
+      expect(accent('pause')).toBe(ACTION_KEY_COLOR);
     });
 
-    it('shows the key in backspace’s place its own color, as backspace or the discover key', () => {
-      fixture.componentRef.setInput('otherKeys', {
-        pause: '#000000',
-        backspace: '#123456',
-        discover: '#abcdef',
-      });
-      expect(accent('backspace')).toBe('#123456');
+    it('shows the action keys the color it is given, whatever the key in backspace’s place is', () => {
+      fixture.componentRef.setInput('actionKeys', '#123456');
+      expect(accent('pause')).toBe('#123456');
 
       fixture.componentRef.setInput('corner', 'discover');
-      expect(accent('backspace')).toBe('#abcdef');
+      expect(accent('backspace')).toBe('#123456');
     });
 
     it('fills a key with its color as soon as it is touched', () => {
@@ -1005,10 +1002,10 @@ describe('Keypad', () => {
 
     it('fills backspace with its own color while pressed, by touch or keyboard', () => {
       down('backspace');
-      expect(splash('backspace')).toBe(OTHER_KEY_COLORS.backspace);
+      expect(splash('backspace')).toBe(ACTION_KEY_COLOR);
 
       keyboard('keydown', { key: 'Backspace' });
-      expect(splash('backspace')).toBe(OTHER_KEY_COLORS.backspace);
+      expect(splash('backspace')).toBe(ACTION_KEY_COLOR);
     });
   });
 });
