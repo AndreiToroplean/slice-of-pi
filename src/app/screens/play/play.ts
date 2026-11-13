@@ -52,7 +52,7 @@ import {
   moveTo,
   newRounds,
 } from '../../game/modes/discover-rounds';
-import { FAST_FORWARD, paceInterval } from '../../game/modes/discover-pace';
+import { paceInterval } from '../../game/modes/discover-pace';
 import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
 import { DiscoverRecorder } from '../../player-data/discover-recorder';
 import { GroupSizeSetting } from '../../player-data/group-size-setting';
@@ -403,7 +403,9 @@ export class Play implements PausesOnBack {
   /** Whether the player fast forwards what Discover's game plays, holding the discover key. */
   protected readonly fastForward = signal(false);
   /** How many times faster than the clock's Discover's game plays: its rounds, and their fading out. */
-  protected readonly discoverRate = computed(() => (this.fastForward() ? FAST_FORWARD : 1));
+  protected readonly discoverRate = computed(() =>
+    this.fastForward() ? this.tweaks.fastForward() : 1,
+  );
   /**
    * Whether it doesn't work: backspace in a challenge, the discover key on the player's turn until they have
    * retyped the round, the game's next turn then on its way.

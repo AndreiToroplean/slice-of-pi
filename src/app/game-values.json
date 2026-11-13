@@ -113,6 +113,7 @@
       "handOver": 2000,
       "groupPause": 50,
       "gameLinger": 3,
+      "fastForward": 2,
       "checkpointLag": 1,
       "layout": {
         "margins": {
