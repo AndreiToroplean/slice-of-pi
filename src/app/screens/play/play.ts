@@ -96,8 +96,8 @@ const KEY_SHOWN = 0.6;
 type Turn = 'game' | 'player';
 
 /**
- * How long the pause key must be held, in milliseconds, for its release not to pause the game, in Discover: a hold,
- * which holds Discover's time while held, rather than a tap.
+ * How long the pause key must be held, in milliseconds, for its release not to pause the game: a hold, which stands
+ * the game still while held, rather than a tap.
  */
 export const PAUSE_HOLD = 300;
 
@@ -167,7 +167,7 @@ const TICK = 16;
     '(pointercancel)': 'touchesElsewhere.delete($event.pointerId)',
     '(document:keydown)': 'shift($event, true)',
     '(document:keyup)': 'shift($event, false)',
-    '(window:blur)': 'shiftHeld.set(false)',
+    '(window:blur)': 'letGoOfShift()',
   },
   template: `
     <h1 class="visually-hidden">Slice of Pi</h1>
@@ -497,17 +497,24 @@ export class Play implements PausesOnBack {
   private readonly fastForwarding = signal(false);
   /** When the pause key's press going on started, on the run's clock, if one is. */
   private pauseKeyDown: number | undefined;
-  /** Whether the player holds the pause key down, which holds Discover's time as pausing does, without the pause. */
+  /** Whether the player holds the pause key down, which stands the game still as pausing does, without the pause. */
   private readonly pauseHeld = signal(false);
-  /** Whether Shift is held down, which holds Discover's time as the pause key does. */
-  protected readonly shiftHeld = signal(false);
+  /** Whether Shift is held down, which stands the game still as the pause key does. */
+  private readonly shiftHeld = signal(false);
+  /**
+   * Whether the game stands still: paused, or held, as the player holds the pause key, or Shift, to look, or think,
+   * for longer. Everything stops but what's on the screen: the run's clock, the wait for the group being typed to end,
+   * Discover's time, and keys typed count for nothing; only a pause shows its dialog.
+   */
+  private readonly still = computed(() => this.paused() || this.pauseHeld() || this.shiftHeld());
+  /** Whether the game stood still, the last time it was told to stop or start again (see {@link standStill}). */
+  private stood = false;
   /**
    * How many times faster than the clock's Discover's time runs, the game playing and handing turns over on it: not at
-   * all while the game is paused, nor while the player holds the pause key, or Shift, to look at the round, or think,
-   * for longer, as if paused; and faster while they hold the turn key to fast forward the game's round.
+   * all while the game stands still, and faster while the player holds the turn key to fast forward the game's round.
    */
   private readonly discoverRate = computed(() => {
-    if (this.paused() || this.pauseHeld() || this.shiftHeld()) {
+    if (this.still()) {
       return 0;
     }
     return this.fastForwarding() ? this.tweaks.fastForward() : 1;
@@ -744,7 +751,7 @@ export class Play implements PausesOnBack {
    * else comes of the touch.
    */
   private takeTurn(key: KeypadKey | null): void {
-    if (this.turn() === 'game' && key !== null && isDigit(key) && !this.paused() && !this.lost()) {
+    if (this.turn() === 'game' && key !== null && isDigit(key) && !this.still() && !this.lost()) {
       this.switchTurn(false);
       // The key takes, and lingers in, the color of the player's place, not that of the round shown.
       this.keypad().noteColor(key, this.tweaks.palette()[this.colorIndices()[key]]);
@@ -756,28 +763,37 @@ export class Play implements PausesOnBack {
       return;
     }
     this.takeTurn(touch.key);
-    if (!this.paused()) {
+    if (!this.still()) {
       this.play(touch);
     }
   }
 
-  /**
-   * Pauses or resumes the game: the run's clock stops, and so does the wait for the group being typed to end, which
-   * goes on, once resumed, for what was left of it.
-   */
+  /** Pauses or resumes the game, which stands still meanwhile (see {@link standStill}). */
   protected setPaused(paused: boolean): void {
     this.paused.set(paused);
-    if (paused) {
-      this.session.pause();
-      this.discoverRecorder.pause();
-      this.stopTimers();
-      this.stopTimers = () => undefined;
-    } else {
-      this.session.resume();
-      this.discoverRecorder.resume();
-      this.watchForPause();
+    this.standStill();
+  }
+
+  /**
+   * Stops the game as it starts standing still, or starts it again once it no longer does (see {@link still}): the
+   * run's clock stops, and so does the wait for the group being typed to end, which goes on, once started again, for
+   * what was left of it; Discover's time stands still, and goes on from where it was, never showing a round again.
+   */
+  private standStill(): void {
+    const still = this.still();
+    if (still !== this.stood) {
+      this.stood = still;
+      if (still) {
+        this.session.pause();
+        this.discoverRecorder.pause();
+        this.stopTimers();
+        this.stopTimers = () => undefined;
+      } else {
+        this.session.resume();
+        this.discoverRecorder.resume();
+        this.watchForPause();
+      }
     }
-    // Discover's time stands still while paused, and goes on from where it was: pausing never shows a round again.
     this.discoverTimer.setRate(this.discoverRate());
   }
 
@@ -854,31 +870,39 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Holds Discover's time for as long as the pause key is held, the game's round or a turn's hand over standing still,
-   * as paused, but without the pause; a tap of it pauses the game as it's
-   * released on the key, as any release does but in Discover, where the key held down for {@link PAUSE_HOLD} or longer
-   * was a hold.
+   * Stands the game still for as long as the pause key is held, as pausing does, but without the pause (see
+   * {@link still}); a tap of it pauses the game as it's released on the key, unless it was held down for
+   * {@link PAUSE_HOLD} or longer, a hold.
    */
   protected usePauseKey(press: KeyPress): void {
     const now = this.clock.now();
     if (press === 'down') {
       this.pauseKeyDown = now;
       this.pauseHeld.set(true);
+      this.standStill();
       return;
     }
     const held = now - (this.pauseKeyDown ?? now);
     this.pauseKeyDown = undefined;
     this.pauseHeld.set(false);
-    if (press === 'up' && (!this.discovering || held < PAUSE_HOLD)) {
+    this.standStill();
+    if (press === 'up' && held < PAUSE_HOLD) {
       this.pause()?.pause();
     }
   }
 
-  /** Notes Shift held down, or let go, which holds Discover's time as the pause key does. */
+  /** Notes Shift held down, or let go, which stands the game still as the pause key does. */
   protected shift(event: KeyboardEvent, down: boolean): void {
     if (event.key === 'Shift') {
       this.shiftHeld.set(down);
+      this.standStill();
     }
+  }
+
+  /** Lets go of Shift, as the page loses the focus. */
+  protected letGoOfShift(): void {
+    this.shiftHeld.set(false);
+    this.standStill();
   }
 
   /**
@@ -895,7 +919,7 @@ export class Play implements PausesOnBack {
     const tapped = press === 'up' && this.turnPress === 'tap';
     this.turnPress = undefined;
     this.fastForwarding.set(false);
-    if (tapped && this.handingOver() !== undefined && !this.paused() && !this.lost()) {
+    if (tapped && this.handingOver() !== undefined && !this.still() && !this.lost()) {
       this.switchTurn();
     }
   }
@@ -1447,11 +1471,11 @@ export class Play implements PausesOnBack {
   /**
    * Plays the sound of a key, as soon as a touch lands on it, before it's typed, if it is: sliding off it types nothing,
    * so the player can listen to it before committing to it; keys typed on a keyboard, and those of a run replayed, sound
-   * as they're typed. Never while paused nor {@link silent}. The sound model never knows the next digit, so the sound
+   * as they're typed. Never while the game stands still nor {@link silent}. The sound model never knows the next digit, so the sound
    * gives nothing away.
    */
   protected sound(key: KeypadKey): void {
-    if (!isDigit(key) || this.paused() || this.silent()) {
+    if (!isDigit(key) || this.still() || this.silent()) {
       return;
     }
     const moment: Moment = {

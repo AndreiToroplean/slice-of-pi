@@ -1381,6 +1381,24 @@ describe('Play', () => {
       expect(words(host)).toEqual(['1415']);
     });
 
+    it('stands still as if paused, but without the pause, while held, in any mode', async () => {
+      const { host, type, stable } = await setUp();
+      await typeAll(type, '141');
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', bubbles: true }));
+      time.advance(10 * PAUSE);
+      await stable();
+      expect(words(host)).toEqual([]);
+      expect(host.querySelector('dialog')?.open).toBe(false);
+
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', bubbles: true }));
+      await type('5');
+      expect(TestBed.inject(RunRecorder).run()?.times.at(-1)).toBe(250 + 150 + 250);
+      time.advance(PAUSE);
+      await stable();
+      expect(words(host)).toEqual(['1415']);
+    });
+
     it('edits the layout from the pause dialog in developer mode, paused, with 10 slots and the touch areas', async () => {
       await TestBed.inject(DeveloperMode).set(true);
       const { host, type, stable } = await setUp();
