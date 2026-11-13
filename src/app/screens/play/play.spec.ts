@@ -1879,9 +1879,7 @@ describe('Play', () => {
     }
 
     function shownKey(host: HTMLElement): string | undefined {
-      return host.querySelector<HTMLElement>('app-keypad .key.pressed:not(.discover)')?.dataset[
-        'key'
-      ];
+      return host.querySelector<HTMLElement>('app-keypad .key.pressed:not(.turn)')?.dataset['key'];
     }
 
     function cornerKey(host: HTMLElement): HTMLButtonElement {
@@ -1943,7 +1941,7 @@ describe('Play', () => {
       }
     }
 
-    it('plays the first group, keys pressed, the discover key lit, then hands it over once it has faded off the tape', async () => {
+    it('plays the first group, keys pressed, the turn key lit, then hands it over once it has faded off the tape', async () => {
       const round = await discover();
       expect(cornerKey(round.host).getAttribute('aria-label')).toBe('Fast forward');
       expect(cornerKey(round.host).classList).toContain('lit');
@@ -2118,7 +2116,7 @@ describe('Play', () => {
       expect(cornerKey(round.host).classList).toContain('lit');
     });
 
-    it('plays the round twice as fast while the discover key is held', async () => {
+    it('plays the round twice as fast while the turn key is held', async () => {
       const round = await discover();
       await holdKey(round);
       expect(cornerKey(round.host).getAttribute('aria-pressed')).toBe('true');
@@ -2139,7 +2137,7 @@ describe('Play', () => {
       expect(faint(round.host)).toBe('14159');
     });
 
-    it('speeds up what’s left of the round as the discover key is held midway, and slows back down as let go', async () => {
+    it('speeds up what’s left of the round as the turn key is held midway, and slows back down as let go', async () => {
       const round = await discover();
       await round.wait(1.5 * MEDIUM_INTERVAL);
 
@@ -2190,7 +2188,7 @@ describe('Play', () => {
       expect(cornerKey(round.host).classList).toContain('lit');
     });
 
-    it('shows the next round at once with the discover key, once the player has retyped the round, not before', async () => {
+    it('shows the next round at once with the turn key, once the player has retyped the round, not before', async () => {
       const round = await discover();
       await listen(round, 5);
       await round.type('14');

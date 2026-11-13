@@ -414,11 +414,11 @@ export class Play implements PausesOnBack {
   protected readonly picked = signal<number | undefined>(undefined);
   /** Stops the hand over going on, if any. */
   private stopHandOver = (): void => undefined;
-  /** What the key in backspace's place is: the discover key in Discover, backspace otherwise. */
+  /** What the key in backspace's place is: the turn key in Discover, backspace otherwise. */
   protected readonly cornerKey = computed((): CornerKey =>
-    this.mode() === 'discover' ? 'discover' : 'backspace',
+    this.mode() === 'discover' ? 'turn' : 'backspace',
   );
-  /** Whether the player holds the discover key down, in Discover. */
+  /** Whether the player holds the turn key down, in Discover. */
   private readonly fastForwarding = signal(false);
   /** The touches holding the tape down, by pointer. */
   private readonly tapeTouches = signal<ReadonlySet<number>>(new Set());
@@ -427,7 +427,7 @@ export class Play implements PausesOnBack {
   /**
    * How many times faster than the clock's Discover's time runs, the game playing and handing turns over on it: not at
    * all while the player holds the tape as a turn is handed over, to look at its digits, or think, for longer, and
-   * faster while they hold the discover key.
+   * faster while they hold the turn key.
    */
   private readonly discoverRate = computed(() => {
     if (this.handingOver() !== undefined && (this.tapeTouches().size > 0 || this.shiftHeld())) {
@@ -436,7 +436,7 @@ export class Play implements PausesOnBack {
     return this.fastForwarding() ? this.tweaks.fastForward() : 1;
   });
   /**
-   * Whether it doesn't work: backspace in a challenge, the discover key on the player's turn until they have
+   * Whether it doesn't work: backspace in a challenge, the turn key on the player's turn until they have
    * retyped the round.
    */
   protected readonly cornerDisabled = computed(
@@ -774,7 +774,7 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Hurries Discover's game while the discover key is held: faster as it plays the round and fades it out, and,
+   * Hurries Discover's game while the turn key is held: faster as it plays the round and fades it out, and,
    * once the player has retyped the round, the next one shown at once.
    */
   protected fastForward(held: boolean): void {
