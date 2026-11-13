@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794527881197,
+  "lastUpdate": 1794570718048,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3758,6 +3758,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 704,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "f4da7927fddbda972878c3dc7443e6e05a50ccc0",
+          "message": "test: run the end-to-end tests on the cloud sessions' own Chromium\n\n- Cloud sessions ship a Chromium whose revision needn't match the one the project's Playwright expects, so the tests couldn't launch a browser there.\n- The config uses that Chromium when it's there, whatever its version, so neither side needs pinning; elsewhere, such as in CI, Playwright keeps its own.\n\nClaude-Session: https://claude.ai/code/session_01X1Xesow9ts79ubbxe8zAdM",
+          "timestamp": "2026-11-13T12:51:32+01:00",
+          "tree_id": "86ab2bf7f09431b610724b6ea5c2fcad11ecefe1",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/f4da7927fddbda972878c3dc7443e6e05a50ccc0"
+        },
+        "date": 1794570717123,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 17298,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 38284,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1160,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
