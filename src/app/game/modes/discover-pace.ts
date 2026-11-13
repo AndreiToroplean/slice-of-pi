@@ -80,4 +80,11 @@ export function isGameLinger(value: unknown): value is number {
 }
 
 /** How many times faster the game plays Discover's rounds, fading them out too, while the player fast forwards them. */
-export const FAST_FORWARD = 2;
+export const FAST_FORWARD = GAME_VALUES.fastForward;
+/** The most developer mode can speed them up, as a multiple. */
+export const MAX_FAST_FORWARD = 5;
+
+/** Whether a value is a fast forward developer mode can tune. */
+export function isFastForward(value: unknown): value is number {
+  return typeof value === 'number' && value >= 1 && value <= MAX_FAST_FORWARD;
+}

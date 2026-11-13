@@ -18,9 +18,11 @@ import {
   DiscoverPace,
   MAX_PACE_STEP,
   GAME_LINGER,
+  FAST_FORWARD,
   GROUP_PAUSE,
   HAND_OVER,
   MAX_GAME_LINGER,
+  MAX_FAST_FORWARD,
   MAX_GROUP_PAUSE,
   MAX_HAND_OVER,
   PACE_STEP,
@@ -299,6 +301,16 @@ import { YourData } from './your-data';
             [defaultValue]="defaultGameLinger"
             (changed)="setGameLinger($event)"
           />
+          <app-slider
+            label="Fast Forward"
+            [value]="tweaks.fastForward()"
+            [min]="1"
+            [max]="maxFastForward"
+            [step]="0.1"
+            [valueText]="'×' + tweaks.fastForward()"
+            [defaultValue]="defaultFastForward"
+            (changed)="setFastForward($event)"
+          />
           <div class="row">
             <label class="setting">
               <span>
@@ -474,6 +486,8 @@ export class Settings {
   protected readonly defaultGroupPause = GROUP_PAUSE;
   protected readonly maxGameLinger = MAX_GAME_LINGER;
   protected readonly defaultGameLinger = GAME_LINGER;
+  protected readonly maxFastForward = MAX_FAST_FORWARD;
+  protected readonly defaultFastForward = FAST_FORWARD;
   protected readonly keyLooks: readonly Segment<'clear' | 'solid'>[] = [
     { value: 'clear', label: 'Clear Keys' },
     { value: 'solid', label: 'Solid Keys' },
@@ -516,6 +530,7 @@ export class Settings {
       this.tweaks.handOver() === HAND_OVER &&
       this.tweaks.groupPause() === GROUP_PAUSE &&
       this.tweaks.gameLinger() === GAME_LINGER &&
+      this.tweaks.fastForward() === FAST_FORWARD &&
       !this.tweaks.manualCheckpoints() &&
       this.tweaks.checkpointLag() === CHECKPOINT_LAG,
   );
@@ -554,6 +569,10 @@ export class Settings {
 
   protected setGameLinger(linger: number | undefined): void {
     void this.tweaks.setGameLinger(linger);
+  }
+
+  protected setFastForward(fastForward: number | undefined): void {
+    void this.tweaks.setFastForward(fastForward);
   }
 
   protected setDiscoverSpeed(speed: number | undefined): void {
@@ -647,6 +666,7 @@ export class Settings {
       this.setHandOver(undefined);
       this.setGroupPause(undefined);
       this.setGameLinger(undefined);
+      this.setFastForward(undefined);
       this.resetManualCheckpoints();
       this.setCheckpointLag(undefined);
       this.resetCountdown();

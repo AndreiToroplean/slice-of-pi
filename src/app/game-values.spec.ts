@@ -33,6 +33,7 @@ describe('GAME_VALUES', () => {
       handOver: true,
       groupPause: true,
       gameLinger: true,
+      fastForward: true,
       checkpointLag: true,
       layout: true,
       menu: true,
