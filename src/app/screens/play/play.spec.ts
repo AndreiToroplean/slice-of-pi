@@ -2100,6 +2100,17 @@ describe('Play', () => {
       expect(fastForwardKey(round.host).classList).not.toContain('lit');
     });
 
+    it('fast forwards as fast as developer mode sets', async () => {
+      const round = await discover();
+      await TestBed.inject(DeveloperMode).set(true);
+      await TestBed.inject(Tweaks).setFastForward(4);
+      await toggleFastForward(round);
+
+      await round.wait((5 * MEDIUM_INTERVAL) / 4 + 10);
+
+      expect(faint(round.host)).toBe('14159');
+    });
+
     it('speeds up what’s left of the round as fast forward starts midway', async () => {
       const round = await discover();
       await round.wait(2.5 * MEDIUM_INTERVAL);

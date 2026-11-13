@@ -27,6 +27,7 @@ export type GameValues = Required<
     | 'handOver'
     | 'groupPause'
     | 'gameLinger'
+    | 'fastForward'
     | 'checkpointLag'
     | 'layout'
     | 'menu'
