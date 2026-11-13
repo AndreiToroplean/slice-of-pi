@@ -36,6 +36,8 @@ export type GameValues = Required<
     | 'sound'
     | 'souring'
     | 'keyMotion'
+    | 'turnSwitch'
+    | 'discoverHalo'
   >
 > & {
   readonly seasons: SeasonStarts;

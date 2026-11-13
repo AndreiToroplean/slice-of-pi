@@ -112,9 +112,8 @@ export type KeyPress = 'down' | 'up' | 'off';
  * - Several fingers can press keys at once; each key is typed when its finger is released.
  * - Holding backspace repeats it, while near enough to type it; digits don't repeat.
  * - The key in backspace's place is what the game mode makes it (see {@link CornerKey}): backspace; the turn key,
- *   whose presses, by touch or with the space bar, are reported as they start and end (see {@link KeyPress}); it shows
- *   a fast-forward or a switch-turns icon, as it's told, and is in its color all over while lit. Disabled, as backspace
- *   is in a challenge, it shows disabled, and touches on it type nothing.
+ *   whose presses, by touch or with the space bar, are reported as they start and end (see {@link KeyPress}); it shows a fast-forward or a switch-turns icon, as it's told. Disabled, as
+ *   backspace is in a challenge, it shows disabled, and touches on it type nothing.
  *   On a keyboard, Backspace types backspace.
  *
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
@@ -178,7 +177,6 @@ export type KeyPress = 'down' | 'up' | 'off';
           [attr.data-vibration]="position.key === 'pause' ? 'button' : null"
           [attr.title]="position.key === 'pause' ? 'Pause' : null"
           [class.turn]="position.key === 'backspace' && corner() === 'turn'"
-          [class.lit]="position.key === 'backspace' && corner() === 'turn' && lit()"
           [attr.aria-disabled]="position.key === 'backspace' && cornerDisabled() ? true : null"
           [pressed]="shownPressed(position.key)"
           [pressColor]="pressColor(position.key)"
@@ -285,8 +283,6 @@ export class Keypad {
   readonly showAreas = input(false);
   /** What the key in backspace's place is, as the game mode makes it. */
   readonly corner = input<CornerKey>('backspace');
-  /** Whether the turn key is in its color all over, as while the game shows the round. */
-  readonly lit = input(false);
   /**
    * Whether the key in backspace's place doesn't work, as backspace in a challenge, or the turn key on the
    * player's turn: it shows disabled, and touches on it type nothing.

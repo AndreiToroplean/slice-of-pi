@@ -60,6 +60,20 @@ app-typed-digits {
   height: var(--keys-height);
 }
 
+/*
+ * The Discover Halo, round key 5, behind everything else (see `DiscoverHalo`), showing as much as the game's turn does.
+ * Its light, already multiplied by its alpha, blends normally: under everything on the play screen, which is isolated,
+ * adding it to what's under it would add it to nothing all the same, and a blend mode would keep the action keys'
+ * frost from blurring what the keypad draws under them.
+ */
+.halo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 /* Developer mode's log of what the keys played, from under the season header down to the tape. */
 app-sound-log {
   position: absolute;

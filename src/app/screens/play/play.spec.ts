@@ -42,6 +42,7 @@ import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LAYOUT } from '../../ui/layout';
 import { GAME_OVER_DELAY, PAUSE_HOLD, Play } from './play';
+import { TURN_SWITCH } from './turn-shown';
 import {
   FAST_FORWARD,
   GAME_LINGER,
@@ -1890,6 +1891,11 @@ describe('Play', () => {
       return key;
     }
 
+    /** Whose turn it is. */
+    function turnOf(host: HTMLElement): string | null {
+      return host.getAttribute('data-turn');
+    }
+
     /** The faint digits on the tape: those the game showed. */
     function faint(host: HTMLElement): string {
       return Array.from(host.querySelectorAll('app-typed-digits .tile.faint'), (tile) =>
@@ -1941,10 +1947,10 @@ describe('Play', () => {
       }
     }
 
-    it('plays the first group, keys pressed, the turn key lit, then hands it over once it has faded off the tape', async () => {
+    it('plays the first group, keys pressed, on its turn, then hands it over once it has faded off the tape', async () => {
       const round = await discover();
       expect(cornerKey(round.host).getAttribute('aria-label')).toBe('Fast forward');
-      expect(cornerKey(round.host).classList).toContain('lit');
+      expect(turnOf(round.host)).toBe('game');
 
       await round.wait(MEDIUM_INTERVAL);
       expect(slots(round.host)[0]).toBe('1');
@@ -1952,12 +1958,12 @@ describe('Play', () => {
 
       await listen(round, 4);
       expect(faint(round.host)).toBe('14159');
-      expect(cornerKey(round.host).classList).toContain('lit');
+      expect(turnOf(round.host)).toBe('game');
 
       await round.wait(HAND_OVER);
       expect(faint(round.host)).toBe('');
       expect(words(round.host)).toEqual([]);
-      expect(cornerKey(round.host).classList).not.toContain('lit');
+      expect(turnOf(round.host)).toBe('player');
       expect(cornerWorks(round.host)).toBe(false);
     });
 
@@ -1971,6 +1977,26 @@ describe('Play', () => {
       // Listening went half a digit's time into the fade: on to half of it.
       await round.wait(HAND_OVER / 2 - MEDIUM_INTERVAL / 2);
       expect(Number(tape()?.style.getPropertyValue('--fade'))).toBeCloseTo(0.5, 1);
+    });
+
+    it('lights the Discover Halo on the game’s turn, going steadily with its hand over, or over a short switch as the player takes theirs', async () => {
+      const round = await discover();
+      const halo = (): number =>
+        Number(round.host.querySelector<HTMLElement>('canvas.halo')?.style.opacity);
+      expect(halo()).toBe(1);
+
+      // Listening went half a digit's time into the hand over: on to half of it.
+      await listen(round, 5);
+      await round.wait(HAND_OVER / 2 - MEDIUM_INTERVAL / 2);
+      expect(halo()).toBeCloseTo(0.5, 1);
+
+      // Typing a digit waits 150 ms first; the switch then starts from where the hand over was.
+      await round.type('1');
+      expect(halo()).toBeCloseTo(0.5 - 150 / HAND_OVER, 5);
+      await round.wait(TURN_SWITCH / 2);
+      expect(halo()).toBeLessThan(0.5 - 150 / HAND_OVER);
+      await round.wait(TURN_SWITCH / 2);
+      expect(halo()).toBe(0);
     });
 
     it('shows its digits as faint as developer mode sets', async () => {
@@ -2005,10 +2031,10 @@ describe('Play', () => {
       await TestBed.inject(Tweaks).setGroupPause(100);
 
       await round.wait(6.5 * MEDIUM_INTERVAL + HAND_OVER);
-      expect(cornerKey(round.host).classList).toContain('lit');
+      expect(turnOf(round.host)).toBe('game');
 
       await round.wait(MEDIUM_INTERVAL);
-      expect(cornerKey(round.host).classList).not.toContain('lit');
+      expect(turnOf(round.host)).toBe('player');
     });
 
     it('lets the keys’ colors linger longer as the game plays them', async () => {
@@ -2074,7 +2100,7 @@ describe('Play', () => {
 
       expect(faint(round.host)).toBe('');
       expect(slots(round.host)[0]).toBe('1');
-      expect(cornerKey(round.host).classList).not.toContain('lit');
+      expect(turnOf(round.host)).toBe('player');
       await round.type('4159');
       expect(words(round.host)).toEqual(['14159']);
       expect(cornerWorks(round.host)).toBe(true);
@@ -2110,10 +2136,10 @@ describe('Play', () => {
       await round.wait(HAND_OVER - 200);
       await round.type(PI_DECIMALS.charAt(5));
       await round.wait(HAND_OVER - 200);
-      expect(cornerKey(round.host).classList).not.toContain('lit');
+      expect(turnOf(round.host)).toBe('player');
 
       await round.wait(400);
-      expect(cornerKey(round.host).classList).toContain('lit');
+      expect(turnOf(round.host)).toBe('game');
     });
 
     it('plays the round twice as fast while the turn key is held', async () => {
@@ -2164,14 +2190,14 @@ describe('Play', () => {
       await round.wait(10 * HAND_OVER);
       expect(fade()).toBe(held);
       expect(faint(round.host)).toBe('14159');
-      expect(cornerKey(round.host).classList).toContain('lit');
+      expect(turnOf(round.host)).toBe('game');
 
       round.keypad().pauseKey.emit('up');
       await round.wait(0);
       expect(dialogNamed(round.host, 'Paused').open).toBe(false);
       await round.wait(HAND_OVER);
       expect(faint(round.host)).toBe('');
-      expect(cornerKey(round.host).classList).not.toContain('lit');
+      expect(turnOf(round.host)).toBe('player');
     });
 
     it('holds the round the game plays for as long as the pause key is held, going on from where it was', async () => {
@@ -2213,12 +2239,12 @@ describe('Play', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', bubbles: true }));
       await round.wait(0);
       await round.wait(10 * HAND_OVER);
-      expect(cornerKey(round.host).classList).not.toContain('lit');
+      expect(turnOf(round.host)).toBe('player');
 
       document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', bubbles: true }));
       await round.wait(0);
       await round.wait(HAND_OVER);
-      expect(cornerKey(round.host).classList).toContain('lit');
+      expect(turnOf(round.host)).toBe('game');
     });
 
     it('shows the next round at once with a tap of the turn key, once the player has retyped the round, not before', async () => {
@@ -2231,10 +2257,10 @@ describe('Play', () => {
       expect(cornerWorks(round.host)).toBe(true);
       expect(cornerKey(round.host).getAttribute('aria-label')).toBe('Switch turns');
       await holdKey(round);
-      expect(cornerKey(round.host).classList).not.toContain('lit');
+      expect(turnOf(round.host)).toBe('player');
       await holdKey(round, false);
 
-      expect(cornerKey(round.host).classList).toContain('lit');
+      expect(turnOf(round.host)).toBe('game');
       await round.wait(MEDIUM_INTERVAL);
       expect(slots(round.host)[0]).toBe('1');
     });
@@ -2248,7 +2274,7 @@ describe('Play', () => {
       await holdKey(round, false);
 
       expect(faint(round.host)).toBe('');
-      expect(cornerKey(round.host).classList).not.toContain('lit');
+      expect(turnOf(round.host)).toBe('player');
     });
 
     it('never switches turns as the turn key, held to fast forward the round, is let go, even once the round is shown', async () => {
@@ -2260,7 +2286,7 @@ describe('Play', () => {
 
       await holdKey(round, false);
       expect(faint(round.host)).toBe('14159');
-      expect(cornerKey(round.host).classList).toContain('lit');
+      expect(turnOf(round.host)).toBe('game');
     });
 
     it('does nothing with a tap of the turn key as the game plays its round', async () => {
@@ -2272,7 +2298,7 @@ describe('Play', () => {
       await round.wait(MEDIUM_INTERVAL / 2);
 
       expect(slots(round.host).join('')).toBe('14');
-      expect(cornerKey(round.host).classList).toContain('lit');
+      expect(turnOf(round.host)).toBe('game');
     });
 
     it('counts the whole groups typed past the round shown, not the digits of a group begun', async () => {
@@ -2311,7 +2337,7 @@ describe('Play', () => {
       await round.type('1');
       expect(faint(round.host)).toBe('');
       expect(slots(round.host)[0]).toBe('1');
-      expect(cornerKey(round.host).classList).not.toContain('lit');
+      expect(turnOf(round.host)).toBe('player');
 
       await round.type('415');
       expect(cornerWorks(round.host)).toBe(false);

@@ -227,6 +227,19 @@
         "rasp": 0.5,
         "speed": 0.05
       },
+      "turnSwitch": 300,
+      "discoverHalo": {
+        "color": "#fff3dc",
+        "light": {
+          "intensity": 1.2,
+          "core": 9,
+          "falloff": 1.8,
+          "reach": 50,
+          "rays": 0.5,
+          "rayCount": 6,
+          "saturation": 1
+        }
+      },
       "keyMotion": {
         "merge": 160,
         "press": 160
