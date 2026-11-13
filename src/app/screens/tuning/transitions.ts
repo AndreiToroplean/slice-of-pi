@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { KEY_LINGER, MAX_KEY_LINGER } from '../../game/layers/place-colors';
+import { GAME_LINGER, MAX_GAME_LINGER } from '../../game/modes/discover-pace';
 import { KEY_MOTION, KeyMotion } from '../play/keypad/key-merges';
 import { KEY_MOTION_SLIDERS } from '../play/keypad/key-motion-sliders';
 import { Candy } from '../../ui/candy';
@@ -10,8 +11,8 @@ import { CopyValues } from './copy-values';
 
 /**
  * Developer mode's page to tune how long the keypad's keys take to move: to sink as pressed, or rise back, to merge,
- * and to linger in the color they took as pressed. They apply to the whole game while developer mode is on, to try them
- * in it.
+ * and to linger in the color they took as pressed, longer as Discover's game plays them. They apply to the whole game
+ * while developer mode is on, to try them in it.
  */
 @Component({
   selector: 'app-transitions',
@@ -52,10 +53,24 @@ import { CopyValues } from './copy-values';
           [defaultValue]="defaultLinger"
           (changed)="setLinger($event)"
         />
+        <app-slider
+          label="Discover Linger"
+          [value]="tweaks.gameLinger()"
+          [min]="1"
+          [max]="maxGameLinger"
+          [step]="0.1"
+          [valueText]="'×' + tweaks.gameLinger()"
+          [defaultValue]="defaultGameLinger"
+          (changed)="setGameLinger($event)"
+        />
       </section>
       <app-copy-values
         label="Copy Values"
-        [values]="{ keyMotion: motion(), keyLinger: tweaks.keyLinger() }"
+        [values]="{
+          keyMotion: motion(),
+          keyLinger: tweaks.keyLinger(),
+          gameLinger: tweaks.gameLinger(),
+        }"
       />
     </app-page>
   `,
@@ -66,6 +81,8 @@ export class Transitions {
   protected readonly defaults = KEY_MOTION;
   protected readonly maxLinger = MAX_KEY_LINGER;
   protected readonly defaultLinger = KEY_LINGER;
+  protected readonly maxGameLinger = MAX_GAME_LINGER;
+  protected readonly defaultGameLinger = GAME_LINGER;
   protected readonly merge = slider('merge');
   protected readonly press = slider('press');
 
@@ -75,7 +92,8 @@ export class Transitions {
     () =>
       this.motion().merge !== KEY_MOTION.merge ||
       this.motion().press !== KEY_MOTION.press ||
-      this.tweaks.keyLinger() !== KEY_LINGER,
+      this.tweaks.keyLinger() !== KEY_LINGER ||
+      this.tweaks.gameLinger() !== GAME_LINGER,
   );
 
   protected set(key: keyof KeyMotion, value: number): void {
@@ -87,10 +105,15 @@ export class Transitions {
     void this.tweaks.setKeyLinger(linger);
   }
 
+  protected setGameLinger(linger: number): void {
+    void this.tweaks.setGameLinger(linger);
+  }
+
   protected reset(): void {
     this.motion.set(KEY_MOTION);
     void this.tweaks.setKeyMotion(undefined);
     void this.tweaks.setKeyLinger(undefined);
+    void this.tweaks.setGameLinger(undefined);
   }
 }
 

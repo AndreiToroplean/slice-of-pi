@@ -17,12 +17,10 @@ import {
   DISCOVER_SPEEDS,
   DiscoverPace,
   MAX_PACE_STEP,
-  GAME_LINGER,
   FAST_FORWARD,
   FAINT_OPACITY,
   GROUP_PAUSE,
   HAND_OVER,
-  MAX_GAME_LINGER,
   MAX_FAST_FORWARD,
   MIN_FAINT_OPACITY,
   MAX_GROUP_PAUSE,
@@ -294,16 +292,6 @@ import { YourData } from './your-data';
             (changed)="setHandOver($event)"
           />
           <app-slider
-            label="Game Linger"
-            [value]="tweaks.gameLinger()"
-            [min]="1"
-            [max]="maxGameLinger"
-            [step]="0.1"
-            [valueText]="'×' + tweaks.gameLinger()"
-            [defaultValue]="defaultGameLinger"
-            (changed)="setGameLinger($event)"
-          />
-          <app-slider
             label="Fast Forward"
             [value]="tweaks.fastForward()"
             [min]="1"
@@ -496,8 +484,6 @@ export class Settings {
   protected readonly defaultHandOver = HAND_OVER;
   protected readonly maxGroupPause = MAX_GROUP_PAUSE;
   protected readonly defaultGroupPause = GROUP_PAUSE;
-  protected readonly maxGameLinger = MAX_GAME_LINGER;
-  protected readonly defaultGameLinger = GAME_LINGER;
   protected readonly maxFastForward = MAX_FAST_FORWARD;
   protected readonly defaultFastForward = FAST_FORWARD;
   protected readonly minFaintOpacity = MIN_FAINT_OPACITY;
@@ -543,7 +529,6 @@ export class Settings {
       this.tweaks.paceStep() === PACE_STEP &&
       this.tweaks.handOver() === HAND_OVER &&
       this.tweaks.groupPause() === GROUP_PAUSE &&
-      this.tweaks.gameLinger() === GAME_LINGER &&
       this.tweaks.fastForward() === FAST_FORWARD &&
       this.tweaks.faintOpacity() === FAINT_OPACITY &&
       !this.tweaks.manualCheckpoints() &&
@@ -580,10 +565,6 @@ export class Settings {
 
   protected setGroupPause(pause: number | undefined): void {
     void this.tweaks.setGroupPause(pause);
-  }
-
-  protected setGameLinger(linger: number | undefined): void {
-    void this.tweaks.setGameLinger(linger);
   }
 
   protected setFastForward(fastForward: number | undefined): void {
@@ -689,7 +670,6 @@ export class Settings {
       this.setPaceStep(undefined);
       this.setHandOver(undefined);
       this.setGroupPause(undefined);
-      this.setGameLinger(undefined);
       this.setFastForward(undefined);
       this.setFaintOpacity(undefined);
       this.resetManualCheckpoints();
