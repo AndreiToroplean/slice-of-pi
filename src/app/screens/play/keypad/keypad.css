@@ -153,19 +153,19 @@
 }
 
 /*
- * A digit key's sink and edge are the keypad's to move (see `Keypad`), whoever draws it, so that it looks the same
+ * A key's sink and edge are the keypad's to move (see `Keypad`), whoever draws it, so that a digit key looks the same
  * either way: its button eases neither, and its edge is as thick as the keypad makes it, pressed or not.
  */
 .grid .key.driven:not(.drawn) {
   transition: none;
   box-shadow:
-    inset 0 1px 0 var(--frost-highlight),
-    0 var(--rim, var(--key-depth)) 0 var(--candy-edge);
+    inset 0 1px 0 var(--candy-highlight),
+    0 var(--rim, var(--key-depth)) 0 var(--candy-rim);
 }
 
 .grid .key.driven:not(.clear, .drawn) {
   box-shadow:
-    0 var(--rim, var(--key-depth)) 0 var(--candy-edge),
+    0 var(--rim, var(--key-depth)) 0 var(--candy-rim),
     var(--candy-drop);
 }
 
