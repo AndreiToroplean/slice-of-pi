@@ -428,12 +428,15 @@ export class Play implements PausesOnBack {
   /** Whether the player holds the turn key down to fast forward the game's round. */
   private readonly fastForwarding = signal(false);
   /**
-   * How many times faster than the clock's Discover's time runs, the game playing and handing turns over on it: faster
-   * while the player holds the turn key to fast forward the game's round.
+   * How many times faster than the clock's Discover's time runs, the game playing and handing turns over on it: not at
+   * all while the game is paused, and faster while the player holds the turn key to fast forward the game's round.
    */
-  private readonly discoverRate = computed(() =>
-    this.fastForwarding() ? this.tweaks.fastForward() : 1,
-  );
+  private readonly discoverRate = computed(() => {
+    if (this.paused()) {
+      return 0;
+    }
+    return this.fastForwarding() ? this.tweaks.fastForward() : 1;
+  });
   /**
    * Whether it doesn't work: backspace in a challenge, the turn key on the player's turn until they have
    * retyped the round.
@@ -692,19 +695,13 @@ export class Play implements PausesOnBack {
       this.discoverRecorder.pause();
       this.stopTimers();
       this.stopTimers = () => undefined;
-      this.stopRounds();
-      this.stopHandOver();
     } else {
       this.session.resume();
       this.discoverRecorder.resume();
       this.watchForPause();
-      // A round stopped as the game played it plays again from its start; the player's hand over starts over.
-      if (this.discovering && !this.lost() && this.turn() === 'game') {
-        this.startGameTurn();
-      } else if (this.done() && !this.lost()) {
-        this.handOver();
-      }
     }
+    // Discover's time stands still while paused, and goes on from where it was: pausing never shows a round again.
+    this.discoverTimer.setRate(this.discoverRate());
   }
 
   leaveOnBack(): boolean {
@@ -1114,7 +1111,7 @@ export class Play implements PausesOnBack {
     this.lost.set(false);
     this.mode.set(this.routeMode);
     if (this.discovering) {
-      // Playing again, a new session from where the rounds started, its first round played once resumed.
+      // Playing again, a new session from where the rounds started, its first round played as the game goes on.
       this.stopRounds();
       this.stopHandOver();
       this.target.set(undefined);
@@ -1133,6 +1130,9 @@ export class Play implements PausesOnBack {
     this.sizes.set(this.wordsUpTo([], this.startPlace()));
     this.reopenable = false;
     this.session.end();
+    if (this.discovering) {
+      this.startGameTurn();
+    }
   }
 
   /**
