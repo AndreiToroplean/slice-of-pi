@@ -28,6 +28,7 @@ import {
 } from '../../../game/layers/keypad-layout';
 import { Candy } from '../../../ui/candy';
 import { KEY_MOTION, KeyMotion, Joint, jointsOf, Merges, moving, stepMerges } from './key-merges';
+import { OTHER_KEY_COLORS, OtherKeyColors } from './other-keys';
 import { keyShapes } from './key-shapes';
 import { GlKey, GlScene, KeypadRenderer, premultiplied, rgba } from './keypad-gl';
 
@@ -240,6 +241,8 @@ export class Keypad {
   readonly colorIndices = input.required<Readonly<Record<Digit, number>>>();
   /** The palette the keys take their colors from. */
   readonly palette = input<Palette>(PALETTE);
+  /** The colors of the keys besides the digit keys, of which the key in backspace's place takes its own. */
+  readonly otherKeys = input<OtherKeyColors>(OTHER_KEY_COLORS);
   /** Where the keys sit. */
   readonly layout = input<KeypadLayout>(DEFAULT_KEYPAD_LAYOUT);
   /** Whether the digit keys are solid, each in its color, rather than see-through. */
@@ -714,12 +717,12 @@ export class Keypad {
   }
 
   /**
-   * A digit key's color: while it shows pressed, the color its digit took then, and otherwise the color it takes when
-   * typed next. Backspace has none.
+   * A key's color: a digit key's, while it shows pressed, the color its digit took then, and otherwise the color it
+   * takes when typed next; the key in backspace's place, its own, if any (see `OtherKeyColors`).
    */
   protected pressColor(key: KeypadKey): string | undefined {
     if (key === 'backspace') {
-      return undefined;
+      return this.otherKeys()[this.corner()] ?? undefined;
     }
     return (this.shownPressed(key) ? this.splashColors()[key] : undefined) ?? this.colorOf(key);
   }

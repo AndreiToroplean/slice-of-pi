@@ -103,6 +103,11 @@
       "keyLinger": 1600,
       "breath": 5,
       "unavailable": 60,
+      "otherKeys": {
+        "pause": null,
+        "backspace": null,
+        "discover": "#ffc35a"
+      },
       "discoverSpeed": 2.3,
       "paceStep": 30,
       "handOver": 2000,

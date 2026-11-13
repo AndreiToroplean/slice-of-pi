@@ -27,6 +27,7 @@ describe('GAME_VALUES', () => {
       keyLinger: true,
       breath: true,
       unavailable: true,
+      otherKeys: true,
       discoverSpeed: true,
       paceStep: true,
       handOver: true,

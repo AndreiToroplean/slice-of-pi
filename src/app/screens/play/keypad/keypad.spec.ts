@@ -863,12 +863,27 @@ describe('Keypad', () => {
       return button(key).classList.contains('pressed') ? color || null : null;
     }
 
-    it('shows each digit key its color on its edge, and backspace none', () => {
+    it('shows each digit key its color on its edge, and backspace none, as the game’s', () => {
       expect(['0', '1', '9'].map((key) => accent(key as KeypadKey))).toEqual([
         PALETTE[0],
         PALETTE[1],
         PALETTE[9],
       ]);
+      expect(accent('backspace')).toBe('');
+    });
+
+    it('shows the key in backspace’s place its own color, as backspace or the discover key, none if it has none', () => {
+      fixture.componentRef.setInput('otherKeys', {
+        pause: null,
+        backspace: '#123456',
+        discover: '#abcdef',
+      });
+      expect(accent('backspace')).toBe('#123456');
+
+      fixture.componentRef.setInput('corner', 'discover');
+      expect(accent('backspace')).toBe('#abcdef');
+
+      fixture.componentRef.setInput('otherKeys', { pause: null, backspace: null, discover: null });
       expect(accent('backspace')).toBe('');
     });
 

@@ -24,7 +24,14 @@ import { ReplayButton } from './replay-button';
   imports: [Candy, ChoiceDialog, ReplayButton],
   host: { '(document:keydown.escape)': 'escape($event)' },
   template: `
-    <button type="button" appCandy="clear" class="pause-button" title="Pause" (click)="pause()">
+    <button
+      type="button"
+      appCandy="clear"
+      class="pause-button"
+      title="Pause"
+      [pressColor]="color()"
+      (click)="pause()"
+    >
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="6" y="5" width="4" height="14" rx="1.5" />
         <rect x="14" y="5" width="4" height="14" rx="1.5" />
@@ -76,6 +83,8 @@ import { ReplayButton } from './replay-button';
 export class Pause {
   /** Whether the game is paused, with the dialog open. */
   readonly paused = model(false);
+  /** The pause key's color, which its edge shows, and its face while pressed, if any (see `OtherKeyColors`). */
+  readonly color = input<string>();
   /** The player chose to restart the game. */
   readonly restart = output();
   /** The player chose to carry a lost game on in free play, as the game over dialog closes. */
