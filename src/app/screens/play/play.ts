@@ -410,18 +410,18 @@ export class Play implements PausesOnBack {
   protected readonly picked = signal<number | undefined>(undefined);
   /** Stops the hand over going on, if any. */
   private stopHandOver = (): void => undefined;
-  /** What the key in backspace's place is: the discover key in Discover, backspace otherwise. */
+  /** What the key in backspace's place is: the turn key in Discover, backspace otherwise. */
   protected readonly cornerKey = computed((): CornerKey =>
-    this.mode() === 'discover' ? 'discover' : 'backspace',
+    this.mode() === 'discover' ? 'turn' : 'backspace',
   );
-  /** Whether the player fast forwards what Discover's game plays, holding the discover key. */
+  /** Whether the player fast forwards what Discover's game plays, holding the turn key. */
   protected readonly fastForward = signal(false);
   /** How many times faster than the clock's Discover's game plays: its rounds, and their fading out. */
   protected readonly discoverRate = computed(() =>
     this.fastForward() ? this.tweaks.fastForward() : 1,
   );
   /**
-   * Whether it doesn't work: backspace in a challenge, the discover key on the player's turn until they have
+   * Whether it doesn't work: backspace in a challenge, the turn key on the player's turn until they have
    * retyped the round, the game's next turn then on its way.
    */
   protected readonly cornerDisabled = computed(
