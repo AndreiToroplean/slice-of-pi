@@ -27,32 +27,22 @@ app-page {
 
 /* The tabs' panels, only the one chosen shown. */
 .grid[hidden],
-.others[hidden] {
+.actions[hidden] {
   display: none;
 }
 
-/* The other keys, as on the keypad, in a row, in the room the digit keys' grid takes. */
-.others {
+/* The action key, as on the keypad, in the room the digit keys' grid takes. */
+.actions {
   flex: 1;
   min-height: 0;
   display: grid;
-  align-content: center;
+  place-items: center;
 }
 
-.other-keys {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
-.other-key {
+.action-key {
+  min-width: 8rem;
   min-height: 4rem;
   font-size: 0.9375rem;
-
-  &[aria-checked='true'] {
-    outline: 0.1875rem solid var(--on-background);
-    outline-offset: 2px;
-  }
 }
 
 /* Every pair of colors, the first's by row and the second's by column, taking the height the rest of the page leaves. */

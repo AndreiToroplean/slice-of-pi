@@ -210,7 +210,7 @@ const TICK = 16;
       [layout]="keypadLayout()"
       [colorIndices]="colorIndices()"
       [palette]="tweaks.palette()"
-      [otherKeys]="tweaks.otherKeys()"
+      [actionKeys]="tweaks.actionKeys()"
       [solid]="tweaks.solidKeys()"
       [mergeKeys]="mergeSetting.enabled()"
       [plain]="editedLayout() !== undefined"

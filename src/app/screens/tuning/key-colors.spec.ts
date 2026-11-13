@@ -6,7 +6,7 @@ import { INDEXED_DB } from '../../player-data/run-store';
 import { hexToHsl, hslToHex } from '../../game/color/color-spaces';
 import { KeyColors } from './key-colors';
 import { SEASON_STARTS, Tweaks } from '../../developer-mode/tweaks';
-import { OTHER_KEY_COLORS } from '../play/keypad/other-keys';
+import { ACTION_KEY_COLOR } from '../play/keypad/action-keys';
 
 describe('KeyColors', () => {
   beforeEach(() => {
@@ -109,23 +109,23 @@ describe('KeyColors', () => {
     expect(reset?.disabled).toBe(true);
   });
 
-  it('tunes the other keys in the same picker, on their own tab, then brings back the game’s', async () => {
+  it('tunes the action keys in the same picker, on their own tab, then brings back the game’s', async () => {
     const { host, stable } = await setUp();
     const button = (label: string): HTMLButtonElement | undefined =>
       Array.from(host.querySelectorAll('button')).find(
         (candidate) => candidate.textContent.trim() === label,
       );
-    button('Other Keys')?.click();
+    button('Action Keys')?.click();
     await stable();
-    button('Backspace')?.click();
-    await stable();
-    expect(host.querySelector('app-color-picker .name')?.textContent).toBe('Backspace');
+    expect(host.querySelector('app-color-picker .name')?.textContent).toBe('Action Keys');
 
-    await slide(host, 'Backspace', 'lightness', 30, stable);
+    await slide(host, 'Action Keys', 'lightness', 30, stable);
 
-    const tuned = TestBed.inject(Tweaks).values().otherKeys?.backspace;
-    expect(tuned).not.toBe(OTHER_KEY_COLORS.backspace);
-    expect(button('Backspace')?.style.getPropertyValue('--press-color')).toBe(tuned);
+    const tuned = TestBed.inject(Tweaks).values().actionKeys;
+    expect(tuned).not.toBe(ACTION_KEY_COLOR);
+    expect(
+      host.querySelector<HTMLElement>('.action-key')?.style.getPropertyValue('--press-color'),
+    ).toBe(tuned);
     expect(rows(host)).toEqual(PALETTE);
 
     button('Reset All')?.click();

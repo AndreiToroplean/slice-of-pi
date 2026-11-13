@@ -103,11 +103,7 @@
       "keyLinger": 1600,
       "breath": 5,
       "unavailable": 50,
-      "otherKeys": {
-        "pause": "#737d8c",
-        "backspace": "#737d8c",
-        "discover": "#ffc35a"
-      },
+      "actionKeys": "#737d8c",
       "discoverSpeed": 2.3,
       "paceStep": 30,
       "handOver": 2000,

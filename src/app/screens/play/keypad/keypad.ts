@@ -28,7 +28,7 @@ import {
 } from '../../../game/layers/keypad-layout';
 import { Candy } from '../../../ui/candy';
 import { KEY_MOTION, KeyMotion, Joint, jointsOf, Merges, moving, stepMerges } from './key-merges';
-import { OTHER_KEY_COLORS, OtherKeyColors } from './other-keys';
+import { ACTION_KEY_COLOR } from './action-keys';
 import { keyShapes } from './key-shapes';
 import { GlKey, GlScene, KeypadRenderer, premultiplied, rgba } from './keypad-gl';
 
@@ -252,8 +252,8 @@ export class Keypad {
   readonly colorIndices = input.required<Readonly<Record<Digit, number>>>();
   /** The palette the keys take their colors from. */
   readonly palette = input<Palette>(PALETTE);
-  /** The colors of the keys besides the digit keys, of which the key in backspace's place takes its own. */
-  readonly otherKeys = input<OtherKeyColors>(OTHER_KEY_COLORS);
+  /** The action keys' color: the keys besides the digit keys. */
+  readonly actionKeys = input(ACTION_KEY_COLOR);
   /** Where the keys sit. */
   readonly layout = input<KeypadLayout>(DEFAULT_KEYPAD_LAYOUT);
   /** Whether the digit keys are solid, each in its color, rather than see-through. */
@@ -760,14 +760,11 @@ export class Keypad {
   }
 
   /**
-   * The color a key takes when typed next: a digit key, its digit's; the others, their own, the key in backspace's
-   * place as what it is (see `OtherKeyColors`).
+   * The color a key takes when typed next: a digit key, its digit's; the others, the action keys' (see
+   * `ACTION_KEY_COLOR`).
    */
   private colorOf(key: KeypadKey): string | undefined {
-    if (isDigit(key)) {
-      return this.palette()[this.colorIndices()[key]];
-    }
-    return this.otherKeys()[key === 'pause' ? key : this.corner()];
+    return isDigit(key) ? this.palette()[this.colorIndices()[key]] : this.actionKeys();
   }
 
   /** Whether a touch is on a button the keypad was given, or a dialog it opened, rather than on the keypad. */
