@@ -8,6 +8,7 @@ test('shows a group in Discover, then takes the player’s retyping, the next ro
   await expect(page).toHaveURL('/discover');
   const faint = page.locator('app-typed-digits .tile.faint');
   const turnKey = page.locator('app-keypad button[data-key="backspace"]');
+  const shade = page.locator('.turn-shade');
 
   // The game shows the first group; the player takes their turn as they type.
   await expect(turnKey).toHaveAccessibleName('Fast forward');
@@ -16,12 +17,12 @@ test('shows a group in Discover, then takes the player’s retyping, the next ro
     await page.keyboard.press(key);
   }
   await expect(faint).toHaveCount(0);
-  await expect(turnKey).not.toHaveClass(/lit/);
+  await expect(shade).toHaveAttribute('data-turn', 'player');
 
   // A tap of the turn key, with the space bar, switches turns at once; held, it fast forwards the next round.
   await expect(turnKey).toHaveAccessibleName('Switch turns');
   await page.keyboard.press(' ');
-  await expect(turnKey).toHaveClass(/lit/);
+  await expect(shade).toHaveAttribute('data-turn', 'game');
   await page.keyboard.down(' ');
   await expect(faint).toHaveCount(10, { timeout: 5_000 });
   await page.keyboard.up(' ');

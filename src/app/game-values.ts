@@ -36,6 +36,7 @@ export type GameValues = Required<
     | 'sound'
     | 'souring'
     | 'keyMotion'
+    | 'turnShade'
   >
 > & {
   readonly seasons: SeasonStarts;

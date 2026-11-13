@@ -57,6 +57,7 @@ import { MIX_SLIDERS, SOUND_MIX, SoundMix, SoundSlider } from '../feedback/sound
 import { Souring, SOURING, SOURING_SLIDERS } from '../feedback/souring';
 import { KEY_MOTION, KeyMotion } from '../screens/play/keypad/key-merges';
 import { KEY_MOTION_SLIDERS } from '../screens/play/keypad/key-motion-sliders';
+import { TURN_SHADE, TURN_SHADE_SLIDERS, TurnShade } from '../screens/play/turn-shade';
 import { SoundModel, SoundModelKind } from '../game/layers/sound/sound-model';
 import { SOUND_MODEL, soundModelKindById } from '../game/layers/sound/sound-models';
 
@@ -152,6 +153,8 @@ export interface TweakValues {
   readonly soundNotes?: true;
   /** How long the keypad's keys take to move, for {@link KEY_MOTION}. */
   readonly keyMotion?: KeyMotion;
+  /** The shade behind the keypad on Discover's game turn, for {@link TURN_SHADE}. */
+  readonly turnShade?: TurnShade;
 }
 
 /** The game's own starting colors of each season. */
@@ -552,6 +555,15 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), keyMotion }));
   }
 
+  readonly turnShade = computed(
+    (): TurnShade =>
+      (this.developerMode.enabled() ? this.tweaks().turnShade : undefined) ?? TURN_SHADE,
+  );
+
+  setTurnShade(turnShade: TurnShade | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), turnShade }));
+  }
+
   /** Sets how a wrong key's note goes off; `undefined` brings back the game's souring. */
   setSouring(souring: Souring | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), souring }));
@@ -634,6 +646,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     souring,
     soundNotes,
     keyMotion,
+    turnShade,
   } = migrate(stored, TWEAKS_MIGRATIONS);
   if (format !== TWEAKS_FORMAT) {
     return {};
@@ -673,6 +686,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     souring: slidValues(souring, SOURING_SLIDERS, SOURING),
     soundNotes: soundNotes === true ? soundNotes : undefined,
     keyMotion: slidValues(keyMotion, KEY_MOTION_SLIDERS, KEY_MOTION),
+    turnShade: slidValues(turnShade, TURN_SHADE_SLIDERS, TURN_SHADE),
   });
 }
 
@@ -708,6 +722,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     sound,
     souring,
     keyMotion,
+    turnShade,
   } = values;
   const tuned = Object.entries(grouping ?? {}).filter(([id, settings]) => {
     const defaults = breakModelKindById(id)?.defaults;
@@ -743,6 +758,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     sound: equal(sound, SOUND_MIX) ? undefined : sound,
     souring: equal(souring, SOURING) ? undefined : souring,
     keyMotion: equal(keyMotion, KEY_MOTION) ? undefined : keyMotion,
+    turnShade: equal(turnShade, TURN_SHADE) ? undefined : turnShade,
   });
 }
 
@@ -797,6 +813,7 @@ function tweakValues({
   souring,
   soundNotes,
   keyMotion,
+  turnShade,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -835,6 +852,7 @@ function tweakValues({
     ...(souring === undefined ? {} : { souring }),
     ...(soundNotes === undefined ? {} : { soundNotes }),
     ...(keyMotion === undefined ? {} : { keyMotion }),
+    ...(turnShade === undefined ? {} : { turnShade }),
   };
 }
 

@@ -43,6 +43,7 @@ describe('GAME_VALUES', () => {
       sound: true,
       souring: true,
       keyMotion: true,
+      turnShade: true,
     };
     expect(Object.keys(GAME_VALUES).sort()).toEqual(['format', ...Object.keys(keys)].sort());
     expect(Object.keys(GAME_VALUES.grouping).sort()).toEqual(

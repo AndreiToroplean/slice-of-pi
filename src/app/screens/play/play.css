@@ -60,6 +60,24 @@ app-typed-digits {
   height: var(--keys-height);
 }
 
+/*
+ * The turn shade, behind the keypad on Discover's game turn (see `TurnShade`): dark at the bottom of the screen, fading
+ * out up to as far as it reaches, the keypad's top at 100%. It comes and goes with the hand over, as it's told every
+ * frame, or, as the player switches turns, over a short transition.
+ */
+.turn-shade {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: calc(var(--floor) + var(--keypad-top) * var(--shade-reach));
+  pointer-events: none;
+  background: linear-gradient(to top, rgb(0 0 0 / var(--shade-strength)), transparent);
+
+  &.switching {
+    transition: opacity var(--shade-switch) linear;
+  }
+}
+
 /* Developer mode's log of what the keys played, from under the season header down to the tape. */
 app-sound-log {
   position: absolute;

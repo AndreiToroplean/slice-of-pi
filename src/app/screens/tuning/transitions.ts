@@ -8,11 +8,13 @@ import { Candy } from '../../ui/candy';
 import { Page } from '../../ui/page';
 import { Slider } from '../../ui/slider';
 import { CopyValues } from './copy-values';
+import { TURN_SHADE, TURN_SHADE_SLIDERS, TurnShade } from '../play/turn-shade';
 
 /**
  * Developer mode's page to tune how long the keypad's keys take to move: to sink as pressed, or rise back, to merge,
- * and to linger in the color they took as pressed, longer as Discover's game plays them. They apply to the whole game
- * while developer mode is on, to try them in it.
+ * and to linger in the color they took as pressed, longer as Discover's game plays them; and the shade behind the
+ * keypad on Discover's game turn, coming and going with the turns. They apply to the whole game while developer mode is
+ * on, to try them in it.
  */
 @Component({
   selector: 'app-transitions',
@@ -63,6 +65,18 @@ import { CopyValues } from './copy-values';
           [defaultValue]="defaultGameLinger"
           (changed)="setGameLinger($event)"
         />
+        @for (slider of shadeSliders; track slider.key) {
+          <app-slider
+            [label]="slider.label"
+            [value]="shade()[slider.key]"
+            [min]="slider.min"
+            [max]="slider.max"
+            [step]="slider.step"
+            [valueText]="slider.format(shade()[slider.key])"
+            [defaultValue]="shadeDefaults[slider.key]"
+            (changed)="setShade(slider.key, $event)"
+          />
+        }
       </section>
       <app-copy-values
         label="Copy Values"
@@ -70,6 +84,7 @@ import { CopyValues } from './copy-values';
           keyMotion: motion(),
           keyLinger: tweaks.keyLinger(),
           gameLinger: tweaks.gameLinger(),
+          turnShade: shade(),
         }"
       />
     </app-page>
@@ -85,15 +100,20 @@ export class Transitions {
   protected readonly defaultGameLinger = GAME_LINGER;
   protected readonly merge = slider('merge');
   protected readonly press = slider('press');
+  protected readonly shadeSliders = TURN_SHADE_SLIDERS;
+  protected readonly shadeDefaults = TURN_SHADE;
 
   /** How long the keys take to move, being tuned. */
   protected readonly motion = signal<KeyMotion>(this.tweaks.values().keyMotion ?? KEY_MOTION);
+  /** The turn shade, being tuned. */
+  protected readonly shade = signal<TurnShade>(this.tweaks.values().turnShade ?? TURN_SHADE);
   protected readonly tuned = computed(
     () =>
       this.motion().merge !== KEY_MOTION.merge ||
       this.motion().press !== KEY_MOTION.press ||
       this.tweaks.keyLinger() !== KEY_LINGER ||
-      this.tweaks.gameLinger() !== GAME_LINGER,
+      this.tweaks.gameLinger() !== GAME_LINGER ||
+      TURN_SHADE_SLIDERS.some(({ key }) => this.shade()[key] !== TURN_SHADE[key]),
   );
 
   protected set(key: keyof KeyMotion, value: number): void {
@@ -105,6 +125,11 @@ export class Transitions {
     void this.tweaks.setKeyLinger(linger);
   }
 
+  protected setShade(key: keyof TurnShade, value: number): void {
+    this.shade.update((shade) => ({ ...shade, [key]: value }));
+    void this.tweaks.setTurnShade(this.shade());
+  }
+
   protected setGameLinger(linger: number): void {
     void this.tweaks.setGameLinger(linger);
   }
@@ -114,6 +139,8 @@ export class Transitions {
     void this.tweaks.setKeyMotion(undefined);
     void this.tweaks.setKeyLinger(undefined);
     void this.tweaks.setGameLinger(undefined);
+    this.shade.set(TURN_SHADE);
+    void this.tweaks.setTurnShade(undefined);
   }
 }
 

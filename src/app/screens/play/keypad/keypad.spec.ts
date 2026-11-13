@@ -809,14 +809,6 @@ describe('Keypad', () => {
       expect(presses).toEqual([]);
       expect(event.defaultPrevented).toBe(false);
     });
-
-    it('lights up while told to, as while the game shows the round, without showing pressed', () => {
-      fixture.componentRef.setInput('lit', true);
-      fixture.detectChanges();
-
-      expect(button('backspace').classList).toContain('lit');
-      expect(pressedKeys()).toEqual([]);
-    });
   });
 
   describe('the pause key', () => {

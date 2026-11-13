@@ -227,6 +227,11 @@
         "rasp": 0.5,
         "speed": 0.05
       },
+      "turnShade": {
+        "strength": 0.35,
+        "reach": 1,
+        "switch": 300
+      },
       "keyMotion": {
         "merge": 160,
         "press": 160

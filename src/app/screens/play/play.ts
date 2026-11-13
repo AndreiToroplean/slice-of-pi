@@ -31,6 +31,7 @@ import {
 import { slotBoxes } from './slots/slot-layout';
 import { SlotHandover } from './slots/slots';
 import { ScaledTimer } from './scaled-timer';
+import { turnShadeShown } from './turn-shade';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { CornerKey, Keypad, KeypadMark, TurnKeyPress } from './keypad/keypad';
 import { keyColorIndices, placeColors } from '../../game/layers/place-colors';
@@ -205,6 +206,18 @@ const TICK = 16;
         }
       }
     </p>
+    @if (discovering) {
+      <div
+        class="turn-shade"
+        aria-hidden="true"
+        [attr.data-turn]="turn()"
+        [class.switching]="fadeOut() === undefined"
+        [style.opacity]="shadeShown()"
+        [style.--shade-strength]="tweaks.turnShade().strength"
+        [style.--shade-reach]="tweaks.turnShade().reach"
+        [style.--shade-switch]="tweaks.turnShade().switch + 'ms'"
+      ></div>
+    }
     <app-keypad
       class="keypad"
       [layout]="keypadLayout()"
@@ -218,7 +231,6 @@ const TICK = 16;
       [showAreas]="editedLayout() !== undefined && !previewing()"
       [disabled]="replay() !== undefined || lost()"
       [corner]="cornerKey()"
-      [lit]="turn() === 'game'"
       [cornerDisabled]="cornerDisabled()"
       [linger]="linger()"
       [shown]="playedKey() ?? shownKey()"
@@ -419,6 +431,8 @@ export class Play implements PausesOnBack {
   protected readonly cornerKey = computed((): CornerKey =>
     this.mode() === 'discover' ? 'turn' : 'backspace',
   );
+  /** How much of the turn shade shows behind the keypad, telling the game's turn (see `TurnShade`). */
+  protected readonly shadeShown = computed(() => turnShadeShown(this.turn(), this.fadeOut()?.left));
   /** Whether the game plays its round, on its turn, before handing it over: holding the turn key fast forwards it. */
   protected readonly gamePlaying = computed(
     () => this.turn() === 'game' && this.handingOver() === undefined,
