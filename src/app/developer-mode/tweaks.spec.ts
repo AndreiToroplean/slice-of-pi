@@ -20,6 +20,7 @@ import { SOUND_MIX } from '../feedback/sound-mix';
 import { SOUND_MODEL } from '../game/layers/sound/sound-models';
 import { MENU_LOOK, TWILIGHT, withLight } from '../screens/menu/menu-look';
 import { BREATH } from '../ui/breath';
+import { UNAVAILABLE } from '../ui/unavailable';
 import { CHECKPOINT_LAG } from '../game/modes/discover-rounds';
 import { PLAY_WITH_MERCURY } from '../../testing/game-break-model';
 
@@ -349,6 +350,20 @@ describe('Tweaks', () => {
 
     await tweaks.setBreath(undefined);
     expect(tweaks.breath()).toBe(BREATH);
+  });
+
+  it('fades unavailable buttons as tuned only while developer mode is on, kept until undone', async () => {
+    const tweaks = await load();
+    await tweaks.setUnavailable(30);
+    expect(tweaks.unavailable()).toBe(UNAVAILABLE);
+
+    await TestBed.inject(DeveloperMode).set(true);
+    expect(tweaks.unavailable()).toBe(30);
+    expect((await load()).values()).toEqual({ unavailable: 30 });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, unavailable: 150 })).toEqual({});
+
+    await tweaks.setUnavailable(undefined);
+    expect(tweaks.unavailable()).toBe(UNAVAILABLE);
   });
 
   it('moves Discover on to checkpoints by themselves, as far behind as tuned, unless picked, only in developer mode', async () => {
