@@ -13,7 +13,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { Digit, DIGITS, isDigit } from '../../../game/pi/digit';
+import { Digit, isDigit } from '../../../game/pi/digit';
 import { PALETTE, Palette } from '../../../game/layers/place-colors';
 import {
   DEFAULT_KEYPAD_LAYOUT,
@@ -55,7 +55,7 @@ interface KeyGeometry {
 export const REPEAT_DELAY = 400;
 /** Time between repeats while a key is held, in ms. */
 export const REPEAT_INTERVAL = 70;
-/** How long a digit key stays filled with its color at least, however short the press, in ms. */
+/** How long a key stays filled with its color at least, however short the press, in ms. */
 export const SPLASH_DURATION = 150;
 /** How far a touch can slide off its key and still type it, in steps from one key to the next (a key and a gap). */
 export const SLIDE_GRACE = 1;
@@ -118,8 +118,8 @@ export type CornerKey = 'backspace' | 'discover';
  * reported likewise, and releasing it after it repeated, nothing. A touch the browser cancels isn't reported. Keys typed on a
  * physical keyboard, or by assistive technology, are reported without a place on the keypad.
  * The keys are candy buttons, see-through unless solid, backspace see-through all the same. Keys being pressed, by touch or keyboard, are shown pressed (a touch's key only
- * while releasing it would type it), a digit key for at least `SPLASH_DURATION`. Each digit key shows its color: see-through, on
- * its edge, and pressing it fills it with that color at once; solid, all over.
+ * while releasing it would type it), for at least `SPLASH_DURATION`. Each key shows its color: see-through, on its edge,
+ * and pressing it fills it with that color at once; solid, all over. Only a digit key's color lingers once released.
  * The keys don't take the focus, being typed from the keyboard's own keys, but the buttons still work with assistive
  * technology.
  *
@@ -175,7 +175,7 @@ export type CornerKey = 'backspace' | 'discover';
           [style.grid-row]="position.row + 1"
           [style.grid-column]="position.column + 1"
           [class.drawn]="isDrawn(position.key)"
-          [class.driven]="isDriven(position.key)"
+          [class.driven]="isDriven()"
           [style.--rim]="rimOf(position.key)"
           [style.translate]="sinkOf(position.key)"
           (click)="onClick($event, position.key)"
@@ -299,11 +299,11 @@ export class Keypad {
   protected readonly touchedKeys = signal<readonly KeypadKey[]>([]);
   /** Touches in progress, by pointer. */
   private readonly presses = new Map<number, Press>();
-  /** The color each digit key was filled with when last pressed: the color its digit takes. */
-  private readonly splashColors = signal<Partial<Record<Digit, string>>>({});
-  /** Digit keys pressed less than `SPLASH_DURATION` ago, which stay filled even once released. */
-  private readonly splashing = signal<readonly Digit[]>([]);
-  private readonly splashTimers = new Map<Digit, ReturnType<typeof setTimeout>>();
+  /** The color each key was filled with when last pressed: the color it took then. */
+  private readonly splashColors = signal<Partial<Record<KeypadKey, string>>>({});
+  /** Keys pressed less than `SPLASH_DURATION` ago, which stay filled even once released. */
+  private readonly splashing = signal<readonly KeypadKey[]>([]);
+  private readonly splashTimers = new Map<KeypadKey, ReturnType<typeof setTimeout>>();
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly grid = viewChild.required<ElementRef<HTMLElement>>('grid');
@@ -391,25 +391,25 @@ export class Keypad {
   });
   private readonly changeDetector = inject(ChangeDetectorRef);
 
-  /** The digit keys showing pressed, the last time it looked. */
-  private wasPressed: readonly Digit[] = [];
+  /** The keys showing pressed, the last time it looked. */
+  private wasPressed: readonly KeypadKey[] = [];
   /**
    * The color lingering on each digit key, and when it started fading out: drawn by the keypad, or, as the keys'
    * buttons draw themselves, by an animation of theirs.
    */
   private readonly lingers = signal<
-    ReadonlyMap<Digit, { readonly color: string; readonly since: number }>
+    ReadonlyMap<KeypadKey, { readonly color: string; readonly since: number }>
   >(new Map());
-  private readonly lingering = new Map<Digit, Animation>();
+  private readonly lingering = new Map<KeypadKey, Animation>();
   /** When the keypad last drew a frame, to time what fades. */
   private readonly clock = signal(0);
 
   /** The joints between the digit keys, where they merge. */
   private readonly joints = computed(() => jointsOf(this.layout()));
-  /** How far each digit key has sunk, pressed, from 0, up, to 1, all the way. */
-  private readonly sinks = signal<ReadonlyMap<Digit, number>>(new Map());
-  /** Digit keys pressed that haven't sunk all the way yet: they do, however soon they're let go, before rising back. */
-  private readonly sinking = new Set<Digit>();
+  /** How far each key has sunk, pressed, from 0, up, to 1, all the way. */
+  private readonly sinks = signal<ReadonlyMap<KeypadKey, number>>(new Map());
+  /** Keys pressed that haven't sunk all the way yet: they do, however soon they're let go, before rising back. */
+  private readonly sinking = new Set<KeypadKey>();
   /** How far each joint has merged. */
   private readonly merges = signal<Merges>(new Map());
   /** The sizes the keys are drawn with, once laid out. */
@@ -418,41 +418,41 @@ export class Keypad {
   private wasPlain = false;
   private frame: number | undefined;
   private lastFrame = 0;
-  /** Whether a key is drawn by the keypad's canvas, its button only saying its digit. */
+  /** Whether a key is drawn by the keypad's canvas, its button only saying its digit: only digit keys are. */
   protected isDrawn(key: KeypadKey): boolean {
-    return key !== 'backspace' && this.drawing();
+    return isDigit(key) && this.drawing();
   }
 
   /**
-   * Whether a digit key's button is moved by the keypad, rather than moving itself: its sink, and its edge (rim), as
-   * thick as its depth less how far it has sunk, whoever draws it, so that it looks the same either way, and as it
-   * swaps from one to the other.
+   * Whether the keys' buttons are moved by the keypad, rather than moving themselves: their sink, and their edge (rim),
+   * as thick as their depth less how far they have sunk, whoever draws them, so that a digit key looks the same either
+   * way, and as it swaps from one to the other; the others, as the digit keys do when they draw themselves.
    */
-  protected isDriven(key: KeypadKey): boolean {
-    return key !== 'backspace' && this.geometry() !== undefined;
+  protected isDriven(): boolean {
+    return this.geometry() !== undefined;
   }
 
-  /** How thick a digit key's button's edge is, as it sinks: its depth, unless it has sunk. */
+  /** How thick a key's button's edge is, as it sinks: its depth, unless it has sunk. */
   protected rimOf(key: KeypadKey): string | null {
-    if (!this.isDriven(key) || key === 'backspace') {
+    if (!this.isDriven()) {
       return null;
     }
     const sunk = this.sunk(key);
     return sunk === 0 ? null : `${String(Math.max(0, (this.geometry()?.depth ?? 0) - sunk))}px`;
   }
 
-  /** How far a digit key has sunk, pressed, in CSS pixels: as a candy button does, into its edge but a pixel. */
-  private sunk(digit: Digit): number {
+  /** How far a key has sunk, pressed, in CSS pixels: as a candy button does, into its edge but a pixel. */
+  private sunk(key: KeypadKey): number {
     const depth = this.geometry()?.depth ?? 0;
-    return (this.sinks().get(digit) ?? 0) * Math.max(0, depth - 1);
+    return (this.sinks().get(key) ?? 0) * Math.max(0, depth - 1);
   }
 
   /**
-   * Where a digit key's button sits, sunk, the keypad moving it rather than the button itself, so that it's as deep
-   * whoever draws it: where it is, unless it has sunk or shows pressed.
+   * Where a key's button sits, sunk, the keypad moving it rather than the button itself, so that it's as deep whoever
+   * draws it: where it is, unless it has sunk or shows pressed.
    */
   protected sinkOf(key: KeypadKey): string | null {
-    if (key === 'backspace' || this.geometry() === undefined) {
+    if (!this.isDriven()) {
       return null;
     }
     const sunk = this.sunk(key);
@@ -475,10 +475,10 @@ export class Keypad {
     );
   }
 
-  /** Where each digit key's sink is headed: all the way while it shows pressed, back up otherwise. */
-  private sinkTargets(): Map<Digit, number> {
+  /** Where each key's sink is headed: all the way while it shows pressed, back up otherwise. */
+  private sinkTargets(): Map<KeypadKey, number> {
     return new Map(
-      DIGITS.map((digit) => [digit, this.shownPressed(digit) || this.sinking.has(digit) ? 1 : 0]),
+      this.keys().map(({ key }) => [key, this.shownPressed(key) || this.sinking.has(key) ? 1 : 0]),
     );
   }
 
@@ -488,7 +488,7 @@ export class Keypad {
     return (
       [...this.lingers().values()].some(({ since }) => this.clock() - since < this.linger()) ||
       moving(this.merges(), this.joints(), (joint) => this.merging(joint)) ||
-      [...this.sinkTargets()].some(([digit, target]) => (sinks.get(digit) ?? target) !== target)
+      [...this.sinkTargets()].some(([key, target]) => (sinks.get(key) ?? target) !== target)
     );
   }
 
@@ -516,18 +516,18 @@ export class Keypad {
       const step = press > 0 ? elapsed / press : Infinity;
       this.sinks.set(
         new Map(
-          [...this.sinkTargets()].map(([digit, target]) => {
-            const sink = sinks.get(digit) ?? target;
+          [...this.sinkTargets()].map(([key, target]) => {
+            const sink = sinks.get(key) ?? target;
             return [
-              digit,
+              key,
               target > sink ? Math.min(target, sink + step) : Math.max(target, sink - step),
             ];
           }),
         ),
       );
-      for (const digit of this.sinking) {
-        if ((this.sinks().get(digit) ?? 0) >= 1) {
-          this.sinking.delete(digit);
+      for (const key of this.sinking) {
+        if ((this.sinks().get(key) ?? 0) >= 1) {
+          this.sinking.delete(key);
         }
       }
       this.frame = this.animating() ? requestAnimationFrame(tick) : undefined;
@@ -599,11 +599,11 @@ export class Keypad {
   }
 
   constructor() {
-    // Keys next to each other merge while they're the same color.
+    // Keys next to each other merge while they're the same color, and keys pressed sink.
     effect(() => {
-      for (const digit of DIGITS) {
-        this.shownPressed(digit);
-        this.pressColor(digit);
+      for (const { key } of this.keys()) {
+        this.shownPressed(key);
+        this.pressColor(key);
       }
       const joints = this.joints();
       this.mergeKeys();
@@ -619,9 +619,7 @@ export class Keypad {
         // A key first seen is where it's headed, as are the merges.
         const sinks = this.sinks();
         this.sinks.set(
-          new Map(
-            [...this.sinkTargets()].map(([digit, target]) => [digit, sinks.get(digit) ?? target]),
-          ),
+          new Map([...this.sinkTargets()].map(([key, target]) => [key, sinks.get(key) ?? target])),
         );
         if (this.animating()) {
           this.animate();
@@ -658,26 +656,29 @@ export class Keypad {
         });
       }
     });
-    // A digit key that stops showing pressed keeps the color it took for a moment, fading out.
+    // A key pressed sinks all the way; a digit key that stops showing pressed keeps the color it took for a moment,
+    // fading out.
     effect(() => {
-      const pressed = DIGITS.filter((digit) => this.shownPressed(digit));
-      const released = this.wasPressed.filter((digit) => !pressed.includes(digit));
-      const newly = pressed.filter((digit) => !this.wasPressed.includes(digit));
+      const pressed = this.keys()
+        .map(({ key }) => key)
+        .filter((key) => this.shownPressed(key));
+      const released = this.wasPressed.filter((key) => !pressed.includes(key));
+      const newly = pressed.filter((key) => !this.wasPressed.includes(key));
       this.wasPressed = pressed;
       untracked(() => {
-        for (const digit of pressed) {
-          this.lingering.get(digit)?.cancel();
+        for (const key of pressed) {
+          this.lingering.get(key)?.cancel();
         }
-        for (const digit of newly) {
-          this.sinking.add(digit);
+        for (const key of newly) {
+          this.sinking.add(key);
         }
-        if (pressed.some((digit) => this.lingers().has(digit))) {
+        if (pressed.some((key) => this.lingers().has(key))) {
           this.lingers.update(
             (lingers) => new Map([...lingers].filter(([digit]) => !pressed.includes(digit))),
           );
         }
-        for (const digit of released) {
-          this.lingerOn(digit);
+        for (const key of released.filter(isDigit)) {
+          this.lingerOn(key);
         }
       });
     });
@@ -701,35 +702,33 @@ export class Keypad {
   }
 
   /**
-   * Notes the color a key's digit takes when typed now, which it's filled with while shown pressed, as for a touch
-   * replayed.
+   * Notes the color a key takes when typed now, which it's filled with while shown pressed, as for a touch replayed.
    */
   noteColor(key: KeypadKey | null): void {
-    if (key !== null && key !== 'backspace') {
+    if (key !== null) {
       const color = this.colorOf(key);
       this.splashColors.update((colors) => ({ ...colors, [key]: color }));
     }
   }
 
-  /** Whether a key shows pressed: while pressed, and, for a digit key, for a moment after. */
+  /** Whether a key shows pressed: while pressed, and for a moment after. */
   protected shownPressed(key: KeypadKey): boolean {
-    return this.isPressed(key) || (key !== 'backspace' && this.splashing().includes(key));
+    return this.isPressed(key) || this.splashing().includes(key);
   }
 
-  /**
-   * A key's color: a digit key's, while it shows pressed, the color its digit took then, and otherwise the color it
-   * takes when typed next; the key in backspace's place, its own (see `OtherKeyColors`).
-   */
+  /** A key's color: while it shows pressed, the color it took then, and otherwise the color it takes when typed next. */
   protected pressColor(key: KeypadKey): string | undefined {
-    if (key === 'backspace') {
-      return this.otherKeys()[this.corner()];
-    }
     return (this.shownPressed(key) ? this.splashColors()[key] : undefined) ?? this.colorOf(key);
   }
 
-  /** The color a digit key's digit takes when typed next. */
-  private colorOf(key: Digit): string | undefined {
-    return this.palette()[this.colorIndices()[key]];
+  /**
+   * The color a key takes when typed next: a digit key, its digit's; the key in backspace's place, its own (see
+   * `OtherKeyColors`).
+   */
+  private colorOf(key: KeypadKey): string | undefined {
+    return isDigit(key)
+      ? this.palette()[this.colorIndices()[key]]
+      : this.otherKeys()[this.corner()];
   }
 
   /** Whether a touch is on a button the keypad was given, or a dialog it opened, rather than on the keypad. */
@@ -915,11 +914,8 @@ export class Keypad {
     );
   }
 
-  /** Fills a digit key with its color: the color its digit takes when typed now. */
+  /** Fills a key with its color: the color it takes when typed now. */
   private splash(key: KeypadKey): void {
-    if (key === 'backspace') {
-      return;
-    }
     this.noteColor(key);
     this.splashing.update((keys) => (keys.includes(key) ? keys : [...keys, key]));
     clearTimeout(this.splashTimers.get(key));
@@ -932,9 +928,6 @@ export class Keypad {
   }
 
   private endSplash(key: KeypadKey): void {
-    if (key === 'backspace') {
-      return;
-    }
     clearTimeout(this.splashTimers.get(key));
     this.splashTimers.delete(key);
     this.splashing.update((keys) => keys.filter((splashing) => splashing !== key));

@@ -454,7 +454,7 @@ describe('Keypad', () => {
       expect(typed).toEqual(['1']);
     });
 
-    it('shows touched keys pressed while releasing would type them: until released (a digit a moment longer) or cancelled', () => {
+    it('shows touched keys pressed while releasing would type them: until released (a moment longer) or cancelled', () => {
       down('5', 1);
       down('backspace', 2);
       expect(pressedKeys()).toEqual(['5', 'backspace']);
@@ -474,6 +474,11 @@ describe('Keypad', () => {
 
       down('9', 3);
       pointer('pointercancel', CENTERS['9'], { pointerId: 3 });
+      expect(pressedKeys()).toEqual([]);
+
+      tap('backspace');
+      expect(pressedKeys()).toEqual(['backspace']);
+      vi.advanceTimersByTime(SPLASH_DURATION);
       expect(pressedKeys()).toEqual([]);
     });
   });
@@ -692,6 +697,15 @@ describe('Keypad', () => {
       expect(button('1').style.getPropertyValue('--linger-color')).toBe(color);
       // The key itself has moved on to the color its digit takes next.
       expect(button('1').style.getPropertyValue('--press-color')).not.toBe(color);
+    });
+
+    it('lets no color linger on the key in backspace’s place', () => {
+      fixture.componentRef.setInput('linger', 200);
+      tap('backspace');
+      vi.advanceTimersByTime(SPLASH_DURATION);
+      fixture.detectChanges();
+
+      expect(animate).not.toHaveBeenCalled();
     });
 
     it('lets no color linger at 0', () => {
