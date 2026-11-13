@@ -80,6 +80,22 @@ describe('ChoiceDialog', () => {
     expect(host.querySelectorAll('.corner-place .unused')).toHaveLength(2);
   });
 
+  it('closes only on a press or a key coming after it opened, not the release of one under way', async () => {
+    const { page, dialog } = await setUp();
+
+    page.dialog().open();
+    expect(dialog.getAttribute('closedby')).toBe('none');
+    document.dispatchEvent(new PointerEvent('pointerdown'));
+    expect(dialog.getAttribute('closedby')).toBe('any');
+
+    await page.dialog().close();
+    page.dismissable.set(false);
+    await TestBed.inject(ApplicationRef).whenStable();
+    page.dialog().open();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(dialog.getAttribute('closedby')).toBe('none');
+  });
+
   it('closes on Escape or a click outside it, unless it cannot be dismissed', async () => {
     const { page, dialog } = await setUp();
     const cancel = (): Event => {

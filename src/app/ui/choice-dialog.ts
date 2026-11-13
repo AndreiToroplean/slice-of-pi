@@ -166,7 +166,25 @@ export class ChoiceDialog {
     if (!dialog.open) {
       // Marked for the browser to give it the focus as it opens the dialog, as it does for any modal dialog.
       dialog.querySelector('app-button-list button')?.setAttribute('autofocus', '');
+      this.dismissedOnlyAfter(dialog);
       dialog.showModal();
+    }
+  }
+
+  /**
+   * Lets only a press or a key coming after it opened dismiss it, not one under way: the release of the press that
+   * opened it, as a key's, would otherwise close it at once, the browser taking it for one outside it.
+   */
+  private dismissedOnlyAfter(dialog: HTMLDialogElement): void {
+    dialog.setAttribute('closedby', 'none');
+    const next = new AbortController();
+    const restore = (): void => {
+      next.abort();
+      dialog.setAttribute('closedby', this.dismissable() ? 'any' : 'none');
+    };
+    // Before the browser takes it, as it's first to hear of it.
+    for (const type of ['pointerdown', 'keydown']) {
+      document.addEventListener(type, restore, { capture: true, signal: next.signal });
     }
   }
 
