@@ -32,7 +32,7 @@ import { slotBoxes } from './slots/slot-layout';
 import { SlotHandover } from './slots/slots';
 import { ScaledTimer } from './scaled-timer';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
-import { CornerKey, Keypad, KeypadMark } from './keypad/keypad';
+import { CornerKey, Keypad, KeypadMark, TurnKeyPress } from './keypad/keypad';
 import { keyColorIndices, placeColors } from '../../game/layers/place-colors';
 import { Pause } from './pause/pause';
 import { PausesOnBack } from './pause-on-back';
@@ -225,7 +225,8 @@ const TICK = 16;
       [marks]="marks()"
       (touched)="press($event)"
       (pressed)="touchKey($event)"
-      (held)="fastForward($event)"
+      [fastForwards]="gamePlaying()"
+      (turnKey)="useTurnKey($event)"
       [pausable]="replay() === undefined"
       (pauseGame)="pause()?.pause()"
     >
@@ -418,7 +419,17 @@ export class Play implements PausesOnBack {
   protected readonly cornerKey = computed((): CornerKey =>
     this.mode() === 'discover' ? 'turn' : 'backspace',
   );
-  /** Whether the player holds the turn key down, in Discover. */
+  /** Whether the game plays its round, on its turn, before handing it over: holding the turn key fast forwards it. */
+  protected readonly gamePlaying = computed(
+    () => this.turn() === 'game' && this.handingOver() === undefined,
+  );
+  /**
+   * What the turn key's press going on is, as told by when it started: a hold, as the game played its round, which fast
+   * forwards it until it's let go, whatever happens meanwhile; or a tap, at any other time, which switches turns as it's
+   * released.
+   */
+  private turnPress: 'hold' | 'tap' | undefined;
+  /** Whether the player holds the turn key down to fast forward the game's round. */
   private readonly fastForwarding = signal(false);
   /** The touches holding the tape down, by pointer. */
   private readonly tapeTouches = signal<ReadonlySet<number>>(new Set());
@@ -427,7 +438,7 @@ export class Play implements PausesOnBack {
   /**
    * How many times faster than the clock's Discover's time runs, the game playing and handing turns over on it: not at
    * all while the player holds the tape as a turn is handed over, to look at its digits, or think, for longer, and
-   * faster while they hold the turn key.
+   * faster while they hold the turn key to fast forward the game's round.
    */
   private readonly discoverRate = computed(() => {
     if (this.handingOver() !== undefined && (this.tapeTouches().size > 0 || this.shiftHeld())) {
@@ -774,12 +785,20 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Hurries Discover's game while the turn key is held: faster as it plays the round and fades it out, and,
-   * once the player has retyped the round, the next one shown at once.
+   * Fast forwards the game's round for as long as the turn key is held, the press starting as the game plays it; or,
+   * the press starting at any other time, a tap, switches turns at once as it's released on the key, if a turn is being
+   * handed over by then (see {@link turnPress}).
    */
-  protected fastForward(held: boolean): void {
-    this.fastForwarding.set(held);
-    if (held && this.done() && !this.paused() && !this.lost()) {
+  protected useTurnKey(press: TurnKeyPress): void {
+    if (press === 'down') {
+      this.turnPress = this.gamePlaying() ? 'hold' : 'tap';
+      this.fastForwarding.set(this.turnPress === 'hold');
+      return;
+    }
+    const tapped = press === 'up' && this.turnPress === 'tap';
+    this.turnPress = undefined;
+    this.fastForwarding.set(false);
+    if (tapped && this.handingOver() !== undefined && !this.paused() && !this.lost()) {
       this.switchTurn();
     }
   }

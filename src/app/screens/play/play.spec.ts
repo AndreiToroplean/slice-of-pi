@@ -2119,7 +2119,7 @@ describe('Play', () => {
     it('plays the round twice as fast while the turn key is held', async () => {
       const round = await discover();
       await holdKey(round);
-      expect(cornerKey(round.host).getAttribute('aria-pressed')).toBe('true');
+      expect(cornerKey(round.host).classList).toContain('pressed');
 
       await round.wait((5 * MEDIUM_INTERVAL) / FAST_FORWARD + 10);
 
@@ -2188,7 +2188,7 @@ describe('Play', () => {
       expect(cornerKey(round.host).classList).toContain('lit');
     });
 
-    it('shows the next round at once with the turn key, once the player has retyped the round, not before', async () => {
+    it('shows the next round at once with a tap of the turn key, once the player has retyped the round, not before', async () => {
       const round = await discover();
       await listen(round, 5);
       await round.type('14');
@@ -2196,11 +2196,50 @@ describe('Play', () => {
 
       await round.type('159');
       expect(cornerWorks(round.host)).toBe(true);
+      expect(cornerKey(round.host).getAttribute('aria-label')).toBe('Switch turns');
       await holdKey(round);
+      expect(cornerKey(round.host).classList).not.toContain('lit');
+      await holdKey(round, false);
 
       expect(cornerKey(round.host).classList).toContain('lit');
-      await round.wait(MEDIUM_INTERVAL / FAST_FORWARD);
+      await round.wait(MEDIUM_INTERVAL);
       expect(slots(round.host)[0]).toBe('1');
+    });
+
+    it('switches to the player’s turn at once with a tap of the turn key as the round shown fades out', async () => {
+      const round = await discover();
+      await listen(round, 5);
+      expect(cornerKey(round.host).getAttribute('aria-label')).toBe('Switch turns');
+
+      await holdKey(round);
+      await holdKey(round, false);
+
+      expect(faint(round.host)).toBe('');
+      expect(cornerKey(round.host).classList).not.toContain('lit');
+    });
+
+    it('never switches turns as the turn key, held to fast forward the round, is let go, even once the round is shown', async () => {
+      const round = await discover();
+      await holdKey(round);
+      // Past the round shown, fast forwarded, into its hand over.
+      await round.wait((6.5 * MEDIUM_INTERVAL) / FAST_FORWARD + 10);
+      expect(faint(round.host)).toBe('14159');
+
+      await holdKey(round, false);
+      expect(faint(round.host)).toBe('14159');
+      expect(cornerKey(round.host).classList).toContain('lit');
+    });
+
+    it('does nothing with a tap of the turn key as the game plays its round', async () => {
+      const round = await discover();
+      await round.wait(1.5 * MEDIUM_INTERVAL);
+
+      await holdKey(round);
+      await holdKey(round, false);
+      await round.wait(MEDIUM_INTERVAL / 2);
+
+      expect(slots(round.host).join('')).toBe('14');
+      expect(cornerKey(round.host).classList).toContain('lit');
     });
 
     it('counts the whole groups typed past the round shown, not the digits of a group begun', async () => {
