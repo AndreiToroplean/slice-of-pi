@@ -6,6 +6,7 @@ import { INDEXED_DB } from '../../player-data/run-store';
 import { hexToHsl, hslToHex } from '../../game/color/color-spaces';
 import { KeyColors } from './key-colors';
 import { SEASON_STARTS, Tweaks } from '../../developer-mode/tweaks';
+import { OTHER_KEY_COLORS } from '../play/keypad/other-keys';
 
 describe('KeyColors', () => {
   beforeEach(() => {
@@ -106,6 +107,30 @@ describe('KeyColors', () => {
     expect(rows(host)).toEqual(PALETTE);
     expect(TestBed.inject(Tweaks).values()).toEqual({});
     expect(reset?.disabled).toBe(true);
+  });
+
+  it('tunes the other keys in the same picker, on their own tab, then brings back the game’s', async () => {
+    const { host, stable } = await setUp();
+    const button = (label: string): HTMLButtonElement | undefined =>
+      Array.from(host.querySelectorAll('button')).find(
+        (candidate) => candidate.textContent.trim() === label,
+      );
+    button('Other Keys')?.click();
+    await stable();
+    button('Backspace')?.click();
+    await stable();
+    expect(host.querySelector('app-color-picker .name')?.textContent).toBe('Backspace');
+
+    await slide(host, 'Backspace', 'lightness', 50, stable);
+
+    const tuned = TestBed.inject(Tweaks).values().otherKeys?.backspace;
+    expect(tuned).not.toBe(OTHER_KEY_COLORS.backspace);
+    expect(button('Backspace')?.style.getPropertyValue('--press-color')).toBe(tuned);
+    expect(rows(host)).toEqual(PALETTE);
+
+    button('Reset All')?.click();
+    await stable();
+    expect(TestBed.inject(Tweaks).values()).toEqual({});
   });
 
   it('outlines pairs that are easy to mix up', async () => {
