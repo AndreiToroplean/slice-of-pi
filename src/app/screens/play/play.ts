@@ -152,12 +152,16 @@ const TICK = 16;
     '[style]': 'layout()',
     '(pointerdown)': 'touchDown($event)',
     '(pointerup)': 'touchUp($event)',
-    '(pointercancel)': 'touchesElsewhere.delete($event.pointerId)',
+    '(pointercancel)': 'touchCancelled($event.pointerId)',
+    '(document:keydown)': 'shift($event, true)',
+    '(document:keyup)': 'shift($event, false)',
+    '(window:blur)': 'shiftHeld.set(false)',
   },
   template: `
     <h1 class="visually-hidden">Slice of Pi</h1>
     <app-season-header [view]="season()" />
     <app-typed-digits
+      (pointerdown)="holdTape($event)"
       [words]="grouping().words"
       [digits]="digits()"
       [colors]="placeColors()"
@@ -221,7 +225,7 @@ const TICK = 16;
       [marks]="marks()"
       (touched)="press($event)"
       (pressed)="touchKey($event)"
-      (held)="fastForward.set($event)"
+      (held)="fastForward($event)"
       [pausable]="replay() === undefined"
       (pauseGame)="pause()?.pause()"
     >
@@ -414,15 +418,26 @@ export class Play implements PausesOnBack {
   protected readonly cornerKey = computed((): CornerKey =>
     this.mode() === 'discover' ? 'discover' : 'backspace',
   );
-  /** Whether the player fast forwards what Discover's game plays, holding the discover key. */
-  protected readonly fastForward = signal(false);
-  /** How many times faster than the clock's Discover's game plays: its rounds, and their fading out. */
-  protected readonly discoverRate = computed(() =>
-    this.fastForward() ? this.tweaks.fastForward() : 1,
-  );
+  /** Whether the player holds the discover key down, in Discover. */
+  private readonly fastForwarding = signal(false);
+  /** The touches holding the tape down, by pointer. */
+  private readonly tapeTouches = signal<ReadonlySet<number>>(new Set());
+  /** Whether Shift is held down, which holds the tape as a touch does. */
+  protected readonly shiftHeld = signal(false);
+  /**
+   * How many times faster than the clock's Discover's time runs, the game playing and the digits fading on it: not at
+   * all while the player holds the tape as digits fade out of it, to look at them for longer, and faster while they
+   * hold the discover key.
+   */
+  private readonly discoverRate = computed(() => {
+    if (this.fading() !== undefined && (this.tapeTouches().size > 0 || this.shiftHeld())) {
+      return 0;
+    }
+    return this.fastForwarding() ? this.tweaks.fastForward() : 1;
+  });
   /**
    * Whether it doesn't work: backspace in a challenge, the discover key on the player's turn until they have
-   * retyped the round, the game's next turn then on its way.
+   * retyped the round.
    */
   protected readonly cornerDisabled = computed(
     () =>
@@ -727,8 +742,53 @@ export class Play implements PausesOnBack {
     }
   }
 
+  /** Holds the tape as a touch lands on it: the digits fading out of it stop until it's released. */
+  protected holdTape(event: PointerEvent): void {
+    // Released anywhere, it lets go: a touch is captured by itself, a mouse isn't.
+    if (event.currentTarget instanceof Element && 'setPointerCapture' in event.currentTarget) {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+    this.tapeTouches.update((touches) => new Set(touches).add(event.pointerId));
+  }
+
+  /** Notes Shift held down, or let go, which holds the tape as a touch does. */
+  protected shift(event: KeyboardEvent, down: boolean): void {
+    if (event.key === 'Shift') {
+      this.shiftHeld.set(down);
+    }
+  }
+
+  /** Lets go of the tape, if a touch held it. */
+  private releaseTape(pointerId: number): void {
+    if (this.tapeTouches().has(pointerId)) {
+      this.tapeTouches.update((touches) => {
+        const left = new Set(touches);
+        left.delete(pointerId);
+        return left;
+      });
+    }
+  }
+
+  /** Forgets a touch the browser cancels, such as one that scrolls the tape. */
+  protected touchCancelled(pointerId: number): void {
+    this.touchesElsewhere.delete(pointerId);
+    this.releaseTape(pointerId);
+  }
+
+  /**
+   * Hurries Discover's game while the discover key is held: faster as it plays the round and fades it out, and,
+   * once the player has retyped the round, the next one shown at once.
+   */
+  protected fastForward(held: boolean): void {
+    this.fastForwarding.set(held);
+    if (held && this.done() && !this.paused() && !this.lost()) {
+      this.playRound();
+    }
+  }
+
   /** Records a touch elsewhere than on the keypad as it's released, typing nothing, where it started from the keypad. */
   protected touchUp(event: PointerEvent): void {
+    this.releaseTape(event.pointerId);
     const start = this.touchesElsewhere.get(event.pointerId);
     if (start !== undefined) {
       this.touchesElsewhere.delete(event.pointerId);

@@ -740,7 +740,7 @@ describe('Keypad', () => {
     });
   });
 
-  describe('with the fast-forward key in backspace’s place', () => {
+  describe('with the discover key in backspace’s place', () => {
     /** Whether the keypad last said to fast forward. */
     let fastForward: boolean;
 
