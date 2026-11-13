@@ -83,3 +83,15 @@ export function moving(
 ): boolean {
   return joints.some((joint) => (merges.get(joint.id) ?? 0) !== (merging(joint) ? 1 : 0));
 }
+
+/**
+ * How far a key's lingering color has spread into the keys it touches, `elapsed` ms after it was let go: from 0, across
+ * the gap between them only, to 1, from its far side to theirs, across both, as a drop of color spreads into the water it
+ * touches, never evening out. It spreads from when they touch, a `merge` after it was let go, to the end of its
+ * `linger`, straight away and slowing down (easing out).
+ */
+export function lingerSpread(elapsed: number, merge: number, linger: number): number {
+  const span = linger - merge;
+  const progress = span > 0 ? (elapsed - merge) / span : elapsed >= merge ? 1 : 0;
+  return 1 - (1 - Math.min(1, Math.max(0, progress))) ** 3;
+}

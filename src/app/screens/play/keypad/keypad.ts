@@ -27,7 +27,16 @@ import {
   pointAt,
 } from '../../../game/layers/keypad-layout';
 import { Candy } from '../../../ui/candy';
-import { KEY_MOTION, KeyMotion, Joint, jointsOf, Merges, moving, stepMerges } from './key-merges';
+import {
+  KEY_MOTION,
+  KeyMotion,
+  Joint,
+  jointsOf,
+  lingerSpread,
+  Merges,
+  moving,
+  stepMerges,
+} from './key-merges';
 import { keyShapes } from './key-shapes';
 import { GlKey, GlScene, KeypadRenderer, premultiplied, rgba } from './keypad-gl';
 
@@ -369,13 +378,15 @@ export class Keypad {
         const [r, g, b, a] = base ?? [1, 1, 1, 1];
         const linger = this.lingers().get(shape.key);
         // Fading out as an `ease-out` animation does.
-        const left = linger === undefined ? 0 : 1 - (this.clock() - linger.since) / this.linger();
+        const elapsed = linger === undefined ? 0 : this.clock() - linger.since;
+        const left = linger === undefined ? 0 : 1 - elapsed / this.linger();
         const lingering = Math.min(1, Math.max(0, left)) ** 2;
         const [lr, lg, lb] = linger === undefined ? [0, 0, 0] : rgba(linger.color);
         return {
           ...shape,
           linger: [lr, lg, lb],
           lingering: pressed ? 0 : lingering,
+          spread: lingerSpread(elapsed, this.motion().merge, this.linger()),
           sink: this.sunk(shape.key),
           face: solid || pressed ? premultiplied(base ?? [1, 1, 1, 1]) : [0.26, 0.26, 0.26, 0.26],
           rim: solid

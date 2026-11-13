@@ -35,6 +35,8 @@ export interface GlKey {
   /** The color lingering on it, its face and its edge, as RGB from 0 to 1, and how much of it is left, from 1 to 0. */
   readonly linger: readonly [number, number, number];
   readonly lingering: number;
+  /** How far that color has spread into the keys it touches, merged all the way, from 0 to 1 (see `lingerSpread`). */
+  readonly spread: number;
 }
 
 export interface GlScene {
@@ -103,6 +105,30 @@ float sdKey(int i, vec2 p) {
   return corner.z > 0.0 ? min(d, sdRound(p - sunk, corner, vec4(0.0))) : d;
 }
 
+// Whether a point is in the gap past a side of a key where it touches another: left, top, right, bottom.
+float lingerInGap(int i, vec2 p, vec4 box) {
+  vec4 beyond = vec4(box.x - p.x, box.y - p.y, p.x - box.x - box.z, p.y - box.y - box.w);
+  vec4 gaps = vec4(uGap.x, uGap.y, uGap.x, uGap.y);
+  bool alongX = p.y >= box.y && p.y <= box.y + box.w;
+  bool alongY = p.x >= box.x && p.x <= box.x + box.z;
+  vec4 within = vec4(alongX, alongY, alongX, alongY);
+  vec4 inGaps = uKeyJoined[i] * within * step(0.0, beyond) * step(beyond, gaps);
+  return max(max(inGaps.x, inGaps.y), max(inGaps.z, inGaps.w));
+}
+
+// How much of a key's lingering color is left at a point, as it fades toward each key it touches: at first across the
+// gap between them, from its side to the other's, then, as it spreads, from its far side to the other's, across both.
+float lingerFade(int i, vec2 p, vec4 box) {
+  float spread = uKeyMeta[i].y;
+  vec4 beyond = vec4(box.x - p.x, box.y - p.y, p.x - box.x - box.z, p.y - box.y - box.w);
+  vec4 gaps = vec4(uGap.x, uGap.y, uGap.x, uGap.y);
+  vec4 sizes = vec4(box.z, box.w, box.z, box.w);
+  vec4 from = -sizes * spread;
+  vec4 to = gaps + sizes * spread;
+  vec4 fade = mix(vec4(1.0), clamp((to - beyond) / (to - from), 0.0, 1.0), uKeyJoined[i]);
+  return fade.x * fade.y * fade.z * fade.w;
+}
+
 void main() {
   vec2 p = vec2(gl_FragCoord.x, uSize.y * uDpr - gl_FragCoord.y) / uDpr - uMargin;
   // The keys as one. They come row by row from the top, the farthest, down, each drawn over those before: its shape,
@@ -140,21 +166,32 @@ void main() {
       shine = on * (1.0 - above) + shine * (1.0 - on);
     }
     if (uKeyLinger[i].a > 0.0) {
-      // On the key as it stretches, and, past the sides where it touches another key, fading out across the gap
-      // between them, from where its side was to where the other's was.
-      vec4 box = face;
-      vec4 joined = uKeyJoined[i];
-      vec4 beyond = vec4(box.x - p.x, box.y - p.y, p.x - box.x - box.z, p.y - box.y - box.w);
-      vec4 gaps = vec4(uGap.x, uGap.y, uGap.x, uGap.y);
-      bool alongX = p.y >= box.y && p.y <= box.y + box.w;
-      bool alongY = p.x >= box.x && p.x <= box.x + box.z;
-      vec4 within = vec4(alongX, alongY, alongX, alongY);
-      vec4 inGaps = joined * within * step(0.0, beyond) * step(beyond, gaps);
-      float inGap = max(max(inGaps.x, inGaps.y), max(inGaps.z, inGaps.w));
-      vec4 fade = clamp(1.0 - max(beyond, 0.0) / gaps, 0.0, 1.0);
-      vec4 faded = mix(vec4(1.0), fade, joined);
-      float amount = max(clamp(0.5 - d * uDpr, 0.0, 1.0), inGap) * faded.x * faded.y * faded.z * faded.w;
+      // On the key as it stretches, and past the sides where it touches another key, across the gap between them.
+      float amount = max(clamp(0.5 - d * uDpr, 0.0, 1.0), lingerInGap(i, p, face)) * lingerFade(i, p, face);
       float k = uKeyLinger[i].a * amount;
+      linger = vec4(uKeyLinger[i].rgb, 1.0) * k + linger * (1.0 - k);
+    }
+  }
+  // Then, as it spreads, on the keys it touches, over theirs: all of them drawn by then, none drawn over them.
+  for (int i = 0; i < ${KEYS}; i++) {
+    if (i >= uKeys) break;
+    if (uKeyLinger[i].a > 0.0 && uKeyMeta[i].y > 0.0) {
+      vec4 face = uKeyBox[i];
+      if (!uRest) {
+        face.y += uKeyMeta[i].x;
+      }
+      vec4 joined = uKeyJoined[i];
+      // From a key to the next, sideways and up and down.
+      vec2 pitch = face.zw + uGap;
+      vec2 shifts[4] = vec2[4](vec2(-pitch.x, 0.0), vec2(0.0, -pitch.y), vec2(pitch.x, 0.0), vec2(0.0, pitch.y));
+      float onOthers = 0.0;
+      for (int side = 0; side < 4; side++) {
+        if (joined[side] > 0.0) {
+          vec4 other = vec4(face.xy + shifts[side], face.zw);
+          onOthers = max(onOthers, clamp(0.5 - sdRound(p, other, uKeyRadii[i]) * uDpr, 0.0, 1.0));
+        }
+      }
+      float k = uKeyLinger[i].a * onOthers * lingerFade(i, p, face);
       linger = vec4(uKeyLinger[i].rgb, 1.0) * k + linger * (1.0 - k);
     }
   }
@@ -507,7 +544,7 @@ export class KeypadRenderer {
     );
     vectors(
       'uKeyMeta',
-      keys.flatMap((key) => [key.sink, 0, 0, 0]),
+      keys.flatMap((key) => [key.sink, key.spread, 0, 0]),
     );
     vectors(
       'uKeyFace',

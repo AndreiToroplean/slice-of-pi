@@ -1,4 +1,4 @@
-import { Joint, jointsOf, KEY_MOTION, moving, stepMerges } from './key-merges';
+import { Joint, jointsOf, KEY_MOTION, lingerSpread, moving, stepMerges } from './key-merges';
 
 describe('jointsOf', () => {
   it('joins each digit key to those beside and below it, but not backspace', () => {
@@ -47,5 +47,23 @@ describe('stepMerges', () => {
   it('tells whether a merge is under way', () => {
     expect(moving(at(0.5), [joint], () => true)).toBe(true);
     expect(moving(at(1), [joint], () => true)).toBe(false);
+  });
+});
+
+describe('lingerSpread', () => {
+  it('spreads from when the keys touch to the end of the linger, at once and slowing down', () => {
+    expect(lingerSpread(100, 160, 1600)).toBe(0);
+    expect(lingerSpread(160, 160, 1600)).toBe(0);
+    const early = lingerSpread(160 + 144, 160, 1600);
+    const late = lingerSpread(1600 - 144, 160, 1600) - lingerSpread(1600 - 288, 160, 1600);
+    expect(early).toBeGreaterThan(0.25);
+    expect(late).toBeLessThan(0.01);
+    expect(lingerSpread(1600, 160, 1600)).toBe(1);
+    expect(lingerSpread(5000, 160, 1600)).toBe(1);
+  });
+
+  it('spreads all at once with a linger no longer than the merge', () => {
+    expect(lingerSpread(100, 160, 100)).toBe(0);
+    expect(lingerSpread(160, 160, 100)).toBe(1);
   });
 });
