@@ -30,6 +30,7 @@ import {
 } from './flight/flight';
 import { slotBoxes } from './slots/slot-layout';
 import { SlotHandover } from './slots/slots';
+import { ScaledTimer } from './scaled-timer';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { CornerKey, Keypad, KeypadMark } from './keypad/keypad';
 import { keyColorIndices, placeColors } from '../../game/layers/place-colors';
@@ -51,7 +52,7 @@ import {
   moveTo,
   newRounds,
 } from '../../game/modes/discover-rounds';
-import { paceInterval } from '../../game/modes/discover-pace';
+import { FAST_FORWARD, paceInterval } from '../../game/modes/discover-pace';
 import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
 import { DiscoverRecorder } from '../../player-data/discover-recorder';
 import { GroupSizeSetting } from '../../player-data/group-size-setting';
@@ -164,6 +165,7 @@ const TICK = 16;
       [faintFrom]="faintFrom()"
       [fadeOut]="fadeOut()"
       [fadeDuration]="tweaks.handOver()"
+      [fadeRate]="discoverRate()"
     />
     @if (checkpoints().length > 0) {
       <div class="checkpoints">
@@ -220,7 +222,7 @@ const TICK = 16;
       [marks]="marks()"
       (touched)="press($event)"
       (pressed)="touchKey($event)"
-      (discover)="switchTurns()"
+      (held)="fastForward.set($event)"
       [pausable]="replay() === undefined"
       (pauseGame)="pause()?.pause()"
     >
@@ -398,9 +400,13 @@ export class Play implements PausesOnBack {
   protected readonly cornerKey = computed((): CornerKey =>
     this.mode() === 'discover' ? 'discover' : 'backspace',
   );
+  /** Whether the player fast forwards what Discover's game plays, holding the discover key. */
+  protected readonly fastForward = signal(false);
+  /** How many times faster than the clock's Discover's game plays: its rounds, and their fading out. */
+  protected readonly discoverRate = computed(() => (this.fastForward() ? FAST_FORWARD : 1));
   /**
-   * Whether it doesn't work: backspace in a challenge, the discover key on the player's turn until they have retyped
-   * the round.
+   * Whether it doesn't work: backspace in a challenge, the discover key on the player's turn until they have
+   * retyped the round, the game's next turn then on its way.
    */
   protected readonly cornerDisabled = computed(
     () =>
@@ -542,6 +548,8 @@ export class Play implements PausesOnBack {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
   private readonly timer = inject(TIMER);
+  /** What Discover schedules, at the rate it plays (see {@link discoverRate}). */
+  private readonly discoverTimer = new ScaledTimer(this.timer, () => this.clock.now());
   private readonly typedDigits = viewChild.required(TypedDigits);
   private readonly keypad = viewChild.required(Keypad);
   private readonly pause = viewChild(Pause);
@@ -590,6 +598,9 @@ export class Play implements PausesOnBack {
       this.recorder.challenge.set(this.routeMode === 'challenge');
       this.recorder.start.set(this.checkpointStart());
     }
+    effect(() => {
+      this.discoverTimer.setRate(this.discoverRate());
+    });
     const background = inject(Background);
     effect(() => {
       background.colors.set(this.season().background);
@@ -926,7 +937,7 @@ export class Play implements PausesOnBack {
   private handBack(): void {
     this.stopHandOver();
     this.fadeOut.set({ from: this.rounds().from, round: (this.fadeOut()?.round ?? 0) + 1 });
-    this.stopHandOver = this.timer.after(this.tweaks.handOver(), () => {
+    this.stopHandOver = this.discoverTimer.after(this.tweaks.handOver(), () => {
       this.playRound();
     });
   }
@@ -982,21 +993,6 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Switches Discover's turns, with the discover key: on the game's turn, the player takes it at once, as if they had
-   * seen the round to its end; on theirs, once they've retyped the round, the game shows the next one at once.
-   */
-  protected switchTurns(): void {
-    if (this.lost() || this.paused()) {
-      return;
-    }
-    if (this.turn() === 'game') {
-      this.handToPlayer(false);
-    } else if (this.done()) {
-      this.playRound();
-    }
-  }
-
-  /**
    * Picks a checkpoint they've reached for Discover's rounds to start at from the game's next turn, which shows the
    * player what to type from there; or, picked already, takes it back.
    */
@@ -1016,7 +1012,7 @@ export class Play implements PausesOnBack {
   }
 
   private afterRound(delay: number, callback: () => void): void {
-    this.stopRound.push(this.timer.after(delay, callback));
+    this.stopRound.push(this.discoverTimer.after(delay, callback));
   }
 
   /** Stops what Discover has scheduled. */
