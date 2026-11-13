@@ -365,10 +365,15 @@ export class Play implements PausesOnBack {
   protected readonly discovering = this.routeMode === 'discover';
   /** Where Discover is, round after round, from the checkpoint picked. */
   private readonly rounds = signal(newRounds(0));
-  /** Whose turn it is in Discover; always the player's otherwise. */
+  /**
+   * Whose turn it is in Discover; always the player's otherwise. It alone tells what's shown as whose: the digits the
+   * game shows, faint, the keypad, and what the player's own place makes the slots, the keys' colors and the season.
+   */
   protected readonly turn = signal<Turn>(this.discovering ? 'game' : 'player');
-  /** The place from which the digits are those Discover's game showed, faint until the player types. */
-  protected readonly faintFrom = signal<number | undefined>(undefined);
+  /** The place from which the digits are those Discover's game shows, faint: from where its rounds start, on its turn. */
+  protected readonly faintFrom = computed(() =>
+    this.turn() === 'game' ? this.rounds().from : undefined,
+  );
   /** The key Discover is playing, shown pressed. */
   protected readonly playedKey = signal<KeypadKey | undefined>(undefined);
   /** The digits fading out of the tape as Discover hands a turn over, from where, and the round of the fade, if any. */
@@ -384,14 +389,8 @@ export class Play implements PausesOnBack {
   /** Whether the player has retyped Discover's round, on their turn: the game then shows the next one, soon. */
   protected readonly done = computed(() => {
     const target = this.target();
-    return (
-      this.turn() === 'player' &&
-      this.faintFrom() === undefined &&
-      typeof target === 'number' &&
-      this.digits().length >= target
-    );
+    return this.turn() === 'player' && typeof target === 'number' && this.digits().length >= target;
   });
-  /** Whether the player has typed on their turn in Discover, or the game's: the checkpoints work only before. */
   /** The checkpoint picked, which the rounds start at from the game's next turn, shown pressed until then. */
   protected readonly picked = signal<number | undefined>(undefined);
   /** Stops the wait for the next round to start, once the player has retyped the round. */
@@ -883,7 +882,6 @@ export class Play implements PausesOnBack {
     this.turn.set('game');
     this.target.set('end');
     this.vibrate('turn');
-    this.faintFrom.set(this.rounds().from);
     this.playNext(paceInterval(this.pace(), this.tweaks.discoverSpeed(), this.tweaks.paceStep()));
   }
 
@@ -983,7 +981,6 @@ export class Play implements PausesOnBack {
     this.stopWatching();
     this.landFlights();
     this.playedKey.set(undefined);
-    this.faintFrom.set(undefined);
     this.fadeOut.set(undefined);
     this.stopHandOver();
     this.stopHandOver = () => undefined;
