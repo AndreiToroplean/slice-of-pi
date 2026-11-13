@@ -645,16 +645,15 @@ export class Play implements PausesOnBack {
     this.sound(key);
   }
 
-  /** Takes the player's turn in Discover at once, as they type a key on the game's turn, or touch it. */
+  /**
+   * Takes the player's turn in Discover at once, as they type a key on the game's turn, or touch it, before anything
+   * else comes of the touch.
+   */
   private takeTurn(key: KeypadKey | null): void {
-    if (
-      this.turn() === 'game' &&
-      key !== null &&
-      key !== 'backspace' &&
-      !this.paused() &&
-      !this.lost()
-    ) {
+    if (this.turn() === 'game' && key !== null && isDigit(key) && !this.paused() && !this.lost()) {
       this.handToPlayer(false);
+      // The key takes, and lingers in, the color of the player's place, not that of the round shown.
+      this.keypad().noteColor(key, this.tweaks.palette()[this.colorIndices()[key]]);
     }
   }
 

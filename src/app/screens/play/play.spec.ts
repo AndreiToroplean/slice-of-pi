@@ -2046,6 +2046,23 @@ describe('Play', () => {
       expect(color()).toBe(PALETTE[keyColorIndices('')['1']]);
     });
 
+    it('fills a key typed on the game’s turn with the color of the player’s place, not of the round shown', async () => {
+      const round = await discover();
+      await listen(round, 5);
+
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '1', bubbles: true, cancelable: true }),
+      );
+      await round.wait(0);
+
+      expect(
+        round.host
+          .querySelector<HTMLElement>('button[data-key="1"]')
+          ?.style.getPropertyValue('--press-color'),
+      ).toBe(PALETTE[keyColorIndices('')['1']]);
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: '1', bubbles: true }));
+    });
+
     it('takes the player’s turn at once as they type while the round shown fades out', async () => {
       const round = await discover();
       await listen(round, 5);

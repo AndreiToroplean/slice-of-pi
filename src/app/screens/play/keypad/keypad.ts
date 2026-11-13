@@ -734,11 +734,13 @@ export class Keypad {
   }
 
   /**
-   * Notes the color a key takes when typed now, which it's filled with while shown pressed, as for a touch replayed.
+   * Notes the color a key takes when typed now, which it's filled with while shown pressed, and, for a digit key, lingers
+   * in once released, as for a touch replayed: `color`, if given, as when what's typed changes before the keypad is told,
+   * or the one it's told.
    */
-  noteColor(key: KeypadKey | null): void {
+  noteColor(key: KeypadKey | null, color?: string): void {
     if (key !== null) {
-      const color = this.colorOf(key);
+      color ??= this.colorOf(key);
       this.splashColors.update((colors) => ({ ...colors, [key]: color }));
     }
   }
