@@ -103,3 +103,12 @@
 .tile.faint {
   opacity: 0.45;
 }
+
+/* A digit fading out of the tape, as Discover hands a turn over, from the opacity it had (`--fade`, see `TypedDigits`). */
+.tile.fading {
+  opacity: var(--fade);
+}
+
+.tile.faint.fading {
+  opacity: calc(0.45 * var(--fade));
+}
