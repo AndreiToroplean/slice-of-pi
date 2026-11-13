@@ -1,13 +1,12 @@
 import { Handle } from '../../ui/handles/handle';
+import { lightCore, LightOf, lightKnobs as knobsOf, Point } from '../../ui/handles/light-handles';
 import { EditedPart } from '../../ui/handles/parts';
 import {
   BUTTON_SLOTS,
   ICON_LIGHT_OFFSET,
   LANTERN_HEIGHT,
   LAYOUT_FIELDS,
-  LIGHT_FIELDS,
   LightLayer,
-  LightSettings,
   MenuLook,
   withLayout,
   withIconLight,
@@ -252,69 +251,23 @@ export const PART_LIGHTS: Readonly<Partial<Record<MenuPart, LightLayer>>> = {
   pi: 'pi',
 };
 
-/** Where a light is, in CSS pixels from the menu's top left corner. */
-export interface Point {
-  readonly x: number;
-  readonly y: number;
-}
+/** A layer's light in the menu's look. */
+const layerLight = (layer: LightLayer): LightOf<MenuLook> => ({
+  get: (look) => look.light[layer],
+  set: (look, key, value) => withLight(look, layer, key, value),
+});
 
 /**
- * The core of a layer's light, as a ring round where its lights are, `at`, as wide as the core, dragged out and in by
- * its knob, on its right. Its size, in hundredths of the menu's height, as the core's, is that of the container the
- * handles are in (`cqh`).
+ * The core of a layer's light, as a ring round where its lights are, `at` (see `lightCore`), its size in hundredths of
+ * the menu's height, as the core's, that of the container the handles are in (`cqh`).
  */
 export function coreHandle(layer: LightLayer, at: Point, look: MenuLook): Handle<MenuLook> {
-  const field = lightField('core');
-  return {
-    label: 'Light core',
-    text: 'Core',
-    axis: 'x',
-    sign: 1,
-    unit: 'height',
-    scale: 1,
-    get: (value) => value.light[layer].core,
-    set: (value, core) => withLight(value, layer, 'core', clamp(core, field.min, field.max)),
-    ring: true,
-    line: {
-      left: `${String(at.x)}px`,
-      top: `${String(at.y)}px`,
-      width: `calc(2 * ${String(look.light[layer].core)}cqh)`,
-      height: `calc(2 * ${String(look.light[layer].core)}cqh)`,
-    },
-  };
+  return lightCore(layerLight(layer), at, look);
 }
 
-/** How far each of a light's values of no length moves for each CSS pixel dragged: one step for every few pixels. */
-const PIXELS_PER_UNIT: Readonly<Partial<Record<keyof LightSettings, number>>> = {
-  intensity: 100,
-  falloff: 50,
-  rays: 150,
-  rayCount: 8,
-  saturation: 100,
-};
-
-/** The values of a layer's light but its core, each a knob dragged across, in a row. */
+/** The values of a layer's light but its core, each a knob dragged across, in a row (see `lightKnobs`). */
 export function lightKnobs(layer: LightLayer): readonly Handle<MenuLook>[] {
-  return LIGHT_FIELDS.filter(({ key }) => key !== 'core').map(
-    ({ key, label, min, max, step }): Handle<MenuLook> => ({
-      label,
-      axis: 'x',
-      sign: 1,
-      ...(key === 'reach'
-        ? { unit: 'height', scale: 1, step: 1 }
-        : { unit: 'px', scale: PIXELS_PER_UNIT[key] ?? 100, step }),
-      get: (look) => look.light[layer][key],
-      set: (look, value) => withLight(look, layer, key, clamp(value, min, max)),
-    }),
-  );
-}
-
-function lightField(key: keyof LightSettings): (typeof LIGHT_FIELDS)[number] {
-  const field = LIGHT_FIELDS.find((each) => each.key === key);
-  if (field === undefined) {
-    throw new Error(`No light field ${key}`);
-  }
-  return field;
+  return knobsOf(layerLight(layer));
 }
 
 /** Each part's box, in the menu's lengths (see `menuStyles`), from the top. */
