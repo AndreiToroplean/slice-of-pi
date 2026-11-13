@@ -1,4 +1,3 @@
-import { HAND_OVER } from '../../../game/modes/discover-pace';
 import {
   afterRenderEffect,
   Component,
@@ -13,6 +12,7 @@ import {
 } from '@angular/core';
 import { Word } from '../../../game/grouping/groups';
 import { FIRST_LANDING } from '../flight/flight';
+import { fadeOpacity } from './fade';
 import { Glide, glideAt, glideEnd, glideTo } from './glide';
 
 /** How long typing takes to scroll back to the newest words, once the player has scrolled away, at most, in ms. */
@@ -35,6 +35,7 @@ export const SCROLL_BACK_DURATION = 400;
     '[class.hidden-left]': 'hiddenLeft()',
     '[class.hidden-right]': 'hiddenRight()',
     '(scroll)': 'scrolled()',
+    '[style.--fade]': 'fade()',
   },
   template: `
     <div #wordsElement class="words" aria-hidden="true">
@@ -43,12 +44,14 @@ export const SCROLL_BACK_DURATION = 400;
         ><span class="tile shade">.</span></span
       >
       @let faint = faintFrom();
+      @let fading = fadeOut()?.from;
       @for (word of words(); track word.firstPlace) {
         <span class="word" [attr.data-first-place]="word.firstPlace">
           @for (digit of word.digits; track $index) {
             <span
               class="tile"
               [class.faint]="faint !== undefined && word.firstPlace + $index >= faint"
+              [class.fading]="fading !== undefined && word.firstPlace + $index >= fading"
               [attr.data-place]="word.firstPlace + $index"
               [style.--place-color]="colors()[word.firstPlace + $index]"
               >{{ digit }}</span
@@ -65,13 +68,12 @@ export class TypedDigits {
   /** The place from which the digits are faint, as those the game shows in Discover, if any are. */
   readonly faintFrom = input<number>();
   /**
-   * Fades the digits out from a place, as Discover hands a turn over: from `from`, over `duration` milliseconds, from
-   * the start again whenever `round` changes, as each digit the player types on starts the hand over again.
+   * Fades the digits out from a place, as Discover hands a turn over: from `from`, `left` of the fade left, from 1 down
+   * to 0, easing in (see {@link fadeOpacity}). Whoever times the hand over drives it, so that it stops as the wait does.
    */
-  readonly fadeOut = input<{ readonly from: number; readonly round: number }>();
-  readonly fadeDuration = input(HAND_OVER);
-  /** How many times faster than its duration says the fade runs, from now on, as the player fast forwards it. */
-  readonly fadeRate = input(1);
+  readonly fadeOut = input<{ readonly from: number; readonly left: number }>();
+  /** How much of their opacity the digits fading out keep. */
+  protected readonly fade = computed(() => fadeOpacity(this.fadeOut()?.left ?? 1));
   /** The finished groups, in order. */
   readonly words = input.required<readonly Word[]>();
   /** The digits typed so far, including those of the group being typed. */
@@ -109,27 +111,7 @@ export class TypedDigits {
   /** Room shown past the room left, for the tape to glide back from where it was, rather than jump, as it shortens. */
   private extra = 0;
 
-  /** The digits fading out, if any are, their tiles, and the round of the fade. */
-  private fades: Animation[] = [];
-  private readonly fading = new Set<HTMLElement>();
-  private fadeRound: number | undefined;
-
   constructor() {
-    afterRenderEffect(() => {
-      const rate = this.fadeRate();
-      untracked(() => {
-        for (const animation of this.fades) {
-          animation.updatePlaybackRate(rate);
-        }
-      });
-    });
-    afterRenderEffect(() => {
-      const fade = this.fadeOut();
-      this.words();
-      untracked(() => {
-        this.fade(fade);
-      });
-    });
     // On each word, which comes on or off the tape after the key that typed its last digit, if any.
     afterRenderEffect(() => {
       const words = this.words();
@@ -144,36 +126,6 @@ export class TypedDigits {
         cancelAnimationFrame(this.frame);
       }
     });
-  }
-
-  /** Fades the digits from a place out, from the start, or none, those fading before back as they were. */
-  private fade(fade: { readonly from: number; readonly round: number } | undefined): void {
-    const running = fade !== undefined && this.fadeRound === fade.round;
-    this.fadeRound = fade?.round;
-    const tiles = Array.from(
-      this.wordsElement().nativeElement.querySelectorAll<HTMLElement>('[data-place]'),
-    ).filter((tile) => fade !== undefined && Number(tile.dataset['place']) >= fade.from);
-    if (running && tiles.every((tile) => this.fading.has(tile))) {
-      return;
-    }
-    for (const animation of this.fades) {
-      animation.cancel();
-    }
-    this.fades = [];
-    this.fading.clear();
-    for (const tile of tiles) {
-      if (typeof tile.animate !== 'function') {
-        continue;
-      }
-      this.fading.add(tile);
-      const animation = tile.animate([{}, { opacity: 0 }], {
-        duration: this.fadeDuration(),
-        easing: 'linear',
-        fill: 'forwards',
-      });
-      animation.playbackRate = this.fadeRate();
-      this.fades.push(animation);
-    }
   }
 
   /**

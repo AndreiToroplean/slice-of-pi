@@ -164,8 +164,6 @@ const TICK = 16;
       [arrival]="arrival()"
       [faintFrom]="faintFrom()"
       [fadeOut]="fadeOut()"
-      [fadeDuration]="tweaks.handOver()"
-      [fadeRate]="discoverRate()"
     />
     @if (checkpoints().length > 0) {
       <div class="checkpoints">
@@ -376,10 +374,26 @@ export class Play implements PausesOnBack {
   );
   /** The key Discover is playing, shown pressed. */
   protected readonly playedKey = signal<KeypadKey | undefined>(undefined);
-  /** The digits fading out of the tape as Discover hands a turn over, from where, and the round of the fade, if any. */
-  protected readonly fadeOut = signal<
-    { readonly from: number; readonly round: number } | undefined
-  >(undefined);
+  /**
+   * The digits fading out of the tape as Discover hands a turn over, if any: from where, and since when, on Discover's
+   * time (see {@link discoverTimer}).
+   */
+  private readonly fading = signal<{ readonly from: number; readonly since: number } | undefined>(
+    undefined,
+  );
+  /** Ticks about every frame while digits fade out of the tape. */
+  private readonly fadeTicks = signal(0);
+  /** The digits fading out of the tape, from where, and how much of the hand over is left, from 1 down to 0. */
+  protected readonly fadeOut = computed(() => {
+    this.fadeTicks();
+    const fading = this.fading();
+    if (fading === undefined) {
+      return undefined;
+    }
+    const handOver = this.tweaks.handOver();
+    const waited = this.discoverTimer.time() - fading.since;
+    return { from: fading.from, left: handOver > 0 ? Math.max(0, 1 - waited / handOver) : 0 };
+  });
   /**
    * How many digits the player is to retype in Discover's round, up to the place the game showed it to; or, as they
    * took the turn before it was done showing it, the round's end, once they get there: past the place reached, as a
@@ -910,10 +924,30 @@ export class Play implements PausesOnBack {
   private fadeShown(): void {
     this.playedKey.set(undefined);
     this.target.set(this.digits().length);
-    this.fadeOut.set({ from: this.rounds().from, round: (this.fadeOut()?.round ?? 0) + 1 });
-    this.afterRound(this.tweaks.handOver(), () => {
-      this.handToPlayer();
+    this.stopRound.push(
+      this.fadeOutFor(() => {
+        this.handToPlayer();
+      }),
+    );
+  }
+
+  /**
+   * Fades the digits out of the tape from where the rounds start, over the hand over, on Discover's time, so that they
+   * fade faster or stop as it does, then calls `then`. The function returned stops it.
+   */
+  private fadeOutFor(then: () => void): () => void {
+    this.fading.set({ from: this.rounds().from, since: this.discoverTimer.time() });
+    const stopTicks = this.timer.every(TICK, () => {
+      this.fadeTicks.update((ticks) => ticks + 1);
     });
+    const stopWait = this.discoverTimer.after(this.tweaks.handOver(), () => {
+      stopTicks();
+      then();
+    });
+    return () => {
+      stopTicks();
+      stopWait();
+    };
   }
 
   /**
@@ -937,8 +971,7 @@ export class Play implements PausesOnBack {
    */
   private handBack(): void {
     this.stopHandOver();
-    this.fadeOut.set({ from: this.rounds().from, round: (this.fadeOut()?.round ?? 0) + 1 });
-    this.stopHandOver = this.discoverTimer.after(this.tweaks.handOver(), () => {
+    this.stopHandOver = this.fadeOutFor(() => {
       this.playRound();
     });
   }
@@ -982,7 +1015,7 @@ export class Play implements PausesOnBack {
     this.stopWatching();
     this.landFlights();
     this.playedKey.set(undefined);
-    this.fadeOut.set(undefined);
+    this.fading.set(undefined);
     this.stopHandOver();
     this.stopHandOver = () => undefined;
     this.mistakes.set('');
