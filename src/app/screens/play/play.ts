@@ -31,6 +31,9 @@ import {
 import { slotBoxes } from './slots/slot-layout';
 import { SlotHandover } from './slots/slots';
 import { ScaledTimer } from './scaled-timer';
+import { gameTurnShare, switchedShare } from './turn-shown';
+import { Light, LightLayer } from '../../ui/light-layer';
+import { Point } from '../../ui/handles/light-handles';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { CornerKey, KeyPress, Keypad, KeypadMark } from './keypad/keypad';
 import { keyColorIndices, placeColors } from '../../game/layers/place-colors';
@@ -145,6 +148,7 @@ const TICK = 16;
     Candy,
     Keypad,
     LayoutEditor,
+    LightLayer,
     Pause,
     SeasonHeader,
     Slots,
@@ -156,6 +160,7 @@ const TICK = 16;
     '[class.screen]': 'replay() === undefined',
     '[class.replaying]': 'replay() !== undefined',
     '[style]': 'layout()',
+    '[attr.data-turn]': 'discovering ? turn() : null',
     '(pointerdown)': 'touchDown($event)',
     '(pointerup)': 'touchUp($event)',
     '(pointercancel)': 'touchesElsewhere.delete($event.pointerId)',
@@ -165,6 +170,15 @@ const TICK = 16;
   },
   template: `
     <h1 class="visually-hidden">Slice of Pi</h1>
+    <!-- Behind everything else on the screen. -->
+    @if (discovering) {
+      <canvas
+        class="halo"
+        [appLightLayer]="haloLights()"
+        [settings]="tweaks.discoverHalo().light"
+        [style.opacity]="haloShown()"
+      ></canvas>
+    }
     <app-season-header [view]="season()" />
     <app-typed-digits
       [words]="grouping().words"
@@ -223,7 +237,6 @@ const TICK = 16;
       [showAreas]="editedLayout() !== undefined && !previewing()"
       [disabled]="replay() !== undefined || lost()"
       [corner]="cornerKey()"
-      [lit]="turn() === 'game'"
       [cornerDisabled]="cornerDisabled()"
       [linger]="linger()"
       [shown]="playedKey() ?? shownKey()"
@@ -392,7 +405,7 @@ export class Play implements PausesOnBack {
   private readonly handingOver = signal<
     { readonly from: number; readonly since: number } | undefined
   >(undefined);
-  /** Ticks about every frame while a turn is handed over. */
+  /** Ticks about every frame while a turn is handed over, or switched. */
   private readonly fadeTicks = signal(0);
   /** The digits fading out of the tape as a turn is handed over, from where, and how much of it is left, from 1 to 0. */
   protected readonly fadeOut = computed(() => {
@@ -424,6 +437,44 @@ export class Play implements PausesOnBack {
   protected readonly cornerKey = computed((): CornerKey =>
     this.mode() === 'discover' ? 'turn' : 'backspace',
   );
+  /**
+   * The switch from showing one turn to showing the other, as the player switches turns themselves, if one is going on:
+   * from how much the game's turn showed, and since when, on the run's clock (see `TURN_SWITCH`).
+   */
+  private readonly turnSwitching = signal<
+    { readonly from: number; readonly since: number } | undefined
+  >(undefined);
+  /** Stops the turn switch going on, if any. */
+  private stopTurnSwitch = (): void => undefined;
+  /**
+   * How much the keypad shows Discover's game turn, from 0 to 1, the Discover Halo lighting up behind it as it does, so
+   * that the player looks on rather than types: steadily over a hand over, as the turn switches by itself (see
+   * `gameTurnShare`), or over a short switch as the player switches it themselves.
+   */
+  /** Where key 5 is, in CSS pixels from the screen's top left corner, as last measured: the Discover Halo's middle. */
+  protected readonly haloAt = signal<Point | undefined>(undefined);
+  /** The Discover Halo's light, round key 5, once it's measured (see `DiscoverHalo`). */
+  protected readonly haloLights = computed((): readonly Light[] => {
+    const at = this.haloAt();
+    return at === undefined ? [] : [{ ...at, color: this.tweaks.discoverHalo().color, seed: 5 }];
+  });
+  /** How much of the Discover Halo shows: as much as the game's turn does, or all of it while the layout is edited. */
+  protected readonly haloShown = computed(() =>
+    this.editedLayout() === undefined ? this.gameTurnShown() : 1,
+  );
+  protected readonly gameTurnShown = computed(() => {
+    this.fadeTicks();
+    const share = gameTurnShare(this.turn(), this.fadeOut()?.left);
+    const switching = this.turnSwitching();
+    return switching === undefined
+      ? share
+      : switchedShare(
+          switching.from,
+          share,
+          this.clock.now() - switching.since,
+          this.tweaks.turnSwitch(),
+        );
+  });
   /** Whether the game plays its round, on its turn, before handing it over: holding the turn key fast forwards it. */
   protected readonly gamePlaying = computed(
     () => this.turn() === 'game' && this.handingOver() === undefined,
@@ -636,11 +687,13 @@ export class Play implements PausesOnBack {
     inject(DestroyRef).onDestroy(() => {
       this.stopRounds();
       this.stopHandOver();
+      this.stopTurnSwitch();
       this.discoverRecorder.end();
     });
     if (this.discovering) {
       afterNextRender(() => {
         this.startGameTurn();
+        this.watchHalo();
       });
     }
     if (this.replay() === undefined) {
@@ -732,6 +785,39 @@ export class Play implements PausesOnBack {
     }
     pause.back();
     return false;
+  }
+
+  /**
+   * Keeps the Discover Halo round key 5, measuring where it is now, and again as the screen, the keypad or the key
+   * change size, as when the layout is edited.
+   */
+  private watchHalo(): void {
+    const keypad = this.host.querySelector('app-keypad');
+    const key = keypad?.querySelector('[data-key="5"]');
+    const measure = (): void => {
+      if (key === null || key === undefined) {
+        return;
+      }
+      const frame = this.host.getBoundingClientRect();
+      const box = key.getBoundingClientRect();
+      this.haloAt.set({
+        x: box.left + box.width / 2 - frame.left,
+        y: box.top + box.height / 2 - frame.top,
+      });
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(measure);
+    for (const element of [this.host, keypad, key]) {
+      if (element !== null && element !== undefined) {
+        observer.observe(element);
+      }
+    }
+    this.injector.get(DestroyRef).onDestroy(() => {
+      observer.disconnect();
+    });
   }
 
   /** Ends edit mode, back to the pause dialog it was opened from. */
@@ -1019,11 +1105,37 @@ export class Play implements PausesOnBack {
    * digits of the turn gone, it's the other's. Vibrates if `vibrate`, as the turn switches by itself.
    */
   private switchTurn(vibrate = true): void {
+    const shown = this.gameTurnShown();
     if (this.turn() === 'game') {
       this.startPlayerTurn(vibrate);
     } else {
       this.startGameTurn();
     }
+    this.showSwitch(shown);
+  }
+
+  /**
+   * Shows the turn switching from how much the game's turn showed, `from`, over a short switch, unless the hand over
+   * ending already showed it all (see {@link gameTurnShown}).
+   */
+  private showSwitch(from: number): void {
+    this.stopTurnSwitch();
+    this.turnSwitching.set(undefined);
+    if (from === this.gameTurnShown()) {
+      return;
+    }
+    this.turnSwitching.set({ from, since: this.clock.now() });
+    const stopTicks = this.timer.every(TICK, () => {
+      this.fadeTicks.update((ticks) => ticks + 1);
+    });
+    const stopWait = this.timer.after(this.tweaks.turnSwitch(), () => {
+      this.stopTurnSwitch();
+      this.turnSwitching.set(undefined);
+    });
+    this.stopTurnSwitch = () => {
+      stopTicks();
+      stopWait();
+    };
   }
 
   /**

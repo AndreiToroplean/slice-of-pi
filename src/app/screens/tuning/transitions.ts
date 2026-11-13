@@ -8,11 +8,13 @@ import { Candy } from '../../ui/candy';
 import { Page } from '../../ui/page';
 import { Slider } from '../../ui/slider';
 import { CopyValues } from './copy-values';
+import { MAX_TURN_SWITCH, TURN_SWITCH } from '../play/turn-shown';
 
 /**
  * Developer mode's page to tune how long the keypad's keys take to move: to sink as pressed, or rise back, to merge,
- * and to linger in the color they took as pressed, longer as Discover's game plays them. They apply to the whole game
- * while developer mode is on, to try them in it.
+ * and to linger in the color they took as pressed, longer as Discover's game plays them; and how long the keypad
+ * takes to show the other turn as the player switches turns in Discover. They apply to the whole game while developer mode is
+ * on, to try them in it.
  */
 @Component({
   selector: 'app-transitions',
@@ -63,6 +65,16 @@ import { CopyValues } from './copy-values';
           [defaultValue]="defaultGameLinger"
           (changed)="setGameLinger($event)"
         />
+        <app-slider
+          label="Turn Switch"
+          [value]="tweaks.turnSwitch()"
+          [min]="0"
+          [max]="maxTurnSwitch"
+          [step]="10"
+          [valueText]="tweaks.turnSwitch() + ' ms'"
+          [defaultValue]="defaultTurnSwitch"
+          (changed)="setTurnSwitch($event)"
+        />
       </section>
       <app-copy-values
         label="Copy Values"
@@ -70,6 +82,7 @@ import { CopyValues } from './copy-values';
           keyMotion: motion(),
           keyLinger: tweaks.keyLinger(),
           gameLinger: tweaks.gameLinger(),
+          turnSwitch: tweaks.turnSwitch(),
         }"
       />
     </app-page>
@@ -85,6 +98,8 @@ export class Transitions {
   protected readonly defaultGameLinger = GAME_LINGER;
   protected readonly merge = slider('merge');
   protected readonly press = slider('press');
+  protected readonly maxTurnSwitch = MAX_TURN_SWITCH;
+  protected readonly defaultTurnSwitch = TURN_SWITCH;
 
   /** How long the keys take to move, being tuned. */
   protected readonly motion = signal<KeyMotion>(this.tweaks.values().keyMotion ?? KEY_MOTION);
@@ -93,7 +108,8 @@ export class Transitions {
       this.motion().merge !== KEY_MOTION.merge ||
       this.motion().press !== KEY_MOTION.press ||
       this.tweaks.keyLinger() !== KEY_LINGER ||
-      this.tweaks.gameLinger() !== GAME_LINGER,
+      this.tweaks.gameLinger() !== GAME_LINGER ||
+      this.tweaks.turnSwitch() !== TURN_SWITCH,
   );
 
   protected set(key: keyof KeyMotion, value: number): void {
@@ -105,6 +121,10 @@ export class Transitions {
     void this.tweaks.setKeyLinger(linger);
   }
 
+  protected setTurnSwitch(duration: number): void {
+    void this.tweaks.setTurnSwitch(duration);
+  }
+
   protected setGameLinger(linger: number): void {
     void this.tweaks.setGameLinger(linger);
   }
@@ -114,6 +134,7 @@ export class Transitions {
     void this.tweaks.setKeyMotion(undefined);
     void this.tweaks.setKeyLinger(undefined);
     void this.tweaks.setGameLinger(undefined);
+    void this.tweaks.setTurnSwitch(undefined);
   }
 }
 

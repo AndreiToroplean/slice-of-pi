@@ -45,6 +45,7 @@ import {
 import { DeveloperMode } from './developer-mode';
 import { Layout, LAYOUT, parseLayout } from '../ui/layout';
 import { MENU_LOOK, MenuLook, parseMenuLook, TWILIGHT } from '../screens/menu/menu-look';
+import { DISCOVER_HALO, DiscoverHalo, parseDiscoverHalo } from '../screens/play/discover-halo';
 import {
   parsePattern,
   Vibration,
@@ -57,6 +58,7 @@ import { MIX_SLIDERS, SOUND_MIX, SoundMix, SoundSlider } from '../feedback/sound
 import { Souring, SOURING, SOURING_SLIDERS } from '../feedback/souring';
 import { KEY_MOTION, KeyMotion } from '../screens/play/keypad/key-merges';
 import { KEY_MOTION_SLIDERS } from '../screens/play/keypad/key-motion-sliders';
+import { isTurnSwitch, TURN_SWITCH } from '../screens/play/turn-shown';
 import { SoundModel, SoundModelKind } from '../game/layers/sound/sound-model';
 import { SOUND_MODEL, soundModelKindById } from '../game/layers/sound/sound-models';
 
@@ -140,6 +142,8 @@ export interface TweakValues {
   readonly layout?: Layout;
   /** How the main menu looks, for {@link MENU_LOOK}. */
   readonly menu?: MenuLook;
+  /** The Discover Halo, for {@link DISCOVER_HALO}. */
+  readonly discoverHalo?: DiscoverHalo;
   /** The patterns the phone vibrates in, those tuned, for theirs in {@link VIBRATION_PATTERNS}. */
   readonly vibrations?: Partial<VibrationPatterns>;
   /** The name of the sound model the keys are played with, for {@link SOUND_MODEL}. */
@@ -152,6 +156,8 @@ export interface TweakValues {
   readonly soundNotes?: true;
   /** How long the keypad's keys take to move, for {@link KEY_MOTION}. */
   readonly keyMotion?: KeyMotion;
+  /** How long the keypad takes to show the other turn as the player switches turns, for {@link TURN_SWITCH}. */
+  readonly turnSwitch?: number;
 }
 
 /** The game's own starting colors of each season. */
@@ -514,6 +520,17 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), menu }));
   }
 
+  /** The Discover Halo. */
+  readonly discoverHalo = computed(
+    (): DiscoverHalo =>
+      (this.developerMode.enabled() ? this.tweaks().discoverHalo : undefined) ?? DISCOVER_HALO,
+  );
+
+  /** Changes the Discover Halo; `undefined` brings back the game's own. */
+  setDiscoverHalo(discoverHalo: DiscoverHalo | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), discoverHalo }));
+  }
+
   /** Tunes the pattern the phone vibrates in on an event; `undefined` brings back the game's. The others keep theirs. */
   setVibration(vibration: Vibration, pattern: VibrationPattern | undefined): Promise<void> {
     const others = Object.entries(this.tweaks().vibrations ?? {}).filter(
@@ -550,6 +567,14 @@ export class Tweaks {
   /** Sets how long the keypad's keys take to move; `undefined` brings back the game's. */
   setKeyMotion(keyMotion: KeyMotion | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), keyMotion }));
+  }
+
+  readonly turnSwitch = computed(
+    () => (this.developerMode.enabled() ? this.tweaks().turnSwitch : undefined) ?? TURN_SWITCH,
+  );
+
+  setTurnSwitch(turnSwitch: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), turnSwitch }));
   }
 
   /** Sets how a wrong key's note goes off; `undefined` brings back the game's souring. */
@@ -628,12 +653,14 @@ export function parseTweaks(stored: unknown): TweakValues {
     runOrder,
     layout,
     menu,
+    discoverHalo,
     vibrations,
     soundModel,
     sound,
     souring,
     soundNotes,
     keyMotion,
+    turnSwitch,
   } = migrate(stored, TWEAKS_MIGRATIONS);
   if (format !== TWEAKS_FORMAT) {
     return {};
@@ -667,12 +694,14 @@ export function parseTweaks(stored: unknown): TweakValues {
     runOrder: runOrderOf(runOrder),
     layout: parseLayout(layout),
     menu: parseMenuLook(menu),
+    discoverHalo: parseDiscoverHalo(discoverHalo),
     vibrations: vibrationsOf(vibrations),
     soundModel: soundModelKindById(soundModel)?.id,
     sound: slidValues(sound, MIX_SLIDERS, SOUND_MIX),
     souring: slidValues(souring, SOURING_SLIDERS, SOURING),
     soundNotes: soundNotes === true ? soundNotes : undefined,
     keyMotion: slidValues(keyMotion, KEY_MOTION_SLIDERS, KEY_MOTION),
+    turnSwitch: isTurnSwitch(turnSwitch) ? turnSwitch : undefined,
   });
 }
 
@@ -703,11 +732,13 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     checkpointLag,
     layout,
     menu,
+    discoverHalo,
     vibrations,
     soundModel,
     sound,
     souring,
     keyMotion,
+    turnSwitch,
   } = values;
   const tuned = Object.entries(grouping ?? {}).filter(([id, settings]) => {
     const defaults = breakModelKindById(id)?.defaults;
@@ -738,11 +769,13 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     checkpointLag: checkpointLag === CHECKPOINT_LAG ? undefined : checkpointLag,
     layout: equal(layout, LAYOUT) ? undefined : layout,
     menu: equal(menu, MENU_LOOK) ? undefined : menu,
+    discoverHalo: equal(discoverHalo, DISCOVER_HALO) ? undefined : discoverHalo,
     vibrations: vibrationsOf(vibrations),
     soundModel: soundModel === SOUND_MODEL.id ? undefined : soundModel,
     sound: equal(sound, SOUND_MIX) ? undefined : sound,
     souring: equal(souring, SOURING) ? undefined : souring,
     keyMotion: equal(keyMotion, KEY_MOTION) ? undefined : keyMotion,
+    turnSwitch: turnSwitch === TURN_SWITCH ? undefined : turnSwitch,
   });
 }
 
@@ -791,12 +824,14 @@ function tweakValues({
   runOrder,
   layout,
   menu,
+  discoverHalo,
   vibrations,
   soundModel,
   sound,
   souring,
   soundNotes,
   keyMotion,
+  turnSwitch,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -829,12 +864,14 @@ function tweakValues({
     ...(runOrder === undefined ? {} : { runOrder }),
     ...(layout === undefined ? {} : { layout }),
     ...(menu === undefined ? {} : { menu }),
+    ...(discoverHalo === undefined ? {} : { discoverHalo }),
     ...(vibrations === undefined ? {} : { vibrations }),
     ...(soundModel === undefined ? {} : { soundModel }),
     ...(sound === undefined ? {} : { sound }),
     ...(souring === undefined ? {} : { souring }),
     ...(soundNotes === undefined ? {} : { soundNotes }),
     ...(keyMotion === undefined ? {} : { keyMotion }),
+    ...(turnSwitch === undefined ? {} : { turnSwitch }),
   };
 }
 
