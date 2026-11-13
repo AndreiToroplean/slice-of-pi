@@ -106,8 +106,7 @@ export type CornerKey = 'backspace' | 'discover';
  * - Holding backspace repeats it, while near enough to type it; digits don't repeat.
  * - The key in backspace's place is what the game mode makes it (see {@link CornerKey}): backspace; the discover key,
  *   which switches turns, gold-rimmed, and gold all over while the game shows the round. Disabled, as backspace is in
- *   a challenge, it shows disabled, and touches on it type nothing. The digit keys can be locked, as on the game's
- *   turn: they look as ever, but type nothing.
+ *   a challenge, it shows disabled, and touches on it type nothing.
  *   On a keyboard, Backspace types backspace and the space bar the discover key.
  *
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
@@ -272,8 +271,6 @@ export class Keypad {
   readonly corner = input<CornerKey>('backspace');
   /** Whether the discover key is gold all over, as while the game shows the round. */
   readonly lit = input(false);
-  /** Whether the digit keys type nothing, as while the game shows the round, looking as ever all the same. */
-  readonly digitsLocked = input(false);
   /**
    * Whether the key in backspace's place doesn't work, as backspace in a challenge, or the discover key until the
    * player has retyped the round: it shows disabled, and touches on it type nothing.
@@ -719,11 +716,13 @@ export class Keypad {
   }
 
   /**
-   * Notes the color a key takes when typed now, which it's filled with while shown pressed, as for a touch replayed.
+   * Notes the color a key takes when typed now, which it's filled with while shown pressed, and, for a digit key, lingers
+   * in once released, as for a touch replayed: `color`, if given, as when what's typed changes before the keypad is told,
+   * or the one it's told.
    */
-  noteColor(key: KeypadKey | null): void {
+  noteColor(key: KeypadKey | null, color?: string): void {
     if (key !== null) {
-      const color = this.colorOf(key);
+      color ??= this.colorOf(key);
       this.splashColors.update((colors) => ({ ...colors, [key]: color }));
     }
   }
@@ -992,12 +991,9 @@ export class Keypad {
     return { key: key !== null && this.works(key) ? key : null, point };
   }
 
-  /** Whether a key works: every one does, but the key in backspace's place while it's disabled, and locked digits. */
+  /** Whether a key works: every one does, but the key in backspace's place while it's disabled. */
   private works(key: KeypadKey): boolean {
-    if (key === 'pause') {
-      return true;
-    }
-    return key === 'backspace' ? !this.cornerDisabled() : !this.digitsLocked();
+    return key !== 'backspace' || !this.cornerDisabled();
   }
 }
 
