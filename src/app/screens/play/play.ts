@@ -164,6 +164,7 @@ const TICK = 16;
       [arrival]="arrival()"
       [faintFrom]="faintFrom()"
       [fadeOut]="fadeOut()"
+      [faintOpacity]="tweaks.faintOpacity()"
     />
     @if (checkpoints().length > 0) {
       <div class="checkpoints">

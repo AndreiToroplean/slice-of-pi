@@ -114,6 +114,7 @@
       "groupPause": 50,
       "gameLinger": 3,
       "fastForward": 2,
+      "faintOpacity": 0.45,
       "checkpointLag": 1,
       "layout": {
         "margins": {
