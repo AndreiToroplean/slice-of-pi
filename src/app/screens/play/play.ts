@@ -32,7 +32,7 @@ import { slotBoxes } from './slots/slot-layout';
 import { SlotHandover } from './slots/slots';
 import { ScaledTimer } from './scaled-timer';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
-import { CornerKey, Keypad, KeypadMark, TurnKeyPress } from './keypad/keypad';
+import { CornerKey, KeyPress, Keypad, KeypadMark } from './keypad/keypad';
 import { keyColorIndices, placeColors } from '../../game/layers/place-colors';
 import { Pause } from './pause/pause';
 import { PausesOnBack } from './pause-on-back';
@@ -90,6 +90,12 @@ const KEY_SHOWN = 0.6;
 
 /** Whose turn it is in Discover: the game's, showing the round, or the player's, typing; always the player's otherwise. */
 type Turn = 'game' | 'player';
+
+/**
+ * How long the pause key must be held, in milliseconds, for its release not to pause the game, in Discover: a hold,
+ * which holds Discover's time while held, rather than a tap.
+ */
+export const PAUSE_HOLD = 300;
 
 /** How often what shows the wait for the group being typed running out is redrawn, in milliseconds: about every frame. */
 const TICK = 16;
@@ -153,6 +159,9 @@ const TICK = 16;
     '(pointerdown)': 'touchDown($event)',
     '(pointerup)': 'touchUp($event)',
     '(pointercancel)': 'touchesElsewhere.delete($event.pointerId)',
+    '(document:keydown)': 'shift($event, true)',
+    '(document:keyup)': 'shift($event, false)',
+    '(window:blur)': 'shiftHeld.set(false)',
   },
   template: `
     <h1 class="visually-hidden">Slice of Pi</h1>
@@ -224,7 +233,7 @@ const TICK = 16;
       [fastForwards]="gamePlaying()"
       (turnKey)="useTurnKey($event)"
       [pausable]="replay() === undefined"
-      (pauseGame)="pause()?.pause()"
+      (pauseKey)="usePauseKey($event)"
     >
       <!-- The dialogs the pause key opens. -->
       @if (replay() === undefined) {
@@ -427,12 +436,19 @@ export class Play implements PausesOnBack {
   private turnPress: 'hold' | 'tap' | undefined;
   /** Whether the player holds the turn key down to fast forward the game's round. */
   private readonly fastForwarding = signal(false);
+  /** When the pause key's press going on started, on the run's clock, if one is. */
+  private pauseKeyDown: number | undefined;
+  /** Whether the player holds the pause key down, which holds Discover's time as pausing does, without the pause. */
+  private readonly pauseHeld = signal(false);
+  /** Whether Shift is held down, which holds Discover's time as the pause key does. */
+  protected readonly shiftHeld = signal(false);
   /**
    * How many times faster than the clock's Discover's time runs, the game playing and handing turns over on it: not at
-   * all while the game is paused, and faster while the player holds the turn key to fast forward the game's round.
+   * all while the game is paused, nor while the player holds the pause key, or Shift, to look at the round, or think,
+   * for longer, as if paused; and faster while they hold the turn key to fast forward the game's round.
    */
   private readonly discoverRate = computed(() => {
-    if (this.paused()) {
+    if (this.paused() || this.pauseHeld() || this.shiftHeld()) {
       return 0;
     }
     return this.fastForwarding() ? this.tweaks.fastForward() : 1;
@@ -737,11 +753,39 @@ export class Play implements PausesOnBack {
   }
 
   /**
+   * Holds Discover's time for as long as the pause key is held, the game's round or a turn's hand over standing still,
+   * as paused, but without the pause; a tap of it pauses the game as it's
+   * released on the key, as any release does but in Discover, where the key held down for {@link PAUSE_HOLD} or longer
+   * was a hold.
+   */
+  protected usePauseKey(press: KeyPress): void {
+    const now = this.clock.now();
+    if (press === 'down') {
+      this.pauseKeyDown = now;
+      this.pauseHeld.set(true);
+      return;
+    }
+    const held = now - (this.pauseKeyDown ?? now);
+    this.pauseKeyDown = undefined;
+    this.pauseHeld.set(false);
+    if (press === 'up' && (!this.discovering || held < PAUSE_HOLD)) {
+      this.pause()?.pause();
+    }
+  }
+
+  /** Notes Shift held down, or let go, which holds Discover's time as the pause key does. */
+  protected shift(event: KeyboardEvent, down: boolean): void {
+    if (event.key === 'Shift') {
+      this.shiftHeld.set(down);
+    }
+  }
+
+  /**
    * Fast forwards the game's round for as long as the turn key is held, the press starting as the game plays it; or,
    * the press starting at any other time, a tap, switches turns at once as it's released on the key, if a turn is being
    * handed over by then (see {@link turnPress}).
    */
-  protected useTurnKey(press: TurnKeyPress): void {
+  protected useTurnKey(press: KeyPress): void {
     if (press === 'down') {
       this.turnPress = this.gamePlaying() ? 'hold' : 'tap';
       this.fastForwarding.set(this.turnPress === 'hold');
