@@ -152,6 +152,7 @@ export type KeyPress = 'down' | 'up' | 'off';
     '(document:keydown)': 'onKeydown($event)',
     '(document:keyup)': 'onKeyup($event)',
     '(window:blur)': 'onBlur()',
+    '[style.--digit-frost]': 'frost()',
   },
   template: `
     <div #grid class="grid">
@@ -174,6 +175,7 @@ export type KeyPress = 'down' | 'up' | 'off';
           [focusable]="false"
           [class.backspace]="position.key === 'backspace'"
           [class.pause]="position.key === 'pause'"
+          [class.digit]="isDigit(position.key)"
           [attr.data-vibration]="position.key === 'pause' ? 'button' : null"
           [attr.title]="position.key === 'pause' ? 'Pause' : null"
           [class.turn]="position.key === 'backspace' && corner() === 'turn'"
@@ -288,6 +290,11 @@ export class Keypad {
    * player's turn: it shows disabled, and touches on it type nothing.
    */
   readonly cornerDisabled = input(false);
+  /**
+   * How frosted the see-through digit keys are, from 1, as frosted as candy buttons are, to 0, clear but for their rims
+   * and digits, and the colors they fill with pressed and linger in: as on Discover's game turn, to look on.
+   */
+  readonly frost = input(1);
   /** Whether the turn key fast forwards, as it shows, rather than switches turns. */
   readonly fastForwards = input(false);
   /** What the player does with the turn key (see {@link KeyPress}). */
@@ -357,6 +364,7 @@ export class Keypad {
       return undefined;
     }
     const solid = this.solid();
+    const frost = this.frost();
     const keys = this.keys().flatMap(({ key, row, column }) =>
       !isDigit(key)
         ? []
@@ -389,9 +397,9 @@ export class Keypad {
       depth: geometry.depth,
       gapX: geometry.gapX,
       gapY: geometry.gapY,
-      highlight: solid ? 0 : 0.45,
+      highlight: solid ? 0 : 0.45 * frost,
       blur: FROST_BLUR,
-      frosted: !solid,
+      frosted: solid ? 0 : frost,
       keys: shapes.map((shape): GlKey => {
         const pressed = this.shownPressed(shape.key);
         const color = this.pressColor(shape.key);
@@ -407,7 +415,7 @@ export class Keypad {
           linger: [lr, lg, lb],
           lingering: pressed ? 0 : lingering,
           sink: this.sunk(shape.key),
-          face: solid || pressed ? premultiplied(base ?? [1, 1, 1, 1]) : [0.26, 0.26, 0.26, 0.26],
+          face: solid || pressed ? premultiplied(base ?? [1, 1, 1, 1]) : frostedFace(frost),
           rim: solid
             ? premultiplied([r * 0.72, g * 0.72, b * 0.72, a])
             : base === undefined
@@ -1059,4 +1067,13 @@ function keyFor(event: KeyboardEvent, corner: CornerKey): KeypadKey | null {
     return 'backspace';
   }
   return isDigit(event.key) ? event.key : null;
+}
+
+/**
+ * A see-through digit key's face, unpressed, as premultiplied RGBA: white, as frosted as `frost`, from 1, as the candy
+ * buttons' frost (`--frost`), to 0, clear.
+ */
+export function frostedFace(frost: number): readonly [number, number, number, number] {
+  const alpha = 0.26 * frost;
+  return [alpha, alpha, alpha, alpha];
 }

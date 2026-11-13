@@ -42,6 +42,7 @@ import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LAYOUT } from '../../ui/layout';
 import { GAME_OVER_DELAY, PAUSE_HOLD, Play } from './play';
+import { TURN_SWITCH } from './turn-shown';
 import {
   FAST_FORWARD,
   GAME_LINGER,
@@ -1890,9 +1891,9 @@ describe('Play', () => {
       return key;
     }
 
-    /** Whose turn it is, as the turn shade behind the keypad tells. */
-    function turnOf(host: HTMLElement): string | null | undefined {
-      return host.querySelector('.turn-shade')?.getAttribute('data-turn');
+    /** Whose turn it is. */
+    function turnOf(host: HTMLElement): string | null {
+      return host.getAttribute('data-turn');
     }
 
     /** The faint digits on the tape: those the game showed. */
@@ -1978,20 +1979,22 @@ describe('Play', () => {
       expect(Number(tape()?.style.getPropertyValue('--fade'))).toBeCloseTo(0.5, 1);
     });
 
-    it('shades the keypad on the game’s turn, the shade going steadily with its hand over, or quickly as the player takes theirs', async () => {
+    it('clears the digit keys’ frost on the game’s turn, steadily with its hand over, or over a short switch as the player takes theirs', async () => {
       const round = await discover();
-      const shade = (): HTMLElement | null => round.host.querySelector('.turn-shade');
-      expect(shade()?.style.opacity).toBe('1');
+      expect(round.keypad().frost()).toBe(0);
 
       // Listening went half a digit's time into the hand over: on to half of it.
       await listen(round, 5);
       await round.wait(HAND_OVER / 2 - MEDIUM_INTERVAL / 2);
-      expect(Number(shade()?.style.opacity)).toBeCloseTo(0.5, 1);
-      expect(shade()?.classList).not.toContain('switching');
+      expect(round.keypad().frost()).toBeCloseTo(0.5, 1);
 
+      // Typing a digit waits 150 ms first; the switch then starts from where the hand over was.
       await round.type('1');
-      expect(shade()?.style.opacity).toBe('0');
-      expect(shade()?.classList).toContain('switching');
+      expect(round.keypad().frost()).toBeCloseTo(0.5 + 150 / HAND_OVER, 5);
+      await round.wait(TURN_SWITCH / 2);
+      expect(round.keypad().frost()).toBeGreaterThan(0.5 + 150 / HAND_OVER);
+      await round.wait(TURN_SWITCH / 2);
+      expect(round.keypad().frost()).toBe(1);
     });
 
     it('shows its digits as faint as developer mode sets', async () => {

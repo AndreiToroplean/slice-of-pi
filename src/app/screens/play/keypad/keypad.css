@@ -125,6 +125,21 @@
   pointer-events: none;
 }
 
+/*
+ * A see-through digit key as frosted as it's told (`--digit-frost`, see `Keypad`), from its candy button's frost to
+ * none: its face, its blur and its shine; its rim, its digit and its colors pressed and lingering as ever.
+ */
+.key.digit.clear:not(.pressed) {
+  --candy: color-mix(in srgb, var(--frost) calc(var(--digit-frost) * 100%), transparent);
+  --candy-highlight: color-mix(
+    in srgb,
+    var(--frost-highlight) calc(var(--digit-frost) * 100%),
+    transparent
+  );
+  -webkit-backdrop-filter: blur(calc(var(--frost-blur) * var(--digit-frost)));
+  backdrop-filter: blur(calc(var(--frost-blur) * var(--digit-frost)));
+}
+
 /* The grid the keys' canvas is laid over (see `Keypad`). */
 .grid {
   position: relative;

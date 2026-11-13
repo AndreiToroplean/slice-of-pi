@@ -31,7 +31,7 @@ import {
 import { slotBoxes } from './slots/slot-layout';
 import { SlotHandover } from './slots/slots';
 import { ScaledTimer } from './scaled-timer';
-import { turnShadeShown } from './turn-shade';
+import { gameTurnShare, switchedShare } from './turn-shown';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { CornerKey, KeyPress, Keypad, KeypadMark } from './keypad/keypad';
 import { keyColorIndices, placeColors } from '../../game/layers/place-colors';
@@ -157,6 +157,7 @@ const TICK = 16;
     '[class.screen]': 'replay() === undefined',
     '[class.replaying]': 'replay() !== undefined',
     '[style]': 'layout()',
+    '[attr.data-turn]': 'discovering ? turn() : null',
     '(pointerdown)': 'touchDown($event)',
     '(pointerup)': 'touchUp($event)',
     '(pointercancel)': 'touchesElsewhere.delete($event.pointerId)',
@@ -211,23 +212,12 @@ const TICK = 16;
         }
       }
     </p>
-    @if (discovering) {
-      <div
-        class="turn-shade"
-        aria-hidden="true"
-        [attr.data-turn]="turn()"
-        [class.switching]="fadeOut() === undefined"
-        [style.opacity]="shadeShown()"
-        [style.--shade-strength]="tweaks.turnShade().strength"
-        [style.--shade-reach]="tweaks.turnShade().reach"
-        [style.--shade-switch]="tweaks.turnShade().switch + 'ms'"
-      ></div>
-    }
     <app-keypad
       class="keypad"
       [layout]="keypadLayout()"
       [colorIndices]="colorIndices()"
       [palette]="tweaks.palette()"
+      [frost]="1 - gameTurnShown()"
       [actionKeys]="tweaks.actionKeys()"
       [solid]="tweaks.solidKeys()"
       [mergeKeys]="mergeSetting.enabled()"
@@ -404,7 +394,7 @@ export class Play implements PausesOnBack {
   private readonly handingOver = signal<
     { readonly from: number; readonly since: number } | undefined
   >(undefined);
-  /** Ticks about every frame while a turn is handed over. */
+  /** Ticks about every frame while a turn is handed over, or switched. */
   private readonly fadeTicks = signal(0);
   /** The digits fading out of the tape as a turn is handed over, from where, and how much of it is left, from 1 to 0. */
   protected readonly fadeOut = computed(() => {
@@ -436,8 +426,33 @@ export class Play implements PausesOnBack {
   protected readonly cornerKey = computed((): CornerKey =>
     this.mode() === 'discover' ? 'turn' : 'backspace',
   );
-  /** How much of the turn shade shows behind the keypad, telling the game's turn (see `TurnShade`). */
-  protected readonly shadeShown = computed(() => turnShadeShown(this.turn(), this.fadeOut()?.left));
+  /**
+   * The switch from showing one turn to showing the other, as the player switches turns themselves, if one is going on:
+   * from how much the game's turn showed, and since when, on the run's clock (see `TURN_SWITCH`).
+   */
+  private readonly turnSwitching = signal<
+    { readonly from: number; readonly since: number } | undefined
+  >(undefined);
+  /** Stops the turn switch going on, if any. */
+  private stopTurnSwitch = (): void => undefined;
+  /**
+   * How much the keypad shows Discover's game turn, from 0 to 1, its digit keys losing their frost as it does, so that
+   * the player looks on rather than types: steadily over a hand over, as the turn switches by itself (see
+   * `gameTurnShare`), or over a short switch as the player switches it themselves.
+   */
+  protected readonly gameTurnShown = computed(() => {
+    this.fadeTicks();
+    const share = gameTurnShare(this.turn(), this.fadeOut()?.left);
+    const switching = this.turnSwitching();
+    return switching === undefined
+      ? share
+      : switchedShare(
+          switching.from,
+          share,
+          this.clock.now() - switching.since,
+          this.tweaks.turnSwitch(),
+        );
+  });
   /** Whether the game plays its round, on its turn, before handing it over: holding the turn key fast forwards it. */
   protected readonly gamePlaying = computed(
     () => this.turn() === 'game' && this.handingOver() === undefined,
@@ -653,6 +668,7 @@ export class Play implements PausesOnBack {
     inject(DestroyRef).onDestroy(() => {
       this.stopRounds();
       this.stopHandOver();
+      this.stopTurnSwitch();
       this.discoverRecorder.end();
     });
     if (this.discovering) {
@@ -1035,11 +1051,37 @@ export class Play implements PausesOnBack {
    * digits of the turn gone, it's the other's. Vibrates if `vibrate`, as the turn switches by itself.
    */
   private switchTurn(vibrate = true): void {
+    const shown = this.gameTurnShown();
     if (this.turn() === 'game') {
       this.startPlayerTurn(vibrate);
     } else {
       this.startGameTurn();
     }
+    this.showSwitch(shown);
+  }
+
+  /**
+   * Shows the turn switching from how much the game's turn showed, `from`, over a short switch, unless the hand over
+   * ending already showed it all (see {@link gameTurnShown}).
+   */
+  private showSwitch(from: number): void {
+    this.stopTurnSwitch();
+    this.turnSwitching.set(undefined);
+    if (from === this.gameTurnShown()) {
+      return;
+    }
+    this.turnSwitching.set({ from, since: this.clock.now() });
+    const stopTicks = this.timer.every(TICK, () => {
+      this.fadeTicks.update((ticks) => ticks + 1);
+    });
+    const stopWait = this.timer.after(this.tweaks.turnSwitch(), () => {
+      this.stopTurnSwitch();
+      this.turnSwitching.set(undefined);
+    });
+    this.stopTurnSwitch = () => {
+      stopTicks();
+      stopWait();
+    };
   }
 
   /**

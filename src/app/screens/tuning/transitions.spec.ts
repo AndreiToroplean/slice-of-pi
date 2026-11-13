@@ -7,7 +7,7 @@ import { GAME_LINGER } from '../../game/modes/discover-pace';
 import { INDEXED_DB } from '../../player-data/run-store';
 import { KEY_MOTION } from '../play/keypad/key-merges';
 import { Transitions } from './transitions';
-import { TURN_SHADE } from '../play/turn-shade';
+import { TURN_SWITCH } from '../play/turn-shown';
 
 describe('Transitions', () => {
   beforeEach(() => {
@@ -21,7 +21,7 @@ describe('Transitions', () => {
     const fixture = TestBed.createComponent(Transitions);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
-    const [press, merge, linger, discoverLinger, shade] = Array.from(
+    const [press, merge, linger, discoverLinger, turnSwitch] = Array.from(
       host.querySelectorAll<HTMLInputElement>('input[type="range"]'),
     );
     const slide = (slider: HTMLInputElement | undefined, value: string): void => {
@@ -34,14 +34,14 @@ describe('Transitions', () => {
     slide(linger, '3000');
     slide(press, '120');
     slide(discoverLinger, '4');
-    slide(shade, '0.6');
+    slide(turnSwitch, '500');
     await fixture.whenStable();
 
     const tweaks = TestBed.inject(Tweaks);
     expect(tweaks.keyMotion()).toEqual({ merge: 720, press: 120 });
     expect(tweaks.keyLinger()).toBe(3000);
     expect(tweaks.gameLinger()).toBe(4);
-    expect(tweaks.turnShade()).toEqual({ ...TURN_SHADE, strength: 0.6 });
+    expect(tweaks.turnSwitch()).toBe(500);
     expect(host.textContent).toContain('720 ms');
 
     Array.from(host.querySelectorAll('button'))
@@ -51,7 +51,7 @@ describe('Transitions', () => {
     expect(tweaks.keyMotion()).toEqual(KEY_MOTION);
     expect(tweaks.keyLinger()).toBe(KEY_LINGER);
     expect(tweaks.gameLinger()).toBe(GAME_LINGER);
-    expect(tweaks.turnShade()).toEqual(TURN_SHADE);
+    expect(tweaks.turnSwitch()).toBe(TURN_SWITCH);
   });
 
   it('keeps the keys tuned, leaving out what is not valid', () => {
