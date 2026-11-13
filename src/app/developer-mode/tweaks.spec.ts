@@ -21,7 +21,7 @@ import { SOUND_MODEL } from '../game/layers/sound/sound-models';
 import { MENU_LOOK, TWILIGHT, withLight } from '../screens/menu/menu-look';
 import { BREATH } from '../ui/breath';
 import { UNAVAILABLE } from '../ui/unavailable';
-import { OTHER_KEY_COLORS } from '../screens/play/keypad/other-keys';
+import { ACTION_KEY_COLOR } from '../screens/play/keypad/action-keys';
 import { CHECKPOINT_LAG } from '../game/modes/discover-rounds';
 import { PLAY_WITH_MERCURY } from '../../testing/game-break-model';
 
@@ -367,21 +367,18 @@ describe('Tweaks', () => {
     expect(tweaks.unavailable()).toBe(UNAVAILABLE);
   });
 
-  it('colors the other keys as tuned only while developer mode is on, kept until undone', async () => {
+  it('colors the action keys as tuned only while developer mode is on, kept until undone', async () => {
     const tweaks = await load();
-    const colors = { pause: '#123456', backspace: '#654321', discover: '#abcdef' };
-    await tweaks.setOtherKeys(colors);
-    expect(tweaks.otherKeys()).toEqual(OTHER_KEY_COLORS);
+    await tweaks.setActionKeys('#123456');
+    expect(tweaks.actionKeys()).toBe(ACTION_KEY_COLOR);
 
     await TestBed.inject(DeveloperMode).set(true);
-    expect(tweaks.otherKeys()).toEqual(colors);
-    expect((await load()).values()).toEqual({ otherKeys: colors });
-    expect(parseTweaks({ format: TWEAKS_FORMAT, otherKeys: { ...colors, pause: 'red' } })).toEqual(
-      {},
-    );
+    expect(tweaks.actionKeys()).toBe('#123456');
+    expect((await load()).values()).toEqual({ actionKeys: '#123456' });
+    expect(parseTweaks({ format: TWEAKS_FORMAT, actionKeys: 'red' })).toEqual({});
 
-    await tweaks.setOtherKeys(undefined);
-    expect(tweaks.otherKeys()).toEqual(OTHER_KEY_COLORS);
+    await tweaks.setActionKeys(undefined);
+    expect(tweaks.actionKeys()).toBe(ACTION_KEY_COLOR);
   });
 
   it('moves Discover on to checkpoints by themselves, as far behind as tuned, unless picked, only in developer mode', async () => {

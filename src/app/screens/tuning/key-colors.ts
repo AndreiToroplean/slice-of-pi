@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Background } from '../../ui/background';
 import { Candy } from '../../ui/candy';
 import { Segment, Segmented } from '../../ui/segmented';
-import { OTHER_KEY_COLORS, OTHER_KEYS, OtherKey, OtherKeyColors } from '../play/keypad/other-keys';
+import { ACTION_KEY_COLOR } from '../play/keypad/action-keys';
 import { Page } from '../../ui/page';
 import { Palette, PALETTE } from '../../game/layers/place-colors';
 import { SEASON_NAMES } from '../play/season-header/season-header';
@@ -29,21 +29,17 @@ export const COLOR_NAMES = [
 /** Pairs closer than this (ΔE 2000) are easy to mix up at a glance. */
 export const CLOSE = 15;
 
-/** The other keys' names, as the page shows them. */
-const OTHER_KEY_NAMES: Readonly<Record<OtherKey, string>> = {
-  pause: 'Pause',
-  backspace: 'Backspace',
-  discover: 'Discover',
-};
+/** The action keys' name, as the page shows it. */
+const ACTION_KEYS_NAME = 'Action Keys';
 
-/** The page's tabs: the digit keys, or the others. */
-type KeysTab = 'digits' | 'others';
+/** The page's tabs: the digit keys, or the action keys. */
+type KeysTab = 'digits' | 'actions';
 
 /**
  * Developer mode's page to tune the keys' colors, fitting the screen, on a season's background, in two tabs. The digit
  * keys': every pair of them side by side, outlined where they're easy to mix up; selecting a key, at the start of its
- * row or anywhere on it, tunes it in the color picker under them. The other keys' (see `OtherKeyColors`): each shown as
- * on the keypad, selected to tune it in the same picker.
+ * row or anywhere on it, tunes it in the color picker under them. The action keys' (see `ACTION_KEY_COLOR`): one shown
+ * as on the keypad, tuned in the same picker.
  */
 @Component({
   selector: 'app-key-colors',
@@ -99,27 +95,16 @@ type KeysTab = 'digits' | 'others';
         }
       </div>
       <div
-        class="others"
+        class="actions"
         role="tabpanel"
-        id="keys-others"
-        aria-labelledby="keys-tab-others"
-        [hidden]="tab() !== 'others'"
+        id="keys-actions"
+        aria-labelledby="keys-tab-actions"
+        [hidden]="tab() !== 'actions'"
       >
-        <div class="other-keys" role="radiogroup" aria-label="Other keys">
-          @for (key of otherKeys; track key) {
-            <button
-              type="button"
-              appCandy="clear"
-              class="other-key"
-              role="radio"
-              [pressColor]="others()[key]"
-              [attr.aria-checked]="key === otherSelected()"
-              (click)="otherSelected.set(key)"
-            >
-              {{ otherNames[key] }}
-            </button>
-          }
-        </div>
+        <!-- An action key, as on the keypad, its color shown. -->
+        <button type="button" appCandy="clear" class="action-key" [pressColor]="actions()">
+          {{ actionKeysName }}
+        </button>
       </div>
       <app-color-picker
         [color]="picked().color"
@@ -128,7 +113,7 @@ type KeysTab = 'digits' | 'others';
         [defaultColor]="picked().defaultColor"
         (colorChange)="tune($event)"
       />
-      <app-copy-values [values]="{ palette: hexes(), otherKeys: others() }" />
+      <app-copy-values [values]="{ palette: hexes(), actionKeys: actions() }" />
     </app-page>
   `,
   styleUrl: './key-colors.css',
@@ -139,10 +124,9 @@ export class KeyColors {
   protected readonly palette = PALETTE;
   protected readonly tabs: readonly Segment<KeysTab>[] = [
     { value: 'digits', label: 'Digit Keys' },
-    { value: 'others', label: 'Other Keys' },
+    { value: 'actions', label: ACTION_KEYS_NAME },
   ];
-  protected readonly otherKeys = OTHER_KEYS;
-  protected readonly otherNames = OTHER_KEY_NAMES;
+  protected readonly actionKeysName = ACTION_KEYS_NAME;
 
   private readonly tweaks = inject(Tweaks);
   private readonly backgroundColors = inject(Background).colors;
@@ -152,10 +136,8 @@ export class KeyColors {
   protected readonly selected = signal(0);
   /** The tab shown, whose keys the picker tunes. */
   protected readonly tab = signal<KeysTab>('digits');
-  /** The other keys' colors being tuned. */
-  protected readonly others = signal<OtherKeyColors>(this.tweaks.otherKeys());
-  /** The other key whose color is in the picker. */
-  protected readonly otherSelected = signal<OtherKey>('pause');
+  /** The action keys' color being tuned. */
+  protected readonly actions = signal(this.tweaks.actionKeys());
 
   protected readonly names = computed(() =>
     COLOR_NAMES.map((name, i) => `Key ${String(i)}, ${name}`),
@@ -169,8 +151,7 @@ export class KeyColors {
   });
   protected readonly tuned = computed(
     () =>
-      this.hexes().some((color, i) => color !== PALETTE[i]) ||
-      OTHER_KEYS.some((key) => this.others()[key] !== OTHER_KEY_COLORS[key]),
+      this.hexes().some((color, i) => color !== PALETTE[i]) || this.actions() !== ACTION_KEY_COLOR,
   );
   /** What the picker tunes: the key selected in the tab shown. */
   protected readonly picked = computed(() => {
@@ -182,12 +163,11 @@ export class KeyColors {
         defaultColor: PALETTE[this.selected()] ?? '#000000',
       };
     }
-    const key = this.otherSelected();
     return {
-      color: this.others()[key],
-      name: OTHER_KEY_NAMES[key],
+      color: this.actions(),
+      name: ACTION_KEYS_NAME,
       neighbors: undefined,
-      defaultColor: OTHER_KEY_COLORS[key],
+      defaultColor: ACTION_KEY_COLOR,
     };
   });
   /** The season whose background the grid is shown on. */
@@ -207,16 +187,16 @@ export class KeyColors {
       this.hexes.update((colors) => colors.map((old, i) => (i === this.selected() ? color : old)));
       void this.tweaks.setPalette(this.hexes());
     } else {
-      this.others.update((colors) => ({ ...colors, [this.otherSelected()]: color }));
-      void this.tweaks.setOtherKeys(this.others());
+      this.actions.set(color);
+      void this.tweaks.setActionKeys(color);
     }
   }
 
   protected reset(): void {
     this.hexes.set(PALETTE);
-    this.others.set(OTHER_KEY_COLORS);
+    this.actions.set(ACTION_KEY_COLOR);
     void this.tweaks.setPalette(undefined);
-    void this.tweaks.setOtherKeys(undefined);
+    void this.tweaks.setActionKeys(undefined);
   }
 
   /** Shows a season's starting background, as tuned, behind the page. */

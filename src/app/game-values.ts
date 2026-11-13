@@ -21,7 +21,7 @@ export type GameValues = Required<
     | 'keyLinger'
     | 'breath'
     | 'unavailable'
-    | 'otherKeys'
+    | 'actionKeys'
     | 'discoverSpeed'
     | 'paceStep'
     | 'handOver'
