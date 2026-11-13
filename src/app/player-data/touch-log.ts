@@ -1,7 +1,7 @@
 import {
   DEFAULT_KEYPAD_LAYOUT,
   KEYPAD_LAYOUTS,
-  KeypadKey,
+  TypedKey,
   KeypadLayout,
   KeypadTouch,
 } from '../game/layers/keypad-layout';
@@ -225,7 +225,7 @@ function touchOf(value: unknown): Touch | undefined {
   return isCoordinate(x) && isCoordinate(y) ? { key, x, y, time } : undefined;
 }
 
-function isKey(value: unknown): value is KeypadKey {
+function isKey(value: unknown): value is TypedKey {
   return value === 'backspace' || (typeof value === 'string' && isDigit(value));
 }
 

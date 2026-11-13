@@ -22,8 +22,8 @@ const CENTERS: Record<KeypadKey, readonly [number, number]> = {
   '3': [250, 250],
   '0': [150, 350],
   backspace: [250, 350],
+  pause: [50, 350],
 };
-const EMPTY_CELL = [50, 350] as const;
 
 describe('Keypad', () => {
   let fixture: ComponentFixture<Keypad>;
@@ -147,7 +147,7 @@ describe('Keypad', () => {
   describe('layout', () => {
     it('renders the keys in reading order of the calculator layout', () => {
       const labels = Array.from(host.querySelectorAll('button'), (key) => key.textContent.trim());
-      expect(labels).toEqual(['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '']);
+      expect(labels).toEqual(['7', '8', '9', '4', '5', '6', '1', '2', '3', '', '0', '']);
     });
 
     it('renders the keys of the telephone layout, with 1 on top, and types the key touched there', () => {
@@ -155,7 +155,7 @@ describe('Keypad', () => {
       fixture.detectChanges();
 
       const labels = Array.from(host.querySelectorAll('button'), (key) => key.textContent.trim());
-      expect(labels).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '']);
+      expect(labels).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '']);
       expect([button('1').style.gridRow, button('1').style.gridColumn]).toEqual(['1', '1']);
       // Where 7 is in the calculator layout.
       tap('7');
@@ -254,11 +254,12 @@ describe('Keypad', () => {
     });
 
     it('types every key, backspace included', () => {
-      for (const key of Object.keys(CENTERS) as KeypadKey[]) {
+      const keys = (Object.keys(CENTERS) as KeypadKey[]).filter((key) => key !== 'pause');
+      for (const key of keys) {
         tap(key);
       }
 
-      expect(typed).toEqual(Object.keys(CENTERS));
+      expect(typed).toEqual(keys);
     });
 
     it('takes over the touch: no default action, and later events come to the keypad', () => {
@@ -378,8 +379,8 @@ describe('Keypad', () => {
       expect(typed).toEqual([]);
     });
 
-    it('ignores touches on the empty cell or beyond it, outside the keypad, and with another mouse button', () => {
-      for (const point of [EMPTY_CELL, [-10, 420], [-31, 50]] as const) {
+    it('ignores touches outside the keypad, and with another mouse button', () => {
+      for (const point of [[-31, 50]] as const) {
         pointer('pointerdown', point);
         pointer('pointerup', point);
       }
@@ -498,9 +499,7 @@ describe('Keypad', () => {
       ]);
     });
 
-    it('reports the touches that type nothing: on the empty cell, or released too far off their key', () => {
-      pointer('pointerdown', EMPTY_CELL);
-      pointer('pointerup', EMPTY_CELL);
+    it('reports the touches that type nothing: released too far off their key', () => {
       down('5');
       pointer('pointermove', CENTERS['0']);
       up('0');
@@ -508,7 +507,6 @@ describe('Keypad', () => {
       pointer('pointerup', [250, -120]);
 
       expect(touches).toEqual([
-        { key: null, x: -1, y: 2 },
         { key: null, x: 0, y: 0 },
         { key: null, x: 1, y: -1 },
       ]);
@@ -793,6 +791,22 @@ describe('Keypad', () => {
       expect(typed).toEqual([]);
       expect(discovers).toBe(1);
       expect(button('4').getAttribute('aria-disabled')).toBeNull();
+    });
+  });
+
+  describe('the pause key', () => {
+    it('pauses, rather than reporting a touch, as a touch on it or near it in its corner is released, even with the digits locked', () => {
+      let pauses = 0;
+      fixture.componentInstance.pauseGame.subscribe(() => pauses++);
+      fixture.componentRef.setInput('digitsLocked', true);
+      fixture.detectChanges();
+
+      tap('pause');
+      pointer('pointerdown', [-10, 420]);
+      pointer('pointerup', [-10, 420]);
+
+      expect(pauses).toBe(2);
+      expect(touches).toEqual([]);
     });
   });
 

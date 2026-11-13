@@ -1,4 +1,4 @@
-import { KeypadKey } from '../game/layers/keypad-layout';
+import { TypedKey } from '../game/layers/keypad-layout';
 import {
   countsInGroups,
   groupRuns,
@@ -18,7 +18,7 @@ describe('run', () => {
   }
 
   /** A touch log of these touches, each a key, or a miss (`null`), at a time. */
-  function touches(checked: boolean, ...keys: [KeypadKey | null, number][]): TouchLog {
+  function touches(checked: boolean, ...keys: [TypedKey | null, number][]): TouchLog {
     return keys.reduce(
       (touched, [key, time]) => addTouch(touched, { key, x: 0, y: 0 }, time),
       newTouchLog('run-1', 1_760_000_000_000, checked, 'telephone'),
@@ -65,7 +65,7 @@ describe('run', () => {
           ['1', 650],
         ].reduce(
           (touched, [key, time]) =>
-            addTouch(touched, { key: key as KeypadKey, x: 0, y: 0 }, time as number),
+            addTouch(touched, { key: key as TypedKey, x: 0, y: 0 }, time as number),
           log,
         ),
       );
@@ -87,7 +87,7 @@ describe('run', () => {
         ['8', 200],
         ['3', 400],
       ].reduce(
-        (touched, [key, time]) => addTouch(touched, { key: key as KeypadKey }, time as number),
+        (touched, [key, time]) => addTouch(touched, { key: key as TypedKey }, time as number),
         newTouchLog('run-1', 0, true, 'calculator', { start: 50 }),
       );
 

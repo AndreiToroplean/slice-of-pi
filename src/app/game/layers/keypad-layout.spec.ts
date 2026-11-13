@@ -19,18 +19,19 @@ describe('KEY_POSITIONS', () => {
           const key = KEY_POSITIONS[layout].find(
             (position) => position.row === row && position.column === column,
           )?.key;
-          return key === 'backspace' ? '⌫' : (key ?? '_');
+          return key === 'backspace' ? '⌫' : key === 'pause' ? '‖' : (key ?? '_');
         })
         .join(''),
     );
   }
 
   it.each(KEYPAD_LAYOUTS)(
-    'has exactly one key per digit, and a backspace key, in the %s layout',
+    'has exactly one key per digit, a backspace key and a pause key, in the %s layout',
     (layout) => {
       expect(KEY_POSITIONS[layout].map((position) => position.key).sort()).toEqual([
         ...DIGITS,
         'backspace',
+        'pause',
       ]);
     },
   );
@@ -42,9 +43,9 @@ describe('KEY_POSITIONS', () => {
     expect(cells.size).toBe(KEY_POSITIONS[layout].length);
   });
 
-  it('is laid out like a calculator, with 7 on top, or like a telephone, with 1 on top, with 0 and backspace at the bottom', () => {
-    expect(grid('calculator')).toEqual(['789', '456', '123', '_0⌫']);
-    expect(grid('telephone')).toEqual(['123', '456', '789', '_0⌫']);
+  it('is laid out like a calculator, with 7 on top, or like a telephone, with 1 on top, with pause, 0 and backspace at the bottom', () => {
+    expect(grid('calculator')).toEqual(['789', '456', '123', '‖0⌫']);
+    expect(grid('telephone')).toEqual(['123', '456', '789', '‖0⌫']);
   });
 });
 
@@ -123,10 +124,10 @@ describe('keyAt', () => {
     expect(at(4, 4)).toBe('backspace');
   });
 
-  it('finds no key in the empty cell, nor below or beside it', () => {
-    expect(at(-1, 2)).toBeNull();
-    expect(at(-1, 3)).toBeNull();
-    expect(at(-2, 2)).toBeNull();
+  it('finds the pause key left of 0, reaching below and beside it as the keys on the edges do', () => {
+    expect(at(-1, 2)).toBe('pause');
+    expect(at(-1, 3)).toBe('pause');
+    expect(at(-2, 2)).toBe('pause');
   });
 });
 

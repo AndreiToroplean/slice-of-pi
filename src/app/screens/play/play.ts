@@ -55,7 +55,7 @@ import { paceInterval } from '../../game/modes/discover-pace';
 import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
 import { DiscoverRecorder } from '../../player-data/discover-recorder';
 import { GroupSizeSetting } from '../../player-data/group-size-setting';
-import { Digit } from '../../game/pi/digit';
+import { Digit, isDigit } from '../../game/pi/digit';
 import { Candy } from '../../ui/candy';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { RunStore } from '../../player-data/run-store';
@@ -222,12 +222,13 @@ const TICK = 16;
       (touched)="press($event)"
       (pressed)="sound($event)"
       (discover)="switchTurns()"
+      [pausable]="replay() === undefined"
+      (pauseGame)="pause()?.pause()"
     >
-      <!-- The pause key, in the keypad's empty corner left of 0. -->
+      <!-- The dialogs the pause key opens. -->
       @if (replay() === undefined) {
         <app-pause
           [paused]="paused()"
-          [color]="tweaks.otherKeys().pause"
           (pausedChange)="setPaused($event)"
           (edit)="editedLayout.set(tweaks.layout())"
           [replayable]="recorder.run() !== undefined"
@@ -691,12 +692,12 @@ export class Play implements PausesOnBack {
     this.pause()?.pause();
   }
 
-  /** Notes a touch landing elsewhere than on the keypad, the pause button and its dialog, which handle their own. */
+  /** Notes a touch landing elsewhere than on the keypad, its pause dialogs included, which handle their own. */
   protected touchDown(event: PointerEvent): void {
     if (
       event.button === 0 &&
       event.target instanceof Element &&
-      event.target.closest('app-keypad, app-pause') === null
+      event.target.closest('app-keypad') === null
     ) {
       this.touchesElsewhere.set(event.pointerId, this.keypad().pointOf(event));
     }
@@ -1220,7 +1221,7 @@ export class Play implements PausesOnBack {
    * gives nothing away.
    */
   protected sound(key: KeypadKey): void {
-    if (key === 'backspace' || this.paused() || this.silent()) {
+    if (!isDigit(key) || this.paused() || this.silent()) {
       return;
     }
     const moment: Moment = {

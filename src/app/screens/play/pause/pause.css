@@ -1,23 +1,6 @@
 :host {
-  /* Only a button and a dialog: they lay out on the play screen itself. */
+  /* Only dialogs: they lay out on the play screen itself. */
   display: contents;
-}
-
-/* The pause key, in the keypad's corner left of 0, a see-through key as the delete key is (see `keypad.css`). */
-.pause-button {
-  --candy-depth: var(--key-depth);
-  grid-row: 4;
-  grid-column: 1;
-  min-height: var(--key-height);
-  padding: 0;
-  font-size: calc(var(--key-height) * 0.45);
-}
-
-.pause-button svg {
-  width: 1em;
-  height: 1em;
-  vertical-align: middle;
-  fill: currentColor;
 }
 
 .edit-button svg {

@@ -23,6 +23,7 @@ describe('Pause', () => {
     pause: Pause;
     dialog: HTMLDialogElement;
     click: (label: string) => Promise<void>;
+    pauseGame: () => Promise<void>;
     replayable: () => Promise<void>;
   }> {
     const fixture = TestBed.createComponent(Pause);
@@ -35,19 +36,23 @@ describe('Pause', () => {
         ?.click();
       await fixture.whenStable();
     };
+    /** Pauses, as the pause key does. */
+    const pauseGame = async (): Promise<void> => {
+      fixture.componentInstance.pause();
+      await fixture.whenStable();
+    };
     const replayable = async (): Promise<void> => {
       fixture.componentRef.setInput('replayable', true);
       await fixture.whenStable();
     };
-    return { host, pause: fixture.componentInstance, dialog, click, replayable };
+    return { host, pause: fixture.componentInstance, dialog, click, pauseGame, replayable };
   }
 
-  it('pauses with a labelled button, saying so on hover, opening a dialog named after its heading', async () => {
-    const { host, pause, dialog, click } = await setUp();
+  it('pauses, opening a dialog named after its heading', async () => {
+    const { pause, dialog, pauseGame } = await setUp();
     expect(dialog.open).toBe(false);
-    expect(host.querySelector('button[title="Pause"]')).not.toBeNull();
 
-    await click('Pause');
+    await pauseGame();
 
     expect(dialog.open).toBe(true);
     expect(pause.paused()).toBe(true);
@@ -82,7 +87,7 @@ describe('Pause', () => {
   });
 
   it('offers to edit the layout in developer mode only, staying paused while it’s edited', async () => {
-    const { host, pause, dialog, click } = await setUp();
+    const { host, pause, dialog, click, pauseGame } = await setUp();
     let edits = 0;
     pause.edit.subscribe(() => edits++);
     const offered = (): boolean => host.querySelector('button[title="Edit Layout"]') !== null;
@@ -91,7 +96,7 @@ describe('Pause', () => {
     await TestBed.inject(DeveloperMode).set(true);
     TestBed.tick();
     expect(offered()).toBe(true);
-    await click('Pause');
+    await pauseGame();
     await click('Edit Layout');
 
     expect(dialog.open).toBe(false);
@@ -104,8 +109,8 @@ describe('Pause', () => {
   });
 
   it('moves between its buttons with the up and down keys, round from either end', async () => {
-    const { dialog, click } = await setUp();
-    await click('Pause');
+    const { dialog, pauseGame } = await setUp();
+    await pauseGame();
     const focused = (): string | undefined => document.activeElement?.textContent.trim();
     const press = (key: string): KeyboardEvent => {
       const active = document.activeElement;
@@ -132,8 +137,8 @@ describe('Pause', () => {
 
   for (const label of ['Resume', 'Restart', 'End Game']) {
     it(`closes and resumes on ${label}`, async () => {
-      const { pause, dialog, click } = await setUp();
-      await click('Pause');
+      const { pause, dialog, click, pauseGame } = await setUp();
+      await pauseGame();
 
       await click(label);
 
@@ -154,14 +159,14 @@ describe('Pause', () => {
   });
 
   it('asks before replaying the run, warning that the game cannot be resumed then', async () => {
-    const { host, pause, dialog, click, replayable } = await setUp();
+    const { host, pause, dialog, click, replayable, pauseGame } = await setUp();
     const replay = vi.fn();
     pause.replay.subscribe(replay);
     await replayable();
     const confirmation = dialogNamed(host, 'Watch the Replay?');
     const warning = confirmation.getAttribute('aria-describedby') ?? '';
     expect(host.querySelector(`#${warning}`)?.textContent).toContain('won’t be able to resume');
-    await click('Pause');
+    await pauseGame();
 
     await click('Replay This Run');
     expect(confirmation.open).toBe(true);
@@ -217,8 +222,8 @@ describe('Pause', () => {
   });
 
   it('resumes when the dialog closes on its own, as with Escape', async () => {
-    const { pause, dialog, click } = await setUp();
-    await click('Pause');
+    const { pause, dialog, pauseGame } = await setUp();
+    await pauseGame();
 
     dialog.close();
 
@@ -226,28 +231,28 @@ describe('Pause', () => {
   });
 
   it('asks for a restart only on Restart', async () => {
-    const { pause, click } = await setUp();
+    const { pause, click, pauseGame } = await setUp();
     const restart = vi.fn();
     pause.restart.subscribe(restart);
-    await click('Pause');
+    await pauseGame();
 
     await click('Resume');
     expect(restart).not.toHaveBeenCalled();
 
-    await click('Pause');
+    await pauseGame();
     await click('Restart');
     expect(restart).toHaveBeenCalledOnce();
   });
 
   it('ends the game once the dialog has finished closing', async () => {
-    const { dialog, click } = await setUp();
+    const { dialog, click, pauseGame } = await setUp();
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
     let finish = (): void => undefined;
     const closing = {
       finished: new Promise<void>((resolve) => (finish = resolve)),
     } as unknown as Animation;
     dialog.getAnimations = (): Animation[] => [closing];
-    await click('Pause');
+    await pauseGame();
 
     await click('End Game');
     expect(navigate).not.toHaveBeenCalled();
@@ -258,12 +263,12 @@ describe('Pause', () => {
   });
 
   it('ends the game even when the browser cancels the dialog’s closing transitions as it hides it', async () => {
-    const { dialog, click } = await setUp();
+    const { dialog, click, pauseGame } = await setUp();
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl');
     const cancelled = Promise.reject(new DOMException('Cancelled', 'AbortError'));
     cancelled.catch(() => undefined);
     dialog.getAnimations = (): Animation[] => [{ finished: cancelled } as unknown as Animation];
-    await click('Pause');
+    await pauseGame();
 
     await click('End Game');
     await new Promise((resolve) => setTimeout(resolve));
