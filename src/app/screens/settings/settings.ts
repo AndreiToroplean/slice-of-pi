@@ -19,10 +19,12 @@ import {
   MAX_PACE_STEP,
   GAME_LINGER,
   FAST_FORWARD,
+  FAINT_OPACITY,
   GROUP_PAUSE,
   HAND_OVER,
   MAX_GAME_LINGER,
   MAX_FAST_FORWARD,
+  MIN_FAINT_OPACITY,
   MAX_GROUP_PAUSE,
   MAX_HAND_OVER,
   PACE_STEP,
@@ -311,6 +313,16 @@ import { YourData } from './your-data';
             [defaultValue]="defaultFastForward"
             (changed)="setFastForward($event)"
           />
+          <app-slider
+            label="Faint Digits"
+            [value]="tweaks.faintOpacity()"
+            [min]="minFaintOpacity"
+            [max]="1"
+            [step]="0.05"
+            [valueText]="percent(tweaks.faintOpacity())"
+            [defaultValue]="defaultFaintOpacity"
+            (changed)="setFaintOpacity($event)"
+          />
           <div class="row">
             <label class="setting">
               <span>
@@ -488,6 +500,8 @@ export class Settings {
   protected readonly defaultGameLinger = GAME_LINGER;
   protected readonly maxFastForward = MAX_FAST_FORWARD;
   protected readonly defaultFastForward = FAST_FORWARD;
+  protected readonly minFaintOpacity = MIN_FAINT_OPACITY;
+  protected readonly defaultFaintOpacity = FAINT_OPACITY;
   protected readonly keyLooks: readonly Segment<'clear' | 'solid'>[] = [
     { value: 'clear', label: 'Clear Keys' },
     { value: 'solid', label: 'Solid Keys' },
@@ -531,6 +545,7 @@ export class Settings {
       this.tweaks.groupPause() === GROUP_PAUSE &&
       this.tweaks.gameLinger() === GAME_LINGER &&
       this.tweaks.fastForward() === FAST_FORWARD &&
+      this.tweaks.faintOpacity() === FAINT_OPACITY &&
       !this.tweaks.manualCheckpoints() &&
       this.tweaks.checkpointLag() === CHECKPOINT_LAG,
   );
@@ -573,6 +588,15 @@ export class Settings {
 
   protected setFastForward(fastForward: number | undefined): void {
     void this.tweaks.setFastForward(fastForward);
+  }
+
+  protected setFaintOpacity(opacity: number | undefined): void {
+    void this.tweaks.setFaintOpacity(opacity);
+  }
+
+  /** An opacity, in percent. */
+  protected percent(opacity: number): string {
+    return `${String(Math.round(opacity * 100))}%`;
   }
 
   protected setDiscoverSpeed(speed: number | undefined): void {
@@ -667,6 +691,7 @@ export class Settings {
       this.setGroupPause(undefined);
       this.setGameLinger(undefined);
       this.setFastForward(undefined);
+      this.setFaintOpacity(undefined);
       this.resetManualCheckpoints();
       this.setCheckpointLag(undefined);
       this.resetCountdown();

@@ -99,9 +99,9 @@
   text-shadow: none;
 }
 
-/* A digit the game shows, rather than one typed, as in Discover: half there, until the player types. */
+/* A digit the game shows, rather than one typed, as in Discover: faint (`--faint`, see `TypedDigits`). */
 .tile.faint {
-  opacity: 0.45;
+  opacity: var(--faint);
 }
 
 /* A digit fading out of the tape, as Discover hands a turn over, from the opacity it had (`--fade`, see `TypedDigits`). */
@@ -110,5 +110,5 @@
 }
 
 .tile.faint.fading {
-  opacity: calc(0.45 * var(--fade));
+  opacity: calc(var(--faint) * var(--fade));
 }

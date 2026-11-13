@@ -1969,6 +1969,19 @@ describe('Play', () => {
       expect(Number(tape()?.style.getPropertyValue('--fade'))).toBeCloseTo(0.5, 1);
     });
 
+    it('shows its digits as faint as developer mode sets', async () => {
+      const round = await discover();
+      await TestBed.inject(DeveloperMode).set(true);
+      await TestBed.inject(Tweaks).setFaintOpacity(0.6);
+      await round.wait(0);
+
+      expect(
+        round.host
+          .querySelector<HTMLElement>('app-typed-digits')
+          ?.style.getPropertyValue('--faint'),
+      ).toBe('0.6');
+    });
+
     it('hands over for as long as developer mode sets', async () => {
       const round = await discover();
       await TestBed.inject(DeveloperMode).set(true);
