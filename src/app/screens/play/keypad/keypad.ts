@@ -93,10 +93,11 @@ interface Press {
 export type CornerKey = 'backspace' | 'turn';
 
 /**
- * What the player does with the turn key: presses it, `down`; releases it on it, `up`, as a tap does; or lets it go
- * elsewhere, `off`, sliding off it, or the touch cancelled, or the page left, which a tap never ends on.
+ * What the player does with the pause key or the turn key, whose presses are reported as they start and end, for the
+ * game to tell a hold from a tap: presses it, `down`; releases it on it, `up`, as a tap does; or lets it go elsewhere,
+ * `off`, sliding off it, or the touch cancelled, or the page left, which a tap never ends on.
  */
-export type TurnKeyPress = 'down' | 'up' | 'off';
+export type KeyPress = 'down' | 'up' | 'off';
 
 /**
  * On-screen keypad: digits, backspace and the pause key, in the layout given.
@@ -111,9 +112,9 @@ export type TurnKeyPress = 'down' | 'up' | 'off';
  * - Several fingers can press keys at once; each key is typed when its finger is released.
  * - Holding backspace repeats it, while near enough to type it; digits don't repeat.
  * - The key in backspace's place is what the game mode makes it (see {@link CornerKey}): backspace; the turn key,
- *   whose presses, by touch or with the space bar, are reported as they start and end (see {@link TurnKeyPress}), for
- *   the game to tell a hold from a tap; it shows a fast-forward or a switch-turns icon, as it's told, and is in its
- *   color all over while lit. Disabled, as backspace is in a challenge, it shows disabled, and touches on it type nothing.
+ *   whose presses, by touch or with the space bar, are reported as they start and end (see {@link KeyPress}); it shows
+ *   a fast-forward or a switch-turns icon, as it's told, and is in its color all over while lit. Disabled, as backspace
+ *   is in a challenge, it shows disabled, and touches on it type nothing.
  *   On a keyboard, Backspace types backspace.
  *
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
@@ -129,7 +130,8 @@ export type TurnKeyPress = 'down' | 'up' | 'off';
  * The keys don't take the focus, being typed from the keyboard's own keys, but the buttons still work with assistive
  * technology.
  *
- * The pause key, left of 0, pauses the game, whatever else is locked. What it's given goes in its grid with the keys,
+ * The pause key, left of 0, whose presses are reported as they start and end too (see {@link KeyPress}), works whatever
+ * else is locked. What it's given goes in its grid with the keys,
  * such as the dialogs the pause key opens; the buttons it's given, and those dialogs, take their own touches, which
  * aren't the keypad's.
  *
@@ -292,10 +294,10 @@ export class Keypad {
   readonly cornerDisabled = input(false);
   /** Whether the turn key fast forwards, as it shows, rather than switches turns. */
   readonly fastForwards = input(false);
-  /** What the player does with the turn key (see {@link TurnKeyPress}). */
-  readonly turnKey = output<TurnKeyPress>();
-  /** The pause key was pressed: the player pauses the game. */
-  readonly pauseGame = output();
+  /** What the player does with the turn key (see {@link KeyPress}). */
+  readonly turnKey = output<KeyPress>();
+  /** What the player does with the pause key (see {@link KeyPress}). */
+  readonly pauseKey = output<KeyPress>();
   /**
    * How long a digit key's color lingers on its face once it stops showing pressed, in milliseconds, fading out to the
    * color its digit takes next: none at 0.
@@ -796,9 +798,7 @@ export class Keypad {
       this.splash(key);
       this.pressed.emit(key);
     }
-    if (this.isTurnKey(key)) {
-      this.turnKey.emit('down');
-    }
+    this.reportPress(key, 'down');
   }
 
   protected onPointerMove(event: PointerEvent): void {
@@ -818,8 +818,8 @@ export class Keypad {
     press.point = this.touchAt(event).point;
     this.checkDistance(press);
     this.dropPress(event.pointerId);
-    if (this.isTurnKey(press.key)) {
-      this.turnKey.emit(press.far ? 'off' : 'up');
+    if (this.reportsPresses(press.key)) {
+      this.reportPress(press.key, press.far ? 'off' : 'up');
     } else if (!press.repeated) {
       this.report(press.far ? null : press.key, press.start);
     }
@@ -848,9 +848,7 @@ export class Keypad {
       if (press.key !== null) {
         this.endSplash(press.key);
       }
-      if (this.isTurnKey(press.key)) {
-        this.turnKey.emit('off');
-      }
+      this.reportPress(press.key, 'off');
     }
   }
 
@@ -870,10 +868,10 @@ export class Keypad {
     if (event.detail !== 0 || this.disabled() || !this.works(key)) {
       return;
     }
-    if (this.isTurnKey(key)) {
+    if (this.reportsPresses(key)) {
       // A tap, as it can't be held.
-      this.turnKey.emit('down');
-      this.turnKey.emit('up');
+      this.reportPress(key, 'down');
+      this.reportPress(key, 'up');
     } else {
       this.type(key);
     }
@@ -889,9 +887,9 @@ export class Keypad {
     if (!event.repeat) {
       this.splash(key);
     }
-    if (this.isTurnKey(key)) {
+    if (this.reportsPresses(key)) {
       if (!event.repeat) {
-        this.turnKey.emit('down');
+        this.reportPress(key, 'down');
       }
     } else if (!event.repeat || key === 'backspace') {
       this.type(key);
@@ -902,23 +900,30 @@ export class Keypad {
     const key = keyFor(event, this.corner());
     if (key !== null && this.heldKeys().includes(key)) {
       this.heldKeys.update((keys) => keys.filter((held) => held !== key));
-      if (this.isTurnKey(key)) {
-        this.turnKey.emit('up');
-      }
+      this.reportPress(key, 'up');
     }
   }
 
-  /** Lets go of the keys held on a physical keyboard, as the page loses the focus, the turn key's press ending off it. */
+  /** Lets go of the keys held on a physical keyboard, as the page loses the focus, their presses ending off them. */
   protected onBlur(): void {
-    if (this.heldKeys().some((key) => this.isTurnKey(key))) {
-      this.turnKey.emit('off');
+    for (const key of this.heldKeys()) {
+      this.reportPress(key, 'off');
     }
     this.heldKeys.set([]);
   }
 
-  /** Whether a key is the turn key. */
-  private isTurnKey(key: KeypadKey | null): boolean {
-    return key === 'backspace' && this.corner() === 'turn';
+  /** Whether a key's presses are reported as they start and end (see {@link KeyPress}): the pause key's, the turn key's. */
+  private reportsPresses(key: KeypadKey | null): boolean {
+    return key === 'pause' || (key === 'backspace' && this.corner() === 'turn');
+  }
+
+  /** Reports where a press of the pause key or the turn key is at, if it's one of theirs. */
+  private reportPress(key: KeypadKey | null, press: KeyPress): void {
+    if (key === 'pause') {
+      this.pauseKey.emit(press);
+    } else if (this.reportsPresses(key)) {
+      this.turnKey.emit(press);
+    }
   }
 
   /** Types a key without touching the keypad. */
@@ -926,10 +931,10 @@ export class Keypad {
     this.report(key);
   }
 
-  /** Reports a touch, or a key typed, but the pause key's, which pauses. */
+  /** Reports a touch, or a key typed, but the pause key's, whose presses are reported apart (see {@link reportPress}). */
   private report(key: KeypadKey | null, at?: KeypadPoint): void {
     if (key === 'pause') {
-      this.pauseGame.emit();
+      return;
     } else if (at !== undefined) {
       this.touched.emit({ key, ...at });
     } else if (key !== null) {
