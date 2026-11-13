@@ -369,7 +369,7 @@ describe('Tweaks', () => {
 
   it('colors the other keys as tuned only while developer mode is on, kept until undone', async () => {
     const tweaks = await load();
-    const colors = { pause: '#123456', backspace: null, discover: '#abcdef' };
+    const colors = { pause: '#123456', backspace: '#654321', discover: '#abcdef' };
     await tweaks.setOtherKeys(colors);
     expect(tweaks.otherKeys()).toEqual(OTHER_KEY_COLORS);
 

@@ -227,7 +227,7 @@ const TICK = 16;
       @if (replay() === undefined) {
         <app-pause
           [paused]="paused()"
-          [color]="tweaks.otherKeys().pause ?? undefined"
+          [color]="tweaks.otherKeys().pause"
           (pausedChange)="setPaused($event)"
           (edit)="editedLayout.set(tweaks.layout())"
           [replayable]="recorder.run() !== undefined"

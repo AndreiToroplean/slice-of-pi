@@ -83,7 +83,7 @@ import { ReplayButton } from './replay-button';
 export class Pause {
   /** Whether the game is paused, with the dialog open. */
   readonly paused = model(false);
-  /** The pause key's color, which its edge shows, and its face while pressed, if any (see `OtherKeyColors`). */
+  /** The pause key's color, which its edge shows, and its face while pressed (see `OtherKeyColors`). */
   readonly color = input<string>();
   /** The player chose to restart the game. */
   readonly restart = output();
