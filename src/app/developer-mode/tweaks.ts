@@ -6,10 +6,12 @@ import {
   isPaceStep,
   GAME_LINGER,
   FAST_FORWARD,
+  FAINT_OPACITY,
   GROUP_PAUSE,
   HAND_OVER,
   isGameLinger,
   isFastForward,
+  isFaintOpacity,
   isGroupPause,
   isHandOver,
   PACE_STEP,
@@ -115,6 +117,8 @@ export interface TweakValues {
   readonly gameLinger?: number;
   /** How many times faster Discover's game plays while fast forwarded, for {@link FAST_FORWARD}. */
   readonly fastForward?: number;
+  /** How opaque the digits Discover's game shows are, from 0 to 1, for {@link FAINT_OPACITY}. */
+  readonly faintOpacity?: number;
   /** `false` to play without checking the digits, which the game otherwise always does. */
   readonly checking?: false;
   /** `true` to show the countdown to the end of the group being typed, in developer mode, which is otherwise hidden. */
@@ -253,6 +257,9 @@ export class Tweaks {
   );
   readonly fastForward = computed(
     () => (this.developerMode.enabled() ? this.tweaks().fastForward : undefined) ?? FAST_FORWARD,
+  );
+  readonly faintOpacity = computed(
+    () => (this.developerMode.enabled() ? this.tweaks().faintOpacity : undefined) ?? FAINT_OPACITY,
   );
 
   /** Whether the game checks the digits typed against π. */
@@ -454,6 +461,10 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), fastForward }));
   }
 
+  setFaintOpacity(faintOpacity: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), faintOpacity }));
+  }
+
   /** Turns checking the digits typed on or off. */
   setChecking(checking: boolean): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), checking: checking ? undefined : false }));
@@ -607,6 +618,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     groupPause,
     gameLinger,
     fastForward,
+    faintOpacity,
     checking,
     countdown,
     manualCheckpoints,
@@ -645,6 +657,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     groupPause: isGroupPause(groupPause) ? groupPause : undefined,
     gameLinger: isGameLinger(gameLinger) ? gameLinger : undefined,
     fastForward: isFastForward(fastForward) ? fastForward : undefined,
+    faintOpacity: isFaintOpacity(faintOpacity) ? faintOpacity : undefined,
     checking: checking === false ? checking : undefined,
     countdown: countdown === true ? countdown : undefined,
     manualCheckpoints: manualCheckpoints === true ? manualCheckpoints : undefined,
@@ -686,6 +699,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     groupPause,
     gameLinger,
     fastForward,
+    faintOpacity,
     checkpointLag,
     layout,
     menu,
@@ -720,6 +734,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     groupPause: groupPause === GROUP_PAUSE ? undefined : groupPause,
     gameLinger: gameLinger === GAME_LINGER ? undefined : gameLinger,
     fastForward: fastForward === FAST_FORWARD ? undefined : fastForward,
+    faintOpacity: faintOpacity === FAINT_OPACITY ? undefined : faintOpacity,
     checkpointLag: checkpointLag === CHECKPOINT_LAG ? undefined : checkpointLag,
     layout: equal(layout, LAYOUT) ? undefined : layout,
     menu: equal(menu, MENU_LOOK) ? undefined : menu,
@@ -766,6 +781,7 @@ function tweakValues({
   groupPause,
   gameLinger,
   fastForward,
+  faintOpacity,
   checking,
   countdown,
   manualCheckpoints,
@@ -803,6 +819,7 @@ function tweakValues({
     ...(groupPause === undefined ? {} : { groupPause }),
     ...(gameLinger === undefined ? {} : { gameLinger }),
     ...(fastForward === undefined ? {} : { fastForward }),
+    ...(faintOpacity === undefined ? {} : { faintOpacity }),
     ...(checking === undefined ? {} : { checking }),
     ...(countdown === undefined ? {} : { countdown }),
     ...(manualCheckpoints === undefined ? {} : { manualCheckpoints }),

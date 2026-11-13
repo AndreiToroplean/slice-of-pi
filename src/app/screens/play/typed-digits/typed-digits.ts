@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { Word } from '../../../game/grouping/groups';
 import { FIRST_LANDING } from '../flight/flight';
+import { FAINT_OPACITY } from '../../../game/modes/discover-pace';
 import { Glide, glideAt, glideEnd, glideTo } from './glide';
 
 /** How long typing takes to scroll back to the newest words, once the player has scrolled away, at most, in ms. */
@@ -35,6 +36,7 @@ export const SCROLL_BACK_DURATION = 400;
     '[class.hidden-right]': 'hiddenRight()',
     '(scroll)': 'scrolled()',
     '[style.--fade]': 'fade()',
+    '[style.--faint]': 'faintOpacity()',
   },
   template: `
     <div #wordsElement class="words" aria-hidden="true">
@@ -66,6 +68,8 @@ export const SCROLL_BACK_DURATION = 400;
 export class TypedDigits {
   /** The place from which the digits are faint, as those the game shows in Discover, if any are. */
   readonly faintFrom = input<number>();
+  /** How opaque the faint digits are, from 0 to 1. */
+  readonly faintOpacity = input(FAINT_OPACITY);
   /**
    * Fades the digits out from a place, as Discover hands a turn over: from `from`, `left` of the fade left, from 1 down
    * to 0, the share of their opacity they keep. Whoever times the hand over drives it, so that it stops as the wait does.

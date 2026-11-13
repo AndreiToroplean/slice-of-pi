@@ -88,3 +88,13 @@ export const MAX_FAST_FORWARD = 5;
 export function isFastForward(value: unknown): value is number {
   return typeof value === 'number' && value >= 1 && value <= MAX_FAST_FORWARD;
 }
+
+/** How opaque the digits the game shows on Discover's turn are on the tape, from 0 to 1: faint, as the player's aren't. */
+export const FAINT_OPACITY = GAME_VALUES.faintOpacity;
+/** The faintest developer mode can make them. */
+export const MIN_FAINT_OPACITY = 0.1;
+
+/** Whether a value is an opacity developer mode can give the digits the game shows. */
+export function isFaintOpacity(value: unknown): value is number {
+  return typeof value === 'number' && value >= MIN_FAINT_OPACITY && value <= 1;
+}
