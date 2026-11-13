@@ -60,6 +60,19 @@ app-typed-digits {
   height: var(--keys-height);
 }
 
+/*
+ * The Discover Halo, round key 5, behind everything else (see `DiscoverHalo`): light added to the background, as the main
+ * menu's is, showing as much as the game's turn does.
+ */
+.halo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: plus-lighter;
+  pointer-events: none;
+}
+
 /* Developer mode's log of what the keys played, from under the season header down to the tape. */
 app-sound-log {
   position: absolute;

@@ -1979,22 +1979,24 @@ describe('Play', () => {
       expect(Number(tape()?.style.getPropertyValue('--fade'))).toBeCloseTo(0.5, 1);
     });
 
-    it('clears the digit keys’ frost on the game’s turn, steadily with its hand over, or over a short switch as the player takes theirs', async () => {
+    it('lights the Discover Halo on the game’s turn, going steadily with its hand over, or over a short switch as the player takes theirs', async () => {
       const round = await discover();
-      expect(round.keypad().frost()).toBe(0);
+      const halo = (): number =>
+        Number(round.host.querySelector<HTMLElement>('canvas.halo')?.style.opacity);
+      expect(halo()).toBe(1);
 
       // Listening went half a digit's time into the hand over: on to half of it.
       await listen(round, 5);
       await round.wait(HAND_OVER / 2 - MEDIUM_INTERVAL / 2);
-      expect(round.keypad().frost()).toBeCloseTo(0.5, 1);
+      expect(halo()).toBeCloseTo(0.5, 1);
 
       // Typing a digit waits 150 ms first; the switch then starts from where the hand over was.
       await round.type('1');
-      expect(round.keypad().frost()).toBeCloseTo(0.5 + 150 / HAND_OVER, 5);
+      expect(halo()).toBeCloseTo(0.5 - 150 / HAND_OVER, 5);
       await round.wait(TURN_SWITCH / 2);
-      expect(round.keypad().frost()).toBeGreaterThan(0.5 + 150 / HAND_OVER);
+      expect(halo()).toBeLessThan(0.5 - 150 / HAND_OVER);
       await round.wait(TURN_SWITCH / 2);
-      expect(round.keypad().frost()).toBe(1);
+      expect(halo()).toBe(0);
     });
 
     it('shows its digits as faint as developer mode sets', async () => {

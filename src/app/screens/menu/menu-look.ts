@@ -248,8 +248,13 @@ export function parseMenuLook(value: unknown): MenuLook | undefined {
   };
 }
 
-function isColor(value: unknown): value is string {
+export function isColor(value: unknown): value is string {
   return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
+}
+
+/** A light read from untrusted data: each of its values in its range, or else the one in `defaults`. */
+export function parseLight(defaults: LightSettings, value: unknown): LightSettings {
+  return parsed(defaults, LIGHT_FIELDS, value);
 }
 
 /** `value`'s fields, each in its range, or else the one in `defaults`. */

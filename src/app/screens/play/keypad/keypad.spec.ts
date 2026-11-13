@@ -1,14 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { isDigit } from '../../../game/pi/digit';
 import { keyColorIndices, PALETTE } from '../../../game/layers/place-colors';
-import {
-  Keypad,
-  REPEAT_DELAY,
-  REPEAT_INTERVAL,
-  SPLASH_DURATION,
-  KeyPress,
-  frostedFace,
-} from './keypad';
+import { Keypad, REPEAT_DELAY, REPEAT_INTERVAL, SPLASH_DURATION, KeyPress } from './keypad';
 import { KeypadRenderer } from './keypad-gl';
 import { ACTION_KEY_COLOR } from './action-keys';
 import { KeypadKey, KeypadTouch } from '../../../game/layers/keypad-layout';
@@ -745,15 +738,6 @@ describe('Keypad', () => {
       expect(event.defaultPrevented).toBe(false);
       expect(pressedKeys()).toEqual(['3']);
     });
-  });
-
-  it('clears the digit keys’ frost as far as it’s told, for their buttons and as drawn', () => {
-    fixture.componentRef.setInput('frost', 0.25);
-    fixture.detectChanges();
-
-    expect(host.style.getPropertyValue('--digit-frost')).toBe('0.25');
-    expect(frostedFace(0.25)[3]).toBeCloseTo(frostedFace(1)[3] / 4);
-    expect(frostedFace(0)).toEqual([0, 0, 0, 0]);
   });
 
   describe('with the turn key in backspace’s place', () => {

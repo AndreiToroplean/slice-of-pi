@@ -45,6 +45,7 @@ import {
 import { DeveloperMode } from './developer-mode';
 import { Layout, LAYOUT, parseLayout } from '../ui/layout';
 import { MENU_LOOK, MenuLook, parseMenuLook, TWILIGHT } from '../screens/menu/menu-look';
+import { DISCOVER_HALO, DiscoverHalo, parseDiscoverHalo } from '../screens/play/discover-halo';
 import {
   parsePattern,
   Vibration,
@@ -141,6 +142,8 @@ export interface TweakValues {
   readonly layout?: Layout;
   /** How the main menu looks, for {@link MENU_LOOK}. */
   readonly menu?: MenuLook;
+  /** The Discover Halo, for {@link DISCOVER_HALO}. */
+  readonly discoverHalo?: DiscoverHalo;
   /** The patterns the phone vibrates in, those tuned, for theirs in {@link VIBRATION_PATTERNS}. */
   readonly vibrations?: Partial<VibrationPatterns>;
   /** The name of the sound model the keys are played with, for {@link SOUND_MODEL}. */
@@ -517,6 +520,17 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), menu }));
   }
 
+  /** The Discover Halo. */
+  readonly discoverHalo = computed(
+    (): DiscoverHalo =>
+      (this.developerMode.enabled() ? this.tweaks().discoverHalo : undefined) ?? DISCOVER_HALO,
+  );
+
+  /** Changes the Discover Halo; `undefined` brings back the game's own. */
+  setDiscoverHalo(discoverHalo: DiscoverHalo | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), discoverHalo }));
+  }
+
   /** Tunes the pattern the phone vibrates in on an event; `undefined` brings back the game's. The others keep theirs. */
   setVibration(vibration: Vibration, pattern: VibrationPattern | undefined): Promise<void> {
     const others = Object.entries(this.tweaks().vibrations ?? {}).filter(
@@ -639,6 +653,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     runOrder,
     layout,
     menu,
+    discoverHalo,
     vibrations,
     soundModel,
     sound,
@@ -679,6 +694,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     runOrder: runOrderOf(runOrder),
     layout: parseLayout(layout),
     menu: parseMenuLook(menu),
+    discoverHalo: parseDiscoverHalo(discoverHalo),
     vibrations: vibrationsOf(vibrations),
     soundModel: soundModelKindById(soundModel)?.id,
     sound: slidValues(sound, MIX_SLIDERS, SOUND_MIX),
@@ -716,6 +732,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     checkpointLag,
     layout,
     menu,
+    discoverHalo,
     vibrations,
     soundModel,
     sound,
@@ -752,6 +769,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     checkpointLag: checkpointLag === CHECKPOINT_LAG ? undefined : checkpointLag,
     layout: equal(layout, LAYOUT) ? undefined : layout,
     menu: equal(menu, MENU_LOOK) ? undefined : menu,
+    discoverHalo: equal(discoverHalo, DISCOVER_HALO) ? undefined : discoverHalo,
     vibrations: vibrationsOf(vibrations),
     soundModel: soundModel === SOUND_MODEL.id ? undefined : soundModel,
     sound: equal(sound, SOUND_MIX) ? undefined : sound,
@@ -806,6 +824,7 @@ function tweakValues({
   runOrder,
   layout,
   menu,
+  discoverHalo,
   vibrations,
   soundModel,
   sound,
@@ -845,6 +864,7 @@ function tweakValues({
     ...(runOrder === undefined ? {} : { runOrder }),
     ...(layout === undefined ? {} : { layout }),
     ...(menu === undefined ? {} : { menu }),
+    ...(discoverHalo === undefined ? {} : { discoverHalo }),
     ...(vibrations === undefined ? {} : { vibrations }),
     ...(soundModel === undefined ? {} : { soundModel }),
     ...(sound === undefined ? {} : { sound }),

@@ -32,6 +32,8 @@ import { slotBoxes } from './slots/slot-layout';
 import { SlotHandover } from './slots/slots';
 import { ScaledTimer } from './scaled-timer';
 import { gameTurnShare, switchedShare } from './turn-shown';
+import { Light, LightLayer } from '../../ui/light-layer';
+import { Point } from '../../ui/handles/light-handles';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { CornerKey, KeyPress, Keypad, KeypadMark } from './keypad/keypad';
 import { keyColorIndices, placeColors } from '../../game/layers/place-colors';
@@ -146,6 +148,7 @@ const TICK = 16;
     Candy,
     Keypad,
     LayoutEditor,
+    LightLayer,
     Pause,
     SeasonHeader,
     Slots,
@@ -167,6 +170,15 @@ const TICK = 16;
   },
   template: `
     <h1 class="visually-hidden">Slice of Pi</h1>
+    <!-- Behind everything else on the screen. -->
+    @if (discovering) {
+      <canvas
+        class="halo"
+        [appLightLayer]="haloLights()"
+        [settings]="tweaks.discoverHalo().light"
+        [style.opacity]="haloShown()"
+      ></canvas>
+    }
     <app-season-header [view]="season()" />
     <app-typed-digits
       [words]="grouping().words"
@@ -217,7 +229,6 @@ const TICK = 16;
       [layout]="keypadLayout()"
       [colorIndices]="colorIndices()"
       [palette]="tweaks.palette()"
-      [frost]="1 - gameTurnShown()"
       [actionKeys]="tweaks.actionKeys()"
       [solid]="tweaks.solidKeys()"
       [mergeKeys]="mergeSetting.enabled()"
@@ -436,10 +447,21 @@ export class Play implements PausesOnBack {
   /** Stops the turn switch going on, if any. */
   private stopTurnSwitch = (): void => undefined;
   /**
-   * How much the keypad shows Discover's game turn, from 0 to 1, its digit keys losing their frost as it does, so that
-   * the player looks on rather than types: steadily over a hand over, as the turn switches by itself (see
+   * How much the keypad shows Discover's game turn, from 0 to 1, the Discover Halo lighting up behind it as it does, so
+   * that the player looks on rather than types: steadily over a hand over, as the turn switches by itself (see
    * `gameTurnShare`), or over a short switch as the player switches it themselves.
    */
+  /** Where key 5 is, in CSS pixels from the screen's top left corner, as last measured: the Discover Halo's middle. */
+  protected readonly haloAt = signal<Point | undefined>(undefined);
+  /** The Discover Halo's light, round key 5, once it's measured (see `DiscoverHalo`). */
+  protected readonly haloLights = computed((): readonly Light[] => {
+    const at = this.haloAt();
+    return at === undefined ? [] : [{ ...at, color: this.tweaks.discoverHalo().color, seed: 5 }];
+  });
+  /** How much of the Discover Halo shows: as much as the game's turn does, or all of it while the layout is edited. */
+  protected readonly haloShown = computed(() =>
+    this.editedLayout() === undefined ? this.gameTurnShown() : 1,
+  );
   protected readonly gameTurnShown = computed(() => {
     this.fadeTicks();
     const share = gameTurnShare(this.turn(), this.fadeOut()?.left);
@@ -671,6 +693,7 @@ export class Play implements PausesOnBack {
     if (this.discovering) {
       afterNextRender(() => {
         this.startGameTurn();
+        this.watchHalo();
       });
     }
     if (this.replay() === undefined) {
@@ -762,6 +785,39 @@ export class Play implements PausesOnBack {
     }
     pause.back();
     return false;
+  }
+
+  /**
+   * Keeps the Discover Halo round key 5, measuring where it is now, and again as the screen, the keypad or the key
+   * change size, as when the layout is edited.
+   */
+  private watchHalo(): void {
+    const keypad = this.host.querySelector('app-keypad');
+    const key = keypad?.querySelector('[data-key="5"]');
+    const measure = (): void => {
+      if (key === null || key === undefined) {
+        return;
+      }
+      const frame = this.host.getBoundingClientRect();
+      const box = key.getBoundingClientRect();
+      this.haloAt.set({
+        x: box.left + box.width / 2 - frame.left,
+        y: box.top + box.height / 2 - frame.top,
+      });
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(measure);
+    for (const element of [this.host, keypad, key]) {
+      if (element !== null && element !== undefined) {
+        observer.observe(element);
+      }
+    }
+    this.injector.get(DestroyRef).onDestroy(() => {
+      observer.disconnect();
+    });
   }
 
   /** Ends edit mode, back to the pause dialog it was opened from. */

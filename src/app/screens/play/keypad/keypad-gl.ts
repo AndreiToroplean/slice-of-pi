@@ -47,12 +47,9 @@ export interface GlScene {
   readonly gapX: number;
   readonly gapY: number;
   readonly highlight: number;
-  /**
-   * How far frosted faces blur what's behind them, in CSS pixels, as `blur()` does, and how frosted they are, from 0,
-   * clear, to 1.
-   */
+  /** How far frosted faces blur what's behind them, in CSS pixels, as `blur()` does, and whether they're frosted. */
   readonly blur: number;
-  readonly frosted: number;
+  readonly frosted: boolean;
   readonly keys: readonly GlKey[];
 }
 
@@ -620,7 +617,7 @@ export class KeypadRenderer {
     this.bind(compose, 'uBlurred', 3, blurred);
     this.bind(compose, 'uBlurredFaces', 4, blurredFaces);
     gl.uniform1f(this.at(compose, 'uHighlight'), scene.highlight);
-    gl.uniform1f(this.at(compose, 'uFrosted'), scene.frosted);
+    gl.uniform1f(this.at(compose, 'uFrosted'), scene.frosted ? 1 : 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, width, height);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
