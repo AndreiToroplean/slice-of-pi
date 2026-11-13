@@ -42,7 +42,13 @@ import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LAYOUT } from '../../ui/layout';
 import { GAME_OVER_DELAY, Play } from './play';
-import { GAME_LINGER, GROUP_PAUSE, HAND_OVER, paceInterval } from '../../game/modes/discover-pace';
+import {
+  FAST_FORWARD,
+  GAME_LINGER,
+  GROUP_PAUSE,
+  HAND_OVER,
+  paceInterval,
+} from '../../game/modes/discover-pace';
 import { DiscoverRecorder } from '../../player-data/discover-recorder';
 import { Keypad } from './keypad/keypad';
 import { KEY_LINGER } from '../../game/layers/place-colors';
@@ -1878,10 +1884,10 @@ describe('Play', () => {
       ];
     }
 
-    function discoverKey(host: HTMLElement): HTMLButtonElement {
+    function fastForwardKey(host: HTMLElement): HTMLButtonElement {
       const key = host.querySelector<HTMLButtonElement>('button[data-key="backspace"]');
       if (key === null) {
-        throw new Error('No discover key');
+        throw new Error('No fast-forward key');
       }
       return key;
     }
@@ -1901,14 +1907,19 @@ describe('Play', () => {
       await wait((length + 1.5 + (Math.ceil(length / 5) * GROUP_PAUSE) / 100) * MEDIUM_INTERVAL);
     }
 
-    /** Whether the discover key works, as once the player has retyped the round. */
-    function discoverWorks(host: HTMLElement): boolean {
-      return discoverKey(host).getAttribute('aria-disabled') !== 'true';
+    /** Whether the fast-forward key works, as once the player has retyped the round. */
+    function fastForwardWorks(host: HTMLElement): boolean {
+      return fastForwardKey(host).getAttribute('aria-disabled') !== 'true';
     }
 
-    /** Asks the game to show the round, with the discover key. */
-    async function showMe({ host, wait }: Round): Promise<void> {
-      discoverKey(host).click();
+    /** Waits out the hand over, once the player has retyped the round, for the game to show the next one. */
+    async function nextRound({ wait }: Round): Promise<void> {
+      await wait(HAND_OVER);
+    }
+
+    /** Turns fast forward on or off, as assistive technology does, which can't hold the fast-forward key. */
+    async function toggleFastForward({ host, wait }: Round): Promise<void> {
+      fastForwardKey(host).click();
       await wait(0);
     }
 
@@ -1921,15 +1932,15 @@ describe('Play', () => {
         await listen(round, place);
         await round.type(PI_DECIMALS.slice(0, place));
         if (i < reached.length - 1) {
-          await showMe(round);
+          await nextRound(round);
         }
       }
     }
 
     it('plays the first group, keys pressed, the discover key lit, then hands it over once it has faded off the tape', async () => {
       const round = await discover();
-      expect(discoverKey(round.host).getAttribute('aria-label')).toBe('Switch turns');
-      expect(discoverKey(round.host).classList).toContain('lit');
+      expect(fastForwardKey(round.host).getAttribute('aria-label')).toBe('Fast forward');
+      expect(fastForwardKey(round.host).classList).toContain('lit');
 
       await round.wait(MEDIUM_INTERVAL);
       expect(slots(round.host)[0]).toBe('1');
@@ -1937,13 +1948,13 @@ describe('Play', () => {
 
       await listen(round, 4);
       expect(faint(round.host)).toBe('14159');
-      expect(discoverKey(round.host).classList).toContain('lit');
+      expect(fastForwardKey(round.host).classList).toContain('lit');
 
       await round.wait(HAND_OVER);
       expect(faint(round.host)).toBe('');
       expect(words(round.host)).toEqual([]);
-      expect(discoverKey(round.host).classList).not.toContain('lit');
-      expect(discoverWorks(round.host)).toBe(false);
+      expect(fastForwardKey(round.host).classList).not.toContain('lit');
+      expect(fastForwardWorks(round.host)).toBe(false);
     });
 
     it('hands over for as long as developer mode sets', async () => {
@@ -1965,10 +1976,10 @@ describe('Play', () => {
       await TestBed.inject(Tweaks).setGroupPause(100);
 
       await round.wait(6.5 * MEDIUM_INTERVAL + HAND_OVER);
-      expect(discoverKey(round.host).classList).toContain('lit');
+      expect(fastForwardKey(round.host).classList).toContain('lit');
 
       await round.wait(MEDIUM_INTERVAL);
-      expect(discoverKey(round.host).classList).not.toContain('lit');
+      expect(fastForwardKey(round.host).classList).not.toContain('lit');
     });
 
     it('lets the keys’ colors linger longer as the game plays them', async () => {
@@ -2034,10 +2045,10 @@ describe('Play', () => {
 
       expect(faint(round.host)).toBe('');
       expect(slots(round.host)[0]).toBe('1');
-      expect(discoverKey(round.host).classList).not.toContain('lit');
+      expect(fastForwardKey(round.host).classList).not.toContain('lit');
       await round.type('4159');
       expect(words(round.host)).toEqual(['14159']);
-      expect(discoverWorks(round.host)).toBe(true);
+      expect(fastForwardWorks(round.host)).toBe(true);
     });
 
     it('lands each group as its slots fill, never as the player’s timing would', async () => {
@@ -2055,7 +2066,7 @@ describe('Play', () => {
     it('shows the next round, one more group, once the player has retyped the round and the hand over is over', async () => {
       const round = await discover();
       await playRounds(round, 5);
-      expect(discoverWorks(round.host)).toBe(true);
+      expect(fastForwardWorks(round.host)).toBe(true);
 
       await round.wait(HAND_OVER);
       await listen(round, 10);
@@ -2070,24 +2081,47 @@ describe('Play', () => {
       await round.wait(HAND_OVER - 200);
       await round.type(PI_DECIMALS.charAt(5));
       await round.wait(HAND_OVER - 200);
-      expect(discoverKey(round.host).classList).not.toContain('lit');
+      expect(fastForwardKey(round.host).classList).not.toContain('lit');
 
       await round.wait(400);
-      expect(discoverKey(round.host).classList).toContain('lit');
+      expect(fastForwardKey(round.host).classList).toContain('lit');
     });
 
-    it('shows the next round at once with the discover key, but only once the round is retyped', async () => {
+    it('plays the round and fades it out twice as fast while fast forwarded', async () => {
+      const round = await discover();
+      await toggleFastForward(round);
+      expect(fastForwardKey(round.host).getAttribute('aria-pressed')).toBe('true');
+
+      await round.wait((5 * MEDIUM_INTERVAL) / FAST_FORWARD + 10);
+      expect(faint(round.host)).toBe('14159');
+
+      // Past the pause after the group, and the fade.
+      await round.wait(((1 + GROUP_PAUSE / 100) * MEDIUM_INTERVAL + HAND_OVER) / FAST_FORWARD);
+      expect(fastForwardKey(round.host).classList).not.toContain('lit');
+    });
+
+    it('speeds up what’s left of the round as fast forward starts midway', async () => {
+      const round = await discover();
+      await round.wait(2.5 * MEDIUM_INTERVAL);
+
+      await toggleFastForward(round);
+      await round.wait((2.5 * MEDIUM_INTERVAL) / FAST_FORWARD + 10);
+
+      expect(faint(round.host)).toBe('14159');
+    });
+
+    it('fast forwards the hand over to the next round once the player has retyped it, not before', async () => {
       const round = await discover();
       await listen(round, 5);
       await round.type('14');
-
-      await showMe(round);
-      expect(slots(round.host).slice(0, 2)).toEqual(['1', '4']);
+      expect(fastForwardWorks(round.host)).toBe(false);
 
       await round.type('159');
-      await showMe(round);
-      await listen(round, 10);
-      expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 10));
+      expect(fastForwardWorks(round.host)).toBe(true);
+      await toggleFastForward(round);
+      await round.wait(HAND_OVER / FAST_FORWARD);
+
+      expect(fastForwardKey(round.host).classList).toContain('lit');
     });
 
     it('counts the whole groups typed past the round shown, not the digits of a group begun', async () => {
@@ -2095,7 +2129,7 @@ describe('Play', () => {
       await listen(round, 5);
       await round.type(PI_DECIMALS.slice(0, 12));
 
-      await showMe(round);
+      await nextRound(round);
       await listen(round, 15);
 
       expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 15));
@@ -2111,7 +2145,7 @@ describe('Play', () => {
       // Grouped by 3, the runs ending at 7: the game trusts the first group only, then groups of the default size.
       const round = await discover(Array.from({ length: 4 }, (_, run) => by3(7, run)));
       await playRounds(round, 3);
-      await showMe(round);
+      await nextRound(round);
 
       await listen(round, 8);
 
@@ -2126,36 +2160,19 @@ describe('Play', () => {
       await round.type('1');
       expect(faint(round.host)).toBe('');
       expect(slots(round.host)[0]).toBe('1');
-      expect(discoverKey(round.host).classList).not.toContain('lit');
+      expect(fastForwardKey(round.host).classList).not.toContain('lit');
 
       await round.type('415');
-      expect(discoverWorks(round.host)).toBe(false);
+      expect(fastForwardWorks(round.host)).toBe(false);
       await round.type('9');
-      expect(discoverWorks(round.host)).toBe(true);
-      expect(words(round.host)).toEqual(['14159']);
-    });
-
-    it('hands the turn over at once with the discover key, the round to retype to its end, unseen', async () => {
-      const round = await discover();
-      await round.wait(2.5 * MEDIUM_INTERVAL);
-
-      await showMe(round);
-      expect(discoverKey(round.host).classList).not.toContain('lit');
-      await round.wait(HAND_OVER);
-      expect(faint(round.host)).toBe('');
-      expect(slots(round.host)[0]).toBe('');
-
-      await round.type('1415');
-      expect(discoverWorks(round.host)).toBe(false);
-      await round.type('9');
-      expect(discoverWorks(round.host)).toBe(true);
+      expect(fastForwardWorks(round.host)).toBe(true);
       expect(words(round.host)).toEqual(['14159']);
     });
 
     it('loses on the first wrong digit, playing again from the start', async () => {
       const round = await discover();
       await playRounds(round, 5, 10);
-      await showMe(round);
+      await nextRound(round);
       await listen(round, 15);
 
       await round.type('13');
@@ -2184,7 +2201,7 @@ describe('Play', () => {
 
       await playRounds(round, 5);
       expect(checkpoints()).toEqual([]);
-      await showMe(round);
+      await nextRound(round);
       await playRounds(round, 10);
       expect(checkpoints()).toEqual(['10']);
       const button = round.host.querySelector<HTMLButtonElement>('.checkpoint');
@@ -2196,7 +2213,7 @@ describe('Play', () => {
       expect(button?.getAttribute('aria-pressed')).toBe('true');
       expect(checkpoints()).toEqual(['10']);
 
-      await showMe(round);
+      await nextRound(round);
       expect(checkpoints()).toEqual([]);
       // In the player's groups.
       expect(words(round.host)).toEqual(['14159', '26535']);
@@ -2215,7 +2232,7 @@ describe('Play', () => {
       expect(round.host.querySelector('.checkpoint')).toBeNull();
 
       // Its next round starts at the checkpoint reached.
-      await showMe(round);
+      await nextRound(round);
       await round.wait(MEDIUM_INTERVAL);
       expect(slots(round.host)[0]).toBe(PI_DECIMALS.charAt(10));
     });
@@ -2223,7 +2240,7 @@ describe('Play', () => {
     it('waits for the game’s next turn for a checkpoint tapped on its turn', async () => {
       const round = await discover([], 'manual');
       await playRounds(round, 5, 10);
-      await showMe(round);
+      await nextRound(round);
 
       round.host.querySelector<HTMLButtonElement>('.checkpoint')?.click();
       await listen(round, 15);
@@ -2231,7 +2248,7 @@ describe('Play', () => {
       expect(round.host.querySelector('.checkpoint')?.getAttribute('aria-pressed')).toBe('true');
       await round.type(PI_DECIMALS.slice(0, 15));
 
-      await showMe(round);
+      await nextRound(round);
       expect(round.host.querySelector('.checkpoint')).toBeNull();
       await round.wait(MEDIUM_INTERVAL);
       expect(slots(round.host)[0]).toBe(PI_DECIMALS.charAt(10));
@@ -2247,7 +2264,7 @@ describe('Play', () => {
       await round.wait(0);
       expect(button?.hasAttribute('aria-pressed')).toBe(false);
 
-      await showMe(round);
+      await nextRound(round);
       await round.wait(MEDIUM_INTERVAL);
       expect(slots(round.host)[0]).toBe('1');
     });

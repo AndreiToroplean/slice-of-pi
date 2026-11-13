@@ -70,6 +70,8 @@ export class TypedDigits {
    */
   readonly fadeOut = input<{ readonly from: number; readonly round: number }>();
   readonly fadeDuration = input(HAND_OVER);
+  /** How many times faster than its duration says the fade runs, from now on, as the player fast forwards it. */
+  readonly fadeRate = input(1);
   /** The finished groups, in order. */
   readonly words = input.required<readonly Word[]>();
   /** The digits typed so far, including those of the group being typed. */
@@ -114,6 +116,14 @@ export class TypedDigits {
 
   constructor() {
     afterRenderEffect(() => {
+      const rate = this.fadeRate();
+      untracked(() => {
+        for (const animation of this.fades) {
+          animation.updatePlaybackRate(rate);
+        }
+      });
+    });
+    afterRenderEffect(() => {
       const fade = this.fadeOut();
       this.words();
       untracked(() => {
@@ -156,13 +166,13 @@ export class TypedDigits {
         continue;
       }
       this.fading.add(tile);
-      this.fades.push(
-        tile.animate([{}, { opacity: 0 }], {
-          duration: this.fadeDuration(),
-          easing: 'linear',
-          fill: 'forwards',
-        }),
-      );
+      const animation = tile.animate([{}, { opacity: 0 }], {
+        duration: this.fadeDuration(),
+        easing: 'linear',
+        fill: 'forwards',
+      });
+      animation.playbackRate = this.fadeRate();
+      this.fades.push(animation);
     }
   }
 

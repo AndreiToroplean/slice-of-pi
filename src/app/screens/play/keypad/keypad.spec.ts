@@ -740,35 +740,68 @@ describe('Keypad', () => {
     });
   });
 
-  describe('with the discover key in backspace’s place', () => {
-    let discovers: number;
+  describe('with the fast-forward key in backspace’s place', () => {
+    /** Whether the keypad last said to fast forward. */
+    let fastForward: boolean;
 
     beforeEach(() => {
-      discovers = 0;
-      fixture.componentInstance.discover.subscribe(() => discovers++);
+      fastForward = false;
+      fixture.componentInstance.held.subscribe((on) => (fastForward = on));
       fixture.componentRef.setInput('corner', 'discover');
       fixture.detectChanges();
     });
 
-    it('switches turns on a touch, a click or the space bar, typing nothing, and never repeats', () => {
-      expect(button('backspace').getAttribute('aria-label')).toBe('Switch turns');
+    /** Whether the keypad says to fast forward, once it has caught up. */
+    function fastForwarding(): boolean {
+      fixture.detectChanges();
+      return fastForward;
+    }
 
-      tap('backspace');
+    it('fast forwards while held by touch, shown pressed, typing nothing, and never repeats', () => {
+      expect(button('backspace').getAttribute('aria-label')).toBe('Fast forward');
+      expect(fastForwarding()).toBe(false);
+
       down('backspace');
       vi.advanceTimersByTime(REPEAT_DELAY + 3 * REPEAT_INTERVAL);
-      up('backspace');
-      const space = keyboard('keydown', { key: ' ' });
-      button('backspace').dispatchEvent(new MouseEvent('click', { detail: 0 }));
+      expect(fastForwarding()).toBe(true);
+      expect(pressedKeys()).toEqual(['backspace']);
+      expect(button('backspace').getAttribute('aria-pressed')).toBe('true');
 
-      expect(discovers).toBe(4);
+      up('backspace');
+      expect(fastForwarding()).toBe(false);
       expect(typed).toEqual([]);
+    });
+
+    it('fast forwards while the space bar is held', () => {
+      const space = keyboard('keydown', { key: ' ' });
+      expect(fastForwarding()).toBe(true);
       expect(space.defaultPrevented).toBe(true);
+
+      keyboard('keyup', { key: ' ' });
+      expect(fastForwarding()).toBe(false);
+      expect(typed).toEqual([]);
+    });
+
+    it('turns fast forward on and off with assistive technology, which can’t hold it', () => {
+      button('backspace').dispatchEvent(new MouseEvent('click', { detail: 0 }));
+      expect(fastForwarding()).toBe(true);
+
+      button('backspace').dispatchEvent(new MouseEvent('click', { detail: 0 }));
+      expect(fastForwarding()).toBe(false);
+    });
+
+    it('stops fast forwarding as it stops working, though still held', () => {
+      down('backspace');
+      expect(fastForwarding()).toBe(true);
+      fixture.componentRef.setInput('cornerDisabled', true);
+
+      expect(fastForwarding()).toBe(false);
     });
 
     it('leaves Backspace alone', () => {
       const event = keyboard('keydown', { key: 'Backspace' });
 
-      expect(discovers).toBe(0);
+      expect(fastForwarding()).toBe(false);
       expect(event.defaultPrevented).toBe(false);
     });
 
