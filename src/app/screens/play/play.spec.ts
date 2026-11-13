@@ -50,7 +50,6 @@ import {
   paceInterval,
 } from '../../game/modes/discover-pace';
 import { DiscoverRecorder } from '../../player-data/discover-recorder';
-import { fadeOpacity } from './typed-digits/fade';
 import { Keypad } from './keypad/keypad';
 import { KEY_LINGER } from '../../game/layers/place-colors';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
@@ -1964,7 +1963,7 @@ describe('Play', () => {
       expect(cornerWorks(round.host)).toBe(false);
     });
 
-    it('fades the digits shown out over the hand over, easing in from their opacity', async () => {
+    it('fades the digits shown out over the hand over, steadily from their opacity', async () => {
       const round = await discover();
       const tape = (): HTMLElement | null => round.host.querySelector('app-typed-digits');
       await listen(round, 5);
@@ -1973,7 +1972,7 @@ describe('Play', () => {
 
       // Listening went half a digit's time into the fade: on to half of it.
       await round.wait(HAND_OVER / 2 - MEDIUM_INTERVAL / 2);
-      expect(Number(tape()?.style.getPropertyValue('--fade'))).toBeCloseTo(fadeOpacity(0.5), 1);
+      expect(Number(tape()?.style.getPropertyValue('--fade'))).toBeCloseTo(0.5, 1);
     });
 
     it('shows its digits as faint as developer mode sets', async () => {
