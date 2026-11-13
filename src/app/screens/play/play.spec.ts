@@ -2198,6 +2198,21 @@ describe('Play', () => {
       expect(turnOf(round.host)).toBe('player');
     });
 
+    it('holds the round the game plays for as long as the pause key is held, going on from where it was', async () => {
+      const round = await discover();
+      await round.wait(1.5 * MEDIUM_INTERVAL);
+
+      round.keypad().pauseKey.emit('down');
+      await round.wait(0);
+      await round.wait(10 * MEDIUM_INTERVAL);
+      expect(slots(round.host).join('')).toBe('1');
+
+      round.keypad().pauseKey.emit('up');
+      await round.wait(0);
+      await round.wait(MEDIUM_INTERVAL / 2);
+      expect(slots(round.host).join('')).toBe('14');
+    });
+
     it('pauses with a tap of the pause key, but not once it was held long enough to hold', async () => {
       const round = await discover();
       const paused = (): boolean => dialogNamed(round.host, 'Paused').open;

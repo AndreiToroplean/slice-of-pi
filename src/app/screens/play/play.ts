@@ -94,7 +94,7 @@ type Turn = 'game' | 'player';
 
 /**
  * How long the pause key must be held, in milliseconds, for its release not to pause the game, in Discover: a hold,
- * which holds a turn's hand over, rather than a tap.
+ * which holds Discover's time while held, rather than a tap.
  */
 export const PAUSE_HOLD = 300;
 
@@ -467,20 +467,17 @@ export class Play implements PausesOnBack {
   private readonly fastForwarding = signal(false);
   /** When the pause key's press going on started, on the run's clock, if one is. */
   private pauseKeyDown: number | undefined;
-  /** Whether the player holds the pause key down, which holds a turn's hand over in Discover. */
+  /** Whether the player holds the pause key down, which holds Discover's time as pausing does, without the pause. */
   private readonly pauseHeld = signal(false);
-  /** Whether Shift is held down, which holds a turn's hand over as the pause key does. */
+  /** Whether Shift is held down, which holds Discover's time as the pause key does. */
   protected readonly shiftHeld = signal(false);
   /**
    * How many times faster than the clock's Discover's time runs, the game playing and handing turns over on it: not at
-   * all while the game is paused, nor while the player holds the pause key, or Shift, as a turn is handed over, to look
-   * at its digits, or think, for longer; and faster while they hold the turn key to fast forward the game's round.
+   * all while the game is paused, nor while the player holds the pause key, or Shift, to look at the round, or think,
+   * for longer, as if paused; and faster while they hold the turn key to fast forward the game's round.
    */
   private readonly discoverRate = computed(() => {
-    if (this.paused()) {
-      return 0;
-    }
-    if (this.handingOver() !== undefined && (this.pauseHeld() || this.shiftHeld())) {
+    if (this.paused() || this.pauseHeld() || this.shiftHeld()) {
       return 0;
     }
     return this.fastForwarding() ? this.tweaks.fastForward() : 1;
@@ -786,7 +783,8 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Holds a turn's hand over in Discover for as long as the pause key is held; a tap of it pauses the game as it's
+   * Holds Discover's time for as long as the pause key is held, the game's round or a turn's hand over standing still,
+   * as paused, but without the pause; a tap of it pauses the game as it's
    * released on the key, as any release does but in Discover, where the key held down for {@link PAUSE_HOLD} or longer
    * was a hold.
    */
@@ -805,7 +803,7 @@ export class Play implements PausesOnBack {
     }
   }
 
-  /** Notes Shift held down, or let go, which holds a turn's hand over as the pause key does. */
+  /** Notes Shift held down, or let go, which holds Discover's time as the pause key does. */
   protected shift(event: KeyboardEvent, down: boolean): void {
     if (event.key === 'Shift') {
       this.shiftHeld.set(down);
