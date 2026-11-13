@@ -30,9 +30,9 @@ import {
   PART_HANDLES,
   PART_LIGHTS,
   PART_NAMES,
-  Point,
   SCREEN_TOP,
 } from './menu-handles';
+import { Point } from '../../ui/handles/light-handles';
 import { LightLayer, MENU_LOOK, MenuLook, withIconLight } from './menu-look';
 
 /** The handles of edit mode that set the margins round every screen, and its corner buttons, which the menu has too. */
