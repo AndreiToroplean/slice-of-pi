@@ -210,7 +210,7 @@ describe('Keypad', () => {
 
         const areas = host.querySelectorAll<HTMLElement>('.area');
         const seven = host.querySelector<HTMLElement>('.area[data-key="7"]');
-        expect(areas.length).toBe(11);
+        expect(areas.length).toBe(12);
         expect([seven?.style.gridRow, seven?.style.gridColumn]).toEqual(['1', '1']);
         expect(seven?.style.getPropertyValue('--key-color')).toBe(
           button('7').style.getPropertyValue('--press-color'),
