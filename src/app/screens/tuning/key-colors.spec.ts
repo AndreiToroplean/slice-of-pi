@@ -121,7 +121,7 @@ describe('KeyColors', () => {
     await stable();
     expect(host.querySelector('app-color-picker .name')?.textContent).toBe('Backspace');
 
-    await slide(host, 'Backspace', 'lightness', 50, stable);
+    await slide(host, 'Backspace', 'lightness', 30, stable);
 
     const tuned = TestBed.inject(Tweaks).values().otherKeys?.backspace;
     expect(tuned).not.toBe(OTHER_KEY_COLORS.backspace);
