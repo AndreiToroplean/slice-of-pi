@@ -380,24 +380,24 @@ export class Play implements PausesOnBack {
   /** The key Discover is playing, shown pressed. */
   protected readonly playedKey = signal<KeypadKey | undefined>(undefined);
   /**
-   * The digits fading out of the tape as Discover hands a turn over, if any: from where, and since when, on Discover's
-   * time (see {@link discoverTimer}).
+   * The hand over going on in Discover, if any, from one turn to the other (see {@link handOver}): from which place the
+   * digits fade out of the tape, and since when, on Discover's time (see {@link discoverTimer}).
    */
-  private readonly fading = signal<{ readonly from: number; readonly since: number } | undefined>(
-    undefined,
-  );
-  /** Ticks about every frame while digits fade out of the tape. */
+  private readonly handingOver = signal<
+    { readonly from: number; readonly since: number } | undefined
+  >(undefined);
+  /** Ticks about every frame while a turn is handed over. */
   private readonly fadeTicks = signal(0);
-  /** The digits fading out of the tape, from where, and how much of the hand over is left, from 1 down to 0. */
+  /** The digits fading out of the tape as a turn is handed over, from where, and how much of it is left, from 1 to 0. */
   protected readonly fadeOut = computed(() => {
     this.fadeTicks();
-    const fading = this.fading();
-    if (fading === undefined) {
+    const handingOver = this.handingOver();
+    if (handingOver === undefined) {
       return undefined;
     }
     const handOver = this.tweaks.handOver();
-    const waited = this.discoverTimer.time() - fading.since;
-    return { from: fading.from, left: handOver > 0 ? Math.max(0, 1 - waited / handOver) : 0 };
+    const waited = this.discoverTimer.time() - handingOver.since;
+    return { from: handingOver.from, left: handOver > 0 ? Math.max(0, 1 - waited / handOver) : 0 };
   });
   /**
    * How many digits the player is to retype in Discover's round, up to the place the game showed it to; or, as they
@@ -412,7 +412,7 @@ export class Play implements PausesOnBack {
   });
   /** The checkpoint picked, which the rounds start at from the game's next turn, shown pressed until then. */
   protected readonly picked = signal<number | undefined>(undefined);
-  /** Stops the wait for the next round to start, once the player has retyped the round. */
+  /** Stops the hand over going on, if any. */
   private stopHandOver = (): void => undefined;
   /** What the key in backspace's place is: the discover key in Discover, backspace otherwise. */
   protected readonly cornerKey = computed((): CornerKey =>
@@ -425,12 +425,12 @@ export class Play implements PausesOnBack {
   /** Whether Shift is held down, which holds the tape as a touch does. */
   protected readonly shiftHeld = signal(false);
   /**
-   * How many times faster than the clock's Discover's time runs, the game playing and the digits fading on it: not at
-   * all while the player holds the tape as digits fade out of it, to look at them for longer, and faster while they
-   * hold the discover key.
+   * How many times faster than the clock's Discover's time runs, the game playing and handing turns over on it: not at
+   * all while the player holds the tape as a turn is handed over, to look at its digits, or think, for longer, and
+   * faster while they hold the discover key.
    */
   private readonly discoverRate = computed(() => {
-    if (this.fading() !== undefined && (this.tapeTouches().size > 0 || this.shiftHeld())) {
+    if (this.handingOver() !== undefined && (this.tapeTouches().size > 0 || this.shiftHeld())) {
       return 0;
     }
     return this.fastForwarding() ? this.tweaks.fastForward() : 1;
@@ -622,7 +622,7 @@ export class Play implements PausesOnBack {
     });
     if (this.discovering) {
       afterNextRender(() => {
-        this.playRound();
+        this.startGameTurn();
       });
     }
     if (this.replay() === undefined) {
@@ -666,7 +666,7 @@ export class Play implements PausesOnBack {
    */
   private takeTurn(key: KeypadKey | null): void {
     if (this.turn() === 'game' && key !== null && isDigit(key) && !this.paused() && !this.lost()) {
-      this.handToPlayer(false);
+      this.switchTurn(false);
       // The key takes, and lingers in, the color of the player's place, not that of the round shown.
       this.keypad().noteColor(key, this.tweaks.palette()[this.colorIndices()[key]]);
     }
@@ -699,13 +699,11 @@ export class Play implements PausesOnBack {
       this.session.resume();
       this.discoverRecorder.resume();
       this.watchForPause();
-      // A round stopped as the game played it plays again from its start.
+      // A round stopped as the game played it plays again from its start; the player's hand over starts over.
       if (this.discovering && !this.lost() && this.turn() === 'game') {
-        this.playRound();
-      }
-      // The wait for the next round starts over.
-      if (this.done() && !this.lost()) {
-        this.handBack();
+        this.startGameTurn();
+      } else if (this.done() && !this.lost()) {
+        this.handOver();
       }
     }
   }
@@ -782,7 +780,7 @@ export class Play implements PausesOnBack {
   protected fastForward(held: boolean): void {
     this.fastForwarding.set(held);
     if (held && this.done() && !this.paused() && !this.lost()) {
-      this.playRound();
+      this.switchTurn();
     }
   }
 
@@ -884,7 +882,7 @@ export class Play implements PausesOnBack {
         this.discoverRecorder.record(touch, place, this.rounds().start);
         this.landIfFull();
         if (this.done()) {
-          this.handBack();
+          this.handOver();
         }
         return;
       }
@@ -940,11 +938,11 @@ export class Play implements PausesOnBack {
    * Plays Discover's round from the place the rounds start from, on the game's turn: the game types each digit at the
    * pace picked, its key shown pressed, in its color, and sounding, the groups landing as they fill, up to the place
    * reached, then on to the end of the group the slots show there: as many digits as there are slots, a little longer
-   * between groups (see `GROUP_PAUSE`). Then it's the player's turn (see {@link handToPlayer}). The rounds start at the
+   * between groups (see `GROUP_PAUSE`). Then it hands the turn over (see {@link handOver}). The rounds start at the
    * checkpoint picked meanwhile, if any, or, unless the player picks them in developer mode, at the one so many behind
    * the farthest reached (see `laggingCheckpoint`).
    */
-  private playRound(): void {
+  private startGameTurn(): void {
     this.stopRounds();
     const picked = this.tweaks.manualCheckpoints()
       ? this.picked()
@@ -960,7 +958,7 @@ export class Play implements PausesOnBack {
     this.playNext(paceInterval(this.pace(), this.tweaks.discoverSpeed(), this.tweaks.paceStep()));
   }
 
-  /** Plays the next digit of Discover's round after `delay`, if the round goes on, or hands it to the player. */
+  /** Plays the next digit of Discover's round after `delay`, if the round goes on, or hands the turn over. */
   private playNext(interval: number, delay = interval): void {
     this.afterRound(delay, () => {
       const typed = this.digits().length;
@@ -971,51 +969,54 @@ export class Play implements PausesOnBack {
           grouped ? interval * (1 + this.tweaks.groupPause() / 100) : interval,
         );
       } else {
-        this.fadeShown();
+        this.handOver();
       }
     });
   }
 
   /**
-   * Fades Discover's round out of the tape, as the game is done showing it, over the hand over (see `HAND_OVER`), still
-   * on the game's turn, the slots, keys and season those of the round shown: the player can still read it. Then it's
-   * their turn (see {@link handToPlayer}), the round to retype up to where the game showed it.
+   * Hands Discover's turn over to the other, once the game has shown the round, or the player has retyped it: the digits
+   * of the turn fade out of the tape over the hand over (see `HAND_OVER`), on Discover's time, so that it goes faster or
+   * stops as that does, the slots, keys and season still those of the turn, so that the player can still read them, or
+   * think; then the turn switches (see {@link switchTurn}). The game's turn leaves the player the round to retype up to
+   * where it showed it; each digit the player types on starts theirs over.
    */
-  private fadeShown(): void {
-    this.playedKey.set(undefined);
-    this.target.set(this.digits().length);
-    this.stopRound.push(
-      this.fadeOutFor(() => {
-        this.handToPlayer();
-      }),
-    );
-  }
-
-  /**
-   * Fades the digits out of the tape from where the rounds start, over the hand over, on Discover's time, so that they
-   * fade faster or stop as it does, then calls `then`. The function returned stops it.
-   */
-  private fadeOutFor(then: () => void): () => void {
-    this.fading.set({ from: this.rounds().from, since: this.discoverTimer.time() });
+  private handOver(): void {
+    if (this.turn() === 'game') {
+      this.playedKey.set(undefined);
+      this.target.set(this.digits().length);
+    }
+    this.stopHandOver();
+    this.handingOver.set({ from: this.rounds().from, since: this.discoverTimer.time() });
     const stopTicks = this.timer.every(TICK, () => {
       this.fadeTicks.update((ticks) => ticks + 1);
     });
     const stopWait = this.discoverTimer.after(this.tweaks.handOver(), () => {
-      stopTicks();
-      then();
+      this.switchTurn();
     });
-    return () => {
+    this.stopHandOver = () => {
       stopTicks();
       stopWait();
     };
   }
 
   /**
-   * Hands Discover's round to the player, the digits the game showed gone, as they're done fading out, or before, as
-   * the player types on the game's turn: taking it before the game is done showing it, the round is all the same, to its
-   * end, as they show they know it. Vibrates if `vibrate`, as the turn goes by itself.
+   * Switches Discover's turn, as the hand over ends, or before, as the player takes theirs typing on the game's: the
+   * digits of the turn gone, it's the other's. Vibrates if `vibrate`, as the turn switches by itself.
    */
-  private handToPlayer(vibrate = true): void {
+  private switchTurn(vibrate = true): void {
+    if (this.turn() === 'game') {
+      this.startPlayerTurn(vibrate);
+    } else {
+      this.startGameTurn();
+    }
+  }
+
+  /**
+   * Starts the player's turn in Discover: taking it before the game is done showing the round, the round is all the
+   * same, to its end, as they show they know it.
+   */
+  private startPlayerTurn(vibrate: boolean): void {
     this.stopRounds();
     this.backToRoundStart();
     this.turn.set('player');
@@ -1023,17 +1024,6 @@ export class Play implements PausesOnBack {
     if (vibrate) {
       this.vibrate('turn');
     }
-  }
-
-  /**
-   * Hands Discover's turn back to the game, as the player has retyped the round: their digits fade out of the tape
-   * over the hand over, and the game shows the next round once it's over, each digit they type on starting it over.
-   */
-  private handBack(): void {
-    this.stopHandOver();
-    this.stopHandOver = this.fadeOutFor(() => {
-      this.playRound();
-    });
   }
 
   /**
@@ -1075,7 +1065,7 @@ export class Play implements PausesOnBack {
     this.stopWatching();
     this.landFlights();
     this.playedKey.set(undefined);
-    this.fading.set(undefined);
+    this.handingOver.set(undefined);
     this.stopHandOver();
     this.stopHandOver = () => undefined;
     this.mistakes.set('');
