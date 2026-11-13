@@ -88,9 +88,9 @@ interface Press {
 
 /**
  * What the key in backspace's place is: backspace, as in free play, and in a challenge, where it's disabled; or the
- * discover key, held to play faster what the game plays, as in Discover.
+ * turn key, held to play faster what the game plays, as in Discover.
  */
-export type CornerKey = 'backspace' | 'discover';
+export type CornerKey = 'backspace' | 'turn';
 
 /**
  * On-screen keypad: digits, backspace and the pause key, in the layout given.
@@ -104,7 +104,7 @@ export type CornerKey = 'backspace' | 'discover';
  *   then: another key, or nothing, off the keypad. Released farther, it types nothing. Only where it's released counts.
  * - Several fingers can press keys at once; each key is typed when its finger is released.
  * - Holding backspace repeats it, while near enough to type it; digits don't repeat.
- * - The key in backspace's place is what the game mode makes it (see {@link CornerKey}): backspace; the discover key,
+ * - The key in backspace's place is what the game mode makes it (see {@link CornerKey}): backspace; the turn key,
  *   which fast forwards what the game plays while held, by touch or with the space bar, and, as assistive technology
  *   can't hold it, from one activation to the next, and is in its color all over while the game shows the round.
  *   Disabled, as backspace is in a challenge, it shows disabled, and touches on it type nothing.
@@ -169,15 +169,15 @@ export type CornerKey = 'backspace' | 'discover';
           [class.pause]="position.key === 'pause'"
           [attr.data-vibration]="position.key === 'pause' ? 'button' : null"
           [attr.title]="position.key === 'pause' ? 'Pause' : null"
-          [class.discover]="position.key === 'backspace' && corner() === 'discover'"
-          [class.lit]="position.key === 'backspace' && corner() === 'discover' && lit()"
+          [class.turn]="position.key === 'backspace' && corner() === 'turn'"
+          [class.lit]="position.key === 'backspace' && corner() === 'turn' && lit()"
           [attr.aria-disabled]="position.key === 'backspace' && cornerDisabled() ? true : null"
           [pressed]="shownPressed(position.key)"
           [pressColor]="pressColor(position.key)"
           [attr.data-key]="position.key"
           [attr.aria-label]="position.key === 'backspace' ? cornerLabel() : null"
           [attr.aria-pressed]="
-            position.key === 'backspace' && corner() === 'discover' ? holding() : null
+            position.key === 'backspace' && corner() === 'turn' ? holding() : null
           "
           [style.grid-row]="position.row + 1"
           [style.grid-column]="position.column + 1"
@@ -200,7 +200,7 @@ export type CornerKey = 'backspace' | 'discover';
                   <path d="m11 9 6 6m0-6-6 6" />
                 </svg>
               }
-              @case ('discover') {
+              @case ('turn') {
                 <!-- Two triangles pointing right, as on a remote. -->
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M3 6.5v11l8-5.5zm9.5 0v11l8-5.5z" />
@@ -272,14 +272,14 @@ export class Keypad {
   readonly showAreas = input(false);
   /** What the key in backspace's place is, as the game mode makes it. */
   readonly corner = input<CornerKey>('backspace');
-  /** Whether the discover key is in its color all over, as while the game shows the round. */
+  /** Whether the turn key is in its color all over, as while the game shows the round. */
   readonly lit = input(false);
   /**
-   * Whether the key in backspace's place doesn't work, as backspace in a challenge, or the discover key on the
+   * Whether the key in backspace's place doesn't work, as backspace in a challenge, or the turn key on the
    * player's turn: it shows disabled, and touches on it type nothing.
    */
   readonly cornerDisabled = input(false);
-  /** Whether the discover key is held, as it starts or stops being held while it works, given at once. */
+  /** Whether the turn key is held, as it starts or stops being held while it works, given at once. */
   readonly held = output<boolean>();
   /** The pause key was pressed: the player pauses the game. */
   readonly pauseGame = output();
@@ -312,10 +312,10 @@ export class Keypad {
 
   /** Whether assistive technology turned fast forward on, as it can't hold the key down. */
   private readonly latched = signal(false);
-  /** Whether the discover key is held down, or turned on, while it works. */
+  /** Whether the turn key is held down, or turned on, while it works. */
   protected readonly holding = computed(
     () =>
-      this.corner() === 'discover' &&
+      this.corner() === 'turn' &&
       !this.cornerDisabled() &&
       (this.isPressed('backspace') || this.latched()),
   );
@@ -745,7 +745,7 @@ export class Keypad {
     }
   }
 
-  /** Whether a key shows pressed: while pressed, and for a moment after; the discover key while held. */
+  /** Whether a key shows pressed: while pressed, and for a moment after; the turn key while held. */
   protected shownPressed(key: KeypadKey): boolean {
     return (
       this.isPressed(key) ||
@@ -868,7 +868,7 @@ export class Keypad {
     if (event.detail !== 0 || this.disabled() || !this.works(key)) {
       return;
     }
-    if (key === 'backspace' && this.corner() === 'discover') {
+    if (key === 'backspace' && this.corner() === 'turn') {
       this.latched.update((latched) => !latched);
     } else {
       this.type(key);
@@ -902,11 +902,11 @@ export class Keypad {
     this.report(key);
   }
 
-  /** Reports a touch, or a key typed, but the discover key's, which only works while held, and the pause key's. */
+  /** Reports a touch, or a key typed, but the turn key's, which only works while held, and the pause key's. */
   private report(key: KeypadKey | null, at?: KeypadPoint): void {
     if (key === 'pause') {
       this.pauseGame.emit();
-    } else if (key === 'backspace' && this.corner() === 'discover') {
+    } else if (key === 'backspace' && this.corner() === 'turn') {
       return;
     } else if (at !== undefined) {
       this.touched.emit({ key, ...at });
@@ -917,7 +917,7 @@ export class Keypad {
 
   /** What the key in backspace's place is called. */
   protected readonly cornerLabel = computed(() =>
-    this.corner() === 'discover' ? 'Fast forward' : 'Delete last digit',
+    this.corner() === 'turn' ? 'Fast forward' : 'Delete last digit',
   );
 
   private repeat(pointerId: number): void {
@@ -1023,13 +1023,13 @@ export class Keypad {
 
 /**
  * The keypad key a physical key press stands for, if any: the key in backspace's place is typed with Backspace, but
- * held with the space bar where it's the discover key.
+ * held with the space bar where it's the turn key.
  */
 function keyFor(event: KeyboardEvent, corner: CornerKey): KeypadKey | null {
   if (event.ctrlKey || event.metaKey || event.altKey) {
     return null;
   }
-  if (event.key === (corner === 'discover' ? ' ' : 'Backspace')) {
+  if (event.key === (corner === 'turn' ? ' ' : 'Backspace')) {
     return 'backspace';
   }
   return isDigit(event.key) ? event.key : null;

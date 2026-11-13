@@ -740,14 +740,14 @@ describe('Keypad', () => {
     });
   });
 
-  describe('with the fast-forward key in backspace’s place', () => {
+  describe('with the turn key in backspace’s place', () => {
     /** Whether the keypad last said to fast forward. */
     let fastForward: boolean;
 
     beforeEach(() => {
       fastForward = false;
       fixture.componentInstance.held.subscribe((on) => (fastForward = on));
-      fixture.componentRef.setInput('corner', 'discover');
+      fixture.componentRef.setInput('corner', 'turn');
       fixture.detectChanges();
     });
 
@@ -924,7 +924,7 @@ describe('Keypad', () => {
       fixture.componentRef.setInput('actionKeys', '#123456');
       expect(accent('pause')).toBe('#123456');
 
-      fixture.componentRef.setInput('corner', 'discover');
+      fixture.componentRef.setInput('corner', 'turn');
       expect(accent('backspace')).toBe('#123456');
     });
 

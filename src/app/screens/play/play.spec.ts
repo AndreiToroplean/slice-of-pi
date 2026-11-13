@@ -1879,9 +1879,7 @@ describe('Play', () => {
     }
 
     function shownKey(host: HTMLElement): string | undefined {
-      return host.querySelector<HTMLElement>('app-keypad .key.pressed:not(.discover)')?.dataset[
-        'key'
-      ];
+      return host.querySelector<HTMLElement>('app-keypad .key.pressed:not(.turn)')?.dataset['key'];
     }
 
     function fastForwardKey(host: HTMLElement): HTMLButtonElement {
@@ -1937,7 +1935,7 @@ describe('Play', () => {
       }
     }
 
-    it('plays the first group, keys pressed, the discover key lit, then hands it over once it has faded off the tape', async () => {
+    it('plays the first group, keys pressed, the turn key lit, then hands it over once it has faded off the tape', async () => {
       const round = await discover();
       expect(fastForwardKey(round.host).getAttribute('aria-label')).toBe('Fast forward');
       expect(fastForwardKey(round.host).classList).toContain('lit');
