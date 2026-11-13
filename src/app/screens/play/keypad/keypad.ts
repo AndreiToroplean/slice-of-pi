@@ -88,9 +88,15 @@ interface Press {
 
 /**
  * What the key in backspace's place is: backspace, as in free play, and in a challenge, where it's disabled; or the
- * turn key, held to play faster what the game plays, as in Discover.
+ * turn key, as in Discover, which switches turns, or fast forwards the game's.
  */
 export type CornerKey = 'backspace' | 'turn';
+
+/**
+ * What the player does with the turn key: presses it, `down`; releases it on it, `up`, as a tap does; or lets it go
+ * elsewhere, `off`, sliding off it, or the touch cancelled, or the page left, which a tap never ends on.
+ */
+export type TurnKeyPress = 'down' | 'up' | 'off';
 
 /**
  * On-screen keypad: digits, backspace and the pause key, in the layout given.
@@ -105,9 +111,9 @@ export type CornerKey = 'backspace' | 'turn';
  * - Several fingers can press keys at once; each key is typed when its finger is released.
  * - Holding backspace repeats it, while near enough to type it; digits don't repeat.
  * - The key in backspace's place is what the game mode makes it (see {@link CornerKey}): backspace; the turn key,
- *   which fast forwards what the game plays while held, by touch or with the space bar, and, as assistive technology
- *   can't hold it, from one activation to the next, and is in its color all over while the game shows the round.
- *   Disabled, as backspace is in a challenge, it shows disabled, and touches on it type nothing.
+ *   whose presses, by touch or with the space bar, are reported as they start and end (see {@link TurnKeyPress}), for
+ *   the game to tell a hold from a tap; it shows a fast-forward or a switch-turns icon, as it's told, and is in its
+ *   color all over while lit. Disabled, as backspace is in a challenge, it shows disabled, and touches on it type nothing.
  *   On a keyboard, Backspace types backspace.
  *
  * Keys can also be typed on a physical keyboard: they are typed when pressed, and backspace repeats as the keyboard
@@ -144,7 +150,7 @@ export type CornerKey = 'backspace' | 'turn';
     '(pointercancel)': 'cancelPress($event.pointerId)',
     '(document:keydown)': 'onKeydown($event)',
     '(document:keyup)': 'onKeyup($event)',
-    '(window:blur)': 'heldKeys.set([])',
+    '(window:blur)': 'onBlur()',
   },
   template: `
     <div #grid class="grid">
@@ -176,9 +182,6 @@ export type CornerKey = 'backspace' | 'turn';
           [pressColor]="pressColor(position.key)"
           [attr.data-key]="position.key"
           [attr.aria-label]="position.key === 'backspace' ? cornerLabel() : null"
-          [attr.aria-pressed]="
-            position.key === 'backspace' && corner() === 'turn' ? holding() : null
-          "
           [style.grid-row]="position.row + 1"
           [style.grid-column]="position.column + 1"
           [class.drawn]="isDrawn(position.key)"
@@ -201,10 +204,18 @@ export type CornerKey = 'backspace' | 'turn';
                 </svg>
               }
               @case ('turn') {
-                <!-- Two triangles pointing right, as on a remote. -->
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M3 6.5v11l8-5.5zm9.5 0v11l8-5.5z" />
-                </svg>
+                @if (fastForwards()) {
+                  <!-- Two triangles pointing right, as on a remote. -->
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 6.5v11l8-5.5zm9.5 0v11l8-5.5z" />
+                  </svg>
+                } @else {
+                  <!-- An arrow coming round on itself: the other's turn. -->
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20 12a8 8 0 1 1-8-8c2.2 0 4.3.9 5.9 2.4L20 8.5" />
+                    <path d="M20 3.5v5h-5" />
+                  </svg>
+                }
               }
             }
           } @else {
@@ -279,8 +290,10 @@ export class Keypad {
    * player's turn: it shows disabled, and touches on it type nothing.
    */
   readonly cornerDisabled = input(false);
-  /** Whether the turn key is held, as it starts or stops being held while it works, given at once. */
-  readonly held = output<boolean>();
+  /** Whether the turn key fast forwards, as it shows, rather than switches turns. */
+  readonly fastForwards = input(false);
+  /** What the player does with the turn key (see {@link TurnKeyPress}). */
+  readonly turnKey = output<TurnKeyPress>();
   /** The pause key was pressed: the player pauses the game. */
   readonly pauseGame = output();
   /**
@@ -310,15 +323,6 @@ export class Keypad {
   );
   protected readonly isDigit = isDigit;
 
-  /** Whether assistive technology turned fast forward on, as it can't hold the key down. */
-  private readonly latched = signal(false);
-  /** Whether the turn key is held down, or turned on, while it works. */
-  protected readonly holding = computed(
-    () =>
-      this.corner() === 'turn' &&
-      !this.cornerDisabled() &&
-      (this.isPressed('backspace') || this.latched()),
-  );
   /** Keys held down on a physical keyboard. */
   protected readonly heldKeys = signal<readonly KeypadKey[]>([]);
   /** Keys being touched. */
@@ -625,12 +629,6 @@ export class Keypad {
   }
 
   constructor() {
-    effect(() => {
-      const holding = this.holding();
-      untracked(() => {
-        this.held.emit(holding);
-      });
-    });
     // Keys next to each other merge while they're the same color, and keys pressed sink.
     effect(() => {
       for (const { key } of this.keys()) {
@@ -745,13 +743,9 @@ export class Keypad {
     }
   }
 
-  /** Whether a key shows pressed: while pressed, and for a moment after; the turn key while held. */
+  /** Whether a key shows pressed: while pressed, and for a moment after. */
   protected shownPressed(key: KeypadKey): boolean {
-    return (
-      this.isPressed(key) ||
-      this.splashing().includes(key) ||
-      (key === 'backspace' && this.holding())
-    );
+    return this.isPressed(key) || this.splashing().includes(key);
   }
 
   /** A key's color: while it shows pressed, the color it took then, and otherwise the color it takes when typed next. */
@@ -802,6 +796,9 @@ export class Keypad {
       this.splash(key);
       this.pressed.emit(key);
     }
+    if (this.isTurnKey(key)) {
+      this.turnKey.emit('down');
+    }
   }
 
   protected onPointerMove(event: PointerEvent): void {
@@ -821,7 +818,9 @@ export class Keypad {
     press.point = this.touchAt(event).point;
     this.checkDistance(press);
     this.dropPress(event.pointerId);
-    if (!press.repeated) {
+    if (this.isTurnKey(press.key)) {
+      this.turnKey.emit(press.far ? 'off' : 'up');
+    } else if (!press.repeated) {
       this.report(press.far ? null : press.key, press.start);
     }
   }
@@ -849,6 +848,9 @@ export class Keypad {
       if (press.key !== null) {
         this.endSplash(press.key);
       }
+      if (this.isTurnKey(press.key)) {
+        this.turnKey.emit('off');
+      }
     }
   }
 
@@ -868,8 +870,10 @@ export class Keypad {
     if (event.detail !== 0 || this.disabled() || !this.works(key)) {
       return;
     }
-    if (key === 'backspace' && this.corner() === 'turn') {
-      this.latched.update((latched) => !latched);
+    if (this.isTurnKey(key)) {
+      // A tap, as it can't be held.
+      this.turnKey.emit('down');
+      this.turnKey.emit('up');
     } else {
       this.type(key);
     }
@@ -885,16 +889,36 @@ export class Keypad {
     if (!event.repeat) {
       this.splash(key);
     }
-    if (!event.repeat || key === 'backspace') {
+    if (this.isTurnKey(key)) {
+      if (!event.repeat) {
+        this.turnKey.emit('down');
+      }
+    } else if (!event.repeat || key === 'backspace') {
       this.type(key);
     }
   }
 
   protected onKeyup(event: KeyboardEvent): void {
     const key = keyFor(event, this.corner());
-    if (key !== null) {
+    if (key !== null && this.heldKeys().includes(key)) {
       this.heldKeys.update((keys) => keys.filter((held) => held !== key));
+      if (this.isTurnKey(key)) {
+        this.turnKey.emit('up');
+      }
     }
+  }
+
+  /** Lets go of the keys held on a physical keyboard, as the page loses the focus, the turn key's press ending off it. */
+  protected onBlur(): void {
+    if (this.heldKeys().some((key) => this.isTurnKey(key))) {
+      this.turnKey.emit('off');
+    }
+    this.heldKeys.set([]);
+  }
+
+  /** Whether a key is the turn key. */
+  private isTurnKey(key: KeypadKey | null): boolean {
+    return key === 'backspace' && this.corner() === 'turn';
   }
 
   /** Types a key without touching the keypad. */
@@ -902,12 +926,10 @@ export class Keypad {
     this.report(key);
   }
 
-  /** Reports a touch, or a key typed, but the turn key's, which only works while held, and the pause key's. */
+  /** Reports a touch, or a key typed, but the pause key's, which pauses. */
   private report(key: KeypadKey | null, at?: KeypadPoint): void {
     if (key === 'pause') {
       this.pauseGame.emit();
-    } else if (key === 'backspace' && this.corner() === 'turn') {
-      return;
     } else if (at !== undefined) {
       this.touched.emit({ key, ...at });
     } else if (key !== null) {
@@ -916,9 +938,12 @@ export class Keypad {
   }
 
   /** What the key in backspace's place is called. */
-  protected readonly cornerLabel = computed(() =>
-    this.corner() === 'turn' ? 'Fast forward' : 'Delete last digit',
-  );
+  protected readonly cornerLabel = computed(() => {
+    if (this.corner() === 'backspace') {
+      return 'Delete last digit';
+    }
+    return this.fastForwards() ? 'Fast forward' : 'Switch turns';
+  });
 
   private repeat(pointerId: number): void {
     const press = this.presses.get(pointerId);
