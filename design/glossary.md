@@ -17,7 +17,7 @@
 - **Corner button:** a button in a screen's corner, such as the pause button, snug against the margins.
 - **Play screen:** where the player types π. Its **pause dialog** resumes, restarts or ends the game.
 - **Keypad:** the grid of keys the player types on.
-- **Key:** one button of the keypad: a **digit key** or the **backspace key**. "Key 3" is the digit key for 3.
+- **Key:** one button of the keypad: a **digit key**, the **backspace key** or the **pause key**. "Key 3" is the digit key for 3.
 - **Typing area:** where the group being typed appears, as slots to fill.
 - **Slot:** an empty space in the typing area waiting for a digit. The number of slots is the **group size**.
 - **Typed digits:** the digits typed so far in the run, in words.

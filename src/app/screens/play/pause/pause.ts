@@ -6,8 +6,7 @@ import { ChoiceDialog } from '../../../ui/choice-dialog';
 import { ReplayButton } from './replay-button';
 
 /**
- * The pause key, a see-through key of the keypad, in its corner left of 0 (see `Keypad`), and the dialog it opens over
- * the game, two thirds of the way down the screen, within the thumb's reach: resume, restart the game, or end it, back to the main menu;
+ * Pausing the game: the dialog the pause key (see `Keypad`) opens over the game, two thirds of the way down the screen, within the thumb's reach: resume, restart the game, or end it, back to the main menu;
  * a button in the dialog's left corner also stops the game and replays the run, once there's one and the player has
  * confirmed it, warned that the game can't be resumed then. Escape pauses too, as going back does (see `Play`), and
  * resumes, or goes back from the confirmation, as do going back and a click outside the dialog; up and down move between a dialog's
@@ -24,19 +23,6 @@ import { ReplayButton } from './replay-button';
   imports: [Candy, ChoiceDialog, ReplayButton],
   host: { '(document:keydown.escape)': 'escape($event)' },
   template: `
-    <button
-      type="button"
-      appCandy="clear"
-      class="pause-button"
-      title="Pause"
-      [pressColor]="color()"
-      (click)="pause()"
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="6" y="5" width="4" height="14" rx="1.5" />
-        <rect x="14" y="5" width="4" height="14" rx="1.5" />
-      </svg>
-    </button>
     <app-choice-dialog #dialog heading="Paused" [inReach]="true" (closed)="closed()">
       <app-replay-button cornerStart [disabled]="!replayable()" (pressed)="askToReplay()" />
       @if (developerMode.enabled()) {
@@ -83,8 +69,6 @@ import { ReplayButton } from './replay-button';
 export class Pause {
   /** Whether the game is paused, with the dialog open. */
   readonly paused = model(false);
-  /** The pause key's color, which its edge shows, and its face while pressed (see `OtherKeyColors`). */
-  readonly color = input<string>();
   /** The player chose to restart the game. */
   readonly restart = output();
   /** The player chose to carry a lost game on in free play, as the game over dialog closes. */
@@ -110,7 +94,7 @@ export class Pause {
   private readonly replayDialog = viewChild.required<ChoiceDialog>('replayDialog');
   private readonly overDialog = viewChild.required<ChoiceDialog>('overDialog');
 
-  /** Pauses, opening the dialog, as the pause button does. */
+  /** Pauses, opening the dialog, as the pause key does. */
   pause(): void {
     this.dialog().open();
     this.paused.set(true);

@@ -872,7 +872,7 @@ describe('Play', () => {
     });
   });
 
-  it('records touches elsewhere on the screen as typing nothing, but not those on the pause button', async () => {
+  it('records touches elsewhere on the screen as typing nothing', async () => {
     const record = vi.spyOn(TestBed.inject(RunRecorder), 'record');
     const { host, stable } = await setUp();
     const touch = (target: Element | null, pointerId: number): void => {
@@ -883,7 +883,6 @@ describe('Play', () => {
 
     touch(host.querySelector('app-slots'), 1);
     touch(host.querySelector('app-typed-digits'), 2);
-    touch(host.querySelector('[title="Pause"]'), 3);
     await stable();
 
     expect(record.mock.calls.map(([touched]) => touched.key)).toEqual([null, null]);

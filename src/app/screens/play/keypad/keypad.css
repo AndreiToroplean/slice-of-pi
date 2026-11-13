@@ -53,6 +53,13 @@
   stroke-linejoin: round;
 }
 
+.pause svg {
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+  fill: currentColor;
+}
+
 /*
  * Each key's area, over the whole keypad: its cell in the grid, halfway to the next keys, those on its edges reaching
  * out to the keypad's, tinted with the key's color.

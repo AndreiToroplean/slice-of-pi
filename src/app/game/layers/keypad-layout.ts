@@ -1,7 +1,9 @@
 import { Digit } from '../pi/digit';
 
-/** What a key on the keypad does: type a digit or delete the last one. */
-export type KeypadKey = Digit | 'backspace';
+/** What a key typed does: type a digit or delete the last one. */
+export type TypedKey = Digit | 'backspace';
+/** A key on the keypad: one that's typed (see {@link TypedKey}), or the pause key, which pauses the game. */
+export type KeypadKey = TypedKey | 'pause';
 
 /** Where a key sits on the keypad grid; row 0 is the top row, column 0 the left column. */
 export interface KeyPosition {
@@ -16,8 +18,9 @@ export type KeypadLayout = (typeof KEYPAD_LAYOUTS)[number];
 /** The layout the keypad has unless the player picks another. */
 export const DEFAULT_KEYPAD_LAYOUT: KeypadLayout = 'calculator';
 
-/** 0 in the middle of the bottom row, and backspace (⌫) next to it, in every layout. */
+/** 0 in the middle of the bottom row, the pause key (‖) left of it and backspace (⌫) right of it, in every layout. */
 const BOTTOM_ROW: readonly KeyPosition[] = [
+  { key: 'pause', row: 3, column: 0 },
   { key: '0', row: 3, column: 1 },
   { key: 'backspace', row: 3, column: 2 },
 ];
@@ -34,7 +37,7 @@ function digitRows(rows: readonly (readonly Digit[])[]): KeyPosition[] {
  *     7 8 9      1 2 3
  *     4 5 6      4 5 6
  *     1 2 3      7 8 9
- *       0 ⌫        0 ⌫
+ *     ‖ 0 ⌫      ‖ 0 ⌫
  *
  * Key positions are what keypad gesture patterns will be drawn from, so the layouts are part of the game, not just
  * styling, and each run records the one it was played on.
@@ -86,7 +89,7 @@ export interface KeypadPoint {
  * stands at the center of its key (see {@link touchPoint}).
  */
 export type KeypadTouch =
-  (KeypadPoint & { readonly key: KeypadKey | null }) | { readonly key: KeypadKey };
+  (KeypadPoint & { readonly key: TypedKey | null }) | { readonly key: TypedKey };
 
 /** Where a touch was on the keypad, in a layout: a key typed without touching it, at the center of its key. */
 export function touchPoint(layout: KeypadLayout, touch: KeypadTouch): KeypadPoint {

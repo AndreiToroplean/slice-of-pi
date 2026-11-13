@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Tweaks } from '../developer-mode/tweaks';
-import { KeypadKey, KeypadLayout, KeypadTouch } from '../game/layers/keypad-layout';
+import { TypedKey, KeypadLayout, KeypadTouch } from '../game/layers/keypad-layout';
 import { KeypadLayoutSetting } from './keypad-layout-setting';
 import { Run, runOf } from './run';
 import { TOUCH_LOG_FORMAT, TouchLog } from './touch-log';
@@ -73,7 +73,7 @@ describe('RunRecorder', () => {
   /** Types these keys, `<` for backspace, one every `step` milliseconds. */
   function press(recorder: RunRecorder, keys: string, step = 200): void {
     for (const key of keys) {
-      touch(recorder, { key: (key === '<' ? 'backspace' : key) as KeypadKey }, step);
+      touch(recorder, { key: (key === '<' ? 'backspace' : key) as TypedKey }, step);
     }
   }
 

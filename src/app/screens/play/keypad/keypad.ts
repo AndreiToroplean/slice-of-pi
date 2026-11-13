@@ -93,7 +93,7 @@ interface Press {
 export type CornerKey = 'backspace' | 'discover';
 
 /**
- * On-screen keypad: digits and backspace, in the layout given.
+ * On-screen keypad: digits, backspace and the pause key, in the layout given.
  *
  * Touches are handled on the whole keypad rather than on each button, for speed and reliability while typing fast:
  * - The keys' grid is split into cells, halfway between the keys, so a touch anywhere in a key's cell (gaps and corners
@@ -123,8 +123,9 @@ export type CornerKey = 'backspace' | 'discover';
  * The keys don't take the focus, being typed from the keyboard's own keys, but the buttons still work with assistive
  * technology.
  *
- * What it's given goes in its grid with the keys, placing itself, such as the pause key in the empty corner left of 0.
- * The buttons it's given, and the dialogs they open, take their own touches, which aren't the keypad's.
+ * The pause key, left of 0, pauses the game, whatever else is locked. What it's given goes in its grid with the keys,
+ * such as the dialogs the pause key opens; the buttons it's given, and those dialogs, take their own touches, which
+ * aren't the keypad's.
  *
  * In developer mode, it can show the area of each key, where touches type it.
  *
@@ -161,10 +162,13 @@ export type CornerKey = 'backspace' | 'discover';
       @for (position of keys(); track position.key) {
         <button
           type="button"
-          [appCandy]="solid() && position.key !== 'backspace' ? 'white' : 'clear'"
+          [appCandy]="solid() && isDigit(position.key) ? 'white' : 'clear'"
           class="key"
           [focusable]="false"
           [class.backspace]="position.key === 'backspace'"
+          [class.pause]="position.key === 'pause'"
+          [attr.data-vibration]="position.key === 'pause' ? 'button' : null"
+          [attr.title]="position.key === 'pause' ? 'Pause' : null"
           [class.discover]="position.key === 'backspace' && corner() === 'discover'"
           [class.lit]="position.key === 'backspace' && corner() === 'discover' && lit()"
           [attr.aria-disabled]="position.key === 'backspace' && cornerDisabled() ? true : null"
@@ -180,7 +184,12 @@ export type CornerKey = 'backspace' | 'discover';
           [style.translate]="sinkOf(position.key)"
           (click)="onClick($event, position.key)"
         >
-          @if (position.key === 'backspace') {
+          @if (position.key === 'pause') {
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="6" y="5" width="4" height="14" rx="1.5" />
+              <rect x="14" y="5" width="4" height="14" rx="1.5" />
+            </svg>
+          } @else if (position.key === 'backspace') {
             @switch (corner()) {
               @case ('backspace') {
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -272,6 +281,8 @@ export class Keypad {
   readonly cornerDisabled = input(false);
   /** The discover key was pressed: the player switches turns. */
   readonly discover = output();
+  /** The pause key was pressed: the player pauses the game. */
+  readonly pauseGame = output();
   /**
    * How long a digit key's color lingers on its face once it stops showing pressed, in milliseconds, fading out to the
    * color its digit takes next: none at 0.
@@ -291,7 +302,13 @@ export class Keypad {
    */
   readonly pressed = output<KeypadKey>();
 
-  protected readonly keys = computed(() => KEY_POSITIONS[this.layout()]);
+  /** Whether it has the pause key, as it has unless a run is replayed. */
+  readonly pausable = input(true);
+
+  protected readonly keys = computed(() =>
+    KEY_POSITIONS[this.layout()].filter(({ key }) => key !== 'pause' || this.pausable()),
+  );
+  protected readonly isDigit = isDigit;
 
   /** Keys held down on a physical keyboard. */
   protected readonly heldKeys = signal<readonly KeypadKey[]>([]);
@@ -330,7 +347,7 @@ export class Keypad {
     }
     const solid = this.solid();
     const keys = this.keys().flatMap(({ key, row, column }) =>
-      key === 'backspace'
+      !isDigit(key)
         ? []
         : [
             {
@@ -722,13 +739,14 @@ export class Keypad {
   }
 
   /**
-   * The color a key takes when typed next: a digit key, its digit's; the key in backspace's place, its own (see
-   * `OtherKeyColors`).
+   * The color a key takes when typed next: a digit key, its digit's; the others, their own, the key in backspace's
+   * place as what it is (see `OtherKeyColors`).
    */
   private colorOf(key: KeypadKey): string | undefined {
-    return isDigit(key)
-      ? this.palette()[this.colorIndices()[key]]
-      : this.otherKeys()[this.corner()];
+    if (isDigit(key)) {
+      return this.palette()[this.colorIndices()[key]];
+    }
+    return this.otherKeys()[key === 'pause' ? key : this.corner()];
   }
 
   /** Whether a touch is on a button the keypad was given, or a dialog it opened, rather than on the keypad. */
@@ -786,7 +804,7 @@ export class Keypad {
     this.checkDistance(press);
     this.dropPress(event.pointerId);
     if (!press.repeated) {
-      this.report({ key: press.far ? null : press.key, ...press.start });
+      this.report(press.far ? null : press.key, press.start);
     }
   }
 
@@ -858,15 +876,19 @@ export class Keypad {
 
   /** Types a key without touching the keypad. */
   private type(key: KeypadKey): void {
-    this.report({ key });
+    this.report(key);
   }
 
-  /** Reports a touch, or a key typed, but the discover key's, which switches turns instead. */
-  private report(touch: KeypadTouch): void {
-    if (touch.key === 'backspace' && this.corner() === 'discover') {
+  /** Reports a touch, or a key typed, but the discover key's, which switches turns, and the pause key's, which pauses. */
+  private report(key: KeypadKey | null, at?: KeypadPoint): void {
+    if (key === 'pause') {
+      this.pauseGame.emit();
+    } else if (key === 'backspace' && this.corner() === 'discover') {
       this.discover.emit();
-    } else {
-      this.touched.emit(touch);
+    } else if (at !== undefined) {
+      this.touched.emit({ key, ...at });
+    } else if (key !== null) {
+      this.touched.emit({ key });
     }
   }
 
@@ -885,7 +907,7 @@ export class Keypad {
     }, REPEAT_INTERVAL);
     if (!press.far) {
       press.repeated = true;
-      this.touched.emit({ key: press.key, ...press.start });
+      this.report(press.key, press.start);
     }
   }
 
@@ -972,6 +994,9 @@ export class Keypad {
 
   /** Whether a key works: every one does, but the key in backspace's place while it's disabled, and locked digits. */
   private works(key: KeypadKey): boolean {
+    if (key === 'pause') {
+      return true;
+    }
     return key === 'backspace' ? !this.cornerDisabled() : !this.digitsLocked();
   }
 }
