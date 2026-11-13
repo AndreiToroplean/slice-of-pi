@@ -104,8 +104,8 @@
       "breath": 5,
       "unavailable": 60,
       "otherKeys": {
-        "pause": null,
-        "backspace": null,
+        "pause": "#000000",
+        "backspace": "#000000",
         "discover": "#ffc35a"
       },
       "discoverSpeed": 2.3,

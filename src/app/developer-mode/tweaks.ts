@@ -933,7 +933,7 @@ function isPalette(value: unknown): value is Palette {
   return Array.isArray(value) && value.length === PALETTE.length && value.every(isColor);
 }
 
-/** Whether a value holds a color, or none, for each of the other keys, and nothing else. */
+/** Whether a value holds a color for each of the other keys, and nothing else. */
 function isOtherKeyColors(value: unknown): value is OtherKeyColors {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -941,7 +941,7 @@ function isOtherKeyColors(value: unknown): value is OtherKeyColors {
   const colors = value as Record<string, unknown>;
   return (
     Object.keys(colors).length === OTHER_KEYS.length &&
-    OTHER_KEYS.every((key) => colors[key] === null || isColor(colors[key]))
+    OTHER_KEYS.every((key) => isColor(colors[key]))
   );
 }
 

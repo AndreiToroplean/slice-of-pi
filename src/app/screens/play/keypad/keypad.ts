@@ -718,11 +718,11 @@ export class Keypad {
 
   /**
    * A key's color: a digit key's, while it shows pressed, the color its digit took then, and otherwise the color it
-   * takes when typed next; the key in backspace's place, its own, if any (see `OtherKeyColors`).
+   * takes when typed next; the key in backspace's place, its own (see `OtherKeyColors`).
    */
   protected pressColor(key: KeypadKey): string | undefined {
     if (key === 'backspace') {
-      return this.otherKeys()[this.corner()] ?? undefined;
+      return this.otherKeys()[this.corner()];
     }
     return (this.shownPressed(key) ? this.splashColors()[key] : undefined) ?? this.colorOf(key);
   }
