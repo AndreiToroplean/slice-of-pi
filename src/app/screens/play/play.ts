@@ -205,6 +205,7 @@ const TICK = 16;
       [layout]="keypadLayout()"
       [colorIndices]="colorIndices()"
       [palette]="tweaks.palette()"
+      [otherKeys]="tweaks.otherKeys()"
       [solid]="tweaks.solidKeys()"
       [mergeKeys]="mergeSetting.enabled()"
       [plain]="editedLayout() !== undefined"
@@ -226,6 +227,7 @@ const TICK = 16;
       @if (replay() === undefined) {
         <app-pause
           [paused]="paused()"
+          [color]="tweaks.otherKeys().pause ?? undefined"
           (pausedChange)="setPaused($event)"
           (edit)="editedLayout.set(tweaks.layout())"
           [replayable]="recorder.run() !== undefined"

@@ -118,13 +118,9 @@
   pointer-events: none;
 }
 
-/* The discover key: rimmed in gold, see-through; gold all over while the game shows the round. */
-.key.discover {
-  --candy-edge: var(--candy-primary);
-}
-
+/* The discover key: see-through, rimmed in its color; in its color all over while the game shows the round. */
 .key.discover.lit {
-  background: var(--candy-primary);
+  background: var(--press-color, var(--candy-primary));
   color: var(--ink);
   text-shadow: none;
 }
