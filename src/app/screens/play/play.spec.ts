@@ -1926,7 +1926,7 @@ describe('Play', () => {
       }
     }
 
-    it('plays the first group, keys pressed, the discover key lit, then hands it over, faint and fading off the tape', async () => {
+    it('plays the first group, keys pressed, the discover key lit, then hands it over once it has faded off the tape', async () => {
       const round = await discover();
       expect(discoverKey(round.host).getAttribute('aria-label')).toBe('Switch turns');
       expect(discoverKey(round.host).classList).toContain('lit');
@@ -1937,12 +1937,13 @@ describe('Play', () => {
 
       await listen(round, 4);
       expect(faint(round.host)).toBe('14159');
-      expect(discoverKey(round.host).classList).not.toContain('lit');
-      expect(discoverWorks(round.host)).toBe(false);
+      expect(discoverKey(round.host).classList).toContain('lit');
 
       await round.wait(HAND_OVER);
       expect(faint(round.host)).toBe('');
       expect(words(round.host)).toEqual([]);
+      expect(discoverKey(round.host).classList).not.toContain('lit');
+      expect(discoverWorks(round.host)).toBe(false);
     });
 
     it('hands over for as long as developer mode sets', async () => {
@@ -1963,7 +1964,7 @@ describe('Play', () => {
       await TestBed.inject(DeveloperMode).set(true);
       await TestBed.inject(Tweaks).setGroupPause(100);
 
-      await round.wait(6.5 * MEDIUM_INTERVAL);
+      await round.wait(6.5 * MEDIUM_INTERVAL + HAND_OVER);
       expect(discoverKey(round.host).classList).toContain('lit');
 
       await round.wait(MEDIUM_INTERVAL);
@@ -1975,6 +1976,7 @@ describe('Play', () => {
       expect(round.keypad().linger()).toBe(KEY_LINGER * GAME_LINGER);
 
       await listen(round, 5);
+      await round.wait(HAND_OVER);
 
       expect(round.keypad().linger()).toBe(KEY_LINGER);
     });
@@ -1983,36 +1985,31 @@ describe('Play', () => {
       const vibrate = vi.spyOn(Vibrator.prototype, 'play');
       const round = await discover();
       await listen(round, 5);
+      await round.wait(HAND_OVER);
 
       expect(vibrate.mock.calls.filter(([vibration]) => vibration === 'turn')).toHaveLength(2);
     });
 
-    it('shows the key colors and the season of the player’s place on their turn, not of the digits shown', async () => {
+    it('shows the key colors and the season of the round shown as it fades out, then of the player’s place', async () => {
       const round = await discover();
+      const season = (): string | undefined =>
+        round.host.querySelector('app-season-header .count')?.textContent.trim();
+      const color = (): string | undefined =>
+        round.host
+          .querySelector<HTMLElement>('button[data-key="1"]')
+          ?.style.getPropertyValue('--press-color');
       await listen(round, 5);
 
       expect(faint(round.host)).toBe('14159');
-      expect(round.host.querySelector('app-season-header .count')?.textContent.trim()).toBe(
-        'Digit 0',
-      );
-      expect(
-        round.host
-          .querySelector<HTMLElement>('button[data-key="1"]')
-          ?.style.getPropertyValue('--press-color'),
-      ).toBe(PALETTE[keyColorIndices('')['1']]);
+      expect(season()).toBe('Digit 5');
+      expect(color()).toBe(PALETTE[keyColorIndices('14159')['1']]);
+
+      await round.wait(HAND_OVER);
+      expect(season()).toBe('Digit 0');
+      expect(color()).toBe(PALETTE[keyColorIndices('')['1']]);
     });
 
-    it('shows the slots of the player’s place on their turn, not of the digits shown', async () => {
-      // Grouped by 3, the runs ending at 7: the game trusts the first group only, then groups of the default size.
-      const round = await discover(Array.from({ length: 4 }, (_, run) => by3(7, run)));
-
-      await listen(round, 3);
-
-      expect(faint(round.host)).toBe('141');
-      expect(slots(round.host)).toEqual(['', '', '']);
-    });
-
-    it('clears the digits shown as the player starts retyping them', async () => {
+    it('takes the player’s turn at once as they type while the round shown fades out', async () => {
       const round = await discover();
       await listen(round, 5);
 
@@ -2020,6 +2017,10 @@ describe('Play', () => {
 
       expect(faint(round.host)).toBe('');
       expect(slots(round.host)[0]).toBe('1');
+      expect(discoverKey(round.host).classList).not.toContain('lit');
+      await round.type('4159');
+      expect(words(round.host)).toEqual(['14159']);
+      expect(discoverWorks(round.host)).toBe(true);
     });
 
     it('lands each group as its slots fill, never as the player’s timing would', async () => {
@@ -2101,15 +2102,20 @@ describe('Play', () => {
       expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 8));
     });
 
-    it('types nothing as the game plays the round, the discover key working all the same', async () => {
+    it('takes the player’s turn at once as they type while the game plays the round, the round to retype to its end', async () => {
       const round = await discover();
       await round.wait(2.5 * MEDIUM_INTERVAL);
-      expect(discoverWorks(round.host)).toBe(true);
 
-      await round.type('9');
-      expect(round.host.querySelector('.game-over')).toBeNull();
-      expect(slots(round.host)[0]).toBe('1');
+      await round.type('1');
       expect(faint(round.host)).toBe('');
+      expect(slots(round.host)[0]).toBe('1');
+      expect(discoverKey(round.host).classList).not.toContain('lit');
+
+      await round.type('415');
+      expect(discoverWorks(round.host)).toBe(false);
+      await round.type('9');
+      expect(discoverWorks(round.host)).toBe(true);
+      expect(words(round.host)).toEqual(['14159']);
     });
 
     it('hands the turn over at once with the discover key, the round to retype to its end, unseen', async () => {

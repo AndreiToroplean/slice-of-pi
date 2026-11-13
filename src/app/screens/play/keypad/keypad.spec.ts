@@ -779,27 +779,12 @@ describe('Keypad', () => {
       expect(button('backspace').classList).toContain('lit');
       expect(pressedKeys()).toEqual([]);
     });
-
-    it('works while the digit keys are locked, which type nothing', () => {
-      fixture.componentRef.setInput('digitsLocked', true);
-      fixture.detectChanges();
-
-      tap('4');
-      keyboard('keydown', { key: '4' });
-      tap('backspace');
-
-      expect(typed).toEqual([]);
-      expect(discovers).toBe(1);
-      expect(button('4').getAttribute('aria-disabled')).toBeNull();
-    });
   });
 
   describe('the pause key', () => {
-    it('pauses, rather than reporting a touch, as a touch on it or near it in its corner is released, even with the digits locked', () => {
+    it('pauses, rather than reporting a touch, as a touch on it or near it in its corner is released', () => {
       let pauses = 0;
       fixture.componentInstance.pauseGame.subscribe(() => pauses++);
-      fixture.componentRef.setInput('digitsLocked', true);
-      fixture.detectChanges();
 
       tap('pause');
       pointer('pointerdown', [-10, 420]);
