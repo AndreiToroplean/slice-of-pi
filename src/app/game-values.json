@@ -102,7 +102,7 @@
       "seasonTurn": 5,
       "keyLinger": 1600,
       "breath": 5,
-      "unavailable": 60,
+      "unavailable": 50,
       "otherKeys": {
         "pause": "#737d8c",
         "backspace": "#737d8c",
