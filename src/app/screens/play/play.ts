@@ -33,7 +33,7 @@ import { SlotHandover } from './slots/slots';
 import { ScaledTimer } from './scaled-timer';
 import { turnShadeShown } from './turn-shade';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
-import { CornerKey, Keypad, KeypadMark, TurnKeyPress } from './keypad/keypad';
+import { CornerKey, KeyPress, Keypad, KeypadMark } from './keypad/keypad';
 import { keyColorIndices, placeColors } from '../../game/layers/place-colors';
 import { Pause } from './pause/pause';
 import { PausesOnBack } from './pause-on-back';
@@ -91,6 +91,12 @@ const KEY_SHOWN = 0.6;
 
 /** Whose turn it is in Discover: the game's, showing the round, or the player's, typing; always the player's otherwise. */
 type Turn = 'game' | 'player';
+
+/**
+ * How long the pause key must be held, in milliseconds, for its release not to pause the game, in Discover: a hold,
+ * which holds a turn's hand over, rather than a tap.
+ */
+export const PAUSE_HOLD = 300;
 
 /** How often what shows the wait for the group being typed running out is redrawn, in milliseconds: about every frame. */
 const TICK = 16;
@@ -153,7 +159,7 @@ const TICK = 16;
     '[style]': 'layout()',
     '(pointerdown)': 'touchDown($event)',
     '(pointerup)': 'touchUp($event)',
-    '(pointercancel)': 'touchCancelled($event.pointerId)',
+    '(pointercancel)': 'touchesElsewhere.delete($event.pointerId)',
     '(document:keydown)': 'shift($event, true)',
     '(document:keyup)': 'shift($event, false)',
     '(window:blur)': 'shiftHeld.set(false)',
@@ -162,7 +168,6 @@ const TICK = 16;
     <h1 class="visually-hidden">Slice of Pi</h1>
     <app-season-header [view]="season()" />
     <app-typed-digits
-      (pointerdown)="holdTape($event)"
       [words]="grouping().words"
       [digits]="digits()"
       [colors]="placeColors()"
@@ -240,7 +245,7 @@ const TICK = 16;
       [fastForwards]="gamePlaying()"
       (turnKey)="useTurnKey($event)"
       [pausable]="replay() === undefined"
-      (pauseGame)="pause()?.pause()"
+      (pauseKey)="usePauseKey($event)"
     >
       <!-- The dialogs the pause key opens. -->
       @if (replay() === undefined) {
@@ -445,20 +450,22 @@ export class Play implements PausesOnBack {
   private turnPress: 'hold' | 'tap' | undefined;
   /** Whether the player holds the turn key down to fast forward the game's round. */
   private readonly fastForwarding = signal(false);
-  /** The touches holding the tape down, by pointer. */
-  private readonly tapeTouches = signal<ReadonlySet<number>>(new Set());
-  /** Whether Shift is held down, which holds the tape as a touch does. */
+  /** When the pause key's press going on started, on the run's clock, if one is. */
+  private pauseKeyDown: number | undefined;
+  /** Whether the player holds the pause key down, which holds a turn's hand over in Discover. */
+  private readonly pauseHeld = signal(false);
+  /** Whether Shift is held down, which holds a turn's hand over as the pause key does. */
   protected readonly shiftHeld = signal(false);
   /**
    * How many times faster than the clock's Discover's time runs, the game playing and handing turns over on it: not at
-   * all while the game is paused, nor while the player holds the tape as a turn is handed over, to look at its digits, or think, for longer, and
-   * faster while they hold the turn key to fast forward the game's round.
+   * all while the game is paused, nor while the player holds the pause key, or Shift, as a turn is handed over, to look
+   * at its digits, or think, for longer; and faster while they hold the turn key to fast forward the game's round.
    */
   private readonly discoverRate = computed(() => {
     if (this.paused()) {
       return 0;
     }
-    if (this.handingOver() !== undefined && (this.tapeTouches().size > 0 || this.shiftHeld())) {
+    if (this.handingOver() !== undefined && (this.pauseHeld() || this.shiftHeld())) {
       return 0;
     }
     return this.fastForwarding() ? this.tweaks.fastForward() : 1;
@@ -762,37 +769,31 @@ export class Play implements PausesOnBack {
     }
   }
 
-  /** Holds the tape as a touch lands on it: the digits fading out of it stop until it's released. */
-  protected holdTape(event: PointerEvent): void {
-    // Released anywhere, it lets go: a touch is captured by itself, a mouse isn't.
-    if (event.currentTarget instanceof Element && 'setPointerCapture' in event.currentTarget) {
-      event.currentTarget.setPointerCapture(event.pointerId);
+  /**
+   * Holds a turn's hand over in Discover for as long as the pause key is held; a tap of it pauses the game as it's
+   * released on the key, as any release does but in Discover, where the key held down for {@link PAUSE_HOLD} or longer
+   * was a hold.
+   */
+  protected usePauseKey(press: KeyPress): void {
+    const now = this.clock.now();
+    if (press === 'down') {
+      this.pauseKeyDown = now;
+      this.pauseHeld.set(true);
+      return;
     }
-    this.tapeTouches.update((touches) => new Set(touches).add(event.pointerId));
+    const held = now - (this.pauseKeyDown ?? now);
+    this.pauseKeyDown = undefined;
+    this.pauseHeld.set(false);
+    if (press === 'up' && (!this.discovering || held < PAUSE_HOLD)) {
+      this.pause()?.pause();
+    }
   }
 
-  /** Notes Shift held down, or let go, which holds the tape as a touch does. */
+  /** Notes Shift held down, or let go, which holds a turn's hand over as the pause key does. */
   protected shift(event: KeyboardEvent, down: boolean): void {
     if (event.key === 'Shift') {
       this.shiftHeld.set(down);
     }
-  }
-
-  /** Lets go of the tape, if a touch held it. */
-  private releaseTape(pointerId: number): void {
-    if (this.tapeTouches().has(pointerId)) {
-      this.tapeTouches.update((touches) => {
-        const left = new Set(touches);
-        left.delete(pointerId);
-        return left;
-      });
-    }
-  }
-
-  /** Forgets a touch the browser cancels, such as one that scrolls the tape. */
-  protected touchCancelled(pointerId: number): void {
-    this.touchesElsewhere.delete(pointerId);
-    this.releaseTape(pointerId);
   }
 
   /**
@@ -800,7 +801,7 @@ export class Play implements PausesOnBack {
    * the press starting at any other time, a tap, switches turns at once as it's released on the key, if a turn is being
    * handed over by then (see {@link turnPress}).
    */
-  protected useTurnKey(press: TurnKeyPress): void {
+  protected useTurnKey(press: KeyPress): void {
     if (press === 'down') {
       this.turnPress = this.gamePlaying() ? 'hold' : 'tap';
       this.fastForwarding.set(this.turnPress === 'hold');
@@ -816,7 +817,6 @@ export class Play implements PausesOnBack {
 
   /** Records a touch elsewhere than on the keypad as it's released, typing nothing, where it started from the keypad. */
   protected touchUp(event: PointerEvent): void {
-    this.releaseTape(event.pointerId);
     const start = this.touchesElsewhere.get(event.pointerId);
     if (start !== undefined) {
       this.touchesElsewhere.delete(event.pointerId);

@@ -41,7 +41,7 @@ import { startFrom } from '../../../testing/checkpoints';
 import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LAYOUT } from '../../ui/layout';
-import { GAME_OVER_DELAY, Play } from './play';
+import { GAME_OVER_DELAY, PAUSE_HOLD, Play } from './play';
 import {
   FAST_FORWARD,
   GAME_LINGER,
@@ -2173,13 +2173,13 @@ describe('Play', () => {
       expect(slots(round.host).join('')).toBe('141');
     });
 
-    it('holds the digits shown fading for as long as the tape is touched, going on once let go', async () => {
+    it('holds the digits shown fading for as long as the pause key is held, going on once let go, unpaused', async () => {
       const round = await discover();
-      const tape = (): HTMLElement | null => round.host.querySelector('app-typed-digits');
-      const fade = (): string | undefined => tape()?.style.getPropertyValue('--fade');
+      const fade = (): string | undefined =>
+        round.host.querySelector<HTMLElement>('app-typed-digits')?.style.getPropertyValue('--fade');
       await listen(round, 5);
 
-      tape()?.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 3, bubbles: true }));
+      round.keypad().pauseKey.emit('down');
       await round.wait(0);
       const held = fade();
       await round.wait(10 * HAND_OVER);
@@ -2187,11 +2187,29 @@ describe('Play', () => {
       expect(faint(round.host)).toBe('14159');
       expect(turnOf(round.host)).toBe('game');
 
-      tape()?.dispatchEvent(new PointerEvent('pointerup', { pointerId: 3, bubbles: true }));
+      round.keypad().pauseKey.emit('up');
       await round.wait(0);
+      expect(dialogNamed(round.host, 'Paused').open).toBe(false);
       await round.wait(HAND_OVER);
       expect(faint(round.host)).toBe('');
       expect(turnOf(round.host)).toBe('player');
+    });
+
+    it('pauses with a tap of the pause key, but not once it was held long enough to hold', async () => {
+      const round = await discover();
+      const paused = (): boolean => dialogNamed(round.host, 'Paused').open;
+
+      round.keypad().pauseKey.emit('down');
+      await round.wait(PAUSE_HOLD);
+      round.keypad().pauseKey.emit('up');
+      await round.wait(0);
+      expect(paused()).toBe(false);
+
+      round.keypad().pauseKey.emit('down');
+      await round.wait(PAUSE_HOLD - 50);
+      round.keypad().pauseKey.emit('up');
+      await round.wait(0);
+      expect(paused()).toBe(true);
     });
 
     it('holds the player’s digits fading while Shift is held, once they have retyped the round', async () => {

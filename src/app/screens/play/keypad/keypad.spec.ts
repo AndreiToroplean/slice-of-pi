@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { isDigit } from '../../../game/pi/digit';
 import { keyColorIndices, PALETTE } from '../../../game/layers/place-colors';
-import { Keypad, REPEAT_DELAY, REPEAT_INTERVAL, SPLASH_DURATION, TurnKeyPress } from './keypad';
+import { Keypad, REPEAT_DELAY, REPEAT_INTERVAL, SPLASH_DURATION, KeyPress } from './keypad';
 import { KeypadRenderer } from './keypad-gl';
 import { ACTION_KEY_COLOR } from './action-keys';
 import { KeypadKey, KeypadTouch } from '../../../game/layers/keypad-layout';
@@ -742,7 +742,7 @@ describe('Keypad', () => {
 
   describe('with the turn key in backspace’s place', () => {
     /** What the keypad said the player did with the turn key, in order. */
-    let presses: TurnKeyPress[];
+    let presses: KeyPress[];
 
     beforeEach(() => {
       presses = [];
@@ -812,15 +812,18 @@ describe('Keypad', () => {
   });
 
   describe('the pause key', () => {
-    it('pauses, rather than reporting a touch, as a touch on it or near it in its corner is released', () => {
-      let pauses = 0;
-      fixture.componentInstance.pauseGame.subscribe(() => pauses++);
+    it('says as a touch on it or near it in its corner starts and ends, rather than reporting a touch', () => {
+      const presses: KeyPress[] = [];
+      fixture.componentInstance.pauseKey.subscribe((press) => presses.push(press));
 
       tap('pause');
       pointer('pointerdown', [-10, 420]);
       pointer('pointerup', [-10, 420]);
+      down('pause');
+      up('5');
+      button('pause').dispatchEvent(new MouseEvent('click', { detail: 0 }));
 
-      expect(pauses).toBe(2);
+      expect(presses).toEqual(['down', 'up', 'down', 'up', 'down', 'off', 'down', 'up']);
       expect(touches).toEqual([]);
     });
   });
