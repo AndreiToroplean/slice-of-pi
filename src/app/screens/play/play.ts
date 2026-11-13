@@ -33,6 +33,7 @@ import { SlotHandover } from './slots/slots';
 import { ScaledTimer } from './scaled-timer';
 import { gameTurnShare, switchedShare } from './turn-shown';
 import { Light, LightLayer } from '../../ui/light-layer';
+import { DiscoverHalo } from './discover-halo';
 import { Point } from '../../ui/handles/light-handles';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { CornerKey, KeyPress, Keypad, KeypadMark } from './keypad/keypad';
@@ -175,7 +176,7 @@ const TICK = 16;
       <canvas
         class="halo"
         [appLightLayer]="haloLights()"
-        [settings]="tweaks.discoverHalo().light"
+        [settings]="halo().light"
         [style.opacity]="haloShown()"
       ></canvas>
     }
@@ -253,7 +254,7 @@ const TICK = 16;
         <app-pause
           [paused]="paused()"
           (pausedChange)="setPaused($event)"
-          (edit)="editedLayout.set(tweaks.layout())"
+          (edit)="edit()"
           [replayable]="recorder.run() !== undefined"
           [continuable]="mode() !== 'discover'"
           (restart)="restart()"
@@ -277,6 +278,9 @@ const TICK = 16;
       <app-layout-editor
         [layout]="edited"
         (layoutChange)="editedLayout.set($event)"
+        [halo]="halo()"
+        (haloChange)="editedHalo.set($event)"
+        [haloAt]="discovering ? haloAt() : undefined"
         [(previewing)]="previewing"
         (done)="doneEditing()"
       />
@@ -348,6 +352,10 @@ export class Play implements PausesOnBack {
   protected readonly soundLog = signal<readonly string[]>([]);
   /** The layout being edited, in developer mode's edit mode, while the game stays paused. */
   protected readonly editedLayout = signal<Layout | undefined>(undefined);
+  /** The Discover Halo edit mode is editing, if it is (see `DiscoverHalo`). */
+  protected readonly editedHalo = signal<DiscoverHalo | undefined>(undefined);
+  /** The Discover Halo, as tuned, or as edited. */
+  protected readonly halo = computed(() => this.editedHalo() ?? this.tweaks.discoverHalo());
   /** Whether edit mode hides its handles, the screen showing as in the game. */
   protected readonly previewing = signal(false);
   /** Where the header, tape, slots and keypad sit, as the lengths they lay out with. */
@@ -456,7 +464,7 @@ export class Play implements PausesOnBack {
   /** The Discover Halo's light, round key 5, once it's measured (see `DiscoverHalo`). */
   protected readonly haloLights = computed((): readonly Light[] => {
     const at = this.haloAt();
-    return at === undefined ? [] : [{ ...at, color: this.tweaks.discoverHalo().color, seed: 5 }];
+    return at === undefined ? [] : [{ ...at, color: this.halo().color, seed: 5 }];
   });
   /** How much of the Discover Halo shows: as much as the game's turn does, or all of it while the layout is edited. */
   protected readonly haloShown = computed(() =>
@@ -820,9 +828,16 @@ export class Play implements PausesOnBack {
     });
   }
 
+  /** Starts edit mode, on the layout and the Discover Halo as tuned. */
+  protected edit(): void {
+    this.editedLayout.set(this.tweaks.layout());
+    this.editedHalo.set(this.tweaks.discoverHalo());
+  }
+
   /** Ends edit mode, back to the pause dialog it was opened from. */
   protected doneEditing(): void {
     this.editedLayout.set(undefined);
+    this.editedHalo.set(undefined);
     this.previewing.set(false);
     this.pause()?.pause();
   }
