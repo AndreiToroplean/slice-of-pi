@@ -78,3 +78,6 @@ export const MAX_GAME_LINGER = 5;
 export function isGameLinger(value: unknown): value is number {
   return typeof value === 'number' && value >= 1 && value <= MAX_GAME_LINGER;
 }
+
+/** How many times faster the game plays Discover's rounds, fading them out too, while the player fast forwards them. */
+export const FAST_FORWARD = 2;
