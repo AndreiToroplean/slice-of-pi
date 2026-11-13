@@ -2360,18 +2360,19 @@ describe('Play', () => {
       expect(record.mock.calls.map(([, place]) => place)).toEqual([0, 1, 2, 3, 4]);
     });
 
-    it('stops the round while paused, playing it again from its start once resumed', async () => {
+    it('stops the round while paused, going on from where it was once resumed, never showing it again', async () => {
       const round = await discover();
+      await round.wait(1.5 * MEDIUM_INTERVAL);
 
       round.host.querySelector<HTMLButtonElement>('button[title="Pause"]')?.click();
       await round.wait(10 * MEDIUM_INTERVAL);
-      expect(slots(round.host).join('')).toBe('');
+      expect(slots(round.host).join('')).toBe('1');
 
       dialogNamed(round.host, 'Paused')
         .querySelector<HTMLButtonElement>('app-button-list button')
         ?.click();
-      await round.wait(MEDIUM_INTERVAL);
-      expect(slots(round.host)[0]).toBe('1');
+      await round.wait(MEDIUM_INTERVAL / 2);
+      expect(slots(round.host).join('')).toBe('14');
     });
   });
 });
