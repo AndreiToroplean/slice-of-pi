@@ -65,4 +65,32 @@ describe('ScaledTimer', () => {
     time.advance(2000);
     expect(calls).toEqual([]);
   });
+
+  it('waits for as long as the time stands still, then goes on with what was left', () => {
+    timer.after(1000, () => calls.push('a'));
+    time.advance(400);
+
+    timer.setRate(0);
+    time.advance(5000);
+    expect(calls).toEqual([]);
+
+    timer.setRate(1);
+    time.advance(599);
+    expect(calls).toEqual([]);
+    time.advance(1);
+    expect(calls).toEqual(['a']);
+  });
+
+  it('tells its time, as it runs at its rate', () => {
+    time.advance(100);
+    expect(timer.time()).toBe(100);
+
+    timer.setRate(2);
+    time.advance(100);
+    expect(timer.time()).toBe(300);
+
+    timer.setRate(0);
+    time.advance(100);
+    expect(timer.time()).toBe(300);
+  });
 });

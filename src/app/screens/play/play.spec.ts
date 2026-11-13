@@ -1957,6 +1957,18 @@ describe('Play', () => {
       expect(fastForwardWorks(round.host)).toBe(false);
     });
 
+    it('fades the digits shown out over the hand over, steadily from their opacity', async () => {
+      const round = await discover();
+      const tape = (): HTMLElement | null => round.host.querySelector('app-typed-digits');
+      await listen(round, 5);
+      const fading = (): number => round.host.querySelectorAll('.tile.faint.fading').length;
+      expect(fading()).toBe(5);
+
+      // Listening went half a digit's time into the fade: on to half of it.
+      await round.wait(HAND_OVER / 2 - MEDIUM_INTERVAL / 2);
+      expect(Number(tape()?.style.getPropertyValue('--fade'))).toBeCloseTo(0.5, 1);
+    });
+
     it('hands over for as long as developer mode sets', async () => {
       const round = await discover();
       await TestBed.inject(DeveloperMode).set(true);
