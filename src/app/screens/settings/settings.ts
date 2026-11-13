@@ -8,6 +8,7 @@ import { Spinner } from '../../ui/spinner';
 import { GroupSizeSetting } from '../../player-data/group-size-setting';
 import { DEFAULT_GROUP_SIZE, GROUP_SIZES } from '../../game/grouping/group-size';
 import { BREATH, MAX_BREATH } from '../../ui/breath';
+import { UNAVAILABLE } from '../../ui/unavailable';
 import { CHECKPOINT_LAG, MAX_CHECKPOINT_LAG } from '../../game/modes/discover-rounds';
 import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
 import {
@@ -239,6 +240,16 @@ import { YourData } from './your-data';
             (changed)="setBreath($event)"
           />
           <app-slider
+            label="Unavailable"
+            [value]="tweaks.unavailable()"
+            [min]="0"
+            [max]="100"
+            [step]="5"
+            [valueText]="tweaks.unavailable() + '%'"
+            [defaultValue]="defaultUnavailable"
+            (changed)="setUnavailable($event)"
+          />
+          <app-slider
             label="Discover Speed"
             [value]="tweaks.discoverSpeed()"
             [min]="speeds.min"
@@ -441,6 +452,7 @@ export class Settings {
     { value: 'telephone', label: 'Telephone' },
   ];
   protected readonly defaultBreath = BREATH;
+  protected readonly defaultUnavailable = UNAVAILABLE;
   protected readonly defaultCheckpointLag = CHECKPOINT_LAG;
   protected readonly maxCheckpointLag = MAX_CHECKPOINT_LAG;
   protected readonly maxBreath = MAX_BREATH;
@@ -498,6 +510,7 @@ export class Settings {
       this.tweaks.checking() &&
       !this.tweaks.solidKeys() &&
       this.tweaks.breath() === BREATH &&
+      this.tweaks.unavailable() === UNAVAILABLE &&
       this.tweaks.discoverSpeed() === DISCOVER_SPEED &&
       this.tweaks.paceStep() === PACE_STEP &&
       this.tweaks.handOver() === HAND_OVER &&
@@ -513,6 +526,10 @@ export class Settings {
 
   protected setBreath(breath: number | undefined): void {
     void this.tweaks.setBreath(breath);
+  }
+
+  protected setUnavailable(unavailable: number | undefined): void {
+    void this.tweaks.setUnavailable(unavailable);
   }
 
   protected setManualCheckpoints(event: Event): void {
@@ -624,6 +641,7 @@ export class Settings {
     if (this.developerMode.enabled()) {
       this.setSolidKeys(false);
       this.setBreath(undefined);
+      this.setUnavailable(undefined);
       this.setDiscoverSpeed(undefined);
       this.setPaceStep(undefined);
       this.setHandOver(undefined);

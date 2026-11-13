@@ -102,6 +102,7 @@
       "seasonTurn": 5,
       "keyLinger": 1600,
       "breath": 5,
+      "unavailable": 60,
       "discoverSpeed": 2.3,
       "paceStep": 30,
       "handOver": 2000,

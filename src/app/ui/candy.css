@@ -1,8 +1,18 @@
 /* A big, colorful button with a thick edge, that sinks when pressed. */
 :host {
+  /*
+   * How much of its paint shows: all of it, but for an unavailable one (see below). Its colors as they show, at that:
+   * its face, edge, the shine along its top, what it says and the shade it casts.
+   */
+  --candy-paint: 100%;
+  --candy-face: color-mix(in srgb, var(--candy) var(--candy-paint), transparent);
+  --candy-rim: color-mix(in srgb, var(--candy-edge) var(--candy-paint), transparent);
+  --candy-highlight: color-mix(in srgb, var(--frost-highlight) var(--candy-paint), transparent);
+  --candy-label: color-mix(in srgb, var(--on-candy) var(--candy-paint), transparent);
+  --candy-shade: color-mix(in srgb, rgb(40 20 60 / 18%) var(--candy-paint), transparent);
   /* How thick its edge is, and the shadow it drops. */
   --candy-depth: 0.3125rem;
-  --candy-drop: 0 0.5rem 1.25rem rgb(40 20 60 / 18%);
+  --candy-drop: 0 0.5rem 1.25rem var(--candy-shade);
   display: block;
   /*
    * Positioned, so that pressing it, which moves it, never lifts it over the buttons after it: each covers those before
@@ -14,11 +24,11 @@
   border: none;
   border-radius: var(--radius-key);
   /* Its face, and its shine, off it until it's picked out (see below). */
-  background: var(--candy-shine) var(--candy);
+  background: var(--candy-shine) var(--candy-face);
   box-shadow:
-    0 var(--candy-depth) 0 var(--candy-edge),
+    0 var(--candy-depth) 0 var(--candy-rim),
     var(--candy-drop);
-  color: var(--on-candy);
+  color: var(--candy-label);
   text-align: center;
   text-decoration: none;
   font-family: var(--font-digits);
@@ -54,17 +64,18 @@
   --candy-edge: var(--candy-toggled-edge);
   translate: 0 calc(var(--candy-depth) - 0.0625rem);
   box-shadow:
-    0 0.0625rem 0 var(--candy-edge),
-    0 0.25rem 0.75rem rgb(40 20 60 / 18%);
+    0 0.0625rem 0 var(--candy-rim),
+    0 0.25rem 0.75rem var(--candy-shade);
 }
 
 /*
  * Unavailable, faded: disabled, or only marked so (`aria-disabled`) where what holds it takes its touches all the same,
- * as the keypad does its keys'.
+ * as the keypad does its keys'. Its paint fades, not its glass: `opacity` would fade a see-through one's blurred
+ * backdrop into the sharp background under it, unblurring it.
  */
 :host(:disabled),
 :host([aria-disabled='true']) {
-  opacity: 0.6;
+  --candy-paint: calc(var(--unavailable, 100) * 1%);
   cursor: default;
 }
 
@@ -76,8 +87,8 @@
 :host(.pressed) {
   translate: 0 calc(var(--candy-depth) - 0.0625rem);
   box-shadow:
-    0 0.0625rem 0 var(--candy-edge),
-    0 0.25rem 0.75rem rgb(40 20 60 / 18%);
+    0 0.0625rem 0 var(--candy-rim),
+    0 0.25rem 0.75rem var(--candy-shade);
 }
 
 /* See-through: a frosted face, the background showing through it, blurred, on a frosted edge. */
@@ -85,20 +96,26 @@
   --candy: var(--frost);
   --on-candy: var(--on-background);
   --candy-edge: var(--frost-edge);
-  background: var(--candy);
+  background: var(--candy-face);
   -webkit-backdrop-filter: blur(var(--frost-blur));
   backdrop-filter: blur(var(--frost-blur));
   box-shadow:
-    inset 0 1px 0 var(--frost-highlight),
-    0 var(--candy-depth) 0 var(--candy-edge);
+    inset 0 1px 0 var(--candy-highlight),
+    0 var(--candy-depth) 0 var(--candy-rim);
   text-shadow: var(--text-shadow);
+}
+
+/* Unavailable, what it says casts as faint a shadow as it is (see `--text-shadow` in `styles.css`). */
+:host(.clear:disabled),
+:host(.clear[aria-disabled='true']) {
+  text-shadow: 0 1px 6px color-mix(in srgb, rgb(0 0 0 / 15%) var(--candy-paint), transparent);
 }
 
 :host(.clear:active:not(.controlled)),
 :host(.clear.pressed) {
   box-shadow:
-    inset 0 1px 0 var(--frost-highlight),
-    0 0.0625rem 0 var(--candy-edge);
+    inset 0 1px 0 var(--candy-highlight),
+    0 0.0625rem 0 var(--candy-rim);
 }
 
 /* With a press color, a see-through one's edge shows it, and pressing fills its face with it, all at once. */

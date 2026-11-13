@@ -20,6 +20,7 @@ export type GameValues = Required<
     | 'seasonTurn'
     | 'keyLinger'
     | 'breath'
+    | 'unavailable'
     | 'discoverSpeed'
     | 'paceStep'
     | 'handOver'

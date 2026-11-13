@@ -26,6 +26,7 @@ describe('GAME_VALUES', () => {
       seasonTurn: true,
       keyLinger: true,
       breath: true,
+      unavailable: true,
       discoverSpeed: true,
       paceStep: true,
       handOver: true,
