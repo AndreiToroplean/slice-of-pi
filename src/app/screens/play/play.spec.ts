@@ -1904,7 +1904,7 @@ describe('Play', () => {
 
     /** Whether the discover key works, as once the player has retyped the round. */
     function discoverWorks(host: HTMLElement): boolean {
-      return !discoverKey(host).classList.contains('off');
+      return discoverKey(host).getAttribute('aria-disabled') !== 'true';
     }
 
     /** Asks the game to show the round, with the discover key. */
