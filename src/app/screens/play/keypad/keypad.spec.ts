@@ -708,9 +708,8 @@ describe('Keypad', () => {
       fixture.detectChanges();
     });
 
-    it('shows its key half there, disabled', () => {
+    it('shows its key disabled', () => {
       expect(button('backspace').querySelector('svg')).not.toBeNull();
-      expect(button('backspace').classList).toContain('off');
       expect(button('backspace').getAttribute('aria-disabled')).toBe('true');
     });
 
@@ -778,7 +777,7 @@ describe('Keypad', () => {
 
       expect(typed).toEqual([]);
       expect(discovers).toBe(1);
-      expect(button('4').classList).not.toContain('off');
+      expect(button('4').getAttribute('aria-disabled')).toBeNull();
     });
   });
 

@@ -129,11 +129,6 @@
   text-shadow: none;
 }
 
-/* The key in backspace's place while it doesn't work, for now: half there. */
-.key.off {
-  opacity: 0.5;
-}
-
 /* The grid the keys' canvas is laid over (see `Keypad`). */
 .grid {
   position: relative;

@@ -58,9 +58,17 @@
     0 0.25rem 0.75rem rgb(40 20 60 / 18%);
 }
 
-:host(:disabled) {
+/*
+ * Unavailable, faded: disabled, or only marked so (`aria-disabled`) where what holds it takes its touches all the same,
+ * as the keypad does its keys'.
+ */
+:host(:disabled),
+:host([aria-disabled='true']) {
   opacity: 0.6;
   cursor: default;
+}
+
+:host(:disabled) {
   pointer-events: none;
 }
 

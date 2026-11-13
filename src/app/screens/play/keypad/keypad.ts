@@ -105,7 +105,7 @@ export type CornerKey = 'backspace' | 'discover';
  * - Holding backspace repeats it, while near enough to type it; digits don't repeat.
  * - The key in backspace's place is what the game mode makes it (see {@link CornerKey}): backspace; the discover key,
  *   which switches turns, gold-rimmed, and gold all over while the game shows the round. Disabled, as backspace is in
- *   a challenge, it shows half there, and touches on it type nothing. The digit keys can be locked, as on the game's
+ *   a challenge, it shows disabled, and touches on it type nothing. The digit keys can be locked, as on the game's
  *   turn: they look as ever, but type nothing.
  *   On a keyboard, Backspace types backspace and the space bar the discover key.
  *
@@ -166,7 +166,6 @@ export type CornerKey = 'backspace' | 'discover';
           [class.backspace]="position.key === 'backspace'"
           [class.discover]="position.key === 'backspace' && corner() === 'discover'"
           [class.lit]="position.key === 'backspace' && corner() === 'discover' && lit()"
-          [class.off]="position.key === 'backspace' && cornerDisabled()"
           [attr.aria-disabled]="position.key === 'backspace' && cornerDisabled() ? true : null"
           [pressed]="shownPressed(position.key)"
           [pressColor]="pressColor(position.key)"
@@ -265,7 +264,7 @@ export class Keypad {
   readonly digitsLocked = input(false);
   /**
    * Whether the key in backspace's place doesn't work, as backspace in a challenge, or the discover key until the
-   * player has retyped the round: it shows half there, and touches on it type nothing.
+   * player has retyped the round: it shows disabled, and touches on it type nothing.
    */
   readonly cornerDisabled = input(false);
   /** The discover key was pressed: the player switches turns. */
