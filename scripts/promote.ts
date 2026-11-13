@@ -11,7 +11,11 @@ if (backup === undefined) {
   throw new Error('Name the backup: `npm run promote -- <backup.json>`.');
 }
 const read = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'));
-writeFileSync(GAME_VALUES, `${JSON.stringify(promoted(read(GAME_VALUES), read(backup)))}\n`);
+// Indented, so that Prettier keeps every object expanded, a value per line, rather than folding those that fit on one.
+writeFileSync(
+  GAME_VALUES,
+  `${JSON.stringify(promoted(read(GAME_VALUES), read(backup)), null, 2)}\n`,
+);
 spawnSync(process.execPath, ['node_modules/prettier/bin/prettier.cjs', '--write', GAME_VALUES], {
   stdio: 'inherit',
 });
