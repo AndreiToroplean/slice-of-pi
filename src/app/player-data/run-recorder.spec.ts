@@ -172,6 +172,20 @@ describe('RunRecorder', () => {
     expect(recorder.waited()).toBe(200);
   });
 
+  it('starts the next run on a running clock once a run ends while paused, as when the game is left paused', () => {
+    const recorder = TestBed.inject(RunRecorder);
+    press(recorder, '1');
+    recorder.pause();
+    recorder.end();
+
+    press(recorder, '14', 300);
+
+    expect(recorder.run()?.times).toEqual([0, 300]);
+    const waited = recorder.waited();
+    time += 500;
+    expect(recorder.waited()).toBe(waited + 500);
+  });
+
   it('shows no run once every digit is deleted', () => {
     const recorder = TestBed.inject(RunRecorder);
 
