@@ -544,6 +544,14 @@ describe('Keypad', () => {
 
       expect(touches).toEqual([{ key: '3' }, { key: 'backspace' }]);
     });
+
+    it('types a digit key with Shift held, whatever symbol it types then', () => {
+      keyboard('keydown', { key: '%', code: 'Digit5', shiftKey: true });
+      keyboard('keydown', { key: 'End', code: 'Numpad1', shiftKey: true });
+      keyboard('keydown', { key: 'A', code: 'KeyA', shiftKey: true });
+
+      expect(touches).toEqual([{ key: '5' }, { key: '1' }]);
+    });
   });
 
   describe('replaying', () => {
