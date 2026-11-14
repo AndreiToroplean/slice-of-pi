@@ -764,6 +764,14 @@ export class Play implements PausesOnBack {
     this.takeTurn(touch.key);
     if (!this.still()) {
       this.play(touch);
+      return;
+    }
+    // Held still, a key only sounds, as touches did as they landed, typing nothing; keys typed on a keyboard sound now.
+    if (touch.key !== null) {
+      this.ringing.delete(touch.key);
+      if (!('x' in touch)) {
+        this.sound(touch.key);
+      }
     }
   }
 
@@ -1476,11 +1484,12 @@ export class Play implements PausesOnBack {
   /**
    * Plays the sound of a key, as soon as a touch lands on it, before it's typed, if it is: sliding off it types nothing,
    * so the player can listen to it before committing to it; keys typed on a keyboard, and those of a run replayed, sound
-   * as they're typed. Never while the game stands still nor {@link silent}. The sound model never knows the next digit, so the sound
-   * gives nothing away.
+   * as they're typed. While the game is held still (see {@link still}), keys sound all the same, typing nothing, for the
+   * player to try their notes before typing them; never while paused nor {@link silent}. The sound model never knows the
+   * next digit, so the sound gives nothing away.
    */
   protected sound(key: KeypadKey): void {
-    if (!isDigit(key) || this.still() || this.silent()) {
+    if (!isDigit(key) || this.paused() || this.silent()) {
       return;
     }
     const moment: Moment = {
