@@ -1,4 +1,4 @@
-import { Component, inject, input, model } from '@angular/core';
+import { Component, computed, inject, input, model } from '@angular/core';
 import { Vibrator } from '../feedback/vibrator';
 
 /** How far the finger travels up or right, or down or left, for each step, in CSS pixels. */
@@ -27,6 +27,8 @@ export function spun(
  * right add up, down and left counting against them. Back where it started, it's back to the value it started from.
  * The up and down arrow keys step it too, and Home and End go to its ends, as for any spin button; left and right are
  * left to what holds it, to move between its buttons. A press that drags isn't a click on what holds it.
+ * It's as wide as its widest value could be, as many of the widest digit as that has digits, so that it never changes
+ * width as it's set, whatever the font's digits.
  */
 @Component({
   selector: 'app-spinner',
@@ -45,7 +47,13 @@ export function spun(
     '(keydown)': 'keydown($event)',
   },
   template: `
-    <span class="value">{{ value() }}</span>
+    <span class="value">
+      <span class="shown">{{ value() }}</span>
+      <!-- Each digit as many times as the widest value has digits, unseen: the widest of them sets its width. -->
+      @for (sizer of sizers(); track $index) {
+        <span class="sizer" aria-hidden="true">{{ sizer }}</span>
+      }
+    </span>
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="m8 9 4-4 4 4" />
       <path d="m8 15 4 4 4-4" />
@@ -62,6 +70,19 @@ export function spun(
       cursor: move;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
+    }
+
+    /* The value and the unseen digits in one place, as wide as the widest. */
+    .value {
+      display: inline-grid;
+    }
+
+    .value > * {
+      grid-area: 1 / 1;
+    }
+
+    .sizer {
+      visibility: hidden;
     }
 
     svg {
@@ -89,6 +110,11 @@ export class Spinner {
   readonly min = input.required<number>();
   readonly max = input.required<number>();
   readonly step = input(1);
+  /** Each digit, as many times as its widest value has digits: the widest of them is as wide as it may need. */
+  protected readonly sizers = computed(() => {
+    const digits = Math.max(String(this.min()).length, String(this.max()).length);
+    return Array.from('0123456789', (digit) => digit.repeat(digits));
+  });
   private readonly vibrator = inject(Vibrator);
   /** The press being dragged, if any: where it started, and the value then. */
   private press:
