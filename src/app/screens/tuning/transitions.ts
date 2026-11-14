@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { KEY_LINGER, MAX_KEY_LINGER } from '../../game/layers/place-colors';
-import { GAME_LINGER, MAX_GAME_LINGER } from '../../game/modes/discover-pace';
+import { GAME_LINGER, MAX_GAME_LINGER } from '../../game/modes/discovery-pace';
 import { KEY_MOTION, KeyMotion } from '../play/keypad/key-merges';
 import { KEY_MOTION_SLIDERS } from '../play/keypad/key-motion-sliders';
 import { Candy } from '../../ui/candy';
@@ -12,8 +12,8 @@ import { MAX_TURN_SWITCH, TURN_SWITCH } from '../play/turn-shown';
 
 /**
  * Developer mode's page to tune how long the keypad's keys take to move: to sink as pressed, or rise back, to merge,
- * and to linger in the color they took as pressed, longer as Discover's game plays them; and how long the keypad
- * takes to show the other turn as the player switches turns in Discover. They apply to the whole game while developer mode is
+ * and to linger in the color they took as pressed, longer as Discovery's game plays them; and how long the keypad
+ * takes to show the other turn as the player switches turns in Discovery. They apply to the whole game while developer mode is
  * on, to try them in it.
  */
 @Component({
@@ -56,7 +56,7 @@ import { MAX_TURN_SWITCH, TURN_SWITCH } from '../play/turn-shown';
           (changed)="setLinger($event)"
         />
         <app-slider
-          label="Discover Linger"
+          label="Discovery Linger"
           [value]="tweaks.gameLinger()"
           [min]="1"
           [max]="maxGameLinger"

@@ -1,16 +1,20 @@
 import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { INDEXED_DB, IS_PREVIEW, RunStore } from './run-store';
-import { DISCOVER_PACE, DISCOVER_PACE_FORMAT, DiscoverPaceSetting } from './discover-pace-setting';
+import {
+  DISCOVERY_PACE,
+  DISCOVERY_PACE_FORMAT,
+  DiscoveryPaceSetting,
+} from './discovery-pace-setting';
 
-describe('DiscoverPaceSetting', () => {
+describe('DiscoveryPaceSetting', () => {
   let indexedDb: IDBFactory;
 
   beforeEach(() => {
     indexedDb = new IDBFactory();
   });
 
-  async function load(): Promise<DiscoverPaceSetting> {
+  async function load(): Promise<DiscoveryPaceSetting> {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
@@ -18,7 +22,7 @@ describe('DiscoverPaceSetting', () => {
         { provide: INDEXED_DB, useValue: indexedDb },
       ],
     });
-    const setting = TestBed.inject(DiscoverPaceSetting);
+    const setting = TestBed.inject(DiscoveryPaceSetting);
     await setting.loaded;
     return setting;
   }
@@ -33,14 +37,14 @@ describe('DiscoverPaceSetting', () => {
 
   it('is the medium pace when the setting is in a format it does not know, or names no pace', async () => {
     await load();
-    await TestBed.inject(RunStore).saveSetting(DISCOVER_PACE, {
-      format: DISCOVER_PACE_FORMAT + 1,
+    await TestBed.inject(RunStore).saveSetting(DISCOVERY_PACE, {
+      format: DISCOVERY_PACE_FORMAT + 1,
       pace: 'slower',
     });
     expect((await load()).pace()).toBe('medium');
 
-    await TestBed.inject(RunStore).saveSetting(DISCOVER_PACE, {
-      format: DISCOVER_PACE_FORMAT,
+    await TestBed.inject(RunStore).saveSetting(DISCOVERY_PACE, {
+      format: DISCOVERY_PACE_FORMAT,
       pace: 'sluggish',
     });
     expect((await load()).pace()).toBe('medium');
@@ -48,8 +52,8 @@ describe('DiscoverPaceSetting', () => {
 
   it('reads the setting again once something else changed it', async () => {
     const setting = await load();
-    await TestBed.inject(RunStore).saveSetting(DISCOVER_PACE, {
-      format: DISCOVER_PACE_FORMAT,
+    await TestBed.inject(RunStore).saveSetting(DISCOVERY_PACE, {
+      format: DISCOVERY_PACE_FORMAT,
       pace: 'slower',
     });
 

@@ -8,7 +8,7 @@ import { newTouchLog } from '../app/player-data/touch-log';
 import { typeKey } from './touch-logs';
 
 /**
- * Unlocks the checkpoints up to a place, with a Discover run reaching it, which counts in no groups, in a database of its
+ * Unlocks the checkpoints up to a place, with a Discovery run reaching it, which counts in no groups, in a database of its
  * own, and asks the next game to start from it, as the main menu does, in the route's query. Before anything reads the
  * runs.
  */
@@ -18,7 +18,7 @@ export async function startFrom(place: number): Promise<void> {
 }
 
 /**
- * Unlocks the checkpoints up to a place, with a Discover run reaching it, which counts in no groups, in a database of its
+ * Unlocks the checkpoints up to a place, with a Discovery run reaching it, which counts in no groups, in a database of its
  * own. Before anything reads the runs.
  */
 export async function unlockTo(place: number): Promise<void> {

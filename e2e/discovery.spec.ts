@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
-test('shows a group in Discover, then takes the player’s retyping, the next round shown with a tap, hurried held', async ({
+test('shows a group in Discovery, then takes the player’s retyping, the next round shown with a tap, hurried held', async ({
   page,
 }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: 'Discover' }).click();
-  await expect(page).toHaveURL('/discover');
+  await page.getByRole('link', { name: 'Discovery' }).click();
+  await expect(page).toHaveURL('/discovery');
   const faint = page.locator('app-typed-digits .tile.faint');
   const turnKey = page.locator('app-keypad button[data-key="backspace"]');
   const play = page.locator('app-play');

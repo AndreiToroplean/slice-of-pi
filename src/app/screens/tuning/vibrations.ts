@@ -27,7 +27,7 @@ const ABOUT: Readonly<Record<Vibration, { readonly name: string; readonly when: 
   landing: { name: 'Landing', when: 'Each digit landing on the tape.' },
   turn: {
     name: 'Turn',
-    when: 'The game handing Discover’s round to the player, or taking it back to show it.',
+    when: 'The game handing Discovery’s round to the player, or taking it back to show it.',
   },
   spin: { name: 'Spin', when: 'Each step of a value dragged up or down, such as the group size.' },
 };

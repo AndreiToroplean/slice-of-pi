@@ -90,10 +90,10 @@ export type MarsSettings = Omit<TerraSettings, 'usualThreshold'> &
      */
     currentDecay: number;
     /**
-     * The confidence required for the trust horizon in Discover, from 0 to 1: the game shows the player's groups there
+     * The confidence required for the trust horizon in Discovery, from 0 to 1: the game shows the player's groups there
      * only as far as it's this sure of them, and groups of their group size past that.
      */
-    discoverLevel: number;
+    discoveryLevel: number;
   }>;
 
 /** How many neighbors' worth the prior unevenness weighs against a place's own neighbors. */
@@ -101,7 +101,7 @@ const PRIOR_NEIGHBORS = 2;
 
 /**
  * Tuned by the owner's play testing, the level at 0 so that the game follows the groups wherever a run reached: from
- * the second run on, it plays the player's own groups. Discover's level is higher, so that it shows them only once a
+ * the second run on, it plays the player's own groups. Discovery's level is higher, so that it shows them only once a
  * few runs agree on them: groups typed hesitantly, not yet formed, would teach the player the wrong ones.
  */
 export const MARS_DEFAULTS: MarsSettings = GAME_VALUES.grouping.mars;
@@ -319,7 +319,7 @@ function stepsOf(pool: Pool, settings: MarsSettings, shaped: Enveloped | undefin
     averageTime,
     // The envelope's own breaks rather than the probability's over the threshold, which they only miss on a tie.
     groups: groupsWithin(trust.horizon),
-    discoverGroups: groupsWithin(horizonAt(trust.confidenceTrend, settings.discoverLevel)),
+    discoveryGroups: groupsWithin(horizonAt(trust.confidenceTrend, settings.discoveryLevel)),
   };
 }
 
@@ -451,17 +451,17 @@ export const MARS: BreakModelKind = {
         H.breakThreshold,
         H.level,
         {
-          key: 'discoverLevel',
-          label: 'Discover level',
+          key: 'discoveryLevel',
+          label: 'Discovery level',
           min: 0,
           max: 1,
           step: 0.01,
           format: (value) => value.toFixed(2),
           help: {
-            what: 'The level, in Discover: how confident the game must be of its verdict at a place to show your groups there. Past the trust horizon it makes, Discover shows groups of your group size.',
-            why: 'Discover teaches the digits in groups: groups you typed hesitantly, not yet formed, would teach you the wrong ones, while those a few runs agree on help you review what you know.',
+            what: 'The level, in Discovery: how confident the game must be of its verdict at a place to show your groups there. Past the trust horizon it makes, Discovery shows groups of your group size.',
+            why: 'Discovery teaches the digits in groups: groups you typed hesitantly, not yet formed, would teach you the wrong ones, while those a few runs agree on help you review what you know.',
             moving:
-              'Higher asks more of your runs to agree before Discover shows your groups, so it shows groups of your group size sooner. At 0, it shows your groups wherever your runs reached, as the level at 0 does as you play.',
+              'Higher asks more of your runs to agree before Discovery shows your groups, so it shows groups of your group size sooner. At 0, it shows your groups wherever your runs reached, as the level at 0 does as you play.',
           },
         },
       ],

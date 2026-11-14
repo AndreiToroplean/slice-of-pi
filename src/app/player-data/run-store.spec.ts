@@ -263,7 +263,7 @@ describe('RunStore', () => {
     expect(await storedRecords()).toEqual([migrated]);
   });
 
-  it('deletes the runs the migration drops: Discover’s of format 6', async () => {
+  it('deletes the runs the migration drops: Discovery’s of format 6', async () => {
     await storeWith().writable();
     TestBed.resetTestingModule();
     const database = await openDirectly();

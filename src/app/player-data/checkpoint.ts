@@ -8,9 +8,18 @@ import { RunStore } from './run-store';
 /** The name of the setting of the places picked in the store. */
 export const CHECKPOINTS = 'checkpoints';
 /** The format of the stored setting, which changes, with a migration, whenever the setting does. */
-export const CHECKPOINTS_FORMAT = 1;
+export const CHECKPOINTS_FORMAT = 2;
 /** The steps that bring the setting in older formats to the current one, one per format (see {@link migrate}). */
-const CHECKPOINTS_MIGRATIONS: readonly Migration[] = [];
+const CHECKPOINTS_MIGRATIONS: readonly Migration[] = [
+  // Format 2 names Discover Discovery.
+  ({ places, ...setting }) => {
+    if (typeof places !== 'object' || places === null) {
+      return setting;
+    }
+    const { discover, ...picked } = places as Record<string, unknown>;
+    return { ...setting, places: { ...picked, discovery: discover } };
+  },
+];
 
 /** The place picked for each game mode. */
 export type PickedPlaces = Readonly<Record<GameMode, number>>;
@@ -20,7 +29,7 @@ interface CheckpointsValue {
   readonly places: PickedPlaces;
 }
 
-const START: PickedPlaces = { free: 0, challenge: 0, discover: 0 };
+const START: PickedPlaces = { free: 0, challenge: 0, discovery: 0 };
 
 /**
  * The checkpoints the player has unlocked, and the place picked for each game mode to start from on the main menu: the

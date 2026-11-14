@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { parseTweaks, Tweaks } from '../../developer-mode/tweaks';
 import { KEY_LINGER } from '../../game/layers/place-colors';
-import { GAME_LINGER } from '../../game/modes/discover-pace';
+import { GAME_LINGER } from '../../game/modes/discovery-pace';
 import { INDEXED_DB } from '../../player-data/run-store';
 import { KEY_MOTION } from '../play/keypad/key-merges';
 import { Transitions } from './transitions';
@@ -21,7 +21,7 @@ describe('Transitions', () => {
     const fixture = TestBed.createComponent(Transitions);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
-    const [press, merge, linger, discoverLinger, turnSwitch] = Array.from(
+    const [press, merge, linger, discoveryLinger, turnSwitch] = Array.from(
       host.querySelectorAll<HTMLInputElement>('input[type="range"]'),
     );
     const slide = (slider: HTMLInputElement | undefined, value: string): void => {
@@ -33,7 +33,7 @@ describe('Transitions', () => {
     slide(merge, '720');
     slide(linger, '3000');
     slide(press, '120');
-    slide(discoverLinger, '4');
+    slide(discoveryLinger, '4');
     slide(turnSwitch, '500');
     await fixture.whenStable();
 

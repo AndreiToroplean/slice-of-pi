@@ -9,13 +9,13 @@ import { GroupSizeSetting } from '../../player-data/group-size-setting';
 import { DEFAULT_GROUP_SIZE, GROUP_SIZES } from '../../game/grouping/group-size';
 import { BREATH, MAX_BREATH } from '../../ui/breath';
 import { UNAVAILABLE } from '../../ui/unavailable';
-import { CHECKPOINT_LAG, MAX_CHECKPOINT_LAG } from '../../game/modes/discover-rounds';
-import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
+import { CHECKPOINT_LAG, MAX_CHECKPOINT_LAG } from '../../game/modes/discovery-rounds';
+import { DiscoveryPaceSetting } from '../../player-data/discovery-pace-setting';
 import {
-  DEFAULT_DISCOVER_PACE,
-  DISCOVER_SPEED,
-  DISCOVER_SPEEDS,
-  DiscoverPace,
+  DEFAULT_DISCOVERY_PACE,
+  DISCOVERY_SPEED,
+  DISCOVERY_SPEEDS,
+  DiscoveryPace,
   MAX_PACE_STEP,
   FAST_FORWARD,
   FAINT_OPACITY,
@@ -26,7 +26,7 @@ import {
   MAX_GROUP_PAUSE,
   MAX_HAND_OVER,
   PACE_STEP,
-} from '../../game/modes/discover-pace';
+} from '../../game/modes/discovery-pace';
 import { VibrationSetting } from '../../player-data/vibration-setting';
 import { MergeSetting } from '../../player-data/merge-setting';
 import { SoundSetting } from '../../player-data/sound-setting';
@@ -39,7 +39,7 @@ import { YourData } from './your-data';
 
 /**
  * The game's settings, opened from the main menu's gear: the player's data, the keypad's layout and whether its keys of
- * the same color merge, Discover's pace, whether the game
+ * the same color merge, Discovery's pace, whether the game
  * plays sounds and the phone vibrates, and in developer mode,
  * whether the keys are solid or see-through, whether to count down to the end of each group, whether to show what each
  * key typed played, and whether to leave the
@@ -136,14 +136,14 @@ import { YourData } from './your-data';
           </button>
         </div>
       </section>
-      <section class="panel" aria-labelledby="discover-title">
-        <h2 id="discover-title">Discover</h2>
+      <section class="panel" aria-labelledby="discovery-title">
+        <h2 id="discovery-title">Discovery</h2>
         <div class="row">
           <app-segmented
-            label="Discover pace"
+            label="Discovery pace"
             [segments]="paces"
-            [value]="discoverPace.pace()"
-            (valueChange)="discoverPace.set($event)"
+            [value]="discoveryPace.pace()"
+            (valueChange)="discoveryPace.set($event)"
           />
           <button
             type="button"
@@ -252,14 +252,14 @@ import { YourData } from './your-data';
             (changed)="setUnavailable($event)"
           />
           <app-slider
-            label="Discover Speed"
-            [value]="tweaks.discoverSpeed()"
+            label="Discovery Speed"
+            [value]="tweaks.discoverySpeed()"
             [min]="speeds.min"
             [max]="speeds.max"
             [step]="0.1"
-            [valueText]="tweaks.discoverSpeed() + ' digits/s'"
+            [valueText]="tweaks.discoverySpeed() + ' digits/s'"
             [defaultValue]="defaultSpeed"
-            (changed)="setDiscoverSpeed($event)"
+            (changed)="setDiscoverySpeed($event)"
           />
           <app-slider
             label="Pace Step"
@@ -316,7 +316,7 @@ import { YourData } from './your-data';
               <span>
                 Manual Checkpoints
                 <small
-                  >In Discover, picked by tapping them, rather than reached by themselves.</small
+                  >In Discovery, picked by tapping them, rather than reached by themselves.</small
                 >
               </span>
               <input
@@ -470,14 +470,14 @@ export class Settings {
   protected readonly maxBreath = MAX_BREATH;
   protected readonly groupSize = inject(GroupSizeSetting);
   protected readonly groupSizes = GROUP_SIZES;
-  protected readonly discoverPace = inject(DiscoverPaceSetting);
-  protected readonly paces: readonly Segment<DiscoverPace>[] = [
+  protected readonly discoveryPace = inject(DiscoveryPaceSetting);
+  protected readonly paces: readonly Segment<DiscoveryPace>[] = [
     { value: 'slower', label: 'Slower' },
     { value: 'medium', label: 'Medium' },
     { value: 'faster', label: 'Faster' },
   ];
-  protected readonly speeds = DISCOVER_SPEEDS;
-  protected readonly defaultSpeed = DISCOVER_SPEED;
+  protected readonly speeds = DISCOVERY_SPEEDS;
+  protected readonly defaultSpeed = DISCOVERY_SPEED;
   protected readonly maxPaceStep = MAX_PACE_STEP;
   protected readonly defaultPaceStep = PACE_STEP;
   protected readonly maxHandOver = MAX_HAND_OVER;
@@ -506,7 +506,7 @@ export class Settings {
     () => this.keypadLayout.layout() === DEFAULT_KEYPAD_LAYOUT,
   );
   protected readonly paceDefault = computed(
-    () => this.discoverPace.pace() === DEFAULT_DISCOVER_PACE,
+    () => this.discoveryPace.pace() === DEFAULT_DISCOVERY_PACE,
   );
   /** Whether the countdown is hidden, as it is unless turned on: only developer mode has it. */
   protected readonly countdownDefault = computed(() => !this.tweaks.countdown());
@@ -525,7 +525,7 @@ export class Settings {
       !this.tweaks.solidKeys() &&
       this.tweaks.breath() === BREATH &&
       this.tweaks.unavailable() === UNAVAILABLE &&
-      this.tweaks.discoverSpeed() === DISCOVER_SPEED &&
+      this.tweaks.discoverySpeed() === DISCOVERY_SPEED &&
       this.tweaks.paceStep() === PACE_STEP &&
       this.tweaks.handOver() === HAND_OVER &&
       this.tweaks.groupPause() === GROUP_PAUSE &&
@@ -580,8 +580,8 @@ export class Settings {
     return `${String(Math.round(opacity * 100))}%`;
   }
 
-  protected setDiscoverSpeed(speed: number | undefined): void {
-    void this.tweaks.setDiscoverSpeed(speed);
+  protected setDiscoverySpeed(speed: number | undefined): void {
+    void this.tweaks.setDiscoverySpeed(speed);
   }
 
   protected setPaceStep(step: number | undefined): void {
@@ -613,7 +613,7 @@ export class Settings {
   }
 
   protected resetPace(): void {
-    void this.discoverPace.set(DEFAULT_DISCOVER_PACE);
+    void this.discoveryPace.set(DEFAULT_DISCOVERY_PACE);
   }
 
   protected setSound(event: Event): void {
@@ -666,7 +666,7 @@ export class Settings {
       this.setSolidKeys(false);
       this.setBreath(undefined);
       this.setUnavailable(undefined);
-      this.setDiscoverSpeed(undefined);
+      this.setDiscoverySpeed(undefined);
       this.setPaceStep(undefined);
       this.setHandOver(undefined);
       this.setGroupPause(undefined);

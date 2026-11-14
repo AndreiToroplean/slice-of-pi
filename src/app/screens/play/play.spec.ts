@@ -49,14 +49,14 @@ import {
   GROUP_PAUSE,
   HAND_OVER,
   paceInterval,
-} from '../../game/modes/discover-pace';
-import { DiscoverRecorder } from '../../player-data/discover-recorder';
+} from '../../game/modes/discovery-pace';
+import { DiscoveryRecorder } from '../../player-data/discovery-recorder';
 import { Keypad } from './keypad/keypad';
 import { KEY_LINGER } from '../../game/layers/place-colors';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 import { GAME_BREAK_MODEL } from '../../game/grouping/break-models/break-models';
 
-/** The time between two digits Discover plays, at its default pace. */
+/** The time between two digits Discovery plays, at its default pace. */
 const MEDIUM_INTERVAL = paceInterval('medium');
 
 /** A pause clearly longer than the time between digits, in milliseconds. */
@@ -1854,7 +1854,7 @@ describe('Play', () => {
       });
     });
   });
-  describe('in Discover', () => {
+  describe('in Discovery', () => {
     beforeEach(() => {
       installDialogs();
     });
@@ -1872,12 +1872,12 @@ describe('Play', () => {
       keypad: () => Keypad;
     }
 
-    /** Opens Discover, once the earlier runs, if any, are kept. */
+    /** Opens Discovery, once the earlier runs, if any, are kept. */
     /**
-     * Discover, after the runs given, in developer mode if told how its rounds move on to checkpoints: as the player
+     * Discovery, after the runs given, in developer mode if told how its rounds move on to checkpoints: as the player
      * picks them, `'manual'`, or by themselves, so many behind the farthest reached.
      */
-    async function discover(
+    async function discovery(
       runs: readonly number[][] = [],
       checkpoints?: 'manual' | number,
     ): Promise<Round> {
@@ -1898,7 +1898,7 @@ describe('Play', () => {
           ),
         );
       }
-      const harness = await RouterTestingHarness.create('/discover');
+      const harness = await RouterTestingHarness.create('/discovery');
       const host = harness.routeNativeElement;
       if (host === null) {
         throw new Error('No play screen');
@@ -1989,7 +1989,7 @@ describe('Play', () => {
     }
 
     it('plays the first group, keys pressed, on its turn, then hands it over once it has faded off the tape', async () => {
-      const round = await discover();
+      const round = await discovery();
       expect(cornerKey(round.host).getAttribute('aria-label')).toBe('Fast forward');
       expect(turnOf(round.host)).toBe('game');
 
@@ -2009,7 +2009,7 @@ describe('Play', () => {
     });
 
     it('fades the digits shown out over the hand over, steadily from their opacity', async () => {
-      const round = await discover();
+      const round = await discovery();
       const tape = (): HTMLElement | null => round.host.querySelector('app-typed-digits');
       await listen(round, 5);
       const fading = (): number => round.host.querySelectorAll('.tile.faint.fading').length;
@@ -2020,8 +2020,8 @@ describe('Play', () => {
       expect(Number(tape()?.style.getPropertyValue('--fade'))).toBeCloseTo(0.5, 1);
     });
 
-    it('lights the Discover Halo on the game’s turn, going steadily with its hand over, or over a short switch as the player takes theirs', async () => {
-      const round = await discover();
+    it('lights the Discovery Halo on the game’s turn, going steadily with its hand over, or over a short switch as the player takes theirs', async () => {
+      const round = await discovery();
       const halo = (): number =>
         Number(round.host.querySelector<HTMLElement>('canvas.halo')?.style.opacity);
       expect(halo()).toBe(1);
@@ -2041,7 +2041,7 @@ describe('Play', () => {
     });
 
     it('shows its digits as faint as developer mode sets', async () => {
-      const round = await discover();
+      const round = await discovery();
       await TestBed.inject(DeveloperMode).set(true);
       await TestBed.inject(Tweaks).setFaintOpacity(0.6);
       await round.wait(0);
@@ -2054,7 +2054,7 @@ describe('Play', () => {
     });
 
     it('hands over for as long as developer mode sets', async () => {
-      const round = await discover();
+      const round = await discovery();
       await TestBed.inject(DeveloperMode).set(true);
       await TestBed.inject(Tweaks).setHandOver(HAND_OVER + 1000);
 
@@ -2067,7 +2067,7 @@ describe('Play', () => {
     });
 
     it('pauses longer between groups as it plays them, as developer mode sets', async () => {
-      const round = await discover();
+      const round = await discovery();
       await TestBed.inject(DeveloperMode).set(true);
       await TestBed.inject(Tweaks).setGroupPause(100);
 
@@ -2079,7 +2079,7 @@ describe('Play', () => {
     });
 
     it('lets the keys’ colors linger longer as the game plays them', async () => {
-      const round = await discover();
+      const round = await discovery();
       expect(round.keypad().linger()).toBe(KEY_LINGER * GAME_LINGER);
 
       await listen(round, 5);
@@ -2090,7 +2090,7 @@ describe('Play', () => {
 
     it('vibrates as the turn goes to the game, and back to the player', async () => {
       const vibrate = vi.spyOn(Vibrator.prototype, 'play');
-      const round = await discover();
+      const round = await discovery();
       await listen(round, 5);
       await round.wait(HAND_OVER);
 
@@ -2098,7 +2098,7 @@ describe('Play', () => {
     });
 
     it('shows the key colors and the season of the round shown as it fades out, then of the player’s place', async () => {
-      const round = await discover();
+      const round = await discovery();
       const season = (): string | undefined =>
         round.host.querySelector('app-season-header .count')?.textContent.trim();
       const color = (): string | undefined =>
@@ -2117,7 +2117,7 @@ describe('Play', () => {
     });
 
     it('fills a key typed on the game’s turn with the color of the player’s place, not of the round shown', async () => {
-      const round = await discover();
+      const round = await discovery();
       await listen(round, 5);
 
       document.dispatchEvent(
@@ -2134,7 +2134,7 @@ describe('Play', () => {
     });
 
     it('takes the player’s turn at once as they type while the round shown fades out', async () => {
-      const round = await discover();
+      const round = await discovery();
       await listen(round, 5);
 
       await round.type('1');
@@ -2148,7 +2148,7 @@ describe('Play', () => {
     });
 
     it('lands each group as its slots fill, never as the player’s timing would', async () => {
-      const round = await discover();
+      const round = await discovery();
       await listen(round, 5);
 
       await round.type('1415');
@@ -2160,7 +2160,7 @@ describe('Play', () => {
     });
 
     it('shows the next round, one more group, once the player has retyped the round and the hand over is over', async () => {
-      const round = await discover();
+      const round = await discovery();
       await playRounds(round, 5);
       expect(cornerWorks(round.host)).toBe(true);
 
@@ -2171,7 +2171,7 @@ describe('Play', () => {
     });
 
     it('starts the hand over again with each digit the player types on', async () => {
-      const round = await discover();
+      const round = await discovery();
       await playRounds(round, 5);
 
       await round.wait(HAND_OVER - 200);
@@ -2184,7 +2184,7 @@ describe('Play', () => {
     });
 
     it('plays the round twice as fast while the turn key is held', async () => {
-      const round = await discover();
+      const round = await discovery();
       await holdKey(round);
       expect(cornerKey(round.host).classList).toContain('pressed');
 
@@ -2194,7 +2194,7 @@ describe('Play', () => {
     });
 
     it('fast forwards as fast as developer mode sets', async () => {
-      const round = await discover();
+      const round = await discovery();
       await TestBed.inject(DeveloperMode).set(true);
       await TestBed.inject(Tweaks).setFastForward(4);
       await holdKey(round);
@@ -2205,7 +2205,7 @@ describe('Play', () => {
     });
 
     it('speeds up what’s left of the round as the turn key is held midway, and slows back down as let go', async () => {
-      const round = await discover();
+      const round = await discovery();
       await round.wait(1.5 * MEDIUM_INTERVAL);
 
       await holdKey(round);
@@ -2220,7 +2220,7 @@ describe('Play', () => {
     });
 
     it('holds the digits shown fading for as long as the pause key is held, going on once let go, unpaused', async () => {
-      const round = await discover();
+      const round = await discovery();
       const fade = (): string | undefined =>
         round.host.querySelector<HTMLElement>('app-typed-digits')?.style.getPropertyValue('--fade');
       await listen(round, 5);
@@ -2242,7 +2242,7 @@ describe('Play', () => {
     });
 
     it('holds the round the game plays for as long as the pause key is held, going on from where it was', async () => {
-      const round = await discover();
+      const round = await discovery();
       await round.wait(1.5 * MEDIUM_INTERVAL);
 
       round.keypad().pauseKey.emit('down');
@@ -2257,7 +2257,7 @@ describe('Play', () => {
     });
 
     it('pauses with a tap of the pause key, but not once it was held long enough to hold', async () => {
-      const round = await discover();
+      const round = await discovery();
       const paused = (): boolean => dialogNamed(round.host, 'Paused').open;
 
       round.keypad().pauseKey.emit('down');
@@ -2274,7 +2274,7 @@ describe('Play', () => {
     });
 
     it('holds the player’s digits fading while Shift is held, once they have retyped the round', async () => {
-      const round = await discover();
+      const round = await discovery();
       await playRounds(round, 5);
 
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', bubbles: true }));
@@ -2289,7 +2289,7 @@ describe('Play', () => {
     });
 
     it('shows the next round at once with a tap of the turn key, once the player has retyped the round, not before', async () => {
-      const round = await discover();
+      const round = await discovery();
       await listen(round, 5);
       await round.type('14');
       expect(cornerWorks(round.host)).toBe(false);
@@ -2307,7 +2307,7 @@ describe('Play', () => {
     });
 
     it('switches to the player’s turn at once with a tap of the turn key as the round shown fades out', async () => {
-      const round = await discover();
+      const round = await discovery();
       await listen(round, 5);
       expect(cornerKey(round.host).getAttribute('aria-label')).toBe('Switch turns');
 
@@ -2319,7 +2319,7 @@ describe('Play', () => {
     });
 
     it('never switches turns as the turn key, held to fast forward the round, is let go, even once the round is shown', async () => {
-      const round = await discover();
+      const round = await discovery();
       await holdKey(round);
       // Past the round shown, fast forwarded, into its hand over.
       await round.wait((6.5 * MEDIUM_INTERVAL) / FAST_FORWARD + 10);
@@ -2331,7 +2331,7 @@ describe('Play', () => {
     });
 
     it('fast forwards a hand over with the turn key held from its start, through the next round, without switching turns', async () => {
-      const round = await discover();
+      const round = await discovery();
       await playRounds(round, 5);
 
       await holdKey(round);
@@ -2346,7 +2346,7 @@ describe('Play', () => {
     });
 
     it('does nothing with a tap of the turn key as the game plays its round', async () => {
-      const round = await discover();
+      const round = await discovery();
       await round.wait(1.5 * MEDIUM_INTERVAL);
 
       await holdKey(round);
@@ -2358,7 +2358,7 @@ describe('Play', () => {
     });
 
     it('counts the whole groups typed past the round shown, not the digits of a group begun', async () => {
-      const round = await discover();
+      const round = await discovery();
       await listen(round, 5);
       await round.type(PI_DECIMALS.slice(0, 12));
 
@@ -2369,14 +2369,14 @@ describe('Play', () => {
     });
 
     it('plays the player’s own groups', async () => {
-      const grouped = await discover(Array.from({ length: 4 }, (_, run) => by3(30, run)));
+      const grouped = await discovery(Array.from({ length: 4 }, (_, run) => by3(30, run)));
       await listen(grouped, 3);
       expect(faint(grouped.host)).toBe('141');
     });
 
     it('shows as many digits as the slots, past the player’s groups too', async () => {
       // Grouped by 3, the runs ending at 7: the game trusts the first group only, then groups of the default size.
-      const round = await discover(Array.from({ length: 4 }, (_, run) => by3(7, run)));
+      const round = await discovery(Array.from({ length: 4 }, (_, run) => by3(7, run)));
       await playRounds(round, 3);
       await nextRound(round);
 
@@ -2387,7 +2387,7 @@ describe('Play', () => {
     });
 
     it('takes the player’s turn at once as they type while the game plays the round, the round to retype to its end', async () => {
-      const round = await discover();
+      const round = await discovery();
       await round.wait(2.5 * MEDIUM_INTERVAL);
 
       await round.type('1');
@@ -2403,7 +2403,7 @@ describe('Play', () => {
     });
 
     it('loses on the first wrong digit, playing again from the start', async () => {
-      const round = await discover();
+      const round = await discovery();
       await playRounds(round, 5, 10);
       await nextRound(round);
       await listen(round, 15);
@@ -2426,7 +2426,7 @@ describe('Play', () => {
     });
 
     it('pops up each checkpoint reached, picked by the player, pressed once tapped, until the game’s next turn starts the rounds at it', async () => {
-      const round = await discover([], 'manual');
+      const round = await discovery([], 'manual');
       const checkpoints = (): string[] =>
         Array.from(round.host.querySelectorAll('.checkpoint'), (button) =>
           button.textContent.trim(),
@@ -2452,7 +2452,7 @@ describe('Play', () => {
       expect(words(round.host)).toEqual(['14159', '26535']);
       // Once the run unlocking it is saved.
       await vi.waitFor(() => {
-        expect(TestBed.inject(Checkpoint).place('discover')).toBe(10);
+        expect(TestBed.inject(Checkpoint).place('discovery')).toBe(10);
       });
       // The game shows the round from there.
       await round.wait(MEDIUM_INTERVAL);
@@ -2460,7 +2460,7 @@ describe('Play', () => {
     });
 
     it('moves the rounds on by themselves, so many checkpoints behind the farthest reached, without popping any up', async () => {
-      const round = await discover([], 0);
+      const round = await discovery([], 0);
       await playRounds(round, 5, 10);
       expect(round.host.querySelector('.checkpoint')).toBeNull();
 
@@ -2471,7 +2471,7 @@ describe('Play', () => {
     });
 
     it('waits for the game’s next turn for a checkpoint tapped on its turn', async () => {
-      const round = await discover([], 'manual');
+      const round = await discovery([], 'manual');
       await playRounds(round, 5, 10);
       await nextRound(round);
 
@@ -2488,7 +2488,7 @@ describe('Play', () => {
     });
 
     it('takes a checkpoint back when tapped again', async () => {
-      const round = await discover([], 'manual');
+      const round = await discovery([], 'manual');
       await playRounds(round, 5, 10);
       const button = round.host.querySelector<HTMLButtonElement>('.checkpoint');
 
@@ -2503,8 +2503,8 @@ describe('Play', () => {
     });
 
     it('records each digit retyped at its place, in its overwriting run', async () => {
-      const record = vi.spyOn(DiscoverRecorder.prototype, 'record');
-      const round = await discover();
+      const record = vi.spyOn(DiscoveryRecorder.prototype, 'record');
+      const round = await discovery();
 
       await playRounds(round, 5);
 
@@ -2512,7 +2512,7 @@ describe('Play', () => {
     });
 
     it('stops the round while paused, going on from where it was once resumed, never showing it again', async () => {
-      const round = await discover();
+      const round = await discovery();
       await round.wait(1.5 * MEDIUM_INTERVAL);
 
       round.host.querySelector<HTMLButtonElement>('button[title="Pause"]')?.click();

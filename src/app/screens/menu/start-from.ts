@@ -7,7 +7,7 @@ import { CandyGroup } from '../../ui/candy-group';
 import { Spinner } from '../../ui/spinner';
 
 /**
- * A button starting a game mode from the place picked for it, "Discover from 40", as one candy button of two parts
+ * A button starting a game mode from the place picked for it, "Discovery from 40", as one candy button of two parts
  * (see `CandyGroup`): what it starts, then the place, which the player drags up or down, or across, to pick another
  * checkpoint unlocked, ten places a step (see `Spinner`), kept for the next visits: only what it starts starts the
  * game. Pressing that presses all of it; touching the place doesn't, as it's what's dragged.

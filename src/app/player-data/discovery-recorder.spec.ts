@@ -3,10 +3,10 @@ import { KeypadLayoutSetting } from './keypad-layout-setting';
 import { runOf } from './run';
 import { RUN_CLOCK } from './run-recorder';
 import { RunStore } from './run-store';
-import { DiscoverRecorder } from './discover-recorder';
+import { DiscoveryRecorder } from './discovery-recorder';
 import { TouchLog } from './touch-log';
 
-describe('DiscoverRecorder', () => {
+describe('DiscoveryRecorder', () => {
   let time: number;
   let saves: TouchLog[];
 
@@ -15,7 +15,7 @@ describe('DiscoverRecorder', () => {
     saves = [];
     TestBed.configureTestingModule({
       providers: [
-        DiscoverRecorder,
+        DiscoveryRecorder,
         { provide: KeypadLayoutSetting, useValue: { layout: () => 'calculator' } },
         {
           provide: RUN_CLOCK,
@@ -36,7 +36,7 @@ describe('DiscoverRecorder', () => {
   });
 
   /** Types the digits of π from the place `from`, 200 ms apart. */
-  function round(recorder: DiscoverRecorder, from: number, digits: string, start = 0): void {
+  function round(recorder: DiscoveryRecorder, from: number, digits: string, start = 0): void {
     Array.from(digits).forEach((key, i) => {
       time += 200;
       recorder.record({ key: key as '1' }, from + i, start);
@@ -44,7 +44,7 @@ describe('DiscoverRecorder', () => {
   }
 
   it('keeps the latest typing of each place, as one overwriting run, saved after every digit', async () => {
-    const recorder = TestBed.inject(DiscoverRecorder);
+    const recorder = TestBed.inject(DiscoveryRecorder);
 
     round(recorder, 0, '1');
     round(recorder, 0, '14');
@@ -62,7 +62,7 @@ describe('DiscoverRecorder', () => {
   });
 
   it('drops the places after the one typed, from an earlier round, keeping the touches in order', async () => {
-    const recorder = TestBed.inject(DiscoverRecorder);
+    const recorder = TestBed.inject(DiscoveryRecorder);
 
     round(recorder, 0, '141');
     round(recorder, 0, '1');
@@ -72,7 +72,7 @@ describe('DiscoverRecorder', () => {
   });
 
   it('times the first digit of a turn as when last typed straight after the digit before', async () => {
-    const recorder = TestBed.inject(DiscoverRecorder);
+    const recorder = TestBed.inject(DiscoveryRecorder);
 
     recorder.newTurn();
     round(recorder, 0, '141');
@@ -89,7 +89,7 @@ describe('DiscoverRecorder', () => {
   });
 
   it('records a session from a checkpoint from its place, its clock stopped while paused', async () => {
-    const recorder = TestBed.inject(DiscoverRecorder);
+    const recorder = TestBed.inject(DiscoveryRecorder);
 
     round(recorder, 50, '5', 50);
     recorder.pause();
@@ -109,7 +109,7 @@ describe('DiscoverRecorder', () => {
     TestBed.overrideProvider(RUN_CLOCK, {
       useValue: { now: () => time, epoch: () => time, newId: () => `session-${String(++ids)}` },
     });
-    const recorder = TestBed.inject(DiscoverRecorder);
+    const recorder = TestBed.inject(DiscoveryRecorder);
 
     round(recorder, 0, '1');
     recorder.end();

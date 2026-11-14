@@ -132,7 +132,7 @@ function statsOf(steps: Steps): Stats {
     })),
     usual: breaksOf(steps.usual, settings.usualThreshold),
     groups: steps.groups,
-    discoverGroups: steps.discoverGroups ?? steps.groups,
+    discoveryGroups: steps.discoveryGroups ?? steps.groups,
     speedCurve: steps.speedCurve,
     averageTime: steps.averageTime,
     confidence: steps.confidenceTrend,

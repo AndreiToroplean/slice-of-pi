@@ -14,7 +14,7 @@ export function isTurnSwitch(value: unknown): value is number {
 }
 
 /**
- * How much the keypad shows Discover's game turn, from 0 to 1: all of it on the game's turn, none on the player's, and,
+ * How much the keypad shows Discovery's game turn, from 0 to 1: all of it on the game's turn, none on the player's, and,
  * as a turn is handed over, `left` of the hand over left, from 1 down to 0, as much as is left of the game's, going,
  * or as is done of the player's, coming: steadily, as the time left.
  */
