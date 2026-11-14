@@ -1838,7 +1838,7 @@ describe('Play', () => {
         expect(host.querySelector('.game-over')).toBeNull();
       });
 
-      it('continues the run in free play from the mistake, backspace and all, until it restarts as a challenge', async () => {
+      it('continues the run in free play from the mistake, backspace and all, restarting as free play', async () => {
         const end = vi.spyOn(TestBed.inject(RunRecorder), 'end');
         const { host, type, stable } = await challenge();
         await type('140');
@@ -1865,10 +1865,11 @@ describe('Play', () => {
         pauseItem(host, 'Pause').click();
         pauseItem(host, 'Restart').click();
         await stable();
-        expect(backspace()?.getAttribute('aria-disabled')).toBe('true');
+        expect(backspace()?.getAttribute('aria-disabled')).toBeNull();
+        expect(TestBed.inject(RunRecorder).challenge()).toBe(false);
       });
 
-      it('continues the game in Discovery from where the group holding its mistake starts, the mistake gone', async () => {
+      it('continues the game in Discovery from where the group holding its mistake starts, the mistake gone, restarting there', async () => {
         const end = vi.spyOn(TestBed.inject(RunRecorder), 'end');
         const { host, type, stable } = await challenge();
         await type('1415927');
@@ -1884,6 +1885,12 @@ describe('Play', () => {
         expect(words(host)).toEqual(['14159']);
         expect(host.querySelector('app-slots .wrong')).toBeNull();
         expect(end).toHaveBeenCalled();
+
+        pauseItem(host, 'Pause').click();
+        pauseItem(host, 'Restart').click();
+        await stable();
+        expect(host.getAttribute('data-turn')).toBe('game');
+        expect(words(host)).toEqual(['14159']);
       });
 
       it('plays again from the game over dialog, from the start, the keys typing again', async () => {
