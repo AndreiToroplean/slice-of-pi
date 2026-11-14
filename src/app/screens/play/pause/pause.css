@@ -12,3 +12,14 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+/* Two lines, "Continue in" small over the game mode, as tall as a button of one line. */
+.continue {
+  --candy-padding-block: 0.25rem;
+}
+
+.continue-in {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}

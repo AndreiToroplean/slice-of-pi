@@ -44,8 +44,8 @@ import { ReplayButton } from './replay-button';
       <button type="button" appCandy="primary" (click)="resume()">Resume</button>
       <button type="button" appCandy (click)="restart.emit(); resume()">Restart</button>
       @if (mode() === 'free') {
-        <button type="button" appCandy (click)="continueInDiscovery()">
-          Continue in Discovery
+        <button type="button" appCandy class="continue" (click)="continueInDiscovery()">
+          <span class="continue-in">Continue in</span> Discovery
         </button>
       }
       <button type="button" appCandy="danger" (click)="void endGame()">End Game</button>
@@ -61,12 +61,14 @@ import { ReplayButton } from './replay-button';
       <button type="button" appCandy="primary" (click)="playAgain()">Play Again</button>
       <!-- Only on to a game mode asking less of the player: from a challenge, to free play or Discovery. -->
       @if (mode() === 'challenge') {
-        <button type="button" appCandy (click)="continueInFreePlay()">Continue in Free Play</button>
-      }
-      @if (mode() === 'challenge') {
-        <button type="button" appCandy (click)="continueInDiscovery()">
-          Continue in Discovery
-        </button>
+        <div buttonRow>
+          <button type="button" appCandy class="continue" (click)="continueInFreePlay()">
+            <span class="continue-in">Continue in</span> Free Play
+          </button>
+          <button type="button" appCandy class="continue" (click)="continueInDiscovery()">
+            <span class="continue-in">Continue in</span> Discovery
+          </button>
+        </div>
       }
       <button type="button" appCandy (click)="void endGame()">Main Menu</button>
     </app-choice-dialog>
