@@ -77,7 +77,7 @@ describe('Spinner', () => {
 
     expect(spinner.getAttribute('role')).toBe('spinbutton');
     expect(spinner.getAttribute('aria-valuenow')).toBe('20');
-    expect(spinner.textContent.trim()).toBe('20');
+    expect(spinner.querySelector('.shown')?.textContent.trim()).toBe('20');
   });
 
   it('follows a drag up and down, a tick of vibration at each step, without clicking what holds it', async () => {
