@@ -1,5 +1,6 @@
 import { Component, inject, input, model, output, viewChild } from '@angular/core';
 import { DeveloperMode } from '../../../developer-mode/developer-mode';
+import { GameMode } from '../../../game/modes/game-mode';
 import { injectBackToMenu } from '../../../ui/back-to-menu';
 import { Candy } from '../../../ui/candy';
 import { ChoiceDialog } from '../../../ui/choice-dialog';
@@ -11,12 +12,12 @@ import { ReplayButton } from './replay-button';
  * confirmed it, warned that the game can't be resumed then. Escape pauses too, as going back does (see `Play`), and
  * resumes, or goes back from the confirmation, as do going back and a click outside the dialog; up and down move between a dialog's
  * buttons, and Enter chooses one, as on any button. In developer mode, a button in its right corner also puts the play screen
- * in edit mode, the game staying paused until it's done.
+ * in edit mode, the game staying paused until it's done. In free play, it also offers to continue the game in Discovery.
  *
  * Once a game is lost, as on a challenge's mistake, the game over dialog takes the pause dialog's place: there's no
- * resuming, only playing again, continuing the run in free play, or going back to the main menu, and nothing else
- * closes it; its replay button replays the run at once, as there's no game left to warn about. Its dialogs are choice
- * dialogs (see `ChoiceDialog`), within the thumb's reach.
+ * resuming, only playing again, continuing a challenge's run in free play, or its game in Discovery, or going back to
+ * the main menu, and nothing else closes it; its replay button replays the run at once, as there's no game left to warn
+ * about. Its dialogs are choice dialogs (see `ChoiceDialog`), within the thumb's reach.
  */
 @Component({
   selector: 'app-pause',
@@ -42,6 +43,11 @@ import { ReplayButton } from './replay-button';
       }
       <button type="button" appCandy="primary" (click)="resume()">Resume</button>
       <button type="button" appCandy (click)="restart.emit(); resume()">Restart</button>
+      @if (mode() === 'free') {
+        <button type="button" appCandy (click)="continueInDiscovery()">
+          Continue in Discovery
+        </button>
+      }
       <button type="button" appCandy="danger" (click)="void endGame()">End Game</button>
     </app-choice-dialog>
     <app-choice-dialog
@@ -53,8 +59,14 @@ import { ReplayButton } from './replay-button';
     >
       <app-replay-button cornerStart [disabled]="!replayable()" (pressed)="void stopAndReplay()" />
       <button type="button" appCandy="primary" (click)="playAgain()">Play Again</button>
-      @if (continuable()) {
+      <!-- Only on to a game mode asking less of the player: from a challenge, to free play or Discovery. -->
+      @if (mode() === 'challenge') {
         <button type="button" appCandy (click)="continueInFreePlay()">Continue in Free Play</button>
+      }
+      @if (mode() === 'challenge') {
+        <button type="button" appCandy (click)="continueInDiscovery()">
+          Continue in Discovery
+        </button>
       }
       <button type="button" appCandy (click)="void endGame()">Main Menu</button>
     </app-choice-dialog>
@@ -73,8 +85,13 @@ export class Pause {
   readonly restart = output();
   /** The player chose to carry a lost game on in free play, as the game over dialog closes. */
   readonly freePlay = output();
-  /** Whether a lost game can go on in free play, as a challenge can. */
-  readonly continuable = input(true);
+  /** The player chose to carry the game on in Discovery, as the dialog it's offered on closes. */
+  readonly discovery = output();
+  /**
+   * The game mode played: it goes on only in one asking less of the player, free play after a challenge, and Discovery
+   * after either.
+   */
+  readonly mode = input<GameMode>('free');
   /** Whether there's a run to replay. */
   readonly replayable = input(false);
   /** The player chose to stop the game and replay the run, once the dialog has closed. */
@@ -124,6 +141,14 @@ export class Pause {
     // At once, rather than once the dialog has closed: keys typed as it goes count.
     this.paused.set(false);
     void this.overDialog().close();
+  }
+
+  /** Carries the game on in Discovery, from the dialog it's offered on, which closes. */
+  protected continueInDiscovery(): void {
+    this.discovery.emit();
+    // At once, rather than once the dialog has closed: keys typed as it goes count.
+    this.paused.set(false);
+    void this.close();
   }
 
   /**

@@ -134,7 +134,10 @@ const TICK = 16;
  * The game mode comes from the route: free play unless it says otherwise. In a challenge, every digit is checked, the
  * keypad has no backspace, and the first mistake ends the game: the screen's edges turn red at once, the keypad takes
  * no more keys, and a moment later the game over dialog offers to play again, to continue the run in free play from the
- * mistake, backspace and all, or to go back to the main menu. Restarting goes back to the route's game mode.
+ * mistake, backspace and all, to continue the game in Discovery, or to go back to the main menu. Restarting goes back to
+ * the route's game mode. Discovery's game over offers neither: a game only goes on in a game mode asking less of the
+ * player. Free play's pause dialog offers to continue in Discovery too. Continuing in Discovery turns the game into
+ * Discovery on the same screen, its rounds starting from where the group being typed starts, any mistake gone.
  *
  * It also replays a run, given its touch log: the player can't type, nor pause, and nothing is recorded. Whatever
  * replays it hands it the touches one after the other, on the run's own clock (`TIMER` and `RUN_CLOCK`), and resets it
@@ -256,9 +259,10 @@ const TICK = 16;
           (pausedChange)="setPaused($event)"
           (edit)="edit()"
           [replayable]="recorder.run() !== undefined"
-          [continuable]="mode() !== 'discovery'"
+          [mode]="mode()"
           (restart)="restart()"
           (freePlay)="continueInFreePlay()"
+          (discovery)="continueInDiscovery()"
           (replay)="void replayRun()"
         />
       }
@@ -380,7 +384,7 @@ export class Play implements PausesOnBack {
   );
   /** The game mode the route asks for, free play unless it says otherwise. */
   private readonly routeMode: GameMode = modeOf(inject(ActivatedRoute).snapshot.data['mode']);
-  /** The game mode: the route's, until a lost challenge continues in free play. */
+  /** The game mode: the route's, until the game goes on in another, as a lost challenge does in free play. */
   protected readonly mode = signal(this.routeMode);
   /**
    * Whether digits are checked against π, as they are in a game started as a challenge, and in free play unless
@@ -1076,6 +1080,18 @@ export class Play implements PausesOnBack {
       this.stopGameOver = () => undefined;
       this.pause()?.gameOver();
     });
+  }
+
+  /**
+   * Carries the game on in Discovery, a lost challenge or free play, on the same screen: a new session, its rounds
+   * starting from where the group being typed starts, any mistake gone, the run so far ended.
+   */
+  protected continueInDiscovery(): void {
+    const at = this.digits().length;
+    const from = groupStart(this.sizes(), at, this.knownGroups(), this.groupSize());
+    // Kept as the game starts over in Discovery.
+    this.rounds.set(newRounds(from, at));
+    this.restart('discovery');
   }
 
   /** Carries a lost challenge's run on in free play, from its mistake, for backspace to delete. */

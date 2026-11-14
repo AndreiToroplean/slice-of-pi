@@ -1404,6 +1404,27 @@ describe('Play', () => {
       expect(words(host)).toEqual(['1415']);
     });
 
+    it('continues free play in Discovery, from where the group being typed starts', async () => {
+      const harness = await RouterTestingHarness.create('/play');
+      const host = harness.routeNativeElement;
+      if (host === null) {
+        throw new Error('No play screen');
+      }
+      for (const key of '1415926') {
+        time.advance(200);
+        host.querySelector<HTMLButtonElement>(`button[data-key="${key}"]`)?.click();
+        await harness.fixture.whenStable();
+      }
+
+      pauseItem(host, 'Pause').click();
+      pauseItem(host, 'Continue in Discovery').click();
+      await harness.fixture.whenStable();
+
+      expect(TestBed.inject(Router).url).toBe('/play');
+      expect(host.getAttribute('data-turn')).toBe('game');
+      expect(words(host)).toEqual(['14159']);
+    });
+
     it('stands still as if paused, but without the pause, while held, in any mode', async () => {
       const { host, type, stable } = await setUp();
       await typeAll(type, '141');
@@ -1822,6 +1843,24 @@ describe('Play', () => {
         pauseItem(host, 'Restart').click();
         await stable();
         expect(backspace()?.getAttribute('aria-disabled')).toBe('true');
+      });
+
+      it('continues the game in Discovery from where the group holding its mistake starts, the mistake gone', async () => {
+        const end = vi.spyOn(TestBed.inject(RunRecorder), 'end');
+        const { host, type, stable } = await challenge();
+        await type('1415927');
+        time.advance(GAME_OVER_DELAY);
+        await stable();
+
+        pauseItem(host, 'Continue in Discovery').click();
+        await stable();
+
+        expect(gameOver(host).open).toBe(false);
+        expect(host.querySelector('.game-over')).toBeNull();
+        expect(host.getAttribute('data-turn')).toBe('game');
+        expect(words(host)).toEqual(['14159']);
+        expect(host.querySelector('app-slots .wrong')).toBeNull();
+        expect(end).toHaveBeenCalled();
       });
 
       it('plays again from the game over dialog, from the start, the keys typing again', async () => {
