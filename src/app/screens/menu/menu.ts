@@ -66,7 +66,7 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
 
 /**
  * The main menu, where the app opens: the game's icon and name, a button to start a challenge, one above it to free play,
- * and one above that to Discover, beside which, once the player has unlocked a checkpoint, a small one shows the place
+ * and one above that to Discovery, beside which, once the player has unlocked a checkpoint, a small one shows the place
  * every game starts from, and picks it,
  * the settings behind a gear in a corner, and in developer mode, its pages, the player's runs among them, in an overflow menu in the other, with its
  * editor (see `menu-editor.ts`). The name's letters are lanterns, in the key colors, and the icon is lit from behind:
@@ -177,11 +177,11 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
       {{ taps.message() }}
     </p>
     <app-button-list class="actions" [style.gap]="'var(--buttons-gap)'">
-      <!-- Discover starts from the place picked on it, once there's a checkpoint to pick; the others, from theirs. -->
+      <!-- Discovery starts from the place picked on it, once there's a checkpoint to pick; the others, from theirs. -->
       @if (checkpoint.farthest() > 0) {
-        <app-start-from mode="discover" path="/discover" name="Discover" />
+        <app-start-from mode="discovery" path="/discovery" name="Discovery" />
       } @else {
-        <a appCandy routerLink="/discover" data-vibration="play">Discover</a>
+        <a appCandy routerLink="/discovery" data-vibration="play">Discovery</a>
       }
       <app-split-button
         #free="splitButton"

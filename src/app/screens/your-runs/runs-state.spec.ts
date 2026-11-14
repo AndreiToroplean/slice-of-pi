@@ -82,7 +82,7 @@ describe('RunsState', () => {
     expect(state.places()).toBe(42);
   });
 
-  it('charts Discover’s runs as they’re kept, without groups, as they don’t count in them', async () => {
+  it('charts Discovery’s runs as they’re kept, without groups, as they don’t count in them', async () => {
     const discovered = typeKey(
       typeKey(newTouchLog('e', 5_000, true, 'calculator', { recording: 'overwrite' }), '1', 0),
       '4',

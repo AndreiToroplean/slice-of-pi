@@ -17,11 +17,12 @@
 - **Corner button:** a button in a screen's corner, such as the pause button, snug against the margins.
 - **Play screen:** where the player types π. Its **pause dialog** resumes, restarts or ends the game.
 - **Keypad:** the grid of keys the player types on.
-- **Key:** one button of the keypad: a **digit key**, or an **action key**, which acts on the game rather than types a digit: the **pause key**, and the **backspace key**, or, in Discover, the **turn key** in its place, which switches turns, or fast forwards the game's. "Key 3" is the digit key for 3.
+- **Key:** one button of the keypad: a **digit key**, or an **action key**, which acts on the game rather than types a digit: the **pause key**, and the **backspace key**, or, in Discovery, the **turn key** in its place, which switches turns, or fast forwards the game's. "Key 3" is the digit key for 3.
 - **Typing area:** where the group being typed appears, as slots to fill.
 - **Slot:** an empty space in the typing area waiting for a digit. The number of slots is the **group size**.
 - **Typed digits:** the digits typed so far in the run, in words.
 - **Tape:** the one row the typed digits sit on, scrolling as words come on and off it. Each digit on it is a **tile**.
+- **Virtual digits:** digits on the tape that aren't really typed, shown faint: those Discovery's game shows on its turn, and those the player types while **holding the game still** (holding the pause key, or Shift), a **simulation** to see whether they look and sound right, gone as the player lets go.
 - **Background:** the season-colored backdrop behind every screen. Never call it the sky.
 - **Season header:** the top of the play screen: the digit reached (the places typed, digit 0 before any, which is also the place of the next digit), the season and year, and the place in the year on the **year bar**.
 - **Sky:** the 3D night sky where the player's constellations collect.

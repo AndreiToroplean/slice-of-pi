@@ -33,7 +33,7 @@ import { SlotHandover } from './slots/slots';
 import { ScaledTimer } from './scaled-timer';
 import { gameTurnShare, switchedShare } from './turn-shown';
 import { Light, LightLayer } from '../../ui/light-layer';
-import { DiscoverHalo } from './discover-halo';
+import { DiscoveryHalo } from './discovery-halo';
 import { Point } from '../../ui/handles/light-handles';
 import { groupDigits, slotCount } from '../../game/grouping/groups';
 import { CornerKey, KeyPress, Keypad, KeypadMark } from './keypad/keypad';
@@ -55,10 +55,10 @@ import {
   completeRound,
   moveTo,
   newRounds,
-} from '../../game/modes/discover-rounds';
-import { paceInterval } from '../../game/modes/discover-pace';
-import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
-import { DiscoverRecorder } from '../../player-data/discover-recorder';
+} from '../../game/modes/discovery-rounds';
+import { paceInterval } from '../../game/modes/discovery-pace';
+import { DiscoveryPaceSetting } from '../../player-data/discovery-pace-setting';
+import { DiscoveryRecorder } from '../../player-data/discovery-recorder';
 import { GroupSizeSetting } from '../../player-data/group-size-setting';
 import { Digit, isDigit } from '../../game/pi/digit';
 import { Candy } from '../../ui/candy';
@@ -89,10 +89,10 @@ const LONGEST_VIBRATION = LONGEST_STEP * MOST_STEPS;
 /** How long a challenge's mistake shows before the game over dialog opens, in milliseconds. */
 export const GAME_OVER_DELAY = 800;
 
-/** How long a key Discover plays shows pressed, as a share of the time between two digits. */
+/** How long a key Discovery plays shows pressed, as a share of the time between two digits. */
 const KEY_SHOWN = 0.6;
 
-/** Whose turn it is in Discover: the game's, showing the round, or the player's, typing; always the player's otherwise. */
+/** Whose turn it is in Discovery: the game's, showing the round, or the player's, typing; always the player's otherwise. */
 type Turn = 'game' | 'player';
 
 /**
@@ -128,13 +128,16 @@ const TICK = 16;
  * A game starts from the checkpoint picked on the main menu, if any, or rather from where the group holding it starts,
  * never splitting a group: the digits before it are on the tape, as if typed, in the player's groups where the break
  * model knows them, and in groups of their group size elsewhere; the run starts there, the player's groups worked out
- * from it as usual. Discover's rounds move on to a checkpoint likewise. Backspace deletes them as any other digit: the
+ * from it as usual. Discovery's rounds move on to a checkpoint likewise. Backspace deletes them as any other digit: the
  * next digit then starts the run anew, from where it goes on.
  *
  * The game mode comes from the route: free play unless it says otherwise. In a challenge, every digit is checked, the
  * keypad has no backspace, and the first mistake ends the game: the screen's edges turn red at once, the keypad takes
  * no more keys, and a moment later the game over dialog offers to play again, to continue the run in free play from the
- * mistake, backspace and all, or to go back to the main menu. Restarting goes back to the route's game mode.
+ * mistake, backspace and all, to continue the game in Discovery, or to go back to the main menu. Restarting goes back to
+ * the route's game mode. Discovery's game over offers neither: a game only goes on in a game mode asking less of the
+ * player. Free play's pause dialog offers to continue in Discovery too. Continuing in Discovery turns the game into
+ * Discovery on the same screen, its rounds starting from where the group being typed starts, any mistake gone.
  *
  * It also replays a run, given its touch log: the player can't type, nor pause, and nothing is recorded. Whatever
  * replays it hands it the touches one after the other, on the run's own clock (`TIMER` and `RUN_CLOCK`), and resets it
@@ -143,7 +146,7 @@ const TICK = 16;
  */
 @Component({
   selector: 'app-play',
-  providers: [DiscoverRecorder],
+  providers: [DiscoveryRecorder],
   imports: [
     BreakCountdown,
     Candy,
@@ -161,7 +164,7 @@ const TICK = 16;
     '[class.screen]': 'replay() === undefined',
     '[class.replaying]': 'replay() !== undefined',
     '[style]': 'layout()',
-    '[attr.data-turn]': 'discovering ? turn() : null',
+    '[attr.data-turn]': 'discovering() ? turn() : null',
     '(pointerdown)': 'touchDown($event)',
     '(pointerup)': 'touchUp($event)',
     '(pointercancel)': 'touchesElsewhere.delete($event.pointerId)',
@@ -172,7 +175,7 @@ const TICK = 16;
   template: `
     <h1 class="visually-hidden">Slice of Pi</h1>
     <!-- Behind everything else on the screen. -->
-    @if (discovering) {
+    @if (discovering()) {
       <canvas
         class="halo"
         [appLightLayer]="haloLights()"
@@ -186,9 +189,9 @@ const TICK = 16;
       [digits]="digits()"
       [colors]="placeColors()"
       [arrival]="arrival()"
-      [faintFrom]="faintFrom()"
+      [virtualFrom]="virtualFrom()"
       [fadeOut]="fadeOut()"
-      [faintOpacity]="tweaks.faintOpacity()"
+      [virtualOpacity]="tweaks.virtualOpacity()"
     />
     @if (checkpoints().length > 0) {
       <div class="checkpoints">
@@ -256,9 +259,10 @@ const TICK = 16;
           (pausedChange)="setPaused($event)"
           (edit)="edit()"
           [replayable]="recorder.run() !== undefined"
-          [continuable]="mode() !== 'discover'"
+          [mode]="mode()"
           (restart)="restart()"
           (freePlay)="continueInFreePlay()"
+          (discovery)="continueInDiscovery()"
           (replay)="void replayRun()"
         />
       }
@@ -280,7 +284,7 @@ const TICK = 16;
         (layoutChange)="editedLayout.set($event)"
         [halo]="halo()"
         (haloChange)="editedHalo.set($event)"
-        [haloAt]="discovering ? haloAt() : undefined"
+        [haloAt]="discovering() ? haloAt() : undefined"
         [(previewing)]="previewing"
         (done)="doneEditing()"
       />
@@ -316,7 +320,7 @@ export class Play implements PausesOnBack {
     if (log !== undefined) {
       return startOf(log);
     }
-    return this.discovering ? this.rounds().from : this.checkpointStart();
+    return this.discovering() ? this.rounds().from : this.checkpointStart();
   });
   /** How far back backspace has deleted the digits the game started with, if it has. */
   private readonly deletedTo = signal<number | undefined>(undefined);
@@ -341,7 +345,7 @@ export class Play implements PausesOnBack {
   protected readonly mergeSetting = inject(MergeSetting);
   /**
    * How long a digit key's color lingers once released, in milliseconds of the page's clock: the tuned linger, longer
-   * as Discover's game plays the keys (see `GAME_LINGER`), at a replay's tempo.
+   * as Discovery's game plays the keys (see `GAME_LINGER`), at a replay's tempo.
    */
   protected readonly linger = computed(
     () =>
@@ -352,10 +356,10 @@ export class Play implements PausesOnBack {
   protected readonly soundLog = signal<readonly string[]>([]);
   /** The layout being edited, in developer mode's edit mode, while the game stays paused. */
   protected readonly editedLayout = signal<Layout | undefined>(undefined);
-  /** The Discover Halo edit mode is editing, if it is (see `DiscoverHalo`). */
-  protected readonly editedHalo = signal<DiscoverHalo | undefined>(undefined);
-  /** The Discover Halo, as tuned, or as edited. */
-  protected readonly halo = computed(() => this.editedHalo() ?? this.tweaks.discoverHalo());
+  /** The Discovery Halo edit mode is editing, if it is (see `DiscoveryHalo`). */
+  protected readonly editedHalo = signal<DiscoveryHalo | undefined>(undefined);
+  /** The Discovery Halo, as tuned, or as edited. */
+  protected readonly halo = computed(() => this.editedHalo() ?? this.tweaks.discoveryHalo());
   /** Whether edit mode hides its handles, the screen showing as in the game. */
   protected readonly previewing = signal(false);
   /** Where the header, tape, slots and keypad sit, as the lengths they lay out with. */
@@ -380,7 +384,7 @@ export class Play implements PausesOnBack {
   );
   /** The game mode the route asks for, free play unless it says otherwise. */
   private readonly routeMode: GameMode = modeOf(inject(ActivatedRoute).snapshot.data['mode']);
-  /** The game mode: the route's, until a lost challenge continues in free play. */
+  /** The game mode: the route's, until the game goes on in another, as a lost challenge does in free play. */
   protected readonly mode = signal(this.routeMode);
   /**
    * Whether digits are checked against π, as they are in a game started as a challenge, and in free play unless
@@ -389,26 +393,36 @@ export class Play implements PausesOnBack {
   private readonly checking = computed(
     () =>
       this.replay()?.checked ??
-      (this.routeMode === 'challenge' || this.discovering || this.tweaks.checking()),
+      (this.routeMode === 'challenge' || this.discovering() || this.tweaks.checking()),
   );
-  /** Whether it's Discover: the game plays each round, then the player retypes it. */
-  protected readonly discovering = this.routeMode === 'discover';
-  /** Where Discover is, round after round, from the checkpoint picked. */
+  /** Whether it's Discovery: the game plays each round, then the player retypes it. */
+  protected readonly discovering = computed(() => this.mode() === 'discovery');
+  /** Where Discovery is, round after round, from the checkpoint picked. */
   private readonly rounds = signal(newRounds(0));
   /**
-   * Whose turn it is in Discover; always the player's otherwise. It alone tells what's shown as whose: the digits the
+   * Whose turn it is in Discovery; always the player's otherwise. It alone tells what's shown as whose: the digits the
    * game shows, faint, the keypad, and what the player's own place makes the slots, the keys' colors and the season.
    */
-  protected readonly turn = signal<Turn>(this.discovering ? 'game' : 'player');
-  /** The place from which the digits are those Discover's game shows, faint: from where its rounds start, on its turn. */
-  protected readonly faintFrom = computed(() =>
-    this.turn() === 'game' ? this.rounds().from : undefined,
+  protected readonly turn = signal<Turn>(this.discovering() ? 'game' : 'player');
+  /**
+   * The simulation the player types while holding the game still, if any (see {@link simulates}): the place it started
+   * from, and what takes the game back to where it was then.
+   */
+  private readonly simulation = signal<
+    { readonly from: number; readonly rewind: () => void } | undefined
+  >(undefined);
+  /**
+   * The place from which the digits are virtual, shown faint: those Discovery's game shows, from where its rounds start,
+   * on its turn, and those the player types while holding the game still.
+   */
+  protected readonly virtualFrom = computed(() =>
+    this.turn() === 'game' ? this.rounds().from : this.simulation()?.from,
   );
-  /** The key Discover is playing, shown pressed. */
+  /** The key Discovery is playing, shown pressed. */
   protected readonly playedKey = signal<KeypadKey | undefined>(undefined);
   /**
-   * The hand over going on in Discover, if any, from one turn to the other (see {@link handOver}): from which place the
-   * digits fade out of the tape, and since when, on Discover's time (see {@link discoverTimer}).
+   * The hand over going on in Discovery, if any, from one turn to the other (see {@link handOver}): from which place the
+   * digits fade out of the tape, and since when, on Discovery's time (see {@link discoveryTimer}).
    */
   private readonly handingOver = signal<
     { readonly from: number; readonly since: number } | undefined
@@ -423,16 +437,16 @@ export class Play implements PausesOnBack {
       return undefined;
     }
     const handOver = this.tweaks.handOver();
-    const waited = this.discoverTimer.time() - handingOver.since;
+    const waited = this.discoveryTimer.time() - handingOver.since;
     return { from: handingOver.from, left: handOver > 0 ? Math.max(0, 1 - waited / handOver) : 0 };
   });
   /**
-   * How many digits the player is to retype in Discover's round, up to the place the game showed it to; or, as they
+   * How many digits the player is to retype in Discovery's round, up to the place the game showed it to; or, as they
    * took the turn before it was done showing it, the round's end, once they get there: past the place reached, as a
    * group lands.
    */
   private readonly target = signal<number | 'end' | undefined>(undefined);
-  /** Whether the player has retyped Discover's round, on their turn: the game then shows the next one, soon. */
+  /** Whether the player has retyped Discovery's round, on their turn: the game then shows the next one, soon. */
   protected readonly done = computed(() => {
     const target = this.target();
     return this.turn() === 'player' && typeof target === 'number' && this.digits().length >= target;
@@ -441,9 +455,9 @@ export class Play implements PausesOnBack {
   protected readonly picked = signal<number | undefined>(undefined);
   /** Stops the hand over going on, if any. */
   private stopHandOver = (): void => undefined;
-  /** What the key in backspace's place is: the turn key in Discover, backspace otherwise. */
+  /** What the key in backspace's place is: the turn key in Discovery, backspace otherwise. */
   protected readonly cornerKey = computed((): CornerKey =>
-    this.mode() === 'discover' ? 'turn' : 'backspace',
+    this.mode() === 'discovery' ? 'turn' : 'backspace',
   );
   /**
    * The switch from showing one turn to showing the other, as the player switches turns themselves, if one is going on:
@@ -455,18 +469,18 @@ export class Play implements PausesOnBack {
   /** Stops the turn switch going on, if any. */
   private stopTurnSwitch = (): void => undefined;
   /**
-   * How much the keypad shows Discover's game turn, from 0 to 1, the Discover Halo lighting up behind it as it does, so
+   * How much the keypad shows Discovery's game turn, from 0 to 1, the Discovery Halo lighting up behind it as it does, so
    * that the player looks on rather than types: steadily over a hand over, as the turn switches by itself (see
    * `gameTurnShare`), or over a short switch as the player switches it themselves.
    */
-  /** Where key 5 is, in CSS pixels from the screen's top left corner, as last measured: the Discover Halo's middle. */
+  /** Where key 5 is, in CSS pixels from the screen's top left corner, as last measured: the Discovery Halo's middle. */
   protected readonly haloAt = signal<Point | undefined>(undefined);
-  /** The Discover Halo's light, round key 5, once it's measured (see `DiscoverHalo`). */
+  /** The Discovery Halo's light, round key 5, once it's measured (see `DiscoveryHalo`). */
   protected readonly haloLights = computed((): readonly Light[] => {
     const at = this.haloAt();
     return at === undefined ? [] : [{ ...at, color: this.halo().color, seed: 5 }];
   });
-  /** How much of the Discover Halo shows: as much as the game's turn does, or all of it while the layout is edited. */
+  /** How much of the Discovery Halo shows: as much as the game's turn does, or all of it while the layout is edited. */
   protected readonly haloShown = computed(() =>
     this.editedLayout() === undefined ? this.gameTurnShown() : 1,
   );
@@ -503,16 +517,16 @@ export class Play implements PausesOnBack {
   /**
    * Whether the game stands still: paused, or held, as the player holds the pause key, or Shift, to look, or think,
    * for longer. Everything stops but what's on the screen: the run's clock, the wait for the group being typed to end,
-   * Discover's time, and keys typed count for nothing; only a pause shows its dialog.
+   * Discovery's time, and keys typed count for nothing; only a pause shows its dialog.
    */
   private readonly still = computed(() => this.paused() || this.pauseHeld() || this.shiftHeld());
   /** Whether the game stood still, the last time it was told to stop or start again (see {@link standStill}). */
   private stood = false;
   /**
-   * How many times faster than the clock's Discover's time runs, the game playing and handing turns over on it: not at
+   * How many times faster than the clock's Discovery's time runs, the game playing and handing turns over on it: not at
    * all while the game stands still, and faster while the player holds the turn key to fast forward the game's round.
    */
-  private readonly discoverRate = computed(() => {
+  private readonly discoveryRate = computed(() => {
     if (this.still()) {
       return 0;
     }
@@ -525,23 +539,23 @@ export class Play implements PausesOnBack {
   protected readonly cornerDisabled = computed(
     () =>
       this.mode() === 'challenge' ||
-      (this.mode() === 'discover' && this.turn() === 'player' && !this.done()),
+      (this.mode() === 'discovery' && this.turn() === 'player' && !this.done()),
   );
-  /** The checkpoints Discover's rounds have reached, which they can start from, if the player picks them. */
+  /** The checkpoints Discovery's rounds have reached, which they can start from, if the player picks them. */
   protected readonly checkpoints = computed(() =>
-    this.discovering && this.tweaks.manualCheckpoints() ? checkpointsAhead(this.rounds()) : [],
+    this.discovering() && this.tweaks.manualCheckpoints() ? checkpointsAhead(this.rounds()) : [],
   );
-  private readonly pace = inject(DiscoverPaceSetting).pace;
-  private readonly discoverRecorder = inject(DiscoverRecorder);
-  /** Stops what Discover has scheduled: the digits yet to play, or the next round. */
+  private readonly pace = inject(DiscoveryPaceSetting).pace;
+  private readonly discoveryRecorder = inject(DiscoveryRecorder);
+  /** Stops what Discovery has scheduled: the digits yet to play, or the next round. */
   private stopRound: (() => void)[] = [];
   /**
-   * Discover's round as the player retypes it, never saved: the session is (see `DiscoverRecorder`). Its times never
+   * Discovery's round as the player retypes it, never saved: the session is (see `DiscoveryRecorder`). Its times never
    * count in the groups, which are the player's own from their earlier runs, as the game played them.
    */
   private readonly retyped = new LiveRun(
     () => this.clock.now(),
-    () => newTouchLog('discover', 0, true, this.layoutSetting(), { start: this.rounds().from }),
+    () => newTouchLog('discovery', 0, true, this.layoutSetting(), { start: this.rounds().from }),
   );
   /** Whether the game is lost, on a challenge's first mistake: no more keys until it restarts. */
   protected readonly lost = signal(false);
@@ -590,12 +604,12 @@ export class Play implements PausesOnBack {
   );
 
   /**
-   * The groups of the earlier runs, as the break model knows them, which the words given are cut in: in Discover, as far
+   * The groups of the earlier runs, as the break model knows them, which the words given are cut in: in Discovery, as far
    * as the model trusts them for it.
    */
   private readonly knownGroups = computed(() => {
     const stats = this.tweaks.breakModel().stats(this.countedRuns());
-    return this.discovering ? stats.discoverGroups : stats.groups;
+    return this.discovering() ? stats.discoveryGroups : stats.groups;
   });
   /**
    * Where the group holding the checkpoint picked starts, in the player's groups: the game starts there, so that it
@@ -662,8 +676,8 @@ export class Play implements PausesOnBack {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
   private readonly timer = inject(TIMER);
-  /** What Discover schedules, at the rate it plays (see {@link discoverRate}). */
-  private readonly discoverTimer = new ScaledTimer(this.timer, () => this.clock.now());
+  /** What Discovery schedules, at the rate it plays (see {@link discoveryRate}). */
+  private readonly discoveryTimer = new ScaledTimer(this.timer, () => this.clock.now());
   private readonly typedDigits = viewChild.required(TypedDigits);
   private readonly keypad = viewChild.required(Keypad);
   private readonly pause = viewChild(Pause);
@@ -702,20 +716,20 @@ export class Play implements PausesOnBack {
       this.stopRounds();
       this.stopHandOver();
       this.stopTurnSwitch();
-      this.discoverRecorder.end();
+      this.discoveryRecorder.end();
     });
-    if (this.discovering) {
-      afterNextRender(() => {
+    afterNextRender(() => {
+      this.watchHalo();
+      if (this.discovering()) {
         this.startGameTurn();
-        this.watchHalo();
-      });
-    }
+      }
+    });
     if (this.replay() === undefined) {
       this.recorder.challenge.set(this.routeMode === 'challenge');
       this.recorder.start.set(this.checkpointStart());
     }
     effect(() => {
-      this.discoverTimer.setRate(this.discoverRate());
+      this.discoveryTimer.setRate(this.discoveryRate());
     });
     const background = inject(Background);
     effect(() => {
@@ -727,7 +741,7 @@ export class Play implements PausesOnBack {
   private get session(): RunSession {
     const log = this.replay();
     if (log === undefined) {
-      return this.discovering ? this.retyped : this.recorder;
+      return this.discovering() ? this.retyped : this.recorder;
     }
     this.replayed ??= new LiveRun(
       () => this.clock.now(),
@@ -739,14 +753,14 @@ export class Play implements PausesOnBack {
     return this.replayed;
   }
 
-  /** Sounds a key a touch lands on, which first takes the player's turn in Discover (see {@link takeTurn}). */
+  /** Sounds a key a touch lands on, which first takes the player's turn in Discovery (see {@link takeTurn}). */
   protected touchKey(key: KeypadKey): void {
     this.takeTurn(key);
     this.sound(key);
   }
 
   /**
-   * Takes the player's turn in Discover at once, as they type a key on the game's turn, or touch it, before anything
+   * Takes the player's turn in Discovery at once, as they type a key on the game's turn, or touch it, before anything
    * else comes of the touch.
    */
   private takeTurn(key: KeypadKey | null): void {
@@ -762,9 +776,66 @@ export class Play implements PausesOnBack {
       return;
     }
     this.takeTurn(touch.key);
-    if (!this.still()) {
+    if (!this.still() || this.simulates(touch.key)) {
       this.play(touch);
     }
+  }
+
+  /**
+   * Whether a key typed while the game stands still plays, as a simulation the player tries what they mean to type on,
+   * to see whether it looks, and sounds, right: held still, on their turn, once they type a key, the game plays on as
+   * ever, but for checking the digits, which land on the tape virtual, faint, and nothing of it is saved. Letting go
+   * of the game ends it (see {@link endSimulation}), back to the game as it was, its run and its clock rewound. The
+   * simulation goes on as if the game had never been held.
+   */
+  private simulates(key: KeypadKey | null): boolean {
+    if (this.simulation() !== undefined) {
+      return true;
+    }
+    if (key === null || this.paused() || this.turn() !== 'player') {
+      return false;
+    }
+    const rewindRun = this.session.mark();
+    const digits = this.digits();
+    const sizes = this.sizes();
+    const mistakes = this.mistakes();
+    const reopenable = this.reopenable;
+    const deletedTo = this.deletedTo();
+    const start = this.recorder.start();
+    const rounds = this.rounds();
+    const target = this.target();
+    this.simulation.set({
+      from: digits.length,
+      rewind: () => {
+        rewindRun();
+        this.digits.set(digits);
+        this.sizes.set(sizes);
+        this.mistakes.set(mistakes);
+        this.reopenable = reopenable;
+        this.deletedTo.set(deletedTo);
+        this.recorder.start.set(start);
+        this.rounds.set(rounds);
+        this.target.set(target);
+        this.handingOver.set(undefined);
+        this.stopHandOver();
+        this.stopHandOver = () => undefined;
+      },
+    });
+    // As if the game had never been held: the group being typed ends if the player has paused long enough.
+    this.watchForPause();
+    return true;
+  }
+
+  /** Ends the simulation, if any, back to the game as it was when it started (see {@link simulates}). */
+  private endSimulation(): void {
+    const simulation = this.simulation();
+    if (simulation === undefined) {
+      return;
+    }
+    this.simulation.set(undefined);
+    this.stopWatching();
+    this.landFlights();
+    simulation.rewind();
   }
 
   /** Pauses or resumes the game, which stands still meanwhile (see {@link standStill}). */
@@ -776,24 +847,27 @@ export class Play implements PausesOnBack {
   /**
    * Stops the game as it starts standing still, or starts it again once it no longer does (see {@link still}): the
    * run's clock stops, and so does the wait for the group being typed to end, which goes on, once started again, for
-   * what was left of it; Discover's time stands still, and goes on from where it was, never showing a round again.
+   * what was left of it; Discovery's time stands still, and goes on from where it was, never showing a round again.
    */
   private standStill(): void {
+    if (!this.pauseHeld() && !this.shiftHeld()) {
+      this.endSimulation();
+    }
     const still = this.still();
     if (still !== this.stood) {
       this.stood = still;
       if (still) {
         this.session.pause();
-        this.discoverRecorder.pause();
+        this.discoveryRecorder.pause();
         this.stopTimers();
         this.stopTimers = () => undefined;
       } else {
         this.session.resume();
-        this.discoverRecorder.resume();
+        this.discoveryRecorder.resume();
         this.watchForPause();
       }
     }
-    this.discoverTimer.setRate(this.discoverRate());
+    this.discoveryTimer.setRate(this.discoveryRate());
   }
 
   leaveOnBack(): boolean {
@@ -811,7 +885,7 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Keeps the Discover Halo round key 5, measuring where it is now, and again as the screen, the keypad or the key
+   * Keeps the Discovery Halo round key 5, measuring where it is now, and again as the screen, the keypad or the key
    * change size, as when the layout is edited.
    */
   private watchHalo(): void {
@@ -843,10 +917,10 @@ export class Play implements PausesOnBack {
     });
   }
 
-  /** Starts edit mode, on the layout and the Discover Halo as tuned. */
+  /** Starts edit mode, on the layout and the Discovery Halo as tuned. */
   protected edit(): void {
     this.editedLayout.set(this.tweaks.layout());
-    this.editedHalo.set(this.tweaks.discoverHalo());
+    this.editedHalo.set(this.tweaks.discoveryHalo());
   }
 
   /** Ends edit mode, back to the pause dialog it was opened from. */
@@ -985,7 +1059,8 @@ export class Play implements PausesOnBack {
       }
       return;
     }
-    if (key !== 'backspace' && this.checking() && !isPiDecimal(this.digits().length, key)) {
+    const checks = this.checking() && this.simulation() === undefined;
+    if (key !== 'backspace' && checks && !isPiDecimal(this.digits().length, key)) {
       // A group never finishes on a mistake.
       this.stopWatching();
       this.vibrate('mistake');
@@ -1022,8 +1097,10 @@ export class Play implements PausesOnBack {
       }
       const place = this.digits().length;
       this.digits.update((digits) => digits + key);
-      if (this.discovering) {
-        this.discoverRecorder.record(touch, place, this.rounds().start);
+      if (this.discovering()) {
+        if (this.simulation() === undefined) {
+          this.discoveryRecorder.record(touch, place, this.rounds().start);
+        }
         this.landIfFull();
         if (this.done()) {
           this.handOver();
@@ -1063,11 +1140,23 @@ export class Play implements PausesOnBack {
   private loseGame(): void {
     this.lost.set(true);
     this.stopHandOver();
-    this.discoverRecorder.end();
+    this.discoveryRecorder.end();
     this.stopGameOver = this.timer.after(GAME_OVER_DELAY, () => {
       this.stopGameOver = () => undefined;
       this.pause()?.gameOver();
     });
+  }
+
+  /**
+   * Carries the game on in Discovery, a lost challenge or free play, on the same screen: a new session, its rounds
+   * starting from where the group being typed starts, any mistake gone, the run so far ended.
+   */
+  protected continueInDiscovery(): void {
+    const at = this.digits().length;
+    const from = groupStart(this.sizes(), at, this.knownGroups(), this.groupSize());
+    // Kept as the game starts over in Discovery.
+    this.rounds.set(newRounds(from, at));
+    this.restart('discovery');
   }
 
   /** Carries a lost challenge's run on in free play, from its mistake, for backspace to delete. */
@@ -1079,7 +1168,7 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Plays Discover's round from the place the rounds start from, on the game's turn: the game types each digit at the
+   * Plays Discovery's round from the place the rounds start from, on the game's turn: the game types each digit at the
    * pace picked, its key shown pressed, in its color, and sounding, the groups landing as they fill, up to the place
    * reached, then on to the end of the group the slots show there: as many digits as there are slots, a little longer
    * between groups (see `GROUP_PAUSE`). Then it hands the turn over (see {@link handOver}). The rounds start at the
@@ -1099,10 +1188,10 @@ export class Play implements PausesOnBack {
     this.turn.set('game');
     this.target.set('end');
     this.vibrate('turn');
-    this.playNext(paceInterval(this.pace(), this.tweaks.discoverSpeed(), this.tweaks.paceStep()));
+    this.playNext(paceInterval(this.pace(), this.tweaks.discoverySpeed(), this.tweaks.paceStep()));
   }
 
-  /** Plays the next digit of Discover's round after `delay`, if the round goes on, or hands the turn over. */
+  /** Plays the next digit of Discovery's round after `delay`, if the round goes on, or hands the turn over. */
   private playNext(interval: number, delay = interval): void {
     this.afterRound(delay, () => {
       const typed = this.digits().length;
@@ -1119,8 +1208,8 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Hands Discover's turn over to the other, once the game has shown the round, or the player has retyped it: the digits
-   * of the turn fade out of the tape over the hand over (see `HAND_OVER`), on Discover's time, so that it goes faster or
+   * Hands Discovery's turn over to the other, once the game has shown the round, or the player has retyped it: the digits
+   * of the turn fade out of the tape over the hand over (see `HAND_OVER`), on Discovery's time, so that it goes faster or
    * stops as that does, the slots, keys and season still those of the turn, so that the player can still read them, or
    * think; then the turn switches (see {@link switchTurn}). The game's turn leaves the player the round to retype up to
    * where it showed it; each digit the player types on starts theirs over.
@@ -1131,11 +1220,11 @@ export class Play implements PausesOnBack {
       this.target.set(this.digits().length);
     }
     this.stopHandOver();
-    this.handingOver.set({ from: this.rounds().from, since: this.discoverTimer.time() });
+    this.handingOver.set({ from: this.rounds().from, since: this.discoveryTimer.time() });
     const stopTicks = this.timer.every(TICK, () => {
       this.fadeTicks.update((ticks) => ticks + 1);
     });
-    const stopWait = this.discoverTimer.after(this.tweaks.handOver(), () => {
+    const stopWait = this.discoveryTimer.after(this.tweaks.handOver(), () => {
       this.switchTurn();
     });
     this.stopHandOver = () => {
@@ -1145,7 +1234,7 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Switches Discover's turn, as the hand over ends, or before, as the player takes theirs typing on the game's: the
+   * Switches Discovery's turn, as the hand over ends, or before, as the player takes theirs typing on the game's: the
    * digits of the turn gone, it's the other's. Vibrates if `vibrate`, as the turn switches by itself.
    */
   private switchTurn(vibrate = true): void {
@@ -1183,21 +1272,21 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Starts the player's turn in Discover: taking it before the game is done showing the round, the round is all the
+   * Starts the player's turn in Discovery: taking it before the game is done showing the round, the round is all the
    * same, to its end, as they show they know it.
    */
   private startPlayerTurn(vibrate: boolean): void {
     this.stopRounds();
     this.backToRoundStart();
     this.turn.set('player');
-    this.discoverRecorder.newTurn();
+    this.discoveryRecorder.newTurn();
     if (vibrate) {
       this.vibrate('turn');
     }
   }
 
   /**
-   * Types a digit of Discover's round, as the game plays it, never recorded: its group lands once its slots are full.
+   * Types a digit of Discovery's round, as the game plays it, never recorded: its group lands once its slots are full.
    * Gives whether it did.
    */
   private playDigit(digit: Digit, interval: number): boolean {
@@ -1216,7 +1305,7 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Lands the group the player is typing in Discover once its slots are full, as the game played it, never as their
+   * Lands the group the player is typing in Discovery once its slots are full, as the game played it, never as their
    * timing says; each whole group typed past the place reached takes it on, as if the game had shown it.
    */
   private landIfFull(): void {
@@ -1230,7 +1319,7 @@ export class Play implements PausesOnBack {
     this.rounds.update((rounds) => completeRound(rounds, this.digits().length));
   }
 
-  /** Takes Discover's round back to the place the rounds start from, the digits before it given. */
+  /** Takes Discovery's round back to the place the rounds start from, the digits before it given. */
   private backToRoundStart(): void {
     this.stopWatching();
     this.landFlights();
@@ -1246,7 +1335,7 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Picks a checkpoint they've reached for Discover's rounds to start at from the game's next turn, which shows the
+   * Picks a checkpoint they've reached for Discovery's rounds to start at from the game's next turn, which shows the
    * player what to type from there; or, picked already, takes it back.
    */
   protected startFrom(checkpoint: number): void {
@@ -1256,19 +1345,19 @@ export class Play implements PausesOnBack {
     this.picked.update((picked) => (picked === checkpoint ? undefined : checkpoint));
   }
 
-  /** Starts Discover's rounds at a checkpoint they've reached, from their next start. */
+  /** Starts Discovery's rounds at a checkpoint they've reached, from their next start. */
   private moveRoundsTo(checkpoint: number): void {
-    // Where Discover starts from next time, too.
-    void this.checkpointSetting.pick('discover', checkpoint);
+    // Where Discovery starts from next time, too.
+    void this.checkpointSetting.pick('discovery', checkpoint);
     const from = groupStart(this.sizes(), checkpoint, this.knownGroups(), this.groupSize());
     this.rounds.update((rounds) => moveTo(rounds, checkpoint, from));
   }
 
   private afterRound(delay: number, callback: () => void): void {
-    this.stopRound.push(this.discoverTimer.after(delay, callback));
+    this.stopRound.push(this.discoveryTimer.after(delay, callback));
   }
 
-  /** Stops what Discover has scheduled. */
+  /** Stops what Discovery has scheduled. */
   private stopRounds(): void {
     for (const stop of this.stopRound) {
       stop();
@@ -1277,10 +1366,13 @@ export class Play implements PausesOnBack {
     this.playedKey.set(undefined);
   }
 
-  /** Starts a new game: no digits typed, back to the first spring, the run ended counting as an earlier one. */
-  protected restart(): void {
+  /**
+   * Starts a new game, in the route's game mode or in `mode`: no digits typed, back to the first spring, the run ended
+   * counting as an earlier one.
+   */
+  protected restart(mode = this.routeMode): void {
     const ended = this.session.run();
-    this.reset();
+    this.reset(mode);
     if (ended !== undefined) {
       this.playedHere.update((runs) => [...runs, ended]);
     }
@@ -1303,19 +1395,23 @@ export class Play implements PausesOnBack {
     await this.router.navigate(['/runs', id, 'replay'], { replaceUrl: true, state });
   }
 
-  /** Back to the start, as if nothing had been typed, ending the run, such as to replay a run from its start. */
-  reset(): void {
+  /**
+   * Back to the start, as if nothing had been typed, ending the run, such as to replay a run from its start: in the
+   * route's game mode, or in `mode`, which the game then turns into, on the same screen.
+   */
+  reset(mode = this.routeMode): void {
+    const session = this.session;
     this.stopWatching();
     this.stopGameOver();
     this.stopGameOver = () => undefined;
     this.lost.set(false);
-    this.mode.set(this.routeMode);
-    if (this.discovering) {
+    this.mode.set(mode);
+    if (this.discovering()) {
       // Playing again, a new session from where the rounds started, its first round played as the game goes on.
       this.stopRounds();
       this.stopHandOver();
       this.target.set(undefined);
-      this.discoverRecorder.end();
+      this.discoveryRecorder.end();
       this.rounds.update((rounds) => newRounds(rounds.from, rounds.checkpoint));
       this.turn.set('game');
       this.picked.set(undefined);
@@ -1329,8 +1425,8 @@ export class Play implements PausesOnBack {
     this.mistakes.set('');
     this.sizes.set(this.wordsUpTo([], this.startPlace()));
     this.reopenable = false;
-    this.session.end();
-    if (this.discovering) {
+    session.end();
+    if (this.discovering()) {
       this.startGameTurn();
     }
   }
@@ -1390,8 +1486,8 @@ export class Play implements PausesOnBack {
 
   /** The times of the run so far, from its start, as the break model takes them. */
   private runTimes(): readonly number[] {
-    // Discover's own typing never counts: its groups are the player's, as the game plays them.
-    return this.discovering ? [] : (this.session.run()?.times ?? []);
+    // Discovery's own typing never counts: its groups are the player's, as the game plays them.
+    return this.discovering() ? [] : (this.session.run()?.times ?? []);
   }
 
   /** The words on the tape up to a place: those of `kept` that end by it, then the player's groups (see `wordsUpTo`). */
@@ -1476,11 +1572,12 @@ export class Play implements PausesOnBack {
   /**
    * Plays the sound of a key, as soon as a touch lands on it, before it's typed, if it is: sliding off it types nothing,
    * so the player can listen to it before committing to it; keys typed on a keyboard, and those of a run replayed, sound
-   * as they're typed. Never while the game stands still nor {@link silent}. The sound model never knows the next digit, so the sound
-   * gives nothing away.
+   * as they're typed. While the game is held still (see {@link still}), keys sound all the same, as the player
+   * simulates typing (see {@link simulates}); never while paused nor {@link silent}. The sound model never knows the
+   * next digit, so the sound gives nothing away.
    */
   protected sound(key: KeypadKey): void {
-    if (!isDigit(key) || this.still() || this.silent()) {
+    if (!isDigit(key) || this.paused() || this.silent()) {
       return;
     }
     const moment: Moment = {

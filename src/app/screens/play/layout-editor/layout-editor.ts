@@ -21,7 +21,7 @@ import { Candy } from '../../../ui/candy';
 import { CopyValues } from '../../tuning/copy-values';
 import { LAYOUT_HANDLES } from './layout-handles';
 import { lightCore, LightOf, lightKnobs, Point } from '../../../ui/handles/light-handles';
-import { DISCOVER_HALO, DiscoverHalo, withHaloLight } from '../discover-halo';
+import { DISCOVERY_HALO, DiscoveryHalo, withHaloLight } from '../discovery-halo';
 import { ColorPicker } from '../../tuning/color-picker';
 
 /** Across the column, within the side margins, as the play screen's parts are. */
@@ -70,8 +70,8 @@ const PARTS: readonly (EditedPart & { readonly handles: readonly string[] })[] =
   },
 ];
 
-/** The Discover Halo's light, in what edit mode edits of it. */
-const HALO_LIGHT: LightOf<DiscoverHalo> = {
+/** The Discovery Halo's light, in what edit mode edits of it. */
+const HALO_LIGHT: LightOf<DiscoveryHalo> = {
   get: (halo) => halo.light,
   set: (halo, key, value) => withHaloLight(halo, key, value),
 };
@@ -89,13 +89,13 @@ const PAGE_HANDLES = [
  * Developer mode's edit mode, over the play screen, which it covers to take every touch. A dashed box shows each part of
  * the screen, the header, the tape, the slots and the keypad; tapping one picks it out, showing the handles on its edges
  * (see `layout-handles.ts`), and with none picked out, as on tapping elsewhere, those of the page as a whole, its
- * margins and corner buttons. In Discover, a button under the others picks out the Discover Halo, round key 5, as a box
+ * margins and corner buttons. In Discovery, a button under the others picks out the Discovery Halo, round key 5, as a box
  * there would be hard to tap among the keys: its light's core shows as a ring round it, and its reach, as a wider one,
  * and under the button, knobs dragged across for the other values of its light, and its color, with the game's color
  * picker, at the bottom. Each handle is dragged, or
  * stepped with the arrow keys once picked out, as a slider. The play screen shows each change at once, and it's saved,
  * as tweaks, as each drag or key ends. Done ends it; Cancel, or Escape, asks whether to cancel the changes, bringing
- * back what it started with, or to go on editing. Reset brings back the game's own layout and Discover Halo, and Copy
+ * back what it started with, or to go on editing. Reset brings back the game's own layout and Discovery Halo, and Copy
  * copies both, to go into the code. A toggle hides the handles, to preview the screen as in the game, and shows them
  * again, as does tapping a part, which picks it out.
  */
@@ -141,7 +141,7 @@ const PAGE_HANDLES = [
         <button type="button" appCandy="danger" [disabled]="untuned()" (click)="reset()">
           Reset
         </button>
-        <app-copy-values label="Copy" [values]="{ layout: layout(), discoverHalo: halo() }" />
+        <app-copy-values label="Copy" [values]="{ layout: layout(), discoveryHalo: halo() }" />
         <button type="button" appCandy="primary" (click)="done.emit()">Done</button>
       </div>
       @if (haloAt() !== undefined && !previewing()) {
@@ -151,11 +151,11 @@ const PAGE_HANDLES = [
           [attr.aria-pressed]="picked() === 'halo'"
           (click)="pickHalo()"
         >
-          Discover Halo
+          Discovery Halo
         </button>
       }
       @if (knobs().length > 0 && !previewing()) {
-        <!-- The inspector of the Discover Halo: the knobs of its light, and its color. -->
+        <!-- The inspector of the Discovery Halo: the knobs of its light, and its color. -->
         <div class="inspector">
           <app-handles [handles]="knobs()" [inline]="true" (released)="save()" />
           <button
@@ -174,7 +174,7 @@ const PAGE_HANDLES = [
       <!-- The halo's color, at the bottom, within the thumb's reach. -->
       <app-color-picker
         class="picker"
-        name="Discover Halo"
+        name="Discovery Halo"
         [color]="halo().color"
         [defaultColor]="defaultHaloColor"
         (colorChange)="setHaloColor($event)"
@@ -190,9 +190,9 @@ const PAGE_HANDLES = [
 export class LayoutEditor implements OnInit {
   /** The layout edited, shown on the play screen as it changes. */
   readonly layout = model.required<Layout>();
-  /** The Discover Halo edited, shown on the play screen as it changes. */
-  readonly halo = model.required<DiscoverHalo>();
-  /** Where the Discover Halo's middle is, in CSS pixels from the screen's top left corner, in Discover; none otherwise. */
+  /** The Discovery Halo edited, shown on the play screen as it changes. */
+  readonly halo = model.required<DiscoveryHalo>();
+  /** Where the Discovery Halo's middle is, in CSS pixels from the screen's top left corner, in Discovery; none otherwise. */
   readonly haloAt = input<Point>();
   /** The player is done editing, keeping the changes or cancelling them. */
   readonly done = output();
@@ -204,11 +204,11 @@ export class LayoutEditor implements OnInit {
   protected readonly picked = signal<string | undefined>(undefined);
   private readonly bound = LAYOUT_HANDLES.map((handle) => bind(handle, this.layout));
   private readonly haloKnobs = lightKnobs(HALO_LIGHT).map((handle) => bind(handle, this.halo));
-  /** Where the Discover Halo is, while it's picked out. */
+  /** Where the Discovery Halo is, while it's picked out. */
   private readonly haloPicked = computed(() =>
     this.picked() === 'halo' ? this.haloAt() : undefined,
   );
-  /** The handles of the part picked out, or of the page as a whole: the Discover Halo's, its light's core. */
+  /** The handles of the part picked out, or of the page as a whole: the Discovery Halo's, its light's core. */
   protected readonly handles = computed(() => {
     const at = this.haloPicked();
     if (at !== undefined) {
@@ -217,11 +217,11 @@ export class LayoutEditor implements OnInit {
     const labels = PARTS.find((part) => part.id === this.picked())?.handles ?? PAGE_HANDLES;
     return this.bound.filter((bound) => labels.includes(bound.handle.label));
   });
-  /** The knobs of the Discover Halo's light, while it's picked out. */
+  /** The knobs of the Discovery Halo's light, while it's picked out. */
   protected readonly knobs = computed(() =>
     this.haloPicked() === undefined ? [] : this.haloKnobs,
   );
-  /** The ring the Discover Halo reaches to, while it's picked out. */
+  /** The ring the Discovery Halo reaches to, while it's picked out. */
   protected readonly reachRing = computed(() => {
     const at = this.haloPicked();
     if (at === undefined) {
@@ -235,34 +235,34 @@ export class LayoutEditor implements OnInit {
       height: diameter,
     };
   });
-  /** Whether the color picker of the Discover Halo shows: closed again as another part, or none, is picked out. */
+  /** Whether the color picker of the Discovery Halo shows: closed again as another part, or none, is picked out. */
   protected readonly coloring = linkedSignal({
     source: () => this.picked(),
     computation: () => false,
   });
-  protected readonly defaultHaloColor = DISCOVER_HALO.color;
+  protected readonly defaultHaloColor = DISCOVERY_HALO.color;
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-  /** Whether the layout and the Discover Halo are the game's own. */
+  /** Whether the layout and the Discovery Halo are the game's own. */
   protected readonly untuned = computed(
     () =>
       JSON.stringify(this.layout()) === JSON.stringify(LAYOUT) &&
-      JSON.stringify(this.halo()) === JSON.stringify(DISCOVER_HALO),
+      JSON.stringify(this.halo()) === JSON.stringify(DISCOVERY_HALO),
   );
   private readonly tweaks = inject(Tweaks);
   private readonly cancelDialog = viewChild.required<ChoiceDialog>('cancelDialog');
   /** What edit mode started with, to bring back if the changes are cancelled. */
-  private original: { readonly layout: Layout; readonly halo: DiscoverHalo } | undefined;
+  private original: { readonly layout: Layout; readonly halo: DiscoveryHalo } | undefined;
 
   ngOnInit(): void {
     this.original = { layout: this.layout(), halo: this.halo() };
   }
 
-  /** Picks the Discover Halo out, or, picked out already, none. */
+  /** Picks the Discovery Halo out, or, picked out already, none. */
   protected pickHalo(): void {
     this.picked.update((picked) => (picked === 'halo' ? undefined : 'halo'));
   }
 
-  /** Colors the Discover Halo, saving each change, as the color picker moves. */
+  /** Colors the Discovery Halo, saving each change, as the color picker moves. */
   protected setHaloColor(color: string): void {
     this.halo.update((halo) => ({ ...halo, color }));
     this.save();
@@ -285,10 +285,10 @@ export class LayoutEditor implements OnInit {
     }
   }
 
-  /** Brings back the game's own layout and Discover Halo, which cancelling the changes undoes, as any change. */
+  /** Brings back the game's own layout and Discovery Halo, which cancelling the changes undoes, as any change. */
   protected reset(): void {
     this.layout.set(LAYOUT);
-    this.halo.set(DISCOVER_HALO);
+    this.halo.set(DISCOVERY_HALO);
     this.save();
   }
 
@@ -313,6 +313,6 @@ export class LayoutEditor implements OnInit {
 
   protected save(): void {
     void this.tweaks.setLayout(this.layout());
-    void this.tweaks.setDiscoverHalo(this.halo());
+    void this.tweaks.setDiscoveryHalo(this.halo());
   }
 }

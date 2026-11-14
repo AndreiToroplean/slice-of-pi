@@ -11,12 +11,17 @@ export interface RunSession {
   record(touch: KeypadTouch): void;
   /** How long it's been since the last digit of the current run, in milliseconds, on the run's clock. */
   waited(): number;
-  /** Ends the current run, as kept so far: the next digit starts a new run. */
+  /** Ends the current run, as kept so far: the next digit starts a new run, its clock started afresh. */
   end(): void;
   /** Stops the run's clock, as while the game is paused, so that the time paused counts for nothing. */
   pause(): void;
   /** Starts the run's clock again, from where it stopped. */
   resume(): void;
+  /**
+   * Starts a simulation: the run goes on as if its clock had never stopped, its digits unchecked, and what's recorded
+   * from now on, and the clock, are taken back to where they are now by the function given; nothing of it is saved.
+   */
+  mark(): () => void;
 }
 
 /**
@@ -30,9 +35,14 @@ export interface RunSession {
 export class LiveRun implements RunSession {
   /** The touch log of the run being played, from its first digit. */
   private readonly log = signal<TouchLog | undefined>(undefined);
+  /** Whether a simulation is under way (see {@link mark}), whose digits are never checked. */
+  private readonly simulating = signal(false);
   private readonly replayed = computed(() => {
     const log = this.log();
-    return log === undefined ? undefined : replay(log);
+    if (log === undefined) {
+      return undefined;
+    }
+    return replay(this.simulating() ? { ...log, checked: false } : log);
   });
   readonly run = computed(() => {
     const run = this.replayed()?.run;
@@ -87,6 +97,9 @@ export class LiveRun implements RunSession {
 
   end(): void {
     this.log.set(undefined);
+    // The next run's clock starts afresh, whether or not this one's was stopped.
+    this.stopped = 0;
+    this.stoppedAt = undefined;
   }
 
   pause(): void {
@@ -98,6 +111,20 @@ export class LiveRun implements RunSession {
       this.stopped += this.now() - this.stoppedAt;
       this.stoppedAt = undefined;
     }
+  }
+
+  mark(): () => void {
+    const { start, stopped, stoppedAt } = this;
+    const log = this.log();
+    this.stoppedAt = undefined;
+    this.simulating.set(true);
+    return () => {
+      this.simulating.set(false);
+      this.log.set(log);
+      this.start = start;
+      this.stopped = stopped;
+      this.stoppedAt = stoppedAt;
+    };
   }
 
   /** The run's clock: the precise clock, less the time it was stopped. */

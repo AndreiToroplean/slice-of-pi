@@ -172,6 +172,44 @@ describe('RunRecorder', () => {
     expect(recorder.waited()).toBe(200);
   });
 
+  it('starts the next run on a running clock once a run ends while paused, as when the game is left paused', () => {
+    const recorder = TestBed.inject(RunRecorder);
+    press(recorder, '1');
+    recorder.pause();
+    recorder.end();
+
+    press(recorder, '14', 300);
+
+    expect(recorder.run()?.times).toEqual([0, 300]);
+    const waited = recorder.waited();
+    time += 500;
+    expect(recorder.waited()).toBe(waited + 500);
+  });
+
+  it('takes a simulation back, its touches and its time, saving none of it', async () => {
+    const recorder = TestBed.inject(RunRecorder);
+    press(recorder, '14');
+    await recorder.saved();
+    const saved = saves.length;
+    recorder.pause();
+
+    time += 1_000;
+    const rewind = recorder.mark();
+    press(recorder, '15', 300);
+    // As if the clock had never stopped.
+    expect(recorder.run()?.times.at(2)).toBe(200 + 200 + 1_000);
+    expect(recorder.run()?.digits).toBe('1415');
+    await recorder.saved();
+    expect(saves).toHaveLength(saved);
+
+    rewind();
+    time += 10_000;
+    recorder.resume();
+    press(recorder, '1', 300);
+    expect(recorder.run()?.digits).toBe('141');
+    expect(recorder.run()?.times).toEqual([0, 200, 400]);
+  });
+
   it('shows no run once every digit is deleted', () => {
     const recorder = TestBed.inject(RunRecorder);
 

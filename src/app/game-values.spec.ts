@@ -28,13 +28,13 @@ describe('GAME_VALUES', () => {
       breath: true,
       unavailable: true,
       actionKeys: true,
-      discoverSpeed: true,
+      discoverySpeed: true,
       paceStep: true,
       handOver: true,
       groupPause: true,
       gameLinger: true,
       fastForward: true,
-      faintOpacity: true,
+      virtualOpacity: true,
       checkpointLag: true,
       layout: true,
       menu: true,
@@ -44,7 +44,7 @@ describe('GAME_VALUES', () => {
       souring: true,
       keyMotion: true,
       turnSwitch: true,
-      discoverHalo: true,
+      discoveryHalo: true,
     };
     expect(Object.keys(GAME_VALUES).sort()).toEqual(['format', ...Object.keys(keys)].sort());
     expect(Object.keys(GAME_VALUES.grouping).sort()).toEqual(

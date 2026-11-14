@@ -22,7 +22,8 @@ import { MENU_LOOK, TWILIGHT, withLight } from '../screens/menu/menu-look';
 import { BREATH } from '../ui/breath';
 import { UNAVAILABLE } from '../ui/unavailable';
 import { ACTION_KEY_COLOR } from '../screens/play/keypad/action-keys';
-import { CHECKPOINT_LAG } from '../game/modes/discover-rounds';
+import { CHECKPOINT_LAG } from '../game/modes/discovery-rounds';
+import { DISCOVERY_HALO } from '../screens/play/discovery-halo';
 import { PLAY_WITH_MERCURY } from '../../testing/game-break-model';
 
 describe('Tweaks', () => {
@@ -381,7 +382,7 @@ describe('Tweaks', () => {
     expect(tweaks.actionKeys()).toBe(ACTION_KEY_COLOR);
   });
 
-  it('moves Discover on to checkpoints by themselves, as far behind as tuned, unless picked, only in developer mode', async () => {
+  it('moves Discovery on to checkpoints by themselves, as far behind as tuned, unless picked, only in developer mode', async () => {
     const tweaks = await load();
     await tweaks.setManualCheckpoints(true);
     await tweaks.setCheckpointLag(0);
@@ -537,6 +538,22 @@ describe('Tweaks', () => {
       sound: { ...SOUND_MIX, landings: 0 },
     });
     expect(parseTweaks({ format: 3, landings: true, seasonTurn: 3 })).toEqual({ seasonTurn: 3 });
+  });
+
+  it('reads the speed, halo and level stored for Discover as Discovery’s', () => {
+    const tweaks = parseTweaks({
+      format: 4,
+      discoverSpeed: 2,
+      discoverHalo: DISCOVERY_HALO,
+      grouping: { mars: { discoverLevel: 0.5 } },
+    });
+    expect(tweaks.discoverySpeed).toBe(2);
+    expect(tweaks.discoveryHalo).toEqual(DISCOVERY_HALO);
+    expect(tweaks.grouping?.['mars']?.['discoveryLevel']).toBe(0.5);
+  });
+
+  it('reads the opacity stored for faint digits as that of virtual digits', () => {
+    expect(parseTweaks({ format: 5, faintOpacity: 0.3 })).toEqual({ virtualOpacity: 0.3 });
   });
 
   it('leaves out the settings saved for the timing model the break model replaced', () => {

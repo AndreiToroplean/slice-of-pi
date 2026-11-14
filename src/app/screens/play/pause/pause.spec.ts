@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { dialogNamed, installDialogs, uninstallDialogs } from '../../../../testing/fake-dialogs';
+import { GameMode } from '../../../game/modes/game-mode';
 import { DeveloperMode } from '../../../developer-mode/developer-mode';
 import { INDEXED_DB } from '../../../player-data/run-store';
 import { Pause } from './pause';
@@ -18,7 +19,7 @@ describe('Pause', () => {
     uninstallDialogs();
   });
 
-  async function setUp(): Promise<{
+  async function setUp(mode: GameMode = 'free'): Promise<{
     host: HTMLElement;
     pause: Pause;
     dialog: HTMLDialogElement;
@@ -27,6 +28,7 @@ describe('Pause', () => {
     replayable: () => Promise<void>;
   }> {
     const fixture = TestBed.createComponent(Pause);
+    fixture.componentRef.setInput('mode', mode);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
     const dialog = dialogNamed(host, 'Paused');
@@ -78,12 +80,22 @@ describe('Pause', () => {
     expect(dialog.open).toBe(true);
   });
 
-  it('offers to resume, restart or end the game', async () => {
-    const { dialog } = await setUp();
+  it('offers to resume, restart or end the game, and in free play to continue in Discovery', async () => {
+    const choices = async (mode: GameMode): Promise<string[]> => {
+      const { dialog } = await setUp(mode);
+      return Array.from(dialog.querySelectorAll('app-button-list button'), (b) =>
+        b.textContent.trim(),
+      );
+    };
 
-    expect(
-      Array.from(dialog.querySelectorAll('app-button-list button'), (b) => b.textContent.trim()),
-    ).toEqual(['Resume', 'Restart', 'End Game']);
+    expect(await choices('challenge')).toEqual(['Resume', 'Restart', 'End Game']);
+    expect(await choices('discovery')).toEqual(['Resume', 'Restart', 'End Game']);
+    expect(await choices('free')).toEqual([
+      'Resume',
+      'Restart',
+      'Continue in Discovery',
+      'End Game',
+    ]);
   });
 
   it('offers to edit the layout in developer mode only, staying paused while it’s edited', async () => {

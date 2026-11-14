@@ -22,13 +22,13 @@ export type GameValues = Required<
     | 'breath'
     | 'unavailable'
     | 'actionKeys'
-    | 'discoverSpeed'
+    | 'discoverySpeed'
     | 'paceStep'
     | 'handOver'
     | 'groupPause'
     | 'gameLinger'
     | 'fastForward'
-    | 'faintOpacity'
+    | 'virtualOpacity'
     | 'checkpointLag'
     | 'layout'
     | 'menu'
@@ -37,7 +37,7 @@ export type GameValues = Required<
     | 'souring'
     | 'keyMotion'
     | 'turnSwitch'
-    | 'discoverHalo'
+    | 'discoveryHalo'
   >
 > & {
   readonly seasons: SeasonStarts;

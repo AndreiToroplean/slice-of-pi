@@ -16,7 +16,7 @@ interface RunFields {
   readonly startedAt: number;
   /** The place it started from, that of its first digit: 0, the start of π, or a checkpoint. */
   readonly start: number;
-  /** Whether it keeps only the latest typing of each place, as Discover's runs do, rather than every touch. */
+  /** Whether it keeps only the latest typing of each place, as Discovery's runs do, rather than every touch. */
   readonly overwritten: boolean;
   /** The digits typed, in order, from the one after its start. */
   readonly digits: string;
@@ -93,7 +93,7 @@ export function runOf(log: TouchLog): Run {
 /**
  * Whether the player's groups are computed from this run: a checked one does, an unchecked one, which may hold
  * mistakes, only when unchecked runs are included. Runs from a checkpoint count from it on, as far as the break model
- * takes them. Discover's runs don't, every touch not kept, paced by its rounds.
+ * takes them. Discovery's runs don't, every touch not kept, paced by its rounds.
  */
 export function countsInGroups(run: Run, includeUnchecked: boolean): boolean {
   return !run.overwritten && (run.checked || includeUnchecked);

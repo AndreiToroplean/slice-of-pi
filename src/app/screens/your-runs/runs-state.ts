@@ -41,7 +41,7 @@ export class RunsState {
       if (!this.shows(run)) {
         return [];
       }
-      // Runs left out of the groups, as Discover's, have only their times.
+      // Runs left out of the groups, as Discovery's, have only their times.
       const found = this.stats().runs[this.counted().indexOf(run)];
       const breaks = found?.breaks ?? [];
       return [
@@ -182,7 +182,7 @@ export class RunsState {
   }
 
   /**
-   * Whether it shows a run: unchecked ones only while they're included. Discover's are charted as they're kept, the
+   * Whether it shows a run: unchecked ones only while they're included. Discovery's are charted as they're kept, the
    * latest typing of each place, which reads as one run.
    */
   private shows(run: Run): boolean {

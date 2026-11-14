@@ -172,10 +172,10 @@ describe('Menu', () => {
     );
   }
 
-  it('starts a game in Discover, free play, or a challenge', async () => {
+  it('starts a game in Discovery, free play, or a challenge', async () => {
     const host = await setUp();
 
-    expect(link(host, 'Discover')?.getAttribute('href')).toBe('/discover');
+    expect(link(host, 'Discovery')?.getAttribute('href')).toBe('/discovery');
     expect(link(host, 'Free Play')?.getAttribute('href')).toBe('/play');
     expect(link(host, 'Challenge')?.getAttribute('href')).toBe('/challenge');
   });
@@ -206,20 +206,20 @@ describe('Menu', () => {
       const host = await setUp();
 
       expect(host.querySelectorAll('[role="spinbutton"], .toggle')).toHaveLength(0);
-      expect(link(host, 'Discover')?.getAttribute('href')).toBe('/discover');
+      expect(link(host, 'Discovery')?.getAttribute('href')).toBe('/discovery');
     });
 
-    it('starts Discover from the place picked on it, kept for the next visits', async () => {
+    it('starts Discovery from the place picked on it, kept for the next visits', async () => {
       const { host, stable } = await unlocked();
-      expect(link(host, 'Discover from')?.getAttribute('href')).toBe('/discover?from=0');
+      expect(link(host, 'Discovery from')?.getAttribute('href')).toBe('/discovery?from=0');
 
-      pressKey('ArrowUp', spinner(host, 'Discover'));
-      pressKey('ArrowUp', spinner(host, 'Discover'));
+      pressKey('ArrowUp', spinner(host, 'Discovery'));
+      pressKey('ArrowUp', spinner(host, 'Discovery'));
       await stable();
 
-      expect(TestBed.inject(Checkpoint).place('discover')).toBe(20);
-      expect(spinner(host, 'Discover')?.getAttribute('aria-valuenow')).toBe('20');
-      expect(link(host, 'Discover from')?.getAttribute('href')).toBe('/discover?from=20');
+      expect(TestBed.inject(Checkpoint).place('discovery')).toBe(20);
+      expect(spinner(host, 'Discovery')?.getAttribute('aria-valuenow')).toBe('20');
+      expect(link(host, 'Discovery from')?.getAttribute('href')).toBe('/discovery?from=20');
     });
 
     it('opens the button starting Free Play from its place under its own, until a press elsewhere', async () => {
@@ -300,11 +300,11 @@ describe('Menu', () => {
       press('ArrowUp');
       expect(focused()).toBe('Free Play');
       press('ArrowUp');
-      expect(focused()).toBe('Discover');
+      expect(focused()).toBe('Discovery');
       press('ArrowUp');
       expect(focused()).toBe('Challenge');
       press('ArrowDown');
-      expect(focused()).toBe('Discover');
+      expect(focused()).toBe('Discovery');
 
       host.querySelector<HTMLElement>('[title="Settings"]')?.focus();
       expect(press('ArrowDown').defaultPrevented).toBe(false);

@@ -43,3 +43,22 @@ test('continues a lost challenge in free play, deleting the mistake with backspa
   await expect(page.locator('app-slots .slot').first()).toHaveText('1');
   await expect(page.locator('app-slots .wrong')).toHaveCount(0);
 });
+
+test('continues a lost challenge in Discovery, from where the group holding the mistake starts', async ({
+  page,
+}) => {
+  await page.goto('/challenge');
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  for (const key of '1415927') {
+    await page.keyboard.press(key);
+  }
+  const over = page.getByRole('dialog', { name: 'Game Over' });
+  await over.getByRole('button', { name: 'Continue in Discovery' }).click();
+
+  await expect(over).toBeHidden();
+  // Discovery, on the same screen: the game shows the group the mistake was in, the mistake gone.
+  await expect(page.locator('app-play')).toHaveAttribute('data-turn', 'game');
+  await expect(page.locator('app-typed-digits .word').first()).toHaveText('14159');
+  await expect(page.locator('app-slots .wrong')).toHaveCount(0);
+  await expect(page).toHaveURL('/challenge');
+});

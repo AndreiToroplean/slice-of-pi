@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { IDBFactory } from 'fake-indexeddb';
 import { typeKey } from '../../testing/touch-logs';
 import { DeveloperMode } from '../developer-mode/developer-mode';
-import { DiscoverPaceSetting } from './discover-pace-setting';
+import { DiscoveryPaceSetting } from './discovery-pace-setting';
 import { KeypadLayoutSetting } from './keypad-layout-setting';
 import { loadPlayerData } from './load-player-data';
 import { INDEXED_DB, RunStore } from './run-store';
@@ -15,7 +15,7 @@ describe('loadPlayerData', () => {
     const run = typeKey(newTouchLog('a', 0), '1', 0);
     await TestBed.inject(RunStore).save(run);
     await TestBed.inject(KeypadLayoutSetting).set('telephone');
-    await TestBed.inject(DiscoverPaceSetting).set('faster');
+    await TestBed.inject(DiscoveryPaceSetting).set('faster');
     await TestBed.inject(DeveloperMode).set(true);
     // The app opening again.
     TestBed.resetTestingModule();
@@ -25,7 +25,7 @@ describe('loadPlayerData', () => {
 
     expect(TestBed.inject(RunStore).logs()).toEqual([run]);
     expect(TestBed.inject(KeypadLayoutSetting).layout()).toBe('telephone');
-    expect(TestBed.inject(DiscoverPaceSetting).pace()).toBe('faster');
+    expect(TestBed.inject(DiscoveryPaceSetting).pace()).toBe('faster');
     expect(TestBed.inject(DeveloperMode).enabled()).toBe(true);
   });
 });

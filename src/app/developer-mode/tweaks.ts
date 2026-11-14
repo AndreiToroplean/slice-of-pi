@@ -1,26 +1,25 @@
 import { computed, inject, Service, signal } from '@angular/core';
 import { COLOR_SPACES, ColorSpace } from '../game/color/color-spaces';
 import {
-  DISCOVER_SPEED,
-  isDiscoverSpeed,
+  DISCOVERY_SPEED,
+  isDiscoverySpeed,
   isPaceStep,
   GAME_LINGER,
   FAST_FORWARD,
-  FAINT_OPACITY,
   GROUP_PAUSE,
   HAND_OVER,
   isGameLinger,
   isFastForward,
-  isFaintOpacity,
   isGroupPause,
   isHandOver,
   PACE_STEP,
-} from '../game/modes/discover-pace';
+} from '../game/modes/discovery-pace';
+import { isVirtualOpacity, VIRTUAL_OPACITY } from '../screens/play/typed-digits/typed-digits';
 import { isKeyLinger, KEY_LINGER, Palette, PALETTE } from '../game/layers/place-colors';
 import { BREATH, isBreath } from '../ui/breath';
 import { isUnavailable, UNAVAILABLE } from '../ui/unavailable';
 import { ACTION_KEY_COLOR } from '../screens/play/keypad/action-keys';
-import { CHECKPOINT_LAG, isCheckpointLag } from '../game/modes/discover-rounds';
+import { CHECKPOINT_LAG, isCheckpointLag } from '../game/modes/discovery-rounds';
 import { writeBackup } from '../player-data/backup';
 import { migrate, Migration } from '../player-data/migration';
 import { RunOrder } from '../player-data/run';
@@ -45,7 +44,7 @@ import {
 import { DeveloperMode } from './developer-mode';
 import { Layout, LAYOUT, parseLayout } from '../ui/layout';
 import { MENU_LOOK, MenuLook, parseMenuLook, TWILIGHT } from '../screens/menu/menu-look';
-import { DISCOVER_HALO, DiscoverHalo, parseDiscoverHalo } from '../screens/play/discover-halo';
+import { DISCOVERY_HALO, DiscoveryHalo, parseDiscoveryHalo } from '../screens/play/discovery-halo';
 import {
   parsePattern,
   Vibration,
@@ -65,7 +64,7 @@ import { SOUND_MODEL, soundModelKindById } from '../game/layers/sound/sound-mode
 /** The name of the tweaks setting in the store. */
 export const TWEAKS = 'tweaks';
 /** The format of the stored tweaks, which changes, with a migration, whenever they do. */
-export const TWEAKS_FORMAT = 4;
+export const TWEAKS_FORMAT = 6;
 /** The steps that bring the stored tweaks in older formats to the current one, one per format (see {@link migrate}). */
 const TWEAKS_MIGRATIONS: readonly Migration[] = [
   // Format 2 keeps each break model's hyperparameters apart: those stored before go to Mercury.
@@ -76,7 +75,37 @@ const TWEAKS_MIGRATIONS: readonly Migration[] = [
   // Format 4 sets how loud words land in the mix: those that landed silently land at 0.
   ({ landings, ...tweaks }) =>
     landings === false ? { ...tweaks, sound: { ...Object(tweaks['sound']), landings: 0 } } : tweaks,
+  // Format 5 names Discover Discovery: its speed, its halo, and Mars's level for its groups.
+  (tweaks) => {
+    const renamed = renamedKey(
+      renamedKey(tweaks, 'discoverSpeed', 'discoverySpeed'),
+      'discoverHalo',
+      'discoveryHalo',
+    );
+    const grouping = tweaks['grouping'] as Record<string, unknown> | undefined;
+    const mars = grouping?.['mars'];
+    return grouping === undefined || typeof mars !== 'object' || mars === null
+      ? renamed
+      : {
+          ...renamed,
+          grouping: {
+            ...grouping,
+            mars: renamedKey(mars as Record<string, unknown>, 'discoverLevel', 'discoveryLevel'),
+          },
+        };
+  },
+  // Format 6 names the digits Discovery's game shows virtual, as are those typed while the game is held still.
+  (tweaks) => renamedKey(tweaks, 'faintOpacity', 'virtualOpacity'),
 ];
+
+/** A record with a key renamed, if it has it. */
+function renamedKey<T extends Record<string, unknown>>(record: T, from: string, to: string): T {
+  if (!(from in record)) {
+    return record;
+  }
+  const { [from]: value, ...rest } = record;
+  return { ...rest, [to]: value } as T;
+}
 
 /** Each season's starting background colors, top then bottom. */
 export type SeasonStarts = Readonly<Record<Season, BackgroundColors>>;
@@ -107,26 +136,26 @@ export interface TweakValues {
   readonly unavailable?: number;
   /** The action keys' color, for {@link ACTION_KEY_COLOR}. */
   readonly actionKeys?: string;
-  /** How many digits a second Discover plays at its medium pace, for {@link DISCOVER_SPEED}. */
-  readonly discoverSpeed?: number;
-  /** How much slower or faster than the medium pace Discover's others are, in percent, for {@link PACE_STEP}. */
+  /** How many digits a second Discovery plays at its medium pace, for {@link DISCOVERY_SPEED}. */
+  readonly discoverySpeed?: number;
+  /** How much slower or faster than the medium pace Discovery's others are, in percent, for {@link PACE_STEP}. */
   readonly paceStep?: number;
-  /** How long Discover takes to hand a turn over, in milliseconds, for {@link HAND_OVER}. */
+  /** How long Discovery takes to hand a turn over, in milliseconds, for {@link HAND_OVER}. */
   readonly handOver?: number;
-  /** How much longer Discover's game waits between groups than between digits, in percent, for {@link GROUP_PAUSE}. */
+  /** How much longer Discovery's game waits between groups than between digits, in percent, for {@link GROUP_PAUSE}. */
   readonly groupPause?: number;
-  /** How many times longer keys linger on Discover's turn, for {@link GAME_LINGER}. */
+  /** How many times longer keys linger on Discovery's turn, for {@link GAME_LINGER}. */
   readonly gameLinger?: number;
-  /** How many times faster Discover's game plays while fast forwarded, for {@link FAST_FORWARD}. */
+  /** How many times faster Discovery's game plays while fast forwarded, for {@link FAST_FORWARD}. */
   readonly fastForward?: number;
-  /** How opaque the digits Discover's game shows are, from 0 to 1, for {@link FAINT_OPACITY}. */
-  readonly faintOpacity?: number;
+  /** How opaque the digits Discovery's game shows are, from 0 to 1, for {@link VIRTUAL_OPACITY}. */
+  readonly virtualOpacity?: number;
   /** `false` to play without checking the digits, which the game otherwise always does. */
   readonly checking?: false;
   /** `true` to show the countdown to the end of the group being typed, in developer mode, which is otherwise hidden. */
   readonly countdown?: true;
   /**
-   * `true` for Discover's rounds to move on to checkpoints as the player picks them, which they otherwise do by
+   * `true` for Discovery's rounds to move on to checkpoints as the player picks them, which they otherwise do by
    * themselves, lagging behind (see `laggingCheckpoint`).
    */
   readonly manualCheckpoints?: true;
@@ -142,8 +171,8 @@ export interface TweakValues {
   readonly layout?: Layout;
   /** How the main menu looks, for {@link MENU_LOOK}. */
   readonly menu?: MenuLook;
-  /** The Discover Halo, for {@link DISCOVER_HALO}. */
-  readonly discoverHalo?: DiscoverHalo;
+  /** The Discovery Halo, for {@link DISCOVERY_HALO}. */
+  readonly discoveryHalo?: DiscoveryHalo;
   /** The patterns the phone vibrates in, those tuned, for theirs in {@link VIBRATION_PATTERNS}. */
   readonly vibrations?: Partial<VibrationPatterns>;
   /** The name of the sound model the keys are played with, for {@link SOUND_MODEL}. */
@@ -240,32 +269,33 @@ export class Tweaks {
   readonly actionKeys = computed(
     () => (this.developerMode.enabled() ? this.tweaks().actionKeys : undefined) ?? ACTION_KEY_COLOR,
   );
-  /** How many digits a second Discover plays at its medium pace. */
-  readonly discoverSpeed = computed(
+  /** How many digits a second Discovery plays at its medium pace. */
+  readonly discoverySpeed = computed(
     () =>
-      (this.developerMode.enabled() ? this.tweaks().discoverSpeed : undefined) ?? DISCOVER_SPEED,
+      (this.developerMode.enabled() ? this.tweaks().discoverySpeed : undefined) ?? DISCOVERY_SPEED,
   );
-  /** How much slower or faster than the medium pace Discover's others are, in percent. */
+  /** How much slower or faster than the medium pace Discovery's others are, in percent. */
   readonly paceStep = computed(
     () => (this.developerMode.enabled() ? this.tweaks().paceStep : undefined) ?? PACE_STEP,
   );
-  /** How long Discover takes to hand a turn over, in milliseconds. */
+  /** How long Discovery takes to hand a turn over, in milliseconds. */
   readonly handOver = computed(
     () => (this.developerMode.enabled() ? this.tweaks().handOver : undefined) ?? HAND_OVER,
   );
-  /** How much longer Discover's game waits between groups than between digits, in percent. */
+  /** How much longer Discovery's game waits between groups than between digits, in percent. */
   readonly groupPause = computed(
     () => (this.developerMode.enabled() ? this.tweaks().groupPause : undefined) ?? GROUP_PAUSE,
   );
-  /** How many times longer keys linger on Discover's turn. */
+  /** How many times longer keys linger on Discovery's turn. */
   readonly gameLinger = computed(
     () => (this.developerMode.enabled() ? this.tweaks().gameLinger : undefined) ?? GAME_LINGER,
   );
   readonly fastForward = computed(
     () => (this.developerMode.enabled() ? this.tweaks().fastForward : undefined) ?? FAST_FORWARD,
   );
-  readonly faintOpacity = computed(
-    () => (this.developerMode.enabled() ? this.tweaks().faintOpacity : undefined) ?? FAINT_OPACITY,
+  readonly virtualOpacity = computed(
+    () =>
+      (this.developerMode.enabled() ? this.tweaks().virtualOpacity : undefined) ?? VIRTUAL_OPACITY,
   );
 
   /** Whether the game checks the digits typed against π. */
@@ -277,7 +307,7 @@ export class Tweaks {
   readonly countdown = computed(
     () => this.developerMode.enabled() && this.tweaks().countdown === true,
   );
-  /** Whether Discover's rounds move on to checkpoints as the player picks them, rather than by themselves. */
+  /** Whether Discovery's rounds move on to checkpoints as the player picks them, rather than by themselves. */
   readonly manualCheckpoints = computed(
     () => this.developerMode.enabled() && this.tweaks().manualCheckpoints === true,
   );
@@ -438,27 +468,27 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), actionKeys }));
   }
 
-  /** Sets how many digits a second Discover plays at its medium pace; `undefined` brings back the game's. */
-  setDiscoverSpeed(discoverSpeed: number | undefined): Promise<void> {
-    return this.save(tweakValues({ ...this.tweaks(), discoverSpeed }));
+  /** Sets how many digits a second Discovery plays at its medium pace; `undefined` brings back the game's. */
+  setDiscoverySpeed(discoverySpeed: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), discoverySpeed }));
   }
 
-  /** Sets how much slower or faster Discover's other paces are, in percent; `undefined` brings back the game's. */
+  /** Sets how much slower or faster Discovery's other paces are, in percent; `undefined` brings back the game's. */
   setPaceStep(paceStep: number | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), paceStep }));
   }
 
-  /** Sets how long Discover takes to hand a turn over; `undefined` brings back the game's. */
+  /** Sets how long Discovery takes to hand a turn over; `undefined` brings back the game's. */
   setHandOver(handOver: number | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), handOver }));
   }
 
-  /** Sets how much longer Discover's game waits between groups; `undefined` brings back the game's. */
+  /** Sets how much longer Discovery's game waits between groups; `undefined` brings back the game's. */
   setGroupPause(groupPause: number | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), groupPause }));
   }
 
-  /** Sets how many times longer keys linger on Discover's turn; `undefined` brings back the game's. */
+  /** Sets how many times longer keys linger on Discovery's turn; `undefined` brings back the game's. */
   setGameLinger(gameLinger: number | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), gameLinger }));
   }
@@ -467,8 +497,8 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), fastForward }));
   }
 
-  setFaintOpacity(faintOpacity: number | undefined): Promise<void> {
-    return this.save(tweakValues({ ...this.tweaks(), faintOpacity }));
+  setVirtualOpacity(virtualOpacity: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), virtualOpacity }));
   }
 
   /** Turns checking the digits typed on or off. */
@@ -476,7 +506,7 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), checking: checking ? undefined : false }));
   }
 
-  /** Has Discover's rounds move on to checkpoints as the player picks them, or by themselves. */
+  /** Has Discovery's rounds move on to checkpoints as the player picks them, or by themselves. */
   setManualCheckpoints(manual: boolean): Promise<void> {
     return this.save(
       tweakValues({ ...this.tweaks(), manualCheckpoints: manual ? true : undefined }),
@@ -520,15 +550,15 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), menu }));
   }
 
-  /** The Discover Halo. */
-  readonly discoverHalo = computed(
-    (): DiscoverHalo =>
-      (this.developerMode.enabled() ? this.tweaks().discoverHalo : undefined) ?? DISCOVER_HALO,
+  /** The Discovery Halo. */
+  readonly discoveryHalo = computed(
+    (): DiscoveryHalo =>
+      (this.developerMode.enabled() ? this.tweaks().discoveryHalo : undefined) ?? DISCOVERY_HALO,
   );
 
-  /** Changes the Discover Halo; `undefined` brings back the game's own. */
-  setDiscoverHalo(discoverHalo: DiscoverHalo | undefined): Promise<void> {
-    return this.save(tweakValues({ ...this.tweaks(), discoverHalo }));
+  /** Changes the Discovery Halo; `undefined` brings back the game's own. */
+  setDiscoveryHalo(discoveryHalo: DiscoveryHalo | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), discoveryHalo }));
   }
 
   /** Tunes the pattern the phone vibrates in on an event; `undefined` brings back the game's. The others keep theirs. */
@@ -637,13 +667,13 @@ export function parseTweaks(stored: unknown): TweakValues {
     breath,
     unavailable,
     actionKeys,
-    discoverSpeed,
+    discoverySpeed,
     paceStep,
     handOver,
     groupPause,
     gameLinger,
     fastForward,
-    faintOpacity,
+    virtualOpacity,
     checking,
     countdown,
     manualCheckpoints,
@@ -653,7 +683,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     runOrder,
     layout,
     menu,
-    discoverHalo,
+    discoveryHalo,
     vibrations,
     soundModel,
     sound,
@@ -678,13 +708,13 @@ export function parseTweaks(stored: unknown): TweakValues {
     breath: isBreath(breath) ? breath : undefined,
     unavailable: isUnavailable(unavailable) ? unavailable : undefined,
     actionKeys: isColor(actionKeys) ? actionKeys : undefined,
-    discoverSpeed: isDiscoverSpeed(discoverSpeed) ? discoverSpeed : undefined,
+    discoverySpeed: isDiscoverySpeed(discoverySpeed) ? discoverySpeed : undefined,
     paceStep: isPaceStep(paceStep) ? paceStep : undefined,
     handOver: isHandOver(handOver) ? handOver : undefined,
     groupPause: isGroupPause(groupPause) ? groupPause : undefined,
     gameLinger: isGameLinger(gameLinger) ? gameLinger : undefined,
     fastForward: isFastForward(fastForward) ? fastForward : undefined,
-    faintOpacity: isFaintOpacity(faintOpacity) ? faintOpacity : undefined,
+    virtualOpacity: isVirtualOpacity(virtualOpacity) ? virtualOpacity : undefined,
     checking: checking === false ? checking : undefined,
     countdown: countdown === true ? countdown : undefined,
     manualCheckpoints: manualCheckpoints === true ? manualCheckpoints : undefined,
@@ -694,7 +724,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     runOrder: runOrderOf(runOrder),
     layout: parseLayout(layout),
     menu: parseMenuLook(menu),
-    discoverHalo: parseDiscoverHalo(discoverHalo),
+    discoveryHalo: parseDiscoveryHalo(discoveryHalo),
     vibrations: vibrationsOf(vibrations),
     soundModel: soundModelKindById(soundModel)?.id,
     sound: slidValues(sound, MIX_SLIDERS, SOUND_MIX),
@@ -722,17 +752,17 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     breath,
     unavailable,
     actionKeys,
-    discoverSpeed,
+    discoverySpeed,
     paceStep,
     handOver,
     groupPause,
     gameLinger,
     fastForward,
-    faintOpacity,
+    virtualOpacity,
     checkpointLag,
     layout,
     menu,
-    discoverHalo,
+    discoveryHalo,
     vibrations,
     soundModel,
     sound,
@@ -759,17 +789,17 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     breath: breath === BREATH ? undefined : breath,
     unavailable: unavailable === UNAVAILABLE ? undefined : unavailable,
     actionKeys: actionKeys === ACTION_KEY_COLOR ? undefined : actionKeys,
-    discoverSpeed: discoverSpeed === DISCOVER_SPEED ? undefined : discoverSpeed,
+    discoverySpeed: discoverySpeed === DISCOVERY_SPEED ? undefined : discoverySpeed,
     paceStep: paceStep === PACE_STEP ? undefined : paceStep,
     handOver: handOver === HAND_OVER ? undefined : handOver,
     groupPause: groupPause === GROUP_PAUSE ? undefined : groupPause,
     gameLinger: gameLinger === GAME_LINGER ? undefined : gameLinger,
     fastForward: fastForward === FAST_FORWARD ? undefined : fastForward,
-    faintOpacity: faintOpacity === FAINT_OPACITY ? undefined : faintOpacity,
+    virtualOpacity: virtualOpacity === VIRTUAL_OPACITY ? undefined : virtualOpacity,
     checkpointLag: checkpointLag === CHECKPOINT_LAG ? undefined : checkpointLag,
     layout: equal(layout, LAYOUT) ? undefined : layout,
     menu: equal(menu, MENU_LOOK) ? undefined : menu,
-    discoverHalo: equal(discoverHalo, DISCOVER_HALO) ? undefined : discoverHalo,
+    discoveryHalo: equal(discoveryHalo, DISCOVERY_HALO) ? undefined : discoveryHalo,
     vibrations: vibrationsOf(vibrations),
     soundModel: soundModel === SOUND_MODEL.id ? undefined : soundModel,
     sound: equal(sound, SOUND_MIX) ? undefined : sound,
@@ -808,13 +838,13 @@ function tweakValues({
   breath,
   unavailable,
   actionKeys,
-  discoverSpeed,
+  discoverySpeed,
   paceStep,
   handOver,
   groupPause,
   gameLinger,
   fastForward,
-  faintOpacity,
+  virtualOpacity,
   checking,
   countdown,
   manualCheckpoints,
@@ -824,7 +854,7 @@ function tweakValues({
   runOrder,
   layout,
   menu,
-  discoverHalo,
+  discoveryHalo,
   vibrations,
   soundModel,
   sound,
@@ -848,13 +878,13 @@ function tweakValues({
     ...(breath === undefined ? {} : { breath }),
     ...(unavailable === undefined ? {} : { unavailable }),
     ...(actionKeys === undefined ? {} : { actionKeys }),
-    ...(discoverSpeed === undefined ? {} : { discoverSpeed }),
+    ...(discoverySpeed === undefined ? {} : { discoverySpeed }),
     ...(paceStep === undefined ? {} : { paceStep }),
     ...(handOver === undefined ? {} : { handOver }),
     ...(groupPause === undefined ? {} : { groupPause }),
     ...(gameLinger === undefined ? {} : { gameLinger }),
     ...(fastForward === undefined ? {} : { fastForward }),
-    ...(faintOpacity === undefined ? {} : { faintOpacity }),
+    ...(virtualOpacity === undefined ? {} : { virtualOpacity }),
     ...(checking === undefined ? {} : { checking }),
     ...(countdown === undefined ? {} : { countdown }),
     ...(manualCheckpoints === undefined ? {} : { manualCheckpoints }),
@@ -864,7 +894,7 @@ function tweakValues({
     ...(runOrder === undefined ? {} : { runOrder }),
     ...(layout === undefined ? {} : { layout }),
     ...(menu === undefined ? {} : { menu }),
-    ...(discoverHalo === undefined ? {} : { discoverHalo }),
+    ...(discoveryHalo === undefined ? {} : { discoveryHalo }),
     ...(vibrations === undefined ? {} : { vibrations }),
     ...(soundModel === undefined ? {} : { soundModel }),
     ...(sound === undefined ? {} : { sound }),
