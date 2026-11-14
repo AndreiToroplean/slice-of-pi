@@ -1161,6 +1161,29 @@ describe('Play', () => {
       expect(play).toHaveBeenCalledTimes(1);
     });
 
+    it('plays the keys while the game is held still, typing nothing, and without vibrating', async () => {
+      const play = vi.spyOn(TestBed.inject(Speaker), 'play');
+      const vibrate = vi.spyOn(TestBed.inject(Vibrator), 'play');
+      const fixture = TestBed.createComponent(Play);
+      await fixture.whenStable();
+      const host = fixture.nativeElement as HTMLElement;
+      const keypad = fixture.debugElement.query(By.directive(Keypad)).componentInstance as Keypad;
+      const keys = SOUND_MODEL.create().keys(momentAt(1, [], 5));
+
+      keypad.pauseKey.emit('down');
+      keypad.pressed.emit('7');
+      keypad.touched.emit({ key: '7', x: 0.5, y: 0.5 });
+      keypad.pauseKey.emit('off');
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', bubbles: true }));
+      keypad.touched.emit({ key: '3' });
+      document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', bubbles: true }));
+      await fixture.whenStable();
+
+      expect(play.mock.calls).toEqual([[keys['7']], [keys['3']]]);
+      expect(vibrate).not.toHaveBeenCalled();
+      expect(slots(host).join('')).toBe('');
+    });
+
     it("takes a wrong key's note off once it's typed, as it rings, and leaves a right key's be", async () => {
       const sours: string[] = [];
       vi.spyOn(TestBed.inject(Speaker), 'play').mockImplementation((chime) => ({
