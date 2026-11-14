@@ -153,7 +153,10 @@ describe('TypedDigits', () => {
           position = Math.min(end(), Math.max(0, value));
         },
       });
-      Object.defineProperty(host, 'scrollWidth', { get: () => Math.max(VIEW, length()) });
+      Object.defineProperty(host, 'scrollWidth', {
+        get: () => Math.max(VIEW, length()),
+        configurable: true,
+      });
       Object.defineProperty(host, 'clientWidth', { get: () => VIEW });
       await put(fixture, words);
       settle(host);
@@ -293,6 +296,22 @@ describe('TypedDigits', () => {
       await fixture.whenStable();
       expect(host.classList).not.toContain('hidden-left');
       expect(host.classList).toContain('hidden-right');
+    });
+
+    it('fades out no edge once scrolled to the end, though the browser rounds its widths past it', async () => {
+      const { fixture, host } = await tape(wordsOf(5));
+      // As on a phone, where the scroll position is fractional: rounded up, the scroll width says the tape scrolls a
+      // little further than it does.
+      const scrollWidth = host.scrollWidth;
+      Object.defineProperty(host, 'scrollWidth', { get: () => scrollWidth + 1.4 });
+      host.scrollLeft = 0;
+      host.dispatchEvent(new Event('scroll'));
+
+      host.scrollLeft = Number.MAX_SAFE_INTEGER;
+      host.dispatchEvent(new Event('scroll'));
+      await fixture.whenStable();
+
+      expect(host.classList).not.toContain('hidden-right');
     });
 
     it('glides back to the newest words when asked, as typing does', async () => {

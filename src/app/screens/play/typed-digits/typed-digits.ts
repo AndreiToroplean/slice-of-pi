@@ -32,6 +32,13 @@ export function isVirtualOpacity(value: unknown): value is number {
 export const SCROLL_BACK_DURATION = 400;
 
 /**
+ * How far from the end of its scroll the tape still counts as at the end, in pixels: the browser rounds its scroll
+ * width and its client width to whole pixels, while the scroll position can be fractional (as on phones), so the end
+ * they give can lie past the furthest the tape scrolls, by up to a pixel and a half.
+ */
+const END_TOLERANCE = 2;
+
+/**
  * The typed digits on the tape, after a "π=3." word: each finished group is a word of joined tiles, on one row that
  * scrolls left as words come onto it, the oldest fading out on the left. The tape makes room for a word as it flies
  * onto it, done scrolling when its first digit lands. A word taken off it, back into the slots, leaves its room behind,
@@ -166,7 +173,7 @@ export class TypedDigits {
     this.position = this.host.scrollLeft;
     const end = this.host.scrollWidth - this.host.clientWidth;
     this.hiddenLeft.set(this.position > 0.5);
-    this.hiddenRight.set(end - this.position > this.room() + this.extra + 0.5);
+    this.hiddenRight.set(end - this.position > this.room() + this.extra + END_TOLERANCE);
   }
 
   /**
