@@ -6,17 +6,17 @@ test('shows a group in Discovery, then takes the player’s retyping, the next r
   await page.goto('/');
   await page.getByRole('link', { name: 'Discovery' }).click();
   await expect(page).toHaveURL('/discovery');
-  const faint = page.locator('app-typed-digits .tile.faint');
+  const virtual = page.locator('app-typed-digits .tile.virtual');
   const turnKey = page.locator('app-keypad button[data-key="backspace"]');
   const play = page.locator('app-play');
 
   // The game shows the first group; the player takes their turn as they type.
   await expect(turnKey).toHaveAccessibleName('Fast forward');
-  await expect(faint).toHaveCount(5);
+  await expect(virtual).toHaveCount(5);
   for (const key of '14159') {
     await page.keyboard.press(key);
   }
-  await expect(faint).toHaveCount(0);
+  await expect(virtual).toHaveCount(0);
   await expect(play).toHaveAttribute('data-turn', 'player');
 
   // A tap of the turn key, with the space bar, switches turns at once; held, it fast forwards the next round.
@@ -24,7 +24,7 @@ test('shows a group in Discovery, then takes the player’s retyping, the next r
   await page.keyboard.press(' ');
   await expect(play).toHaveAttribute('data-turn', 'game');
   await page.keyboard.down(' ');
-  await expect(faint).toHaveCount(10, { timeout: 5_000 });
+  await expect(virtual).toHaveCount(10, { timeout: 5_000 });
   await page.keyboard.up(' ');
   await expect(turnKey).toHaveAccessibleName('Switch turns');
 });

@@ -552,6 +552,10 @@ describe('Tweaks', () => {
     expect(tweaks.grouping?.['mars']?.['discoveryLevel']).toBe(0.5);
   });
 
+  it('reads the opacity stored for faint digits as that of virtual digits', () => {
+    expect(parseTweaks({ format: 5, faintOpacity: 0.3 })).toEqual({ virtualOpacity: 0.3 });
+  });
+
   it('leaves out the settings saved for the timing model the break model replaced', () => {
     expect(
       parseTweaks({

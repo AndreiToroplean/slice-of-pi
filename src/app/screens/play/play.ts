@@ -189,9 +189,9 @@ const TICK = 16;
       [digits]="digits()"
       [colors]="placeColors()"
       [arrival]="arrival()"
-      [faintFrom]="faintFrom()"
+      [virtualFrom]="virtualFrom()"
       [fadeOut]="fadeOut()"
-      [faintOpacity]="tweaks.faintOpacity()"
+      [virtualOpacity]="tweaks.virtualOpacity()"
     />
     @if (checkpoints().length > 0) {
       <div class="checkpoints">
@@ -405,7 +405,7 @@ export class Play implements PausesOnBack {
    */
   protected readonly turn = signal<Turn>(this.discovering() ? 'game' : 'player');
   /** The place from which the digits are those Discovery's game shows, faint: from where its rounds start, on its turn. */
-  protected readonly faintFrom = computed(() =>
+  protected readonly virtualFrom = computed(() =>
     this.turn() === 'game' ? this.rounds().from : undefined,
   );
   /** The key Discovery is playing, shown pressed. */

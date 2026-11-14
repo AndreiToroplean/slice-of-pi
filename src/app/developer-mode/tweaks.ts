@@ -6,16 +6,15 @@ import {
   isPaceStep,
   GAME_LINGER,
   FAST_FORWARD,
-  FAINT_OPACITY,
   GROUP_PAUSE,
   HAND_OVER,
   isGameLinger,
   isFastForward,
-  isFaintOpacity,
   isGroupPause,
   isHandOver,
   PACE_STEP,
 } from '../game/modes/discovery-pace';
+import { isVirtualOpacity, VIRTUAL_OPACITY } from '../screens/play/typed-digits/typed-digits';
 import { isKeyLinger, KEY_LINGER, Palette, PALETTE } from '../game/layers/place-colors';
 import { BREATH, isBreath } from '../ui/breath';
 import { isUnavailable, UNAVAILABLE } from '../ui/unavailable';
@@ -65,7 +64,7 @@ import { SOUND_MODEL, soundModelKindById } from '../game/layers/sound/sound-mode
 /** The name of the tweaks setting in the store. */
 export const TWEAKS = 'tweaks';
 /** The format of the stored tweaks, which changes, with a migration, whenever they do. */
-export const TWEAKS_FORMAT = 5;
+export const TWEAKS_FORMAT = 6;
 /** The steps that bring the stored tweaks in older formats to the current one, one per format (see {@link migrate}). */
 const TWEAKS_MIGRATIONS: readonly Migration[] = [
   // Format 2 keeps each break model's hyperparameters apart: those stored before go to Mercury.
@@ -95,6 +94,8 @@ const TWEAKS_MIGRATIONS: readonly Migration[] = [
           },
         };
   },
+  // Format 6 names the digits Discovery's game shows virtual, as are those typed while the game is held still.
+  (tweaks) => renamedKey(tweaks, 'faintOpacity', 'virtualOpacity'),
 ];
 
 /** A record with a key renamed, if it has it. */
@@ -147,8 +148,8 @@ export interface TweakValues {
   readonly gameLinger?: number;
   /** How many times faster Discovery's game plays while fast forwarded, for {@link FAST_FORWARD}. */
   readonly fastForward?: number;
-  /** How opaque the digits Discovery's game shows are, from 0 to 1, for {@link FAINT_OPACITY}. */
-  readonly faintOpacity?: number;
+  /** How opaque the digits Discovery's game shows are, from 0 to 1, for {@link VIRTUAL_OPACITY}. */
+  readonly virtualOpacity?: number;
   /** `false` to play without checking the digits, which the game otherwise always does. */
   readonly checking?: false;
   /** `true` to show the countdown to the end of the group being typed, in developer mode, which is otherwise hidden. */
@@ -292,8 +293,9 @@ export class Tweaks {
   readonly fastForward = computed(
     () => (this.developerMode.enabled() ? this.tweaks().fastForward : undefined) ?? FAST_FORWARD,
   );
-  readonly faintOpacity = computed(
-    () => (this.developerMode.enabled() ? this.tweaks().faintOpacity : undefined) ?? FAINT_OPACITY,
+  readonly virtualOpacity = computed(
+    () =>
+      (this.developerMode.enabled() ? this.tweaks().virtualOpacity : undefined) ?? VIRTUAL_OPACITY,
   );
 
   /** Whether the game checks the digits typed against π. */
@@ -495,8 +497,8 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), fastForward }));
   }
 
-  setFaintOpacity(faintOpacity: number | undefined): Promise<void> {
-    return this.save(tweakValues({ ...this.tweaks(), faintOpacity }));
+  setVirtualOpacity(virtualOpacity: number | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), virtualOpacity }));
   }
 
   /** Turns checking the digits typed on or off. */
@@ -671,7 +673,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     groupPause,
     gameLinger,
     fastForward,
-    faintOpacity,
+    virtualOpacity,
     checking,
     countdown,
     manualCheckpoints,
@@ -712,7 +714,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     groupPause: isGroupPause(groupPause) ? groupPause : undefined,
     gameLinger: isGameLinger(gameLinger) ? gameLinger : undefined,
     fastForward: isFastForward(fastForward) ? fastForward : undefined,
-    faintOpacity: isFaintOpacity(faintOpacity) ? faintOpacity : undefined,
+    virtualOpacity: isVirtualOpacity(virtualOpacity) ? virtualOpacity : undefined,
     checking: checking === false ? checking : undefined,
     countdown: countdown === true ? countdown : undefined,
     manualCheckpoints: manualCheckpoints === true ? manualCheckpoints : undefined,
@@ -756,7 +758,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     groupPause,
     gameLinger,
     fastForward,
-    faintOpacity,
+    virtualOpacity,
     checkpointLag,
     layout,
     menu,
@@ -793,7 +795,7 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     groupPause: groupPause === GROUP_PAUSE ? undefined : groupPause,
     gameLinger: gameLinger === GAME_LINGER ? undefined : gameLinger,
     fastForward: fastForward === FAST_FORWARD ? undefined : fastForward,
-    faintOpacity: faintOpacity === FAINT_OPACITY ? undefined : faintOpacity,
+    virtualOpacity: virtualOpacity === VIRTUAL_OPACITY ? undefined : virtualOpacity,
     checkpointLag: checkpointLag === CHECKPOINT_LAG ? undefined : checkpointLag,
     layout: equal(layout, LAYOUT) ? undefined : layout,
     menu: equal(menu, MENU_LOOK) ? undefined : menu,
@@ -842,7 +844,7 @@ function tweakValues({
   groupPause,
   gameLinger,
   fastForward,
-  faintOpacity,
+  virtualOpacity,
   checking,
   countdown,
   manualCheckpoints,
@@ -882,7 +884,7 @@ function tweakValues({
     ...(groupPause === undefined ? {} : { groupPause }),
     ...(gameLinger === undefined ? {} : { gameLinger }),
     ...(fastForward === undefined ? {} : { fastForward }),
-    ...(faintOpacity === undefined ? {} : { faintOpacity }),
+    ...(virtualOpacity === undefined ? {} : { virtualOpacity }),
     ...(checking === undefined ? {} : { checking }),
     ...(countdown === undefined ? {} : { countdown }),
     ...(manualCheckpoints === undefined ? {} : { manualCheckpoints }),

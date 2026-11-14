@@ -1976,9 +1976,9 @@ describe('Play', () => {
       return host.getAttribute('data-turn');
     }
 
-    /** The faint digits on the tape: those the game showed. */
-    function faint(host: HTMLElement): string {
-      return Array.from(host.querySelectorAll('app-typed-digits .tile.faint'), (tile) =>
+    /** The virtual digits on the tape: those the game showed. */
+    function virtual(host: HTMLElement): string {
+      return Array.from(host.querySelectorAll('app-typed-digits .tile.virtual'), (tile) =>
         tile.textContent.trim(),
       ).join('');
     }
@@ -2037,11 +2037,11 @@ describe('Play', () => {
       expect(shownKey(round.host)).toBe('1');
 
       await listen(round, 4);
-      expect(faint(round.host)).toBe('14159');
+      expect(virtual(round.host)).toBe('14159');
       expect(turnOf(round.host)).toBe('game');
 
       await round.wait(HAND_OVER);
-      expect(faint(round.host)).toBe('');
+      expect(virtual(round.host)).toBe('');
       expect(words(round.host)).toEqual([]);
       expect(turnOf(round.host)).toBe('player');
       expect(cornerWorks(round.host)).toBe(false);
@@ -2051,7 +2051,7 @@ describe('Play', () => {
       const round = await discovery();
       const tape = (): HTMLElement | null => round.host.querySelector('app-typed-digits');
       await listen(round, 5);
-      const fading = (): number => round.host.querySelectorAll('.tile.faint.fading').length;
+      const fading = (): number => round.host.querySelectorAll('.tile.virtual.fading').length;
       expect(fading()).toBe(5);
 
       // Listening went half a digit's time into the fade: on to half of it.
@@ -2082,13 +2082,13 @@ describe('Play', () => {
     it('shows its digits as faint as developer mode sets', async () => {
       const round = await discovery();
       await TestBed.inject(DeveloperMode).set(true);
-      await TestBed.inject(Tweaks).setFaintOpacity(0.6);
+      await TestBed.inject(Tweaks).setVirtualOpacity(0.6);
       await round.wait(0);
 
       expect(
         round.host
           .querySelector<HTMLElement>('app-typed-digits')
-          ?.style.getPropertyValue('--faint'),
+          ?.style.getPropertyValue('--virtual'),
       ).toBe('0.6');
     });
 
@@ -2099,10 +2099,10 @@ describe('Play', () => {
 
       await listen(round, 5);
       await round.wait(HAND_OVER);
-      expect(faint(round.host)).toBe('14159');
+      expect(virtual(round.host)).toBe('14159');
 
       await round.wait(1000);
-      expect(faint(round.host)).toBe('');
+      expect(virtual(round.host)).toBe('');
     });
 
     it('pauses longer between groups as it plays them, as developer mode sets', async () => {
@@ -2146,7 +2146,7 @@ describe('Play', () => {
           ?.style.getPropertyValue('--press-color');
       await listen(round, 5);
 
-      expect(faint(round.host)).toBe('14159');
+      expect(virtual(round.host)).toBe('14159');
       expect(season()).toBe('Digit 5');
       expect(color()).toBe(PALETTE[keyColorIndices('14159')['1']]);
 
@@ -2178,7 +2178,7 @@ describe('Play', () => {
 
       await round.type('1');
 
-      expect(faint(round.host)).toBe('');
+      expect(virtual(round.host)).toBe('');
       expect(slots(round.host)[0]).toBe('1');
       expect(turnOf(round.host)).toBe('player');
       await round.type('4159');
@@ -2206,7 +2206,7 @@ describe('Play', () => {
       await round.wait(HAND_OVER);
       await listen(round, 10);
 
-      expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 10));
+      expect(virtual(round.host)).toBe(PI_DECIMALS.slice(0, 10));
     });
 
     it('starts the hand over again with each digit the player types on', async () => {
@@ -2229,7 +2229,7 @@ describe('Play', () => {
 
       await round.wait((5 * MEDIUM_INTERVAL) / FAST_FORWARD + 10);
 
-      expect(faint(round.host)).toBe('14159');
+      expect(virtual(round.host)).toBe('14159');
     });
 
     it('fast forwards as fast as developer mode sets', async () => {
@@ -2240,7 +2240,7 @@ describe('Play', () => {
 
       await round.wait((5 * MEDIUM_INTERVAL) / 4 + 10);
 
-      expect(faint(round.host)).toBe('14159');
+      expect(virtual(round.host)).toBe('14159');
     });
 
     it('speeds up what’s left of the round as the turn key is held midway, and slows back down as let go', async () => {
@@ -2269,14 +2269,14 @@ describe('Play', () => {
       const held = fade();
       await round.wait(10 * HAND_OVER);
       expect(fade()).toBe(held);
-      expect(faint(round.host)).toBe('14159');
+      expect(virtual(round.host)).toBe('14159');
       expect(turnOf(round.host)).toBe('game');
 
       round.keypad().pauseKey.emit('up');
       await round.wait(0);
       expect(dialogNamed(round.host, 'Paused').open).toBe(false);
       await round.wait(HAND_OVER);
-      expect(faint(round.host)).toBe('');
+      expect(virtual(round.host)).toBe('');
       expect(turnOf(round.host)).toBe('player');
     });
 
@@ -2353,7 +2353,7 @@ describe('Play', () => {
       await holdKey(round);
       await holdKey(round, false);
 
-      expect(faint(round.host)).toBe('');
+      expect(virtual(round.host)).toBe('');
       expect(turnOf(round.host)).toBe('player');
     });
 
@@ -2362,10 +2362,10 @@ describe('Play', () => {
       await holdKey(round);
       // Past the round shown, fast forwarded, into its hand over.
       await round.wait((6.5 * MEDIUM_INTERVAL) / FAST_FORWARD + 10);
-      expect(faint(round.host)).toBe('14159');
+      expect(virtual(round.host)).toBe('14159');
 
       await holdKey(round, false);
-      expect(faint(round.host)).toBe('14159');
+      expect(virtual(round.host)).toBe('14159');
       expect(turnOf(round.host)).toBe('game');
     });
 
@@ -2404,13 +2404,13 @@ describe('Play', () => {
       await nextRound(round);
       await listen(round, 15);
 
-      expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 15));
+      expect(virtual(round.host)).toBe(PI_DECIMALS.slice(0, 15));
     });
 
     it('plays the player’s own groups', async () => {
       const grouped = await discovery(Array.from({ length: 4 }, (_, run) => by3(30, run)));
       await listen(grouped, 3);
-      expect(faint(grouped.host)).toBe('141');
+      expect(virtual(grouped.host)).toBe('141');
     });
 
     it('shows as many digits as the slots, past the player’s groups too', async () => {
@@ -2422,7 +2422,7 @@ describe('Play', () => {
       await listen(round, 8);
 
       expect(words(round.host)).toEqual(['141', '59265']);
-      expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 8));
+      expect(virtual(round.host)).toBe(PI_DECIMALS.slice(0, 8));
     });
 
     it('takes the player’s turn at once as they type while the game plays the round, the round to retype to its end', async () => {
@@ -2430,7 +2430,7 @@ describe('Play', () => {
       await round.wait(2.5 * MEDIUM_INTERVAL);
 
       await round.type('1');
-      expect(faint(round.host)).toBe('');
+      expect(virtual(round.host)).toBe('');
       expect(slots(round.host)[0]).toBe('1');
       expect(turnOf(round.host)).toBe('player');
 
