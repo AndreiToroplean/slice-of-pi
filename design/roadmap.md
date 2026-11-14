@@ -29,8 +29,17 @@ Celebrate the places the player reaches ([`vision.md` §6](vision.md#6-game-feel
 
 The player against themselves: one leaderboard per feat rather than per game mode, such as the farthest place reached in a challenge, or the fastest runs to a place, with or without mistakes.
 
+- **Worked out from the touch logs,** so a new leaderboard ranks every run ever played.
+- **Only the part played by its rules.** A run counts up to where it stops playing by rules at least as strict as the leaderboard's: on one without mistakes, a Free Play run counts up to its first mistake.
+- **Splits.** π has no finish line, so time is scored by milestone.
+- **Digits proven.** A feat for the runs with mistakes: a digit right on the _t_-th try proves 1 − log₁₀ _t_ digits, nothing on the tenth.
+
 ## Later
 
-- **Detecting skipped digits.** A mode that notices the player skipped a few digits, then goes on right from farther along in π.
+- **More game modes.**
+  - **Hearts.** A challenge with three hearts, which milestones give back.
+  - **Recall.** The player may skip digits or go back, and the game finds where they went on in π: a jump of _d_ places costs log₁₀ _d_ digits, plus a small fixed cost.
+  - **Daily slice.** The same stretch of π for the whole day.
+  - **Time attack.** How far the player gets in a set time: a mode may set the pace of a whole run, never within a group.
 - **Sharing your sky.**
 - **Your Data.** Improve the Your Data card, in the settings.

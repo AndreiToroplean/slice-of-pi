@@ -29,7 +29,7 @@
 
 ## Play
 
-- **Run:** one attempt, from the start of π until the player stops.
+- **Run:** one attempt, from the start of π or from a **checkpoint**, a round place to start from, until the player stops or the rules end it.
 - **Mistake:** a wrong digit. A run whose digits the game doesn't check is **unchecked**.
 - **Learn mode / challenge mode:** the two families of modes: guided practice, and typing from memory.
 - **Interval:** the time between typing one digit and the next.
@@ -42,6 +42,7 @@
 - **Pluck / landing:** as a group ends, each of its digits plucks itself off its slot, then lands on the tape, in its tile.
 - **Vibration:** how the phone buzzes on an event of the game, such as a digit typed, a mistake or a landing. Its **pattern** is the durations of its buzzes and of the pauses between them, in turn.
 - **Milestone:** a number of places reached that gets celebrated.
+- **Leaderboard:** the player's best runs at one **feat**, such as the farthest place reached without a mistake, or a **split**, the time taken to reach a milestone. Their best is their **personal best**.
 - **Streak:** consecutive days the player came back.
 
 ## Memory layers
