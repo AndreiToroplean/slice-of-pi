@@ -46,60 +46,63 @@ export const SWIPE_WAIT = 100;
   template: `
     @if (unlocked()) {
       <!-- Both parts show one and the same press, never the browser's own on what it starts, which lets go on its own. -->
-      <div
-        #swipe
-        class="swipe"
-        [class.nudging]="nudging()"
-        [style.--shown.px]="shown()"
-        [style.--unfolded]="unfolded()"
-        (scroll)="follow()"
-        (scrollend)="settle()"
-        (pointerdown)="nudged.set(undefined)"
-      >
-        <app-candy-group>
-          <a
-            #link="appCandy"
-            [appCandy]="look()"
-            class="name"
-            [routerLink]="path()"
-            [queryParams]="from() ? { from: place() } : {}"
-            [pressed]="link.held()"
-            [swipeWait]="swipeWait"
-            data-vibration="play"
-            >{{ name() }}<span class="visually-hidden">{{ from() ? ' from' : '' }}</span></a
-          >
-          <!--
-            Pressed anywhere, its arrow or its spinner, but for a drag of it, which says it isn't a press (see \`Spinner\`),
-            it folds or unfolds.
-          -->
-          <div [appCandy]="look()" class="place" [pressed]="link.held()">
-            <span class="parts">
-              <button
-                type="button"
-                class="arrow"
-                [title]="name() + ' From'"
-                [attr.aria-expanded]="from()"
-                (click)="toggle()"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7-5 5 5 5" /></svg>
-              </button>
-              <div class="picker" [attr.inert]="from() ? null : ''">
-                <span class="from" aria-hidden="true">from</span>
-                <app-spinner
-                  [label]="name() + ' from'"
-                  [min]="0"
-                  [max]="checkpoint.farthest()"
-                  [step]="10"
-                  [value]="place()"
-                  data-vibration="play"
-                  (valueChange)="void checkpoint.pick(mode(), $event)"
-                  (click)="$event.defaultPrevented || toggle()"
-                  (keydown.enter)="toggle()"
-                />
-              </div>
-            </span>
-          </div>
-        </app-candy-group>
+      <!-- The button's outline, holding still around what scrolls, which breathes and shines as one button. -->
+      <div #outline class="outline">
+        <div
+          #swipe
+          class="swipe"
+          [class.nudging]="nudging()"
+          [style.--shown.px]="shown()"
+          [style.--unfolded]="unfolded()"
+          (scroll)="follow()"
+          (scrollend)="settle()"
+          (pointerdown)="nudged.set(undefined)"
+        >
+          <app-candy-group>
+            <a
+              #link="appCandy"
+              [appCandy]="look()"
+              class="name"
+              [routerLink]="path()"
+              [queryParams]="from() ? { from: place() } : {}"
+              [pressed]="link.held()"
+              [swipeWait]="swipeWait"
+              data-vibration="play"
+              >{{ name() }}<span class="visually-hidden">{{ from() ? ' from' : '' }}</span></a
+            >
+            <!--
+              Pressed anywhere, its arrow or its spinner, but for a drag of it, which says it isn't a press (see \`Spinner\`),
+              it folds or unfolds.
+            -->
+            <div [appCandy]="look()" class="place" [pressed]="link.held()">
+              <span class="parts">
+                <button
+                  type="button"
+                  class="arrow"
+                  [title]="name() + ' From'"
+                  [attr.aria-expanded]="from()"
+                  (click)="toggle()"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7-5 5 5 5" /></svg>
+                </button>
+                <div class="picker" [attr.inert]="from() ? null : ''">
+                  <span class="from" aria-hidden="true">from</span>
+                  <app-spinner
+                    [label]="name() + ' from'"
+                    [min]="0"
+                    [max]="checkpoint.farthest()"
+                    [step]="10"
+                    [value]="place()"
+                    data-vibration="play"
+                    (valueChange)="void checkpoint.pick(mode(), $event)"
+                    (click)="$event.defaultPrevented || toggle()"
+                    (keydown.enter)="toggle()"
+                  />
+                </div>
+              </span>
+            </div>
+          </app-candy-group>
+        </div>
       </div>
     } @else {
       <a [appCandy]="look()" [routerLink]="path()" data-vibration="play">{{ name() }}</a>
@@ -127,9 +130,52 @@ export const SWIPE_WAIT = 100;
     }
 
     /*
+     * The button as a whole, which breathes as a candy group does (see \`CandyGroup\`), rather than its parts, which the
+     * swipe would cut, and shines across all of it, once, rather than part by part, which would show apart as the place
+     * slides over what it starts.
+     */
+    .outline {
+      position: relative;
+      scale: calc(1 + var(--candy-breath) / 3 * var(--breath, 3) * var(--candy-breath-step, 0));
+    }
+
+    .outline:has(:focus-visible):not(:has(.pressed)) {
+      animation: breathe 0.6s var(--ease) infinite alternate;
+    }
+
+    /* Without motion, it stays grown. */
+    @media (prefers-reduced-motion: reduce) {
+      .outline:has(:focus-visible) {
+        --candy-breath: 2;
+      }
+    }
+
+    /*
+     * The shine, over its face, but its edge, out of sight until it's picked out (see \`--candy-shine\` in \`styles.css\`):
+     * laid over it, it lights the face up, but not what it says, which would fade.
+     */
+    .outline::after {
+      content: '';
+      position: absolute;
+      inset: 0 0 var(--edge);
+      border-radius: var(--radius-key);
+      background: var(--candy-shine);
+      mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+
+    .outline:has(:focus-visible):not(:has(.pressed))::after {
+      animation: shine 2.4s ease-in-out infinite;
+    }
+
+    /* Its parts don't breathe nor shine on their own. */
+    .outline .swipe app-candy-group > .candy {
+      animation: none;
+    }
+
+    /*
      * What the finger swipes, as the browser scrolls it: what it starts at the start, the place at the end, snapping to
-     * either. It's the button's outline, its edge with it, which holds still as what's within scrolls, showing only that,
-     * and which breathes as a candy group does (see \`CandyGroup\`), rather than its parts, which it would cut.
+     * either. It's the button's outline, its edge with it, which holds still as what's within scrolls, showing only that.
      */
     .swipe {
       container-type: inline-size;
@@ -141,18 +187,6 @@ export const SWIPE_WAIT = 100;
       padding-bottom: var(--edge);
       margin-bottom: calc(-1 * var(--edge));
       border-radius: var(--radius-key);
-      scale: calc(1 + var(--candy-breath) / 3 * var(--breath, 3) * var(--candy-breath-step, 0));
-    }
-
-    .swipe:has(:focus-visible):not(:has(.pressed)) {
-      animation: breathe 0.6s var(--ease) infinite alternate;
-    }
-
-    /* Without motion, it stays grown. */
-    @media (prefers-reduced-motion: reduce) {
-      .swipe:has(:focus-visible) {
-        --candy-breath: 2;
-      }
     }
 
     .swipe::-webkit-scrollbar {
@@ -172,7 +206,7 @@ export const SWIPE_WAIT = 100;
 
     /*
      * What it starts as wide as the swipe, but for the arrow, the place past it, all of it holding what it starts in
-     * place as it scrolls, its shine laid across the swipe. The swipe breathes for it.
+     * place as it scrolls. The outline breathes and shines for it.
      */
     app-candy-group {
       container-type: normal;
@@ -292,15 +326,16 @@ export class StartFrom {
   protected readonly nudging = computed(() => this.nudged() !== undefined);
   protected readonly swipeWait = SWIPE_WAIT;
   private readonly swipe = viewChild<ElementRef<HTMLElement>>('swipe');
+  private readonly outline = viewChild<ElementRef<HTMLElement>>('outline');
   private settling: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
-    // The swipe breathes evenly, by its own width.
+    // The outline breathes evenly, by its own width.
     const destroyRef = inject(DestroyRef);
     afterRenderEffect(() => {
-      const swipe = this.swipe()?.nativeElement;
-      if (swipe !== undefined) {
-        breatheEvenly(swipe, destroyRef);
+      const outline = this.outline()?.nativeElement;
+      if (outline !== undefined) {
+        breatheEvenly(outline, destroyRef);
       }
     });
     // Where it starts from, the place in or out, at once, once it shows, and whenever that changes elsewhere.
