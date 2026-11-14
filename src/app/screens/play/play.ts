@@ -96,10 +96,10 @@ const KEY_SHOWN = 0.6;
 type Turn = 'game' | 'player';
 
 /**
- * How long the pause key must be held, in milliseconds, for its release not to pause the game: a hold, which stands
- * the game still while held, rather than a tap.
+ * How long the pause key or the turn key must be held, in milliseconds, for its release to do nothing more: a hold,
+ * which stands the game still, or fast forwards it, while held, rather than a tap, which pauses, or switches turns.
  */
-export const PAUSE_HOLD = 300;
+export const HOLD = 300;
 
 /** How often what shows the wait for the group being typed running out is redrawn, in milliseconds: about every frame. */
 const TICK = 16;
@@ -488,12 +488,11 @@ export class Play implements PausesOnBack {
     () => this.turn() === 'game' && this.handingOver() === undefined,
   );
   /**
-   * What the turn key's press going on is, as told by when it started: a hold, as the game played its round, which fast
-   * forwards it until it's let go, whatever happens meanwhile; or a tap, at any other time, which switches turns as it's
-   * released.
+   * The turn key's press going on, if any: when it started, on the run's clock, and whether a tap of it may switch
+   * turns, as it may unless it started as the game played its round.
    */
-  private turnPress: 'hold' | 'tap' | undefined;
-  /** Whether the player holds the turn key down to fast forward the game's round. */
+  private turnPress: { readonly since: number; readonly switches: boolean } | undefined;
+  /** Whether the player holds the turn key down to fast forward the game. */
   private readonly fastForwarding = signal(false);
   /** When the pause key's press going on started, on the run's clock, if one is. */
   private pauseKeyDown: number | undefined;
@@ -872,7 +871,7 @@ export class Play implements PausesOnBack {
   /**
    * Stands the game still for as long as the pause key is held, as pausing does, but without the pause (see
    * {@link still}); a tap of it pauses the game as it's released on the key, unless it was held down for
-   * {@link PAUSE_HOLD} or longer, a hold.
+   * {@link HOLD} or longer, a hold.
    */
   protected usePauseKey(press: KeyPress): void {
     const now = this.clock.now();
@@ -886,7 +885,7 @@ export class Play implements PausesOnBack {
     this.pauseKeyDown = undefined;
     this.pauseHeld.set(false);
     this.standStill();
-    if (press === 'up' && held < PAUSE_HOLD) {
+    if (press === 'up' && held < HOLD) {
       this.pause()?.pause();
     }
   }
@@ -906,19 +905,25 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Fast forwards the game's round for as long as the turn key is held, the press starting as the game plays it; or,
-   * the press starting at any other time, a tap, switches turns at once as it's released on the key, if a turn is being
-   * handed over by then (see {@link turnPress}).
+   * Fast forwards the game for as long as the turn key is held, whatever happens meanwhile: its round, a turn's hand
+   * over, and the round after it. A tap of it, released on the key within {@link HOLD}, switches turns at once, if a
+   * turn is being handed over by then, unless it started as the game played its round, where it only fast forwards.
    */
   protected useTurnKey(press: KeyPress): void {
+    const now = this.clock.now();
     if (press === 'down') {
-      this.turnPress = this.gamePlaying() ? 'hold' : 'tap';
-      this.fastForwarding.set(this.turnPress === 'hold');
+      this.turnPress = { since: now, switches: !this.gamePlaying() };
+      this.fastForwarding.set(true);
       return;
     }
-    const tapped = press === 'up' && this.turnPress === 'tap';
+    const turnPress = this.turnPress;
     this.turnPress = undefined;
     this.fastForwarding.set(false);
+    const tapped =
+      press === 'up' &&
+      turnPress !== undefined &&
+      turnPress.switches &&
+      now - turnPress.since < HOLD;
     if (tapped && this.handingOver() !== undefined && !this.still() && !this.lost()) {
       this.switchTurn();
     }

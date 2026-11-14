@@ -41,7 +41,7 @@ import { startFrom } from '../../../testing/checkpoints';
 import { MARS } from '../../game/grouping/break-models/mars';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { LAYOUT } from '../../ui/layout';
-import { GAME_OVER_DELAY, PAUSE_HOLD, Play } from './play';
+import { GAME_OVER_DELAY, HOLD, Play } from './play';
 import { TURN_SWITCH } from './turn-shown';
 import {
   FAST_FORWARD,
@@ -2238,13 +2238,13 @@ describe('Play', () => {
       const paused = (): boolean => dialogNamed(round.host, 'Paused').open;
 
       round.keypad().pauseKey.emit('down');
-      await round.wait(PAUSE_HOLD);
+      await round.wait(HOLD);
       round.keypad().pauseKey.emit('up');
       await round.wait(0);
       expect(paused()).toBe(false);
 
       round.keypad().pauseKey.emit('down');
-      await round.wait(PAUSE_HOLD - 50);
+      await round.wait(HOLD - 50);
       round.keypad().pauseKey.emit('up');
       await round.wait(0);
       expect(paused()).toBe(true);
@@ -2305,6 +2305,21 @@ describe('Play', () => {
       await holdKey(round, false);
       expect(faint(round.host)).toBe('14159');
       expect(turnOf(round.host)).toBe('game');
+    });
+
+    it('fast forwards a hand over with the turn key held from its start, through the next round, without switching turns', async () => {
+      const round = await discover();
+      await playRounds(round, 5);
+
+      await holdKey(round);
+      await round.wait(HAND_OVER / FAST_FORWARD + 10);
+      expect(turnOf(round.host)).toBe('game');
+      await round.wait(MEDIUM_INTERVAL / FAST_FORWARD);
+      expect(slots(round.host)[0]).toBe('1');
+
+      await holdKey(round, false);
+      expect(turnOf(round.host)).toBe('game');
+      expect(slots(round.host)[0]).toBe('1');
     });
 
     it('does nothing with a tap of the turn key as the game plays its round', async () => {
