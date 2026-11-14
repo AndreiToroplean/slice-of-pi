@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794673925224,
+  "lastUpdate": 1794687475251,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3918,6 +3918,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 814,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "2575e34a08ba8ac0e73428eac795277eee154da7",
+          "message": "feat: shine across a whole start button at once\n\n- Its parts each drew a slice of the shine, lined up only while the place was all the way in: folded, the arrow's slice swept past out of step\n\n- The shine is now one layer over the button's outline, which holds still as its parts scroll, and which breathes in their stead, the shine with it\n\n- Laid over the face, it blends in (overlay), lighting the face up but not what it says, which a plain layer would fade; the edge under the face stays out of it\n\nClaude-Session: https://claude.ai/code/session_01X1Xeso2jiieuDNrLz3dHfG",
+          "timestamp": "2026-11-14T21:17:21+01:00",
+          "tree_id": "6ff021b75c3c23c84ecefb05406d662900698cf7",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/2575e34a08ba8ac0e73428eac795277eee154da7"
+        },
+        "date": 1794687474833,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 19355,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 43662,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1133,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
