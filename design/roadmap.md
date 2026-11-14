@@ -2,50 +2,35 @@
 
 What we work on next, in order. Together, these items make a good first version: 1.0. Each item gets its own design discussions before it's built; the ideas behind them live in [`vision.md`](vision.md) and the other design docs.
 
-## 1. Game modes and error detection
+## 1. The lake
 
-For now there's only the strict mode: after the player's first mistake, everything typed after it is a mistake too (glossary: [mistake](glossary.md#play)).
+The play screen becomes a scene at twilight: a lake the keypad floats on, a beach the tape lies on, hills with trees, and the night sky above. Seasons keep their meaning, but they color the scene (the water, the vegetation, the atmosphere) rather than a gradient ([`vision.md` §5.4](vision.md#54-seasons)). Stars and constellations need a real night sky to stand out.
 
-- **Detecting skipped digits.** A mode that detects that the player has just skipped a few digits, but is then consistent in the digits they type, meaning they match a group farther along in π. This raises a lot of questions, so there's a lot of reflection to be had.
-- **Stopping conditions.** For now there are none: even when a mistake is detected, the game doesn't end, and the player can backspace and fix it.
-- **The UI.** Name the modes and find a way to let the player express their choices, without overwhelming them with too many settings.
+## 2. Constellations
 
-See the mode families in [`vision.md` §4](vision.md#4-game-modes).
+As the player types a group, its figure is drawn on the keypad, then lifts off into the sky above the hills ([`vision.md` §5.2](vision.md#52-keypad-gesture-patterns-constellations)). Every group the game finds in the player's runs gets one, and the sky follows their groupings as they change; it ends where the farthest place they've reached does.
 
-## 2. Scoring
+- **Touch coordinates.** Figures may follow where the player actually touched each key, so their constellations are more personalized.
+- **More than simple paths.** Figures need marks of their own, for instance for a digit typed twice in a row.
 
-Robust scoring mechanisms and metrics, which depend on the game modes and stopping conditions (maybe a game mode and its stopping condition are one thing in the UI). There's a lot of thinking and discussion to be had.
+## 3. The sky
 
-- **How many digits you know.** In strict mode, it's simply how many right digits the player typed. But with no stopping condition, nothing prevents the player from trying every digit and backspacing when they're wrong, so they could go on forever.
-- **Tolerant modes.** How the metric evolves when, say, the player types 100 good digits, skips one, then types another 20 good digits.
-- **Boundaries.** π is conjectured to be normal, which would mean any sequence of digits appears somewhere in it; it's widely believed but unproven (it isn't even known whether each digit appears infinitely often). Either way, whatever the player types could look like skipped digits followed by a right sequence. We want to limit how many digits they can skip, without being too strict, since they might really be remembering an exact sequence from hundreds of digits farther along.
-- **How fast you are.** A loose definition: the player might be fast during the first 100 digits and slower after that, so what do we count? And how do backspaces and skipped digits count?
-- **Every combination.** A scoring system for each combination of game mode and stopping condition, however we categorize them, looking at everything we allow.
-- **Leaderboards.** At first, against the player themselves, so they can challenge themselves to do better. Comparing with other players maybe later, but not for 1.0.
+The main menu, Your Sky and the play screen are views of the one sky, the camera moving between them.
 
-## 3. Constellations
+- **Main menu.** The camera looks up at the sky: the stars shine, silently.
+- **Your Sky.** The menu's buttons fade out and the song of π plays, each star shining in its place color as its digit sounds, at the player's own pace. Scrolling sideways moves through π, the song following along.
+- **Play.** The camera pans down until the horizon sits about halfway down the screen, and the game starts.
 
-The constellations idea, already in the first mockup ([`vision.md` §5.2](vision.md#52-keypad-gesture-patterns-constellations)). Constellations fly off into the player's sky.
+## 4. Milestones
 
-- **Touch coordinates.** Rather than aligning the figures perfectly to the grid of digit keys, we might record the actual coordinates where the player touched each key, so their constellations are more personalized.
-- **More than simple paths.** Figures need indications, for instance that a digit was double tapped, because that's just how π goes. To be discussed.
+Celebrate the places the player reaches ([`vision.md` §6](vision.md#6-game-feel-and-rewards)): fully the first time, more quietly the next few, then not at all, once reaching them has become a habit.
 
-## 4. Your Sky
+## 5. Leaderboards
 
-The page where the player looks at their sky. It's really important: one of the core pages ([`vision.md` §5.2](vision.md#52-keypad-gesture-patterns-constellations)).
+The player against themselves: one leaderboard per feat rather than per game mode, such as the farthest place reached in a challenge, or the fastest runs to a place, with or without mistakes.
 
-## 5. Main menu
+## Later
 
-Redesign the main menu: the current one is a stand-in, and it should be much cooler.
-
-## 6. Season shapes
-
-Seasons are only colors for now ([`vision.md` §5.4](vision.md#54-seasons)). They should include shapes as well: abstract shapes that remind the player of the season, something like playing with particles in the background. To be thought through.
-
-## 7. Sounds
-
-The keys get sounds, yet another memory layer ([`vision.md` §5.5](vision.md#55-sound)). Each digit plays its own note, over chords that the digits typed so far pick, never those to come, so that the sounds never give the next digit away: π's digits play the song of π, as melodious as music theory can make it, and the player's words phrase it. Sound models, swapped in developer mode, try different ways to compose it, to be play tested by ear.
-
-## 8. Your Data
-
-Improve the Your Data card, in the settings. It comes after the other pages: it's less of a priority.
+- **Detecting skipped digits.** A mode that notices the player skipped a few digits, then goes on right from farther along in π.
+- **Sharing your sky.**
+- **Your Data.** Improve the Your Data card, in the settings.

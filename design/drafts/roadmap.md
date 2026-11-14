@@ -27,4 +27,4 @@ Everything in this folder is a draft: what's in progress and what may come next,
 1. **Background layout.** The lake, beach, tape, hills and trees, night sky and constellation area from the mockup, editable as the handoff describes. Colors come from the season colors for now.
 2. **Colors.** Per-season color editors on the play screen, replacing the season colors page.
 
-To check with the owner: dropping the "π=3." lead for a "3" with a separator dot (from the handoff).
+The "π=3." lead stays, rather than the handoff's "3" with a separator dot.
