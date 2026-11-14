@@ -11,7 +11,7 @@ export interface RunSession {
   record(touch: KeypadTouch): void;
   /** How long it's been since the last digit of the current run, in milliseconds, on the run's clock. */
   waited(): number;
-  /** Ends the current run, as kept so far: the next digit starts a new run. */
+  /** Ends the current run, as kept so far: the next digit starts a new run, its clock started afresh. */
   end(): void;
   /** Stops the run's clock, as while the game is paused, so that the time paused counts for nothing. */
   pause(): void;
@@ -87,6 +87,9 @@ export class LiveRun implements RunSession {
 
   end(): void {
     this.log.set(undefined);
+    // The next run's clock starts afresh, whether or not this one's was stopped.
+    this.stopped = 0;
+    this.stoppedAt = undefined;
   }
 
   pause(): void {
