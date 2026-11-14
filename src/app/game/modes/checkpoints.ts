@@ -1,6 +1,6 @@
 /**
  * Checkpoints are round places a game can start from, rather than from the start of π: every 10 places, once the
- * player has shown they know π that far. Discover's rounds move on to them too. Place 0, where π starts, is no
+ * player has shown they know π that far. Discovery's rounds move on to them too. Place 0, where π starts, is no
  * checkpoint: it's where every game starts otherwise.
  */
 export const CHECKPOINTS = 10;

@@ -7,9 +7,9 @@ describe('StartFrom', () => {
     TestBed.configureTestingModule({ providers: [provideRouter([])] });
     const fixture = TestBed.createComponent(StartFrom);
     fixture.componentRef.setInput('sunk', sunk);
-    fixture.componentRef.setInput('mode', 'discover');
-    fixture.componentRef.setInput('path', '/discover');
-    fixture.componentRef.setInput('name', 'Discover');
+    fixture.componentRef.setInput('mode', 'discovery');
+    fixture.componentRef.setInput('path', '/discovery');
+    fixture.componentRef.setInput('name', 'Discovery');
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
     return {

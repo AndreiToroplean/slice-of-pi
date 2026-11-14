@@ -6,9 +6,9 @@ import {
   MAX_CHECKPOINT_LAG,
   moveTo,
   newRounds,
-} from './discover-rounds';
+} from './discovery-rounds';
 
-describe('Discover rounds', () => {
+describe('Discovery rounds', () => {
   it('reaches the place after the round retyped, never back', () => {
     const rounds = completeRound(newRounds(0), 5);
 
