@@ -31,7 +31,7 @@ Two families of modes:
 - **Learn modes** — guided, forgiving. The app shows or hints upcoming digits and lets the player build familiarity with them and their associated patterns.
 - **Challenge modes** — test yourself. Type from memory and see how far you get.
 
-The exact modes are open.
+A run isn't bound to one mode: lost in a challenge, it can go on in a more lenient one, and how well it went is told by leaderboards of their own, each for one feat, rather than by its mode.
 
 ## 5. Memory layers
 
