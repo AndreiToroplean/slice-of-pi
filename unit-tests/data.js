@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794570718048,
+  "lastUpdate": 1794615188528,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3798,6 +3798,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1160,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "288008bf84b4e39ea2c3d82dc554add9587453bd",
+          "message": "feat: hold the turn key to fast forward a hand over too\n\n- Holding the turn key now fast forwards the game whenever it's pressed: a turn's hand over, either way, and on through the round after it, as a shortcut for a tap then a hold. Only a tap, released within 300 ms, switches turns at once; a press started as the game plays its round still never does.\n- The pause key and the turn key tell a hold from a tap alike, by the same 300 ms.\n\nClaude-Session: https://claude.ai/code/session_01X1XesoLGB6AMCQ9JztZEQk",
+          "timestamp": "2026-11-14T01:12:43+01:00",
+          "tree_id": "c25bd4439cd64d3828726ee9bdfa350ee162e5db",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/288008bf84b4e39ea2c3d82dc554add9587453bd"
+        },
+        "date": 1794615187691,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 13640,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 29872,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 755,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
