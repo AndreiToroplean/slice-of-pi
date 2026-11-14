@@ -2522,7 +2522,8 @@ describe('Play', () => {
       expect(words(round.host)).toEqual(['14159', '26535']);
       // Once the run unlocking it is saved.
       await vi.waitFor(() => {
-        expect(TestBed.inject(Checkpoint).place('discovery')).toBe(10);
+        // Where it starts from next time, from the main menu.
+        expect(TestBed.inject(Checkpoint).start('discovery')).toBe(10);
       });
       // The game shows the round from there.
       await round.wait(MEDIUM_INTERVAL);

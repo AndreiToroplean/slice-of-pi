@@ -135,13 +135,9 @@ h1 {
   text-shadow: 0 1px 0 oklch(from var(--lantern) calc(l - 0.15) c h);
 }
 
-/*
- * Centered, their middle at its height, as the title's is, each button as tall as the others, with room under them for
- * what a split button opens to show (see `BUTTON_SLOTS`).
- */
+/* Centered, their middle at its height, as the title's is, each button as tall as the others. */
 .actions {
   position: absolute;
-  padding-bottom: calc(var(--buttons-height) + var(--buttons-gap));
   z-index: 7;
   left: 50%;
   bottom: calc(var(--buttons-y) - var(--buttons-span) / 2);
@@ -150,21 +146,11 @@ h1 {
 }
 
 .candy,
-app-start-from,
-app-split-button {
+app-start-from {
   --candy-font-size: 1.375rem;
   --candy-padding-block: max(0px, (var(--buttons-height) - 1.375rem * 1.2) / 2);
-  --split-gap: var(--buttons-gap);
   font-size: 1.375rem;
   line-height: 1.2;
-}
-
-/* Shown while editing the menu: the room under the buttons, the bottom of their group. */
-.room {
-  position: absolute;
-  bottom: 0;
-  inset-inline: 0;
-  opacity: 0.5;
 }
 
 /* The developer pages' menu button, in the top right corner, the menu it opens within it. */

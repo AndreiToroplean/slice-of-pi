@@ -20,9 +20,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { DeveloperTaps } from '../../developer-mode/developer-taps';
 import { CdkMenuGroup, CdkMenuItem } from '@angular/cdk/menu';
 import { Checkpoint } from '../../player-data/checkpoint';
-import { GameMode } from '../../game/modes/game-mode';
 import { StartFrom } from './start-from';
-import { SplitButton } from '../../ui/split-button';
 import { Dropdown, MenuTrigger } from '../../ui/menu';
 import { OverlayHost } from '../../ui/overlay-host';
 import { MenuAssets } from './menu-assets';
@@ -66,8 +64,8 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
 
 /**
  * The main menu, where the app opens: the game's icon and name, a button to start a challenge, one above it to free play,
- * and one above that to Discovery, beside which, once the player has unlocked a checkpoint, a small one shows the place
- * every game starts from, and picks it,
+ * and one above that to Discovery, each of which, once the player has unlocked a checkpoint, they swipe to start from a
+ * place they pick on it, and back (see `StartFrom`), nudged each time the menu shows until they have,
  * the settings behind a gear in a corner, and in developer mode, its pages, the player's runs among them, in an overflow menu in the other, with its
  * editor (see `menu-editor.ts`). The name's letters are lanterns, in the key colors, and the icon is lit from behind:
  * three layers of light (see `light-layer.ts`), "Pi" nearest, then "Slice of", then the icon, each lighting everything
@@ -93,7 +91,6 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
     MenuEditor,
     MenuTrigger,
     OverlayHost,
-    SplitButton,
     StartFrom,
   ],
   host: {
@@ -107,8 +104,6 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
     '(document:keydown.arrowdown)': 'startOnPlay($event)',
     '(document:keydown.arrowleft)': 'side($event, -1)',
     '(document:keydown.arrowright)': 'side($event, 1)',
-    '(document:pointerdown)': 'closeOutside($event)',
-    '(document:keydown.escape)': 'opened.set(undefined)',
   },
   template: `
     <canvas
@@ -177,55 +172,18 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
       {{ taps.message() }}
     </p>
     <app-button-list class="actions" [style.gap]="'var(--buttons-gap)'">
-      <!-- Discovery starts from the place picked on it, once there's a checkpoint to pick; the others, from theirs. -->
-      @if (checkpoint.farthest() > 0) {
-        <app-start-from mode="discovery" path="/discovery" name="Discovery" />
-      } @else {
-        <a appCandy routerLink="/discovery" data-vibration="play">Discovery</a>
-      }
-      <app-split-button
-        #free="splitButton"
-        label="Free Play From"
-        [openable]="checkpoint.farthest() > 0"
-        [open]="opened() === 'free'"
-        (openChange)="opened.set($event ? 'free' : undefined)"
-      >
-        <a appCandy routerLink="/play" data-vibration="play">Free Play</a>
-        @if (checkpoint.farthest() > 0) {
-          <app-start-from mode="free" path="/play" name="Free Play" [sunk]="!free.risen()" />
-        }
-      </app-split-button>
-      <app-split-button
-        #challenge="splitButton"
+      <!-- Each swiped to start from its place, once there's a checkpoint to start from, nudged until one has been. -->
+      @let nudge = lit() && !checkpoint.switched();
+      <app-start-from mode="discovery" path="/discovery" name="Discovery" [nudge]="nudge" />
+      <app-start-from mode="free" path="/play" name="Free Play" [nudge]="nudge" />
+      <app-start-from
+        #challenge
+        mode="challenge"
+        path="/challenge"
+        name="Challenge"
         look="primary"
-        label="Challenge From"
-        [openable]="checkpoint.farthest() > 0"
-        [open]="opened() === 'challenge'"
-        (openChange)="opened.set($event ? 'challenge' : undefined)"
-      >
-        <a #play appCandy="primary" routerLink="/challenge" data-vibration="play">Challenge</a>
-        @if (checkpoint.farthest() > 0) {
-          <app-start-from
-            mode="challenge"
-            path="/challenge"
-            name="Challenge"
-            look="primary"
-            [sunk]="!challenge.risen()"
-          />
-        }
-      </app-split-button>
-      @if (editedLook() !== undefined && !previewing()) {
-        <!-- Editing the menu, the room under the buttons shows what a split button opens there, faint, unless previewed. -->
-        <app-start-from
-          class="room"
-          mode="challenge"
-          path="/challenge"
-          name="Challenge"
-          look="primary"
-          inert
-          aria-hidden="true"
-        />
-      }
+        [nudge]="nudge"
+      />
     </app-button-list>
     <!-- After the middle of the menu, for Tab to go through it from the left to the right. -->
     @if (developerMode.enabled()) {
@@ -301,8 +259,6 @@ export class Menu {
   protected readonly tweaks = inject(Tweaks);
   /** Where the games started from here start: the start of π, or a checkpoint unlocked. */
   protected readonly checkpoint = inject(Checkpoint);
-  /** The game mode whose button to start it from its place is open, below its own, if any. */
-  protected readonly opened = signal<GameMode | undefined>(undefined);
 
   /** The look being edited, in developer mode's editor, shown as it changes. */
   protected readonly editedLook = signal<MenuLook | undefined>(undefined);
@@ -357,7 +313,8 @@ export class Menu {
   });
   private readonly document = inject(DOCUMENT);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-  private readonly play = viewChild.required<string, ElementRef<HTMLElement>>('play', {
+  /** Challenge's button, which has the focus from the start. */
+  private readonly challenge = viewChild.required<string, ElementRef<HTMLElement>>('challenge', {
     read: ElementRef,
   });
 
@@ -393,7 +350,7 @@ export class Menu {
     // breathes and shines.
     afterRenderEffect(() => {
       if (this.shown()) {
-        this.play().nativeElement.focus({ focusVisible: true });
+        this.playLink()?.focus({ focusVisible: true });
       }
     });
 
@@ -420,16 +377,13 @@ export class Menu {
     });
   }
 
+  /** What starts a challenge. */
+  private playLink(): HTMLElement | null {
+    return this.challenge().nativeElement.querySelector('a');
+  }
+
   /** Loads the page again, from developer mode's menu. */
   protected readonly reload = inject(RELOAD_PAGE);
-
-  /** Closes the button starting a game mode from its place on a press anywhere but on its split button. */
-  protected closeOutside(event: PointerEvent): void {
-    const target = event.target instanceof Element ? event.target : null;
-    if (target?.closest('app-split-button.open') === null) {
-      this.opened.set(undefined);
-    }
-  }
 
   /** Opens the editor of the menu's look, from developer mode's menu. */
   protected edit(): void {
@@ -482,7 +436,7 @@ export class Menu {
     const active = this.document.activeElement;
     if (active === null || active === this.document.body) {
       event.preventDefault();
-      this.play().nativeElement.focus();
+      this.playLink()?.focus();
     }
   }
 

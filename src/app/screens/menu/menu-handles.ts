@@ -2,7 +2,7 @@ import { Handle } from '../../ui/handles/handle';
 import { lightCore, LightOf, lightKnobs as knobsOf, Point } from '../../ui/handles/light-handles';
 import { EditedPart } from '../../ui/handles/parts';
 import {
-  BUTTON_SLOTS,
+  BUTTON_COUNT,
   ICON_LIGHT_OFFSET,
   LANTERN_HEIGHT,
   LAYOUT_FIELDS,
@@ -218,14 +218,14 @@ export const PART_HANDLES: Readonly<Record<MenuPart, readonly Handle<MenuLook>[]
     BUTTONS_HEIGHT,
     BUTTONS_WIDTH,
     // The top of the group, which grows by half as much on each side as all the buttons together.
-    buttons('height', 'Button size', 'Size', 'var(--buttons-span) / 2', BUTTON_SLOTS / 2, '82%'),
+    buttons('height', 'Button size', 'Size', 'var(--buttons-span) / 2', BUTTON_COUNT / 2, '82%'),
     // The bottom of the first, above the first gap.
     buttons(
       'gap',
       'Button gap',
       'Gap',
       'var(--buttons-span) / 2 - var(--buttons-height)',
-      (BUTTON_SLOTS - 1) / 2,
+      (BUTTON_COUNT - 1) / 2,
       '50%',
     ),
   ],

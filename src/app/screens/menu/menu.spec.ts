@@ -185,16 +185,6 @@ describe('Menu', () => {
       return host.querySelector(`[role="spinbutton"][aria-label="${name} from"]`);
     }
 
-    /** Whether the button starting a game mode from its place is shown, rather than inert, sunk into its tray. */
-    function shown(host: HTMLElement, name: string): boolean {
-      const found = spinner(host, name);
-      return found !== null && found.closest('[inert]') === null;
-    }
-
-    function toggle(host: HTMLElement, name: string): HTMLButtonElement | null {
-      return host.querySelector(`button[title="${name} From"]`);
-    }
-
     async function unlocked(): Promise<{ host: HTMLElement; stable: () => Promise<void> }> {
       await unlockTo(100);
       const fixture = TestBed.createComponent(Menu);
@@ -205,12 +195,15 @@ describe('Menu', () => {
     it('are offered only once the player has unlocked a checkpoint', async () => {
       const host = await setUp();
 
-      expect(host.querySelectorAll('[role="spinbutton"], .toggle')).toHaveLength(0);
+      expect(host.querySelectorAll('[role="spinbutton"]')).toHaveLength(0);
       expect(link(host, 'Discovery')?.getAttribute('href')).toBe('/discovery');
     });
 
-    it('starts Discovery from the place picked on it, kept for the next visits', async () => {
+    it('start each game mode from the place picked on it, once switched to, kept for the next visits', async () => {
       const { host, stable } = await unlocked();
+      expect(link(host, 'Discovery')?.getAttribute('href')).toBe('/discovery');
+      await TestBed.inject(Checkpoint).switchTo('discovery', true);
+      await stable();
       expect(link(host, 'Discovery from')?.getAttribute('href')).toBe('/discovery?from=0');
 
       pressKey('ArrowUp', spinner(host, 'Discovery'));
@@ -220,43 +213,9 @@ describe('Menu', () => {
       expect(TestBed.inject(Checkpoint).place('discovery')).toBe(20);
       expect(spinner(host, 'Discovery')?.getAttribute('aria-valuenow')).toBe('20');
       expect(link(host, 'Discovery from')?.getAttribute('href')).toBe('/discovery?from=20');
-    });
-
-    it('opens the button starting Free Play from its place under its own, until a press elsewhere', async () => {
-      const { host, stable } = await unlocked();
-      expect(shown(host, 'Free Play')).toBe(false);
-
-      toggle(host, 'Free Play')?.click();
-      await stable();
-      expect(toggle(host, 'Free Play')?.getAttribute('aria-expanded')).toBe('true');
-      await vi.waitFor(() => {
-        expect(shown(host, 'Free Play')).toBe(true);
-      });
-      expect(link(host, 'Free Play from')?.getAttribute('href')).toBe('/play?from=0');
-
-      spinner(host, 'Free Play')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-      await stable();
-      expect(shown(host, 'Free Play')).toBe(true);
-
-      host.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-      await stable();
-      expect(toggle(host, 'Free Play')?.getAttribute('aria-expanded')).toBe('false');
-      expect(shown(host, 'Free Play')).toBe(false);
-    });
-
-    it('keeps a place for each game mode, and closes on Escape', async () => {
-      const { host, stable } = await unlocked();
-      toggle(host, 'Challenge')?.click();
-      await stable();
-
-      pressKey('ArrowUp', spinner(host, 'Challenge'));
-      await stable();
-      expect(link(host, 'Challenge from')?.getAttribute('href')).toBe('/challenge?from=10');
-      expect(TestBed.inject(Checkpoint).place('free')).toBe(0);
-
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-      await stable();
-      expect(shown(host, 'Challenge')).toBe(false);
+      // Each game mode its own.
+      expect(link(host, 'Free Play')?.getAttribute('href')).toBe('/play');
+      expect(link(host, 'Challenge')?.getAttribute('href')).toBe('/challenge');
     });
   });
 
@@ -419,21 +378,12 @@ describe('Menu', () => {
       expect(
         fixture.debugElement.query((each) => each.componentInstance instanceof MenuEditor),
       ).not.toBeNull();
-      // The room under the buttons, for what a split button opens there, shows, but does nothing.
-      expect(host.querySelector('.room')?.hasAttribute('inert')).toBe(true);
-      // Previewed, the menu shows as in the game, without it.
-      host.querySelector<HTMLElement>('app-menu-editor .preview')?.click();
-      await fixture.whenStable();
-      expect(host.querySelector('.room')).toBeNull();
-      host.querySelector<HTMLElement>('app-menu-editor .preview')?.click();
-      await fixture.whenStable();
 
       Array.from(host.querySelectorAll('app-menu-editor button'))
         .find((each) => each.textContent.trim() === 'Done')
         ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await fixture.whenStable();
       expect(host.querySelector('app-menu-editor')).toBeNull();
-      expect(host.querySelector('.room')).toBeNull();
     });
 
     it('reloads the page from the overflow menu', async () => {
