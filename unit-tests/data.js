@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794692986186,
+  "lastUpdate": 1794697355184,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3998,6 +3998,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1108,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "fb8591b68f9a1157aa5d6322ce5271a1b92c381c",
+          "message": "docs: sketch the game modes after 1.0 and the leaderboards\n\n- The roadmap outlines how leaderboards work (one per feat, worked out from the touch logs, counting each run only for the part played by their rules, splits for time, digits proven in log₁₀ of the tries) and the modes for later, Recall's jumps also costing log₁₀ of their length\n- The vision only says, in one line, that runs aren't bound to a mode and that leaderboards are per feat, replacing \"the exact modes are open\"\n- Racing a ghost goes to the wild ideas\n- The glossary gets leaderboards, feats, splits and personal bests, and runs may now start from a checkpoint\n\nClaude-Session: https://claude.ai/code/session_01X1XesqdRcJcQRb9RKhY8D2",
+          "timestamp": "2026-11-15T00:01:58+01:00",
+          "tree_id": "c1a6c1f0fbc8e5438c5378fdcb70716c0cc65df7",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/fb8591b68f9a1157aa5d6322ce5271a1b92c381c"
+        },
+        "date": 1794697354579,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14941,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 33118,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 860,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
