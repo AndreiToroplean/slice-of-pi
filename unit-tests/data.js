@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794687475251,
+  "lastUpdate": 1794692986186,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3958,6 +3958,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1133,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "1a2de8d986c194c89e3287a1c8b1c8893298f0d8",
+          "message": "fix: let the tape reach its end despite rounded widths\n\n- The browser rounds the tape's scroll width and client width to whole pixels, while a phone's scroll position can be fractional: the end they gave could lie past the furthest the tape scrolls, by more than the half pixel allowed, so its right edge stayed faded however far the player scrolled.\n- Allow 2 pixels instead, more than the rounding can be off by, and far less than the blank space at the tape's end.\n\nClaude-Session: https://claude.ai/code/session_01X1XesokqnZ5TYxHEohWQWV",
+          "timestamp": "2026-11-14T22:49:07+01:00",
+          "tree_id": "94b5cb72942bb819ad993ebb7fa688ac7af4f09a",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/1a2de8d986c194c89e3287a1c8b1c8893298f0d8"
+        },
+        "date": 1794692985894,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 18414,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 41227,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1108,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
