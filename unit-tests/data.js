@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794670979461,
+  "lastUpdate": 1794673925224,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3878,6 +3878,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 744,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "c00c1c0b5f8608e38a10a7b80e8ea1e243bb28eb",
+          "message": "feat: restart in the game mode the game went on in\n\n- Continuing a game in another game mode starts a new game in that one, so Restart and Play Again now start it again there: Discovery after Continue in Discovery, free play after Continue in Free Play, rather than the game mode the screen opened in.\n- Whether digits are checked, and runs recorded as challenges, follows the game mode a game starts in, so that a challenge's run continued in free play stays checked, and the next game is plain free play.\n\nClaude-Session: https://claude.ai/code/session_01X1Xeso2jiieuDNrLz3dHfG",
+          "timestamp": "2026-11-14T17:31:44+01:00",
+          "tree_id": "e21fff3c23f8c4e7bd31fc6fbe7a161d2f57e7a4",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/c00c1c0b5f8608e38a10a7b80e8ea1e243bb28eb"
+        },
+        "date": 1794673924725,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14082,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 30992,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 814,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
