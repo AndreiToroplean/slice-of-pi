@@ -48,12 +48,13 @@ describe('groupAt', () => {
     expect(gameplay(3).groupAt([], 4).size).toBe(2);
   });
 
-  it('is a group of 5 that grows past the trust horizon', () => {
+  it('gets back on the track of groups of 5 where the trusted groups end, then is a group of 5, which grows', () => {
     const found = gameplay(3);
 
     expect(found.groupAt([], 24)).toEqual({ size: 3, trusted: true });
-    expect(found.groupAt([], 27)).toEqual({ size: 5, trusted: false });
-    expect(found.groupAt([], 40)).toEqual({ size: 5, trusted: false });
+    expect(found.groupAt([], 27)).toEqual({ size: 3, trusted: false });
+    expect(found.groupAt([], 30)).toEqual({ size: 5, trusted: false });
+    expect(found.groupAt([], 33)).toEqual({ size: 5, trusted: false });
   });
 
   it('trusts the groups as far as the earlier runs do, whatever the run being typed', () => {
