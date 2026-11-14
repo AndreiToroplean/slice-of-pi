@@ -3,7 +3,7 @@ import { DeveloperMode } from '../../developer-mode/developer-mode';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { ButtonList } from '../../ui/button-list';
 import { backupFileName, readBackup, writeBackup } from '../../player-data/backup';
-import { DiscoverPaceSetting } from '../../player-data/discover-pace-setting';
+import { DiscoveryPaceSetting } from '../../player-data/discovery-pace-setting';
 import { GroupSizeSetting } from '../../player-data/group-size-setting';
 import { Checkpoint } from '../../player-data/checkpoint';
 import { KeypadLayoutSetting } from '../../player-data/keypad-layout-setting';
@@ -98,7 +98,7 @@ export class YourData {
   private readonly developer = inject(DeveloperMode);
   private readonly tweaks = inject(Tweaks);
   private readonly keypadLayout = inject(KeypadLayoutSetting);
-  private readonly discoverPace = inject(DiscoverPaceSetting);
+  private readonly discoveryPace = inject(DiscoveryPaceSetting);
   private readonly groupSize = inject(GroupSizeSetting);
   private readonly checkpoint = inject(Checkpoint);
   private readonly vibration = inject(VibrationSetting);
@@ -153,7 +153,7 @@ export class YourData {
       this.developer.reload(),
       this.tweaks.reload(),
       this.keypadLayout.reload(),
-      this.discoverPace.reload(),
+      this.discoveryPace.reload(),
       this.groupSize.reload(),
       this.checkpoint.reload(),
       this.vibration.reload(),

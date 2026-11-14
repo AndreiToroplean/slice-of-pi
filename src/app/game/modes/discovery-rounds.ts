@@ -2,7 +2,7 @@ import { isCheckpoint } from './checkpoints';
 import { GAME_VALUES } from '../../game-values';
 
 /**
- * Where a Discover session is, round after round, as in the classic memory game: each round, the game plays the
+ * Where a Discovery session is, round after round, as in the classic memory game: each round, the game plays the
  * digits from the place the rounds start from up to one more group than the player has retyped, as the play screen
  * groups them, and the player retypes them all, one more group each round. The rounds start from the place the session started from until the player moves them
  * on to a checkpoint they've reached, never back.
@@ -47,7 +47,7 @@ export function moveTo(rounds: Rounds, checkpoint: number, from = checkpoint): R
     : rounds;
 }
 
-/** How many checkpoints behind the farthest reached Discover's rounds start, when they move on by themselves. */
+/** How many checkpoints behind the farthest reached Discovery's rounds start, when they move on by themselves. */
 export const CHECKPOINT_LAG = GAME_VALUES.checkpointLag;
 /** The most checkpoints behind they may lag. */
 export const MAX_CHECKPOINT_LAG = 10;

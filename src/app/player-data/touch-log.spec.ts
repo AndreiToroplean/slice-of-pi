@@ -89,7 +89,7 @@ describe('touch log', () => {
       ]);
     });
 
-    it('drops Discover’s touch logs of format 6, timed across the game’s turns, keeping the others', () => {
+    it('drops Discovery’s touch logs of format 6, timed across the game’s turns, keeping the others', () => {
       const older = { ...log, format: 6 };
 
       expect(parseTouchLog({ ...older, recording: 'overwrite' })).toBeUndefined();

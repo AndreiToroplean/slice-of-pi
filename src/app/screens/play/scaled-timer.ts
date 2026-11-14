@@ -14,7 +14,7 @@ interface Waiting {
 /**
  * Calls back later in a time that runs at a rate, faster or slower than the clock's, or not at all, which can change
  * while calls wait, those waiting then going on for what's left of their wait at the new rate: as when the player fast
- * forwards what Discover's game plays, or holds it.
+ * forwards what Discovery's game plays, or holds it.
  */
 export class ScaledTimer {
   private rate = 1;

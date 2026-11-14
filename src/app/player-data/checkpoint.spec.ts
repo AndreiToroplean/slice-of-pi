@@ -33,12 +33,24 @@ describe('Checkpoint', () => {
     expect(checkpoint.farthest()).toBe(60);
 
     await checkpoint.pick('free', 50);
-    await checkpoint.pick('discover', 100);
+    await checkpoint.pick('discovery', 100);
 
     expect(checkpoint.place('free')).toBe(50);
     expect(checkpoint.place('challenge')).toBe(0);
-    expect(checkpoint.place('discover')).toBe(60);
+    expect(checkpoint.place('discovery')).toBe(60);
     expect(checkpoint.reachable(35)).toBe(30);
+  });
+
+  it('reads the place picked for Discover as Discovery’s', async () => {
+    const checkpoint = await setUp([run('a', 60)]);
+    await TestBed.inject(RunStore).saveSetting(CHECKPOINTS, {
+      format: 1,
+      places: { free: 0, challenge: 0, discover: 40 },
+    });
+
+    await checkpoint.reload();
+
+    expect(checkpoint.place('discovery')).toBe(40);
   });
 
   it('keeps the places picked for the next visits', async () => {

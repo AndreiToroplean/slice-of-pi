@@ -6,7 +6,7 @@ import { RunStore } from './run-store';
 import { addTouch, newTouchLog, TouchLog } from './touch-log';
 
 /**
- * Records a Discover session as one run, which keeps only the latest typing of each place (`recording: 'overwrite'`),
+ * Records a Discovery session as one run, which keeps only the latest typing of each place (`recording: 'overwrite'`),
  * as its rounds go over the same places again and again: each right digit typed takes its place's touch over, and
  * drops those of the places after it, typed in an earlier round, so that the touches stay in order of time. Wrong
  * digits aren't kept: they end the session. Saved after every digit, so that leaving at any moment loses nothing. Its
@@ -18,7 +18,7 @@ import { addTouch, newTouchLog, TouchLog } from './touch-log';
  * them. The run's clock goes on from there, so that the whole run reads as if typed in one go.
  */
 @Injectable()
-export class DiscoverRecorder {
+export class DiscoveryRecorder {
   private readonly store = inject(RunStore);
   private readonly clock = inject(RUN_CLOCK);
   private readonly keypadLayout = inject(KeypadLayoutSetting);

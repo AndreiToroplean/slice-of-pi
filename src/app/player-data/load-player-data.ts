@@ -2,7 +2,7 @@ import { inject } from '@angular/core';
 import { DeveloperMode } from '../developer-mode/developer-mode';
 import { Tweaks } from '../developer-mode/tweaks';
 import { Checkpoint } from './checkpoint';
-import { DiscoverPaceSetting } from './discover-pace-setting';
+import { DiscoveryPaceSetting } from './discovery-pace-setting';
 import { GroupSizeSetting } from './group-size-setting';
 import { KeypadLayoutSetting } from './keypad-layout-setting';
 import { RunStore } from './run-store';
@@ -20,7 +20,7 @@ export async function loadPlayerData(): Promise<void> {
     inject(DeveloperMode).loaded,
     inject(Tweaks).loaded,
     inject(KeypadLayoutSetting).loaded,
-    inject(DiscoverPaceSetting).loaded,
+    inject(DiscoveryPaceSetting).loaded,
     inject(GroupSizeSetting).loaded,
     inject(Checkpoint).loaded,
     inject(VibrationSetting).loaded,

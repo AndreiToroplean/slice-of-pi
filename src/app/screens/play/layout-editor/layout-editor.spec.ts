@@ -5,7 +5,7 @@ import { DeveloperMode } from '../../../developer-mode/developer-mode';
 import { Tweaks } from '../../../developer-mode/tweaks';
 import { Layout, LAYOUT } from '../../../ui/layout';
 import { LayoutEditor } from './layout-editor';
-import { DISCOVER_HALO, DiscoverHalo } from '../discover-halo';
+import { DISCOVERY_HALO, DiscoveryHalo } from '../discovery-halo';
 import { Point } from '../../../ui/handles/light-handles';
 
 @Component({
@@ -19,8 +19,8 @@ import { Point } from '../../../ui/handles/light-handles';
 })
 class Host {
   readonly layout = signal<Layout>(LAYOUT);
-  readonly halo = signal<DiscoverHalo>(DISCOVER_HALO);
-  /** Where the Discover Halo is, in Discover. */
+  readonly halo = signal<DiscoveryHalo>(DISCOVERY_HALO);
+  /** Where the Discovery Halo is, in Discovery. */
   readonly haloAt = signal<Point | undefined>(undefined);
   done = 0;
 }
@@ -215,15 +215,15 @@ describe('LayoutEditor', () => {
     expect(host.querySelectorAll('[role="slider"]').length).toBe(5);
   });
 
-  it('tunes the Discover Halo in Discover, its core, the knobs of its light and its color, kept as a tweak until reset', async () => {
+  it('tunes the Discovery Halo in Discovery, its core, the knobs of its light and its color, kept as a tweak until reset', async () => {
     const { host, editor, stable } = await setUp();
-    expect(button(host, 'Discover Halo')).toBeUndefined();
+    expect(button(host, 'Discovery Halo')).toBeUndefined();
     editor.haloAt.set({ x: 200, y: 600 });
     await stable();
 
-    button(host, 'Discover Halo')?.click();
+    button(host, 'Discovery Halo')?.click();
     await stable();
-    expect(button(host, 'Discover Halo')?.getAttribute('aria-pressed')).toBe('true');
+    expect(button(host, 'Discovery Halo')?.getAttribute('aria-pressed')).toBe('true');
     const sliders = Array.from(host.querySelectorAll('[role="slider"]'), (slider) =>
       slider.getAttribute('aria-label'),
     );
@@ -238,8 +238,8 @@ describe('LayoutEditor', () => {
     ]);
     press(host.querySelector('[role="slider"][aria-label="Reach"]'), 'ArrowUp');
     await stable();
-    expect(editor.halo().light.reach).toBe(DISCOVER_HALO.light.reach + 1);
-    expect(TestBed.inject(Tweaks).discoverHalo()).toEqual(editor.halo());
+    expect(editor.halo().light.reach).toBe(DISCOVERY_HALO.light.reach + 1);
+    expect(TestBed.inject(Tweaks).discoveryHalo()).toEqual(editor.halo());
 
     button(host, 'Halo color')?.click();
     await stable();
@@ -247,8 +247,8 @@ describe('LayoutEditor', () => {
 
     button(host, 'Reset')?.click();
     await stable();
-    expect(editor.halo()).toEqual(DISCOVER_HALO);
-    expect(TestBed.inject(Tweaks).discoverHalo()).toEqual(DISCOVER_HALO);
+    expect(editor.halo()).toEqual(DISCOVERY_HALO);
+    expect(TestBed.inject(Tweaks).discoveryHalo()).toEqual(DISCOVERY_HALO);
   });
 
   it('offers to copy the layout', async () => {

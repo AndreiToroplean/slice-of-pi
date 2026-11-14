@@ -88,7 +88,7 @@ interface Press {
 
 /**
  * What the key in backspace's place is: backspace, as in free play, and in a challenge, where it's disabled; or the
- * turn key, as in Discover, which switches turns, or fast forwards the game's.
+ * turn key, as in Discovery, which switches turns, or fast forwards the game's.
  */
 export type CornerKey = 'backspace' | 'turn';
 

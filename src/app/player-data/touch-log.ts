@@ -44,7 +44,7 @@ interface TouchLogFields {
    */
   readonly start?: number;
   /**
-   * How its touches were recorded: left out for every touch kept, in order; `overwrite` for Discover's, which keeps
+   * How its touches were recorded: left out for every touch kept, in order; `overwrite` for Discovery's, which keeps
    * only the latest typing of each place, as its rounds go over the same places again and again.
    */
   readonly recording?: 'overwrite';
@@ -157,10 +157,10 @@ export const TOUCH_LOG_MIGRATIONS: readonly Migration[] = [
   // Format 4 touch logs placed each touch where it was released, rather than where it started: the places are dropped,
   // and with them the touches typing nothing, which had nothing else to them.
   withoutPlaces,
-  // Format 5 touch logs are from before checkpoints and Discover: from the start of π, every touch kept, as they say
+  // Format 5 touch logs are from before checkpoints and Discovery: from the start of π, every touch kept, as they say
   // by leaving out where they start and how they were recorded.
   (log) => log,
-  // Format 6 Discover runs timed the first digit of each turn of the player's against the digit before it, typed in an
+  // Format 6 Discovery runs timed the first digit of each turn of the player's against the digit before it, typed in an
   // earlier turn, the game's turns between them: they're dropped.
   (log) => (log['recording'] === 'overwrite' ? { ...log, dropped: true } : log),
 ];
