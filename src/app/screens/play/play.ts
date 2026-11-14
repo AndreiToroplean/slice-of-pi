@@ -161,7 +161,7 @@ const TICK = 16;
     '[class.screen]': 'replay() === undefined',
     '[class.replaying]': 'replay() !== undefined',
     '[style]': 'layout()',
-    '[attr.data-turn]': 'discovering ? turn() : null',
+    '[attr.data-turn]': 'discovering() ? turn() : null',
     '(pointerdown)': 'touchDown($event)',
     '(pointerup)': 'touchUp($event)',
     '(pointercancel)': 'touchesElsewhere.delete($event.pointerId)',
@@ -172,7 +172,7 @@ const TICK = 16;
   template: `
     <h1 class="visually-hidden">Slice of Pi</h1>
     <!-- Behind everything else on the screen. -->
-    @if (discovering) {
+    @if (discovering()) {
       <canvas
         class="halo"
         [appLightLayer]="haloLights()"
@@ -280,7 +280,7 @@ const TICK = 16;
         (layoutChange)="editedLayout.set($event)"
         [halo]="halo()"
         (haloChange)="editedHalo.set($event)"
-        [haloAt]="discovering ? haloAt() : undefined"
+        [haloAt]="discovering() ? haloAt() : undefined"
         [(previewing)]="previewing"
         (done)="doneEditing()"
       />
@@ -316,7 +316,7 @@ export class Play implements PausesOnBack {
     if (log !== undefined) {
       return startOf(log);
     }
-    return this.discovering ? this.rounds().from : this.checkpointStart();
+    return this.discovering() ? this.rounds().from : this.checkpointStart();
   });
   /** How far back backspace has deleted the digits the game started with, if it has. */
   private readonly deletedTo = signal<number | undefined>(undefined);
@@ -389,17 +389,17 @@ export class Play implements PausesOnBack {
   private readonly checking = computed(
     () =>
       this.replay()?.checked ??
-      (this.routeMode === 'challenge' || this.discovering || this.tweaks.checking()),
+      (this.routeMode === 'challenge' || this.discovering() || this.tweaks.checking()),
   );
   /** Whether it's Discovery: the game plays each round, then the player retypes it. */
-  protected readonly discovering = this.routeMode === 'discovery';
+  protected readonly discovering = computed(() => this.mode() === 'discovery');
   /** Where Discovery is, round after round, from the checkpoint picked. */
   private readonly rounds = signal(newRounds(0));
   /**
    * Whose turn it is in Discovery; always the player's otherwise. It alone tells what's shown as whose: the digits the
    * game shows, faint, the keypad, and what the player's own place makes the slots, the keys' colors and the season.
    */
-  protected readonly turn = signal<Turn>(this.discovering ? 'game' : 'player');
+  protected readonly turn = signal<Turn>(this.discovering() ? 'game' : 'player');
   /** The place from which the digits are those Discovery's game shows, faint: from where its rounds start, on its turn. */
   protected readonly faintFrom = computed(() =>
     this.turn() === 'game' ? this.rounds().from : undefined,
@@ -529,7 +529,7 @@ export class Play implements PausesOnBack {
   );
   /** The checkpoints Discovery's rounds have reached, which they can start from, if the player picks them. */
   protected readonly checkpoints = computed(() =>
-    this.discovering && this.tweaks.manualCheckpoints() ? checkpointsAhead(this.rounds()) : [],
+    this.discovering() && this.tweaks.manualCheckpoints() ? checkpointsAhead(this.rounds()) : [],
   );
   private readonly pace = inject(DiscoveryPaceSetting).pace;
   private readonly discoveryRecorder = inject(DiscoveryRecorder);
@@ -595,7 +595,7 @@ export class Play implements PausesOnBack {
    */
   private readonly knownGroups = computed(() => {
     const stats = this.tweaks.breakModel().stats(this.countedRuns());
-    return this.discovering ? stats.discoveryGroups : stats.groups;
+    return this.discovering() ? stats.discoveryGroups : stats.groups;
   });
   /**
    * Where the group holding the checkpoint picked starts, in the player's groups: the game starts there, so that it
@@ -704,12 +704,12 @@ export class Play implements PausesOnBack {
       this.stopTurnSwitch();
       this.discoveryRecorder.end();
     });
-    if (this.discovering) {
-      afterNextRender(() => {
+    afterNextRender(() => {
+      this.watchHalo();
+      if (this.discovering()) {
         this.startGameTurn();
-        this.watchHalo();
-      });
-    }
+      }
+    });
     if (this.replay() === undefined) {
       this.recorder.challenge.set(this.routeMode === 'challenge');
       this.recorder.start.set(this.checkpointStart());
@@ -727,7 +727,7 @@ export class Play implements PausesOnBack {
   private get session(): RunSession {
     const log = this.replay();
     if (log === undefined) {
-      return this.discovering ? this.retyped : this.recorder;
+      return this.discovering() ? this.retyped : this.recorder;
     }
     this.replayed ??= new LiveRun(
       () => this.clock.now(),
@@ -1030,7 +1030,7 @@ export class Play implements PausesOnBack {
       }
       const place = this.digits().length;
       this.digits.update((digits) => digits + key);
-      if (this.discovering) {
+      if (this.discovering()) {
         this.discoveryRecorder.record(touch, place, this.rounds().start);
         this.landIfFull();
         if (this.done()) {
@@ -1285,10 +1285,13 @@ export class Play implements PausesOnBack {
     this.playedKey.set(undefined);
   }
 
-  /** Starts a new game: no digits typed, back to the first spring, the run ended counting as an earlier one. */
-  protected restart(): void {
+  /**
+   * Starts a new game, in the route's game mode or in `mode`: no digits typed, back to the first spring, the run ended
+   * counting as an earlier one.
+   */
+  protected restart(mode = this.routeMode): void {
     const ended = this.session.run();
-    this.reset();
+    this.reset(mode);
     if (ended !== undefined) {
       this.playedHere.update((runs) => [...runs, ended]);
     }
@@ -1311,14 +1314,18 @@ export class Play implements PausesOnBack {
     await this.router.navigate(['/runs', id, 'replay'], { replaceUrl: true, state });
   }
 
-  /** Back to the start, as if nothing had been typed, ending the run, such as to replay a run from its start. */
-  reset(): void {
+  /**
+   * Back to the start, as if nothing had been typed, ending the run, such as to replay a run from its start: in the
+   * route's game mode, or in `mode`, which the game then turns into, on the same screen.
+   */
+  reset(mode = this.routeMode): void {
+    const session = this.session;
     this.stopWatching();
     this.stopGameOver();
     this.stopGameOver = () => undefined;
     this.lost.set(false);
-    this.mode.set(this.routeMode);
-    if (this.discovering) {
+    this.mode.set(mode);
+    if (this.discovering()) {
       // Playing again, a new session from where the rounds started, its first round played as the game goes on.
       this.stopRounds();
       this.stopHandOver();
@@ -1337,8 +1344,8 @@ export class Play implements PausesOnBack {
     this.mistakes.set('');
     this.sizes.set(this.wordsUpTo([], this.startPlace()));
     this.reopenable = false;
-    this.session.end();
-    if (this.discovering) {
+    session.end();
+    if (this.discovering()) {
       this.startGameTurn();
     }
   }
@@ -1399,7 +1406,7 @@ export class Play implements PausesOnBack {
   /** The times of the run so far, from its start, as the break model takes them. */
   private runTimes(): readonly number[] {
     // Discovery's own typing never counts: its groups are the player's, as the game plays them.
-    return this.discovering ? [] : (this.session.run()?.times ?? []);
+    return this.discovering() ? [] : (this.session.run()?.times ?? []);
   }
 
   /** The words on the tape up to a place: those of `kept` that end by it, then the player's groups (see `wordsUpTo`). */
