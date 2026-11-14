@@ -16,7 +16,7 @@ let ids = 0;
 /**
  * A dialog offering a choice, as a frosted card: its title, a corner button on either side of it, if any (given as
  * `cornerStart` and `cornerEnd`), what it says, if anything, and the buttons to choose from, one under the other (see
- * `ButtonList`), given as buttons. Corner buttons always keep a place on both sides of the title once there's one, an
+ * `ButtonList`), given as buttons, or as a row of them side by side, given as `buttonRow`. Corner buttons always keep a place on both sides of the title once there's one, an
  * unused one hidden, so that the title stays centered, wrapping if it must. It closes on Escape and on a click outside
  * it, unless it can't be dismissed, as when the game is over: then only a choice closes it. In reach, it sits two thirds
  * of the way down the screen, within the thumb's reach, as on the play screen. It opens with the focus on its first
@@ -65,7 +65,7 @@ let ids = 0;
         <ng-content />
       </div>
       <app-button-list>
-        <ng-content select="button" />
+        <ng-content select="button, [buttonRow]" />
       </app-button-list>
     </dialog>
   `,
@@ -119,6 +119,14 @@ let ids = 0;
     /* No places for corner buttons when it has none: the title takes the whole width. */
     app-choice-dialog .heading:not(:has(.corner-place > :not(.unused))) .corner-place {
       display: none;
+    }
+
+    /* Buttons side by side, as wide as each other, as far apart as the rows. */
+    app-choice-dialog [buttonRow] {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
+      gap: inherit;
     }
 
     /* What it says, before the buttons, if anything. */
