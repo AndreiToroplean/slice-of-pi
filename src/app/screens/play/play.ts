@@ -404,9 +404,19 @@ export class Play implements PausesOnBack {
    * game shows, faint, the keypad, and what the player's own place makes the slots, the keys' colors and the season.
    */
   protected readonly turn = signal<Turn>(this.discovering() ? 'game' : 'player');
-  /** The place from which the digits are those Discovery's game shows, faint: from where its rounds start, on its turn. */
+  /**
+   * The simulation the player types while holding the game still, if any (see {@link simulates}): the place it started
+   * from, and what takes the game back to where it was then.
+   */
+  private readonly simulation = signal<
+    { readonly from: number; readonly rewind: () => void } | undefined
+  >(undefined);
+  /**
+   * The place from which the digits are virtual, shown faint: those Discovery's game shows, from where its rounds start,
+   * on its turn, and those the player types while holding the game still.
+   */
   protected readonly virtualFrom = computed(() =>
-    this.turn() === 'game' ? this.rounds().from : undefined,
+    this.turn() === 'game' ? this.rounds().from : this.simulation()?.from,
   );
   /** The key Discovery is playing, shown pressed. */
   protected readonly playedKey = signal<KeypadKey | undefined>(undefined);
@@ -766,17 +776,66 @@ export class Play implements PausesOnBack {
       return;
     }
     this.takeTurn(touch.key);
-    if (!this.still()) {
+    if (!this.still() || this.simulates(touch.key)) {
       this.play(touch);
+    }
+  }
+
+  /**
+   * Whether a key typed while the game stands still plays, as a simulation the player tries what they mean to type on,
+   * to see whether it looks, and sounds, right: held still, on their turn, once they type a key, the game plays on as
+   * ever, but for checking the digits, which land on the tape virtual, faint, and nothing of it is saved. Letting go
+   * of the game ends it (see {@link endSimulation}), back to the game as it was, its run and its clock rewound. The
+   * simulation goes on as if the game had never been held.
+   */
+  private simulates(key: KeypadKey | null): boolean {
+    if (this.simulation() !== undefined) {
+      return true;
+    }
+    if (key === null || this.paused() || this.turn() !== 'player') {
+      return false;
+    }
+    const rewindRun = this.session.mark();
+    const digits = this.digits();
+    const sizes = this.sizes();
+    const mistakes = this.mistakes();
+    const reopenable = this.reopenable;
+    const deletedTo = this.deletedTo();
+    const start = this.recorder.start();
+    const rounds = this.rounds();
+    const target = this.target();
+    this.simulation.set({
+      from: digits.length,
+      rewind: () => {
+        rewindRun();
+        this.digits.set(digits);
+        this.sizes.set(sizes);
+        this.mistakes.set(mistakes);
+        this.reopenable = reopenable;
+        this.deletedTo.set(deletedTo);
+        this.recorder.start.set(start);
+        this.rounds.set(rounds);
+        this.target.set(target);
+        this.handingOver.set(undefined);
+        this.stopHandOver();
+        this.stopHandOver = () => undefined;
+      },
+    });
+    // As if the game had never been held: the group being typed ends if the player has paused long enough.
+    this.watchForPause();
+    return true;
+  }
+
+  /** Ends the simulation, if any, back to the game as it was when it started (see {@link simulates}). */
+  private endSimulation(): void {
+    const simulation = this.simulation();
+    if (simulation === undefined) {
       return;
     }
-    // Held still, a key only sounds, as touches did as they landed, typing nothing; keys typed on a keyboard sound now.
-    if (touch.key !== null) {
-      this.ringing.delete(touch.key);
-      if (!('x' in touch)) {
-        this.sound(touch.key);
-      }
-    }
+    this.simulation.set(undefined);
+    this.stopWatching();
+    this.landFlights();
+    simulation.rewind();
   }
 
   /** Pauses or resumes the game, which stands still meanwhile (see {@link standStill}). */
@@ -791,6 +850,9 @@ export class Play implements PausesOnBack {
    * what was left of it; Discovery's time stands still, and goes on from where it was, never showing a round again.
    */
   private standStill(): void {
+    if (!this.pauseHeld() && !this.shiftHeld()) {
+      this.endSimulation();
+    }
     const still = this.still();
     if (still !== this.stood) {
       this.stood = still;
@@ -997,7 +1059,8 @@ export class Play implements PausesOnBack {
       }
       return;
     }
-    if (key !== 'backspace' && this.checking() && !isPiDecimal(this.digits().length, key)) {
+    const checks = this.checking() && this.simulation() === undefined;
+    if (key !== 'backspace' && checks && !isPiDecimal(this.digits().length, key)) {
       // A group never finishes on a mistake.
       this.stopWatching();
       this.vibrate('mistake');
@@ -1035,7 +1098,9 @@ export class Play implements PausesOnBack {
       const place = this.digits().length;
       this.digits.update((digits) => digits + key);
       if (this.discovering()) {
-        this.discoveryRecorder.record(touch, place, this.rounds().start);
+        if (this.simulation() === undefined) {
+          this.discoveryRecorder.record(touch, place, this.rounds().start);
+        }
         this.landIfFull();
         if (this.done()) {
           this.handOver();
@@ -1507,8 +1572,8 @@ export class Play implements PausesOnBack {
   /**
    * Plays the sound of a key, as soon as a touch lands on it, before it's typed, if it is: sliding off it types nothing,
    * so the player can listen to it before committing to it; keys typed on a keyboard, and those of a run replayed, sound
-   * as they're typed. While the game is held still (see {@link still}), keys sound all the same, typing nothing, for the
-   * player to try their notes before typing them; never while paused nor {@link silent}. The sound model never knows the
+   * as they're typed. While the game is held still (see {@link still}), keys sound all the same, as the player
+   * simulates typing (see {@link simulates}); never while paused nor {@link silent}. The sound model never knows the
    * next digit, so the sound gives nothing away.
    */
   protected sound(key: KeypadKey): void {
