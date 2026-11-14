@@ -1161,9 +1161,8 @@ describe('Play', () => {
       expect(play).toHaveBeenCalledTimes(1);
     });
 
-    it('plays the keys while the game is held still, typing nothing, and without vibrating', async () => {
+    it('plays the keys while the game is held still', async () => {
       const play = vi.spyOn(TestBed.inject(Speaker), 'play');
-      const vibrate = vi.spyOn(TestBed.inject(Vibrator), 'play');
       const fixture = TestBed.createComponent(Play);
       await fixture.whenStable();
       const host = fixture.nativeElement as HTMLElement;
@@ -1180,8 +1179,32 @@ describe('Play', () => {
       await fixture.whenStable();
 
       expect(play.mock.calls).toEqual([[keys['7']], [keys['3']]]);
-      expect(vibrate).not.toHaveBeenCalled();
       expect(slots(host).join('')).toBe('');
+    });
+
+    it('simulates typing while held still, as ever but unchecked, its digits virtual, all rewound once let go', async () => {
+      const { host, type } = await setUp();
+      await typeAll(type, '141');
+      const shift = (type: 'keydown' | 'keyup'): void => {
+        document.dispatchEvent(new KeyboardEvent(type, { key: 'Shift', bubbles: true }));
+      };
+      const virtual = (): string =>
+        Array.from(host.querySelectorAll('app-typed-digits .tile.virtual'), (tile) =>
+          tile.textContent.trim(),
+        ).join('');
+
+      shift('keydown');
+      await typeAll(type, '59 78');
+      expect(words(host)).toEqual(['14159']);
+      expect(virtual()).toBe('59');
+      expect(slots(host).join('')).toBe('78');
+      expect(host.querySelector('app-slots .wrong')).toBeNull();
+
+      shift('keyup');
+      await typeAll(type, '5');
+      expect(words(host)).toEqual([]);
+      expect(slots(host).join('')).toBe('1415');
+      expect(TestBed.inject(RunRecorder).run()?.times).toEqual([0, 250, 400, 650]);
     });
 
     it("takes a wrong key's note off once it's typed, as it rings, and leaves a right key's be", async () => {

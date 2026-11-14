@@ -289,7 +289,7 @@ export function snapshotSlot(layer: Element, slot: Element): SlotSnapshot {
 
 /**
  * Keyframes going from wholly there to `opacity` as they go, as a digit flying from its slot, where it shows whole, onto
- * a faint tile, as the digits Discovery's game shows: at the opacity in between at each keyframe, by its offset (spread
+ * a faint tile, as a virtual digit's: at the opacity in between at each keyframe, by its offset (spread
  * evenly where it has none).
  */
 export function fadingTo(frames: readonly Keyframe[], opacity: number): Keyframe[] {

@@ -63,13 +63,16 @@ export class RunRecorder implements RunSession {
   /** The place the runs started from now on start from: the start of π, or a checkpoint. */
   readonly start = signal(0);
 
+  /** Whether a simulation is under way, whose touches aren't saved (see {@link mark}). */
+  private simulating = false;
+
   /** The latest touch log of each run not saved yet. */
   private readonly unsaved = new Map<string, TouchLog>();
   private writing: Promise<void> | undefined;
 
   record(touch: KeypadTouch): void {
     const log = this.live.add(touch);
-    if (log !== undefined) {
+    if (log !== undefined && !this.simulating) {
       this.queue(log);
     }
   }
@@ -88,6 +91,15 @@ export class RunRecorder implements RunSession {
 
   resume(): void {
     this.live.resume();
+  }
+
+  mark(): () => void {
+    const rewind = this.live.mark();
+    this.simulating = true;
+    return () => {
+      rewind();
+      this.simulating = false;
+    };
   }
 
   /** Resolves once every key recorded so far is saved. */
