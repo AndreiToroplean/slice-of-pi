@@ -134,10 +134,11 @@ const TICK = 16;
  * The game mode comes from the route: free play unless it says otherwise. In a challenge, every digit is checked, the
  * keypad has no backspace, and the first mistake ends the game: the screen's edges turn red at once, the keypad takes
  * no more keys, and a moment later the game over dialog offers to play again, to continue the run in free play from the
- * mistake, backspace and all, to continue the game in Discovery, or to go back to the main menu. Restarting goes back to
- * the route's game mode. Discovery's game over offers neither: a game only goes on in a game mode asking less of the
- * player. Free play's pause dialog offers to continue in Discovery too. Continuing in Discovery turns the game into
- * Discovery on the same screen, its rounds starting from where the group being typed starts, any mistake gone.
+ * mistake, backspace and all, to continue the game in Discovery, or to go back to the main menu. Discovery's game over
+ * offers neither: a game only goes on in a game mode asking less of the player. Free play's pause dialog offers to
+ * continue in Discovery too. Continuing in Discovery turns the game into Discovery on the same screen, its rounds
+ * starting from where the group being typed starts, any mistake gone. A game going on in another game mode goes on as
+ * a game of that mode, which restarting starts again.
  *
  * It also replays a run, given its touch log: the player can't type, nor pause, and nothing is recorded. Whatever
  * replays it hands it the touches one after the other, on the run's own clock (`TIMER` and `RUN_CLOCK`), and resets it
@@ -384,16 +385,19 @@ export class Play implements PausesOnBack {
   );
   /** The game mode the route asks for, free play unless it says otherwise. */
   private readonly routeMode: GameMode = modeOf(inject(ActivatedRoute).snapshot.data['mode']);
-  /** The game mode: the route's, until the game goes on in another, as a lost challenge does in free play. */
+  /**
+   * The game mode: the route's, until the game goes on in another, as a lost challenge does in free play, a new game
+   * then starting in that one.
+   */
   protected readonly mode = signal(this.routeMode);
   /**
-   * Whether digits are checked against π, as they are in a game started as a challenge, and in free play unless
-   * developer mode turns that off, or were in the run replayed.
+   * Whether digits are checked against π, as they are in a game started as a challenge, and in Discovery, and in free
+   * play unless developer mode turns that off, or were in the run replayed.
    */
   private readonly checking = computed(
     () =>
       this.replay()?.checked ??
-      (this.routeMode === 'challenge' || this.discovering() || this.tweaks.checking()),
+      (this.recorder.challenge() || this.discovering() || this.tweaks.checking()),
   );
   /** Whether it's Discovery: the game plays each round, then the player retypes it. */
   protected readonly discovering = computed(() => this.mode() === 'discovery');
@@ -1367,10 +1371,10 @@ export class Play implements PausesOnBack {
   }
 
   /**
-   * Starts a new game, in the route's game mode or in `mode`: no digits typed, back to the first spring, the run ended
+   * Starts a new game, in the game mode played or in `mode`: no digits typed, back to the first spring, the run ended
    * counting as an earlier one.
    */
-  protected restart(mode = this.routeMode): void {
+  protected restart(mode = this.mode()): void {
     const ended = this.session.run();
     this.reset(mode);
     if (ended !== undefined) {
@@ -1397,9 +1401,9 @@ export class Play implements PausesOnBack {
 
   /**
    * Back to the start, as if nothing had been typed, ending the run, such as to replay a run from its start: in the
-   * route's game mode, or in `mode`, which the game then turns into, on the same screen.
+   * game mode played, or in `mode`, which the game then turns into, on the same screen.
    */
-  reset(mode = this.routeMode): void {
+  reset(mode = this.mode()): void {
     const session = this.session;
     this.stopWatching();
     this.stopGameOver();
@@ -1419,6 +1423,7 @@ export class Play implements PausesOnBack {
     this.landFlights();
     this.deletedTo.set(undefined);
     if (this.replay() === undefined) {
+      this.recorder.challenge.set(mode === 'challenge');
       this.recorder.start.set(this.startPlace());
     }
     this.digits.set(PI_DECIMALS.slice(0, this.startPlace()));
