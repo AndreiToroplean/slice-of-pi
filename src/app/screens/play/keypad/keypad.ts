@@ -1049,7 +1049,8 @@ export class Keypad {
 
 /**
  * The keypad key a physical key press stands for, if any: the key in backspace's place is typed with Backspace, but
- * held with the space bar where it's the turn key.
+ * held with the space bar where it's the turn key. With Shift held, which holds the game still, a digit's key types it
+ * all the same, whatever symbol it types then.
  */
 function keyFor(event: KeyboardEvent, corner: CornerKey): KeypadKey | null {
   if (event.ctrlKey || event.metaKey || event.altKey) {
@@ -1058,5 +1059,9 @@ function keyFor(event: KeyboardEvent, corner: CornerKey): KeypadKey | null {
   if (event.key === (corner === 'turn' ? ' ' : 'Backspace')) {
     return 'backspace';
   }
-  return isDigit(event.key) ? event.key : null;
+  if (isDigit(event.key)) {
+    return event.key;
+  }
+  const shifted = event.shiftKey ? /^(?:Digit|Numpad)(\d)$/.exec(event.code)?.[1] : undefined;
+  return shifted !== undefined && isDigit(shifted) ? shifted : null;
 }
