@@ -13,3 +13,13 @@ export function isGroupSize(value: unknown): value is number {
     Number.isInteger(value) && Number(value) >= GROUP_SIZES.min && Number(value) <= GROUP_SIZES.max
   );
 }
+
+/**
+ * How many slots a group starting at `place` starts with where the game doesn't know the player's groups: enough to get
+ * back on the track of groups of `groupSize` from the start of π, so a whole group where one of them would start, and
+ * fewer just past the player's own groups, wherever those end. The groups past them then fall where they always did, so
+ * a checkpoint at a round place starts a group there however far the player's own groups reach.
+ */
+export function sizeOnTrack(place: number, groupSize: number): number {
+  return groupSize - (place % groupSize);
+}

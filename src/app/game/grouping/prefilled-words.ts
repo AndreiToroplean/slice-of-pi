@@ -1,9 +1,11 @@
 import type { Group } from './break-models/break-model';
+import { sizeOnTrack } from './group-size';
 
 /**
  * The sizes of the words a game shows on the tape up to place `to`, as if the player had typed them: those of `kept`,
  * already on the tape, as far as they go without passing `to`, then the player's groups, as the break model knows them,
- * where it trusts them, and groups of `groupSize` elsewhere. The last word ends at `to`, where the game goes on.
+ * where it trusts them, and groups of `groupSize` on their track elsewhere (see `sizeOnTrack`). The last word ends at
+ * `to`, where the game goes on.
  */
 export function wordsUpTo(
   kept: readonly number[],
@@ -55,11 +57,16 @@ export function groupStart(
   return place;
 }
 
-/** How long the word starting at a place is: as the player's group there, if the model trusts it, or the group size. */
+/**
+ * How long the word starting at a place is: as the player's group there, if the model trusts it; otherwise as far as the
+ * track of groups of the group size, or the next group the model trusts, whichever comes first.
+ */
 function sizeAt(place: number, groups: readonly Group[], groupSize: number): number {
-  const known = groups.find(
-    (group) =>
-      group.trusted && !group.open && place >= group.start && place < group.start + group.size,
-  );
-  return known === undefined ? groupSize : known.start + known.size - place;
+  const trusted = groups.filter((group) => group.trusted && !group.open);
+  const known = trusted.find((group) => place >= group.start && place < group.start + group.size);
+  if (known !== undefined) {
+    return known.start + known.size - place;
+  }
+  const next = Math.min(...trusted.map((group) => group.start).filter((start) => start > place));
+  return Math.min(sizeOnTrack(place, groupSize), next - place);
 }

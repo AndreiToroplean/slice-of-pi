@@ -2352,15 +2352,16 @@ describe('Play', () => {
     });
 
     it('shows as many digits as the slots, past the player’s groups too', async () => {
-      // Grouped by 3, the runs ending at 7: the game trusts the first group only, then groups of the default size.
+      // Grouped by 3, the runs ending at 7: the game trusts the first group only, then gets back on the track of groups
+      // of the default size, at 5.
       const round = await discover(Array.from({ length: 4 }, (_, run) => by3(7, run)));
       await playRounds(round, 3);
       await nextRound(round);
 
-      await listen(round, 8);
+      await listen(round, 5);
 
-      expect(words(round.host)).toEqual(['141', '59265']);
-      expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 8));
+      expect(words(round.host)).toEqual(['141', '59']);
+      expect(faint(round.host)).toBe(PI_DECIMALS.slice(0, 5));
     });
 
     it('takes the player’s turn at once as they type while the game plays the round, the round to retype to its end', async () => {

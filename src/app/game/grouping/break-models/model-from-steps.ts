@@ -1,6 +1,7 @@
 import type { GroupPlan } from '../groups';
 import type { BreakModel, Gameplay, Stats, TimedRun } from './break-model';
 import { timesFromPlace } from '../from-checkpoint';
+import { sizeOnTrack } from '../group-size';
 import type { Mixture } from './statistics';
 import { breaksOf, RunSteps, Steps } from './steps';
 
@@ -96,7 +97,8 @@ function gameplayOf(fit: Fit, ends: Ends, groupSize: number, from: number): Game
 /**
  * How the group starting at index `start` (index 0 is the first decimal) is played: within the trust horizon, as the
  * player's own group there, as many slots as it has digits left; past it, groups of `groupSize`, the player's setting,
- * that grow until the player breaks.
+ * that grow until the player breaks. The first of them, where the player's own groups end, gets back on the track of
+ * those groups (see `sizeOnTrack`), so that they fall where a game from a checkpoint shows them.
  */
 export function groupAt(
   steps: Steps,
@@ -104,10 +106,13 @@ export function groupAt(
   horizon: number,
   groupSize: number,
 ): GroupPlan {
-  const group = steps.groups.find((g) => start >= g.start && start < g.start + g.size);
-  return group !== undefined && !group.open && group.start + group.size <= horizon
-    ? { size: group.start + group.size - start, trusted: true }
-    : { size: groupSize, trusted: false };
+  const trusted = steps.groups.filter((g) => !g.open && g.start + g.size <= horizon);
+  const group = trusted.find((g) => start >= g.start && start < g.start + g.size);
+  if (group !== undefined) {
+    return { size: group.start + group.size - start, trusted: true };
+  }
+  const trustedEnd = Math.max(0, ...trusted.map((g) => g.start + g.size));
+  return { size: start === trustedEnd ? sizeOnTrack(start, groupSize) : groupSize, trusted: false };
 }
 
 /**
