@@ -34,7 +34,7 @@ describe('GAME_VALUES', () => {
       groupPause: true,
       gameLinger: true,
       fastForward: true,
-      faintOpacity: true,
+      virtualOpacity: true,
       checkpointLag: true,
       layout: true,
       menu: true,

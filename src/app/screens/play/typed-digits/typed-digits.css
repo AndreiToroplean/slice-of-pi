@@ -99,9 +99,9 @@
   text-shadow: none;
 }
 
-/* A digit the game shows, rather than one typed, as in Discovery: faint (`--faint`, see `TypedDigits`). */
-.tile.faint {
-  opacity: var(--faint);
+/* A virtual digit, rather than one typed, as the game shows them in Discovery: faint (`--virtual`, see `TypedDigits`). */
+.tile.virtual {
+  opacity: var(--virtual);
 }
 
 /* A digit fading out of the tape, as Discovery hands a turn over, from the opacity it had (`--fade`, see `TypedDigits`). */
@@ -109,6 +109,6 @@
   opacity: var(--fade);
 }
 
-.tile.faint.fading {
-  opacity: calc(var(--faint) * var(--fade));
+.tile.virtual.fading {
+  opacity: calc(var(--virtual) * var(--fade));
 }
