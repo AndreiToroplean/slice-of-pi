@@ -11,23 +11,26 @@ import { Spinner } from '../../ui/spinner';
  * (see `CandyGroup`): what it starts, then the place, a small "from" above it, which the player drags up or down, or
  * across, to pick another checkpoint unlocked, ten places a step (see `Spinner`), kept for the next visits: only what
  * it starts starts the game. Pressing that presses all of it; touching the place doesn't, as it's what's dragged.
- * Told it's sunk, as in a split button's tray before it rises (see `SplitButton`), all of it shows pressed.
+ * Told it's sunk, as in a split button's tray before it rises (see `SplitButton`), all of it shows pressed. Both parts
+ * show the same press, from the start of a touch to its end, and for as long as a press shows at least.
  */
 @Component({
   selector: 'app-start-from',
   imports: [Candy, CandyGroup, RouterLink, Spinner],
   template: `
+    <!-- Both parts show one and the same press, never the browser's own on what it starts, which lets go on its own. -->
+    @let pressed = sunk() || link.held();
     <app-candy-group>
       <a
         #link="appCandy"
         [appCandy]="look()"
         [routerLink]="path()"
         [queryParams]="{ from: place() }"
-        [pressed]="sunk() || undefined"
+        [pressed]="pressed"
         data-vibration="play"
         >{{ name() }}<span class="visually-hidden"> from</span></a
       >
-      <div [appCandy]="look()" class="place" [pressed]="sunk() || link.held()">
+      <div [appCandy]="look()" class="place" [pressed]="pressed">
         <span class="from" aria-hidden="true">from</span>
         <app-spinner
           [label]="name() + ' from'"
