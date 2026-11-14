@@ -1,0 +1,1 @@
+import{_n as g,ft as Ph}from"./chunk-DwOktloW.js";import{a as Ne}from"./chunk-DvKPFxkA.js";function v(){return c(`/`)}function c(t){let i=g(Ne),e=g(Ph);return()=>{i.lastSuccessfulNavigation()?.previousNavigation?.finalUrl?.toString()===t?e.back():i.navigateByUrl(t,{replaceUrl:!0})}}export{v as n,c as t};
