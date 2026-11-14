@@ -83,4 +83,61 @@ describe('Checkpoint', () => {
     await checkpoint.reload();
     expect(checkpoint.place('free')).toBe(0);
   });
+
+  it('starts each game mode from the start of π until switched to start from its place, and back', async () => {
+    const checkpoint = await setUp([run('a', 60)]);
+    await checkpoint.pick('free', 50);
+    expect(checkpoint.startsFrom('free')).toBe(false);
+    expect(checkpoint.start('free')).toBe(0);
+    expect(checkpoint.switched()).toBe(false);
+
+    await checkpoint.switchTo('free', true);
+    expect(checkpoint.start('free')).toBe(50);
+    expect(checkpoint.startsFrom('challenge')).toBe(false);
+    expect(checkpoint.switched()).toBe(true);
+
+    await checkpoint.switchTo('free', false);
+    expect(checkpoint.start('free')).toBe(0);
+  });
+
+  it('never starts from a place before a checkpoint is unlocked', async () => {
+    const checkpoint = await setUp([]);
+
+    await checkpoint.switchTo('challenge', true);
+
+    expect(checkpoint.startsFrom('challenge')).toBe(false);
+  });
+
+  it('starts a game mode from a checkpoint it reached, which the player has not switched', async () => {
+    const checkpoint = await setUp([run('a', 60)]);
+
+    await checkpoint.reach('discovery', 40);
+
+    expect(checkpoint.start('discovery')).toBe(40);
+    expect(checkpoint.switched()).toBe(false);
+  });
+
+  it('keeps whether each game mode starts from its place for the next visits', async () => {
+    const checkpoint = await setUp([run('a', 60)]);
+    await checkpoint.switchTo('challenge', true);
+
+    await checkpoint.reload();
+
+    expect(checkpoint.startsFrom('challenge')).toBe(true);
+    expect(checkpoint.switched()).toBe(true);
+  });
+
+  it('starts every game mode from the start of π from a setting kept before it could start from its place', async () => {
+    const checkpoint = await setUp([run('a', 60)]);
+    await TestBed.inject(RunStore).saveSetting(CHECKPOINTS, {
+      format: 2,
+      places: { free: 30, challenge: 0, discovery: 40 },
+    });
+
+    await checkpoint.reload();
+
+    expect(checkpoint.place('free')).toBe(30);
+    expect(checkpoint.start('free')).toBe(0);
+    expect(checkpoint.start('discovery')).toBe(0);
+  });
 });

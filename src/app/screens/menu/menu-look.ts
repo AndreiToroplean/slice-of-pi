@@ -69,11 +69,6 @@ export interface MenuLook {
 
 /** How many buttons the menu has, one above the other. */
 export const BUTTON_COUNT = 3;
-/**
- * How many buttons the menu has room for: one more, empty, under the last, for what a split button opens to show
- * there, over the buttons below it, if any.
- */
-export const BUTTON_SLOTS = BUTTON_COUNT + 1;
 
 /** The menu's own look. */
 export const MENU_LOOK: MenuLook = GAME_VALUES.menu;
@@ -183,7 +178,7 @@ export function titleReach(layout: MenuLayout): { readonly up: number; readonly 
 /**
  * The look as the CSS lengths the menu lays out with: `--icon-size` and `--icon-y`, `--icon-light-y`, `--slice-size`
  * and `--slice-y`, `--pi-size` and `--pi-y`, `--buttons-y`, `--buttons-height`, `--buttons-width`, `--buttons-gap`,
- * `--buttons-span`, how tall the buttons are together, with the room under them (see {@link BUTTON_SLOTS}), and
+ * `--buttons-span`, how tall the buttons are together, and
  * `--menu-free`, the free space: the menu's height but the title's and the buttons'. Each `-y` is the height of a
  * middle, up from the menu's bottom: the buttons' their share of the free space below them, and half their span; the
  * title's center the menu's height but its share of the free space above it, and how far it reaches up.
@@ -192,7 +187,7 @@ export function menuStyles(look: MenuLook): Readonly<Record<string, string>> {
   const { title, icon, slice, pi, buttons } = look.layout;
   const across = (value: number): string => `calc(${String(value)} * var(--column) / 100)`;
   const rem = (value: number): string => `${String(value)}rem`;
-  const span = rem(BUTTON_SLOTS * buttons.height + (BUTTON_SLOTS - 1) * buttons.gap);
+  const span = rem(BUTTON_COUNT * buttons.height + (BUTTON_COUNT - 1) * buttons.gap);
   const reach = titleReach(look.layout);
   const free = `(100% - ${String(reach.up + reach.down)} * var(--column) / 100 - ${span})`;
   const up = (offset: number): string =>

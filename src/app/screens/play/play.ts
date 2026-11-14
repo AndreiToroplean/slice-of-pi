@@ -1351,8 +1351,8 @@ export class Play implements PausesOnBack {
 
   /** Starts Discovery's rounds at a checkpoint they've reached, from their next start. */
   private moveRoundsTo(checkpoint: number): void {
-    // Where Discovery starts from next time, too.
-    void this.checkpointSetting.pick('discovery', checkpoint);
+    // Where Discovery starts from next time, too, from the main menu.
+    void this.checkpointSetting.reach('discovery', checkpoint);
     const from = groupStart(this.sizes(), checkpoint, this.knownGroups(), this.groupSize());
     this.rounds.update((rounds) => moveTo(rounds, checkpoint, from));
   }

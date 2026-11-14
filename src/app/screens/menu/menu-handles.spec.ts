@@ -1,6 +1,6 @@
 import { dragged, Handle, UnitSizes } from '../../ui/handles/handle';
 import { coreHandle, lightKnobs, MOST_SCREEN_CUT, PART_HANDLES, SCREEN_TOP } from './menu-handles';
-import { BUTTON_SLOTS, MENU_LOOK, MenuLook } from './menu-look';
+import { BUTTON_COUNT, MENU_LOOK, MenuLook } from './menu-look';
 
 /** A rem of 16 pixels, a menu with 800 pixels of free space and a column 400 wide. */
 const SIZES: UnitSizes = { rem: 16, height: 8, column: 4 };
@@ -54,9 +54,9 @@ describe('menu handles', () => {
     const look = [
       dragged(handle(buttons, 'Buttons height'), MENU_LOOK, -16, SIZES),
       // The group's top, which moves half as much as all the buttons grow, half on each side.
-      dragged(handle(buttons, 'Button size'), MENU_LOOK, (-8 * BUTTON_SLOTS) / 2, SIZES),
+      dragged(handle(buttons, 'Button size'), MENU_LOOK, (-8 * BUTTON_COUNT) / 2, SIZES),
       // The bottom of the first, which moves half as much as the gaps grow.
-      dragged(handle(buttons, 'Button gap'), MENU_LOOK, (-8 * (BUTTON_SLOTS - 1)) / 2, SIZES),
+      dragged(handle(buttons, 'Button gap'), MENU_LOOK, (-8 * (BUTTON_COUNT - 1)) / 2, SIZES),
     ].map((each) => each.layout.buttons);
 
     expect(look).toEqual([
