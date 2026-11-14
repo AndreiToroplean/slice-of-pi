@@ -28,7 +28,7 @@ export type GameValues = Required<
     | 'groupPause'
     | 'gameLinger'
     | 'fastForward'
-    | 'faintOpacity'
+    | 'virtualOpacity'
     | 'checkpointLag'
     | 'layout'
     | 'menu'
