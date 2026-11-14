@@ -52,13 +52,13 @@ As the player types a group, the movement of their finger across the keypad trac
 
 **Constellations — going further.** Internally, we categorize these symbols and pattern-match them to recognizable images, the way constellations are named after the figures they resemble. Ideally, when the symbol lifts off the keypad it **morphs** from the abstract geometric shape into a more representational, realistic image that resembles it. This creates a strong association of ideas: the group "is" that image.
 
-**Your sky.** The figure is drawn on top of the keypad as the player types the group. When the group is complete, it flies away into a **sky of realistic stars**, where it joins the constellations of the groups before it:
+**Your sky.** The figure is drawn on top of the keypad as the player types the group. When the group is complete, it flies away into a **night sky of realistic stars**, where it joins the constellations of the groups before it:
 
 - Each new constellation is placed next to the previous ones in a random direction, but roughly towards the right, so the sky reads in order like a line of text.
 - Constellations have different sizes: some are drawn bigger than others, again with some randomness.
-- The sky is **3D**: the camera rotates to bring the new constellation into view, zooming in on small ones and out on big ones.
+- The sky is **one long panorama**, flat like the rest of the game, that the camera moves along to bring each new constellation into view.
 - The randomness (placement, size, and anything else about the sky) comes from the **player seed** (§7), so it's stable and unique to each player: it's _their_ sky.
-- The player can **open their sky** at any time just to look at their constellations and admire them, in 3D.
+- The player can **open their sky** at any time just to look at their constellations and admire them.
 - Players could also **share their sky** with other people.
 
 ### 5.3 Digit colors

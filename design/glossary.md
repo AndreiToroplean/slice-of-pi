@@ -25,7 +25,7 @@
 - **Virtual digits:** digits on the tape that aren't really typed, shown faint: those Discovery's game shows on its turn, and those the player types while **holding the game still** (holding the pause key, or Shift), a **simulation** to see whether they look and sound right, gone as the player lets go.
 - **Background:** the season-colored backdrop behind every screen. Never call it the sky.
 - **Season header:** the top of the play screen: the digit reached (the places typed, digit 0 before any, which is also the place of the next digit), the season and year, and the place in the year on the **year bar**.
-- **Sky:** the 3D night sky where the player's constellations collect.
+- **Sky:** the night sky where the player's constellations collect.
 
 ## Play
 
