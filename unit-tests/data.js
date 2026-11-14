@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794615188528,
+  "lastUpdate": 1794670979461,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -3838,6 +3838,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 755,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "ca49b9f422223c37c9cbe581c3dd520ede09abaf",
+          "message": "feat: get groups back on track past the trusted ones\n\n- Past the player's trusted groups, the first group only goes as far as the next multiple of the group size, then groups of the group size follow, so they fall on round places however far the trusted groups reach.\n- A checkpoint at a round place, such as 300, then starts a group exactly there, as it did when the player trained on it, rather than wherever groups of 5 counted from the end of the trusted groups lead.\n- On the tape before a run's start, a group past the trusted ones also stops where the next trusted group starts, so it never cuts into one.\n- In live play, only the group where the trusted groups end realigns: a new player who breaks early still gets a whole group next.\n\nClaude-Session: https://claude.ai/code/session_01X1Xesq4MXJ5iuYG6Ft9ai1",
+          "timestamp": "2026-11-14T16:42:35+01:00",
+          "tree_id": "3db200b264c3fd6f9cb8c03f135396bd45c2dce0",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/ca49b9f422223c37c9cbe581c3dd520ede09abaf"
+        },
+        "date": 1794670979047,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14021,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 30699,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 744,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
