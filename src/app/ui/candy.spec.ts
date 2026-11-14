@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Candy, SHORTEST_PRESS } from './candy';
+import { Candy, SHORTEST_PRESS, SWIPE_SLOP } from './candy';
 
 @Component({
   imports: [Candy],
@@ -18,6 +18,7 @@ import { Candy, SHORTEST_PRESS } from './candy';
     >
       Key
     </button>
+    <button type="button" appCandy [swipeWait]="100">Swiped</button>
   `,
 })
 class Host {
@@ -104,6 +105,60 @@ describe('Candy', () => {
       key?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
       fixture.detectChanges();
       expect(key?.classList).not.toContain('pressed');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('waits to tell a swipe from a press, showing none for a swipe', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    try {
+      const fixture = TestBed.createComponent(Host);
+      await fixture.whenStable();
+      const swiped = Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.candy'),
+      ).at(-1);
+      const pressed = (): boolean | undefined => {
+        fixture.detectChanges();
+        return swiped?.classList.contains('pressed');
+      };
+      const touch = (type: string, x = 0, target: EventTarget | undefined = swiped): void => {
+        target?.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: x }));
+      };
+      // It never shows the browser's own press, which doesn't wait.
+      expect(swiped?.classList).toContain('controlled');
+
+      // Held still past the wait, a press.
+      touch('pointerdown');
+      expect(pressed()).toBe(false);
+      vi.advanceTimersByTime(100);
+      expect(pressed()).toBe(true);
+      touch('pointerup', 0, document);
+      vi.advanceTimersByTime(SHORTEST_PRESS);
+      expect(pressed()).toBe(false);
+
+      // Wandering, a swipe.
+      touch('pointerdown');
+      touch('pointermove', SWIPE_SLOP + 1);
+      vi.advanceTimersByTime(100);
+      expect(pressed()).toBe(false);
+      touch('pointerup', 0, document);
+
+      // Taken over by the browser to scroll, a swipe.
+      touch('pointerdown');
+      touch('pointercancel', 0, document);
+      vi.advanceTimersByTime(100);
+      expect(pressed()).toBe(false);
+
+      // Let go before the wait is over, a press all the same, as long as any.
+      touch('pointerdown');
+      vi.advanceTimersByTime(30);
+      touch('pointerup', 0, document);
+      expect(pressed()).toBe(true);
+      vi.advanceTimersByTime(SHORTEST_PRESS - 1);
+      expect(pressed()).toBe(true);
+      vi.advanceTimersByTime(1);
+      expect(pressed()).toBe(false);
     } finally {
       vi.useRealTimers();
     }
