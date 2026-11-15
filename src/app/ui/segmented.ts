@@ -27,7 +27,8 @@ export interface Segment<T extends string> {
  * the last, as the CDK's focus key manager moves the focus. Too many to fit, they scroll sideways,
  * the one chosen into view, rather than squeeze their names. The same everywhere, on the background as on a card: a
  * faint dark strip, the one chosen on a white pill, as a white candy button, the others in the color of the text around
- * them. Choosing another one slides the pill over to it, fitting it, as its name fades to the pill's text color.
+ * them. Choosing another one slides the pill over to it, fitting it, as its name fades to the pill's text color; given
+ * the position of its panels, the pill and the names' colors follow them as they're swiped.
  */
 @Component({
   selector: 'app-segmented',
@@ -36,6 +37,7 @@ export interface Segment<T extends string> {
     '[attr.aria-label]': 'label()',
     '(keydown)': 'keydown($event)',
     '(window:resize)': 'place()',
+    '[class.following]': 'position() !== undefined',
   },
   template: `
     <span #pill class="chosen-pill" aria-hidden="true"></span>
@@ -50,6 +52,8 @@ export interface Segment<T extends string> {
         [attr.id]="panels() === undefined ? null : panels() + '-tab-' + segment.value"
         [attr.aria-controls]="panels() === undefined ? null : panels() + '-' + segment.value"
         [tabIndex]="chosen ? 0 : -1"
+        [style.--on-pill]="onPill()[$index]"
+        [class.on-pill]="(onPill()[$index] ?? 0) > 0.5"
         (click)="choose(segment.value)"
       >
         {{ segment.label }}
@@ -91,7 +95,11 @@ export interface Segment<T extends string> {
       border: none;
       border-radius: 0.8125rem;
       background: none;
-      color: inherit;
+      /*
+       * From the color of the text around it to the pill's, in proportion to how much of the pill is under it: grey
+       * halfway. The current color, here, is the one around it.
+       */
+      color: color-mix(in srgb, var(--on-candy) calc(var(--on-pill, 0) * 100%), currentColor);
       font: inherit;
       text-shadow: inherit;
       cursor: pointer;
@@ -99,9 +107,12 @@ export interface Segment<T extends string> {
       transition: color 0.25s var(--ease);
     }
 
-    [aria-checked='true'],
-    [aria-selected='true'] {
-      color: var(--on-candy);
+    /* Following its panels as they're swiped, at once. */
+    :host(.following) button {
+      transition: none;
+    }
+
+    .on-pill {
       text-shadow: none;
     }
 
@@ -123,6 +134,11 @@ export class Segmented<T extends string> {
    * this, `-tab-` and its value, as `perspective-tab-run`, for the panel to be labelled by.
    */
   readonly panels = input<string>();
+  /**
+   * Where the pill is, in tabs, when it follows its panels as they're swiped (`TabPanels`' `position`): 1 under the
+   * second, 1.5 halfway from it to the third. Without it, the pill slides to the one chosen.
+   */
+  readonly position = input<number>();
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly pill = viewChild.required<ElementRef<HTMLElement>>('pill');
@@ -143,6 +159,15 @@ export class Segmented<T extends string> {
     .withVerticalOrientation(false)
     .withWrap()
     .withHomeAndEnd();
+  /**
+   * How much of the pill is under each of them, from 0 to 1: all of it under the one chosen, or, following its panels,
+   * shared between the two whose panels are in view, as far as they've been swiped.
+   */
+  protected readonly onPill = computed(() => {
+    const position =
+      this.position() ?? this.segments().findIndex((segment) => segment.value === this.value());
+    return this.segments().map((_, i) => Math.max(0, 1 - Math.abs(position - i)));
+  });
   /** Whether the pill is under the one chosen yet, from which it then slides to the next. */
   private placed = false;
 
@@ -150,7 +175,13 @@ export class Segmented<T extends string> {
     afterRenderEffect(() => {
       this.value();
       this.segments();
+      this.position();
       this.place();
+    });
+    // The one chosen in view, however it was chosen: pressed, from the keyboard, or by swiping its panel in.
+    afterRenderEffect(() => {
+      const value = this.value();
+      this.scrollTo(this.segments().findIndex((segment) => segment.value === value));
     });
     // Again once the names' font has arrived, which can change how wide they are.
     const fonts = inject(DOCUMENT).fonts;
@@ -163,6 +194,11 @@ export class Segmented<T extends string> {
 
   /** Moves the pill under the one chosen, fitting it: at once the first time, sliding there after that. */
   protected place(): void {
+    const position = this.position();
+    if (position !== undefined) {
+      this.follow(position);
+      return;
+    }
     const chosen = this.buttons().find((button) => button.tabIndex === 0);
     if (chosen === undefined) {
       return;
@@ -179,9 +215,24 @@ export class Segmented<T extends string> {
     }
   }
 
+  /** Puts the pill where its panels are: between the two tabs whose panels are in view, as far as they're swiped. */
+  private follow(position: number): void {
+    const buttons = this.buttons();
+    const at = Math.min(Math.max(position, 0), buttons.length - 1);
+    const [from, to] = [buttons[Math.floor(at)], buttons[Math.ceil(at)]];
+    if (from === undefined || to === undefined) {
+      return;
+    }
+    const along = at - Math.floor(at);
+    const between = (a: number, b: number): number => a + (b - a) * along;
+    const pill = this.pill().nativeElement;
+    pill.style.transition = 'none';
+    pill.style.translate = `${String(between(from.offsetLeft, to.offsetLeft))}px`;
+    pill.style.width = `${String(between(from.offsetWidth, to.offsetWidth))}px`;
+  }
+
   protected choose(value: T): void {
     this.value.set(value);
-    this.scrollTo(this.segments().findIndex((segment) => segment.value === value));
   }
 
   /** Chooses the one the keyboard moves onto, from the one chosen. */

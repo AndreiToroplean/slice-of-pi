@@ -26,9 +26,17 @@ app-page {
 }
 
 /* The tabs' panels, only the one chosen shown. */
-.grid[hidden],
-.actions[hidden] {
-  display: none;
+/* The keys' tabs, out to the edges of the page, so that each slides in from its sides, past its margins. */
+app-tab-panels {
+  flex: 1;
+  min-height: 0;
+  margin-inline: calc(-1 * (var(--margin-side) + var(--margin)));
+}
+
+.grid,
+.actions {
+  box-sizing: border-box;
+  padding-inline: calc(var(--margin-side) + var(--margin));
 }
 
 /* The action key, as on the keypad, in the room the digit keys' grid takes. */
