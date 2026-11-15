@@ -159,8 +159,10 @@ describe('Mars', () => {
   });
 
   it('trusts the groups in Discovery only once enough runs agree, by its own level', () => {
+    // A level more than one run reaches.
+    const settings = { discoveryLevel: 0.7 };
     const trusted = (runs: readonly (readonly number[])[]) => {
-      const stats = MARS.create({}).stats(runs.map(fromStartOfPi));
+      const stats = MARS.create(settings).stats(runs.map(fromStartOfPi));
       return {
         anywhere: stats.groups.filter((group) => group.trusted).length,
         inDiscovery: stats.discoveryGroups.filter((group) => group.trusted).length,
@@ -171,7 +173,7 @@ describe('Mars', () => {
     expect(trusted(grouped.slice(0, 1)).anywhere).toBeGreaterThan(5);
     expect(trusted(grouped.slice(0, 1)).inDiscovery).toBe(0);
     // A few agreeing: Discovery shows them too, cut the same way.
-    const stats = MARS.create({}).stats(grouped.map(fromStartOfPi));
+    const stats = MARS.create(settings).stats(grouped.map(fromStartOfPi));
     expect(trusted(grouped).inDiscovery).toBeGreaterThan(5);
     expect(stats.discoveryGroups.map(({ start, size }) => [start, size])).toEqual(
       stats.groups.map(({ start, size }) => [start, size]),
@@ -186,7 +188,8 @@ describe('Mars', () => {
   });
 
   it("tells a new player's breaks from their first run", () => {
-    const play = MARS.create({}).play([], 5);
+    // The pause alone, the envelope weighing no more than a run.
+    const play = MARS.create({ envelopeStrength: 1 }).play([], 5);
 
     expect(play.groupEnds(timesOf(8, [7], 2000), 0, false)).toBe(true);
     expect(play.groupEnds(timesOf(8, []), 0, false)).toBe(false);

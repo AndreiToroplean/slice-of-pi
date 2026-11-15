@@ -51,6 +51,7 @@ describe('the views of the groups', () => {
       return line?.kind === 'line' ? line.points : [];
     };
     const envelope = {
+      envelopeStrength: 1,
       envelopeSize1: 1,
       envelopeFactor1: 0.5,
       envelopeSize2: 5,

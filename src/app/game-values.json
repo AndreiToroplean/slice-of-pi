@@ -27,23 +27,23 @@
       "grouping": {
         "mars": {
           "window": 9,
-          "recencyDecay": 0.96,
+          "recencyDecay": 0.97,
           "spreadFloor": 0.2,
           "breakShift": 2.3,
           "breakShare": 0.2,
           "fullTrustUnevenness": 0.3,
           "breakThreshold": 0.25,
           "level": 0,
-          "discoveryLevel": 0.7,
+          "discoveryLevel": 0.5,
           "priorUnevenness": 0.2,
           "trustInfluence": 1,
           "currentDecay": 0.5,
-          "envelopeStrength": 1,
+          "envelopeStrength": 4,
           "envelopeSize1": 1,
-          "envelopeFactor1": 0,
+          "envelopeFactor1": 0.5,
           "envelopeSize2": 3,
           "envelopeFactor2": 1,
-          "envelopeSize3": 6,
+          "envelopeSize3": 5,
           "envelopeFactor3": 1,
           "envelopeSize4": 11,
           "envelopeFactor4": 0
@@ -108,9 +108,9 @@
       "paceStep": 30,
       "handOver": 2000,
       "groupPause": 50,
-      "gameLinger": 3,
+      "gameLinger": 1,
       "fastForward": 2,
-      "virtualOpacity": 0.45,
+      "virtualOpacity": 0.5,
       "checkpointLag": 1,
       "layout": {
         "margins": {
@@ -149,7 +149,7 @@
       "menu": {
         "layout": {
           "title": {
-            "above": 84.6
+            "above": 57.8
           },
           "icon": {
             "size": 55.2,
@@ -164,7 +164,7 @@
             "offset": -40.9
           },
           "buttons": {
-            "below": 5.9,
+            "below": 17.1,
             "height": 3.1875,
             "width": 18.375,
             "gap": 0.8125
@@ -229,14 +229,14 @@
       },
       "turnSwitch": 300,
       "discoveryHalo": {
-        "color": "#fff3dc",
+        "color": "#dce9ff",
         "light": {
-          "intensity": 1.2,
-          "core": 9,
-          "falloff": 1.8,
+          "intensity": 0.5,
+          "core": 21.6,
+          "falloff": 0.5,
           "reach": 50,
           "rays": 0.5,
-          "rayCount": 6,
+          "rayCount": 3,
           "saturation": 1
         }
       },
