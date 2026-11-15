@@ -9,13 +9,14 @@ export interface SoundMix {
   /** The volume of what words play as they land on the tape, from 0 to 1, as a share of the sound model's: 0 for none. */
   readonly landings: number;
   /**
-   * How much louder notes under 1 kHz play, in decibels for each octave under it, as the ear hears low notes softer at
-   * the same level, and a phone's small speakers play them softer still.
+   * How much louder notes under 1 kHz play, in decibels for each octave under it down to C4, as the ear hears low notes
+   * softer at the same level.
    */
   readonly lows: number;
   /**
-   * How loud each partial of a plain pluck is next to the one under it, from 0 for its fundamental alone: a phone's
-   * speakers, too small to play a low note's own pitch, play it through its higher partials.
+   * How loud each partial of a plain pluck of C4 is next to the one under it, from 0 for its fundamental alone, lower
+   * notes richer in partials and higher ones purer: a phone's speakers, too small to play a low note's own pitch, play
+   * it through its partials.
    */
   readonly brightness: number;
 }
