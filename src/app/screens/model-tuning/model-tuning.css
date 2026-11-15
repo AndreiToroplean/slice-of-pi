@@ -25,7 +25,8 @@ p {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  /* Only up and down: swiped sideways, the swipe goes on to the panes around it. */
+  overscroll-behavior-y: contain;
   display: grid;
   align-content: start;
   gap: 0.75rem;
@@ -116,15 +117,17 @@ app-carousel {
   scroll-snap-align: start;
 }
 
+/* The perspectives, out to the edges of the card, so that each slides in from them. */
+app-summary-card app-tab-panels {
+  margin: 0 calc(-1 * var(--space-3));
+}
+
 /* Each perspective as narrow as the card, however wide its carousel's steps side by side. */
-app-summary-card [role='tabpanel'] {
+.perspective {
   display: grid;
   gap: 0.375rem;
-  min-width: 0;
-
-  &[hidden] {
-    display: none;
-  }
+  padding: 0 var(--space-3);
+  box-sizing: border-box;
 }
 
 /* In developer mode, the perspectives on the break model, as tabs on the card after their name: the one shown in ink. */

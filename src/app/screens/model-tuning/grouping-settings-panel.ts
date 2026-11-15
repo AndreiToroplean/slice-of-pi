@@ -24,6 +24,7 @@ import { BREAK_MODELS } from '../../game/grouping/break-models/break-models';
 import { Candy } from '../../ui/candy';
 import { LightDismiss } from '../../ui/light-dismiss';
 import { Segment, Segmented } from '../../ui/segmented';
+import { TabPanel, TabPanels } from '../../ui/tab-panels';
 import { Slider } from '../../ui/slider';
 
 /** The tab of what is given to the panel. */
@@ -87,6 +88,8 @@ function keysOf(kind: BreakModelKind): string[] {
     MoreButton,
     Segmented,
     Slider,
+    TabPanel,
+    TabPanels,
   ],
   template: `
     <div class="bar">
@@ -95,160 +98,145 @@ function keysOf(kind: BreakModelKind): string[] {
         label="Your runs and the grouping settings"
         panels="pane"
         [segments]="tabs()"
+        [position]="panes.position()"
         [(value)]="tab"
       />
       <button class="more" title="More" [appMore]="menu()"></button>
     </div>
-    <div
-      class="pane runs-pane"
-      role="tabpanel"
-      id="pane-Runs"
-      aria-labelledby="pane-tab-Runs"
-      [hidden]="tab() !== runsTab"
-    >
-      <ng-content />
-    </div>
-    <div
-      class="pane model-pane"
-      role="tabpanel"
-      id="pane-Model"
-      aria-labelledby="pane-tab-Model"
-      [hidden]="tab() !== modelTab"
-    >
-      <div class="field">
-        <span id="model-label">Break model</span>
-        <button
-          type="button"
-          class="frosted pill picker"
-          aria-labelledby="model-label model-name"
-          [appMenuTrigger]="modelMenu"
-        >
-          <span id="model-name">{{ kind().label }}</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-        </button>
-        <ng-template #modelMenu>
-          <div appDropdown aria-label="Break model">
-            @for (each of models; track each.id) {
-              <button
-                type="button"
-                class="model"
-                cdkMenuItemRadio
-                [cdkMenuItemChecked]="each === kind()"
-                (cdkMenuItemTriggered)="pick(each)"
-              >
-                <span>
-                  {{ each.label }}
-                  <small>{{ each.description }}</small>
-                </span>
-              </button>
-            }
-          </div>
-        </ng-template>
+    <app-tab-panels #panes panels="pane" [fills]="true" [(value)]="tab">
+      <div class="pane runs-pane" [appTabPanel]="runsTab">
+        <ng-content />
       </div>
-      @if (sources().length > 0) {
+      <div class="pane model-pane" [appTabPanel]="modelTab">
         <div class="field">
-          <span id="import-label">Import shared hyperparameters from</span>
+          <span id="model-label">Break model</span>
           <button
             type="button"
             class="frosted pill picker"
-            aria-labelledby="import-label import-name"
-            [appMenuTrigger]="importMenu"
+            aria-labelledby="model-label model-name"
+            [appMenuTrigger]="modelMenu"
           >
-            <span id="import-name">Choose a Model</span>
+            <span id="model-name">{{ kind().label }}</span>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
           </button>
-          <ng-template #importMenu>
-            <div appDropdown aria-label="Import shared hyperparameters from">
-              @for (source of sources(); track source.id) {
-                <button type="button" cdkMenuItem (cdkMenuItemTriggered)="importAll(source)">
-                  {{ source.label }}
+          <ng-template #modelMenu>
+            <div appDropdown aria-label="Break model">
+              @for (each of models; track each.id) {
+                <button
+                  type="button"
+                  class="model"
+                  cdkMenuItemRadio
+                  [cdkMenuItemChecked]="each === kind()"
+                  (cdkMenuItemTriggered)="pick(each)"
+                >
+                  <span>
+                    {{ each.label }}
+                    <small>{{ each.description }}</small>
+                  </span>
                 </button>
               }
             </div>
           </ng-template>
         </div>
-      }
-      <ng-content select="[modelAction]" />
-    </div>
-    @for (settingTab of kind().tabs; track settingTab.name) {
-      <div
-        class="pane settings"
-        role="tabpanel"
-        [id]="'pane-' + settingTab.name"
-        [attr.aria-labelledby]="'pane-tab-' + settingTab.name"
-        [hidden]="tab() !== settingTab.name"
-      >
-        @for (row of rowsOf(settingTab.hyperparameters); track row.sliders[0]?.key) {
-          <div class="row" [class.pair]="row.pair !== undefined">
-            @for (control of row.sliders; track control.key) {
-              <app-slider
-                [label]="name(control)"
-                [value]="position(control)"
-                [min]="control.min"
-                [max]="control.max"
-                [step]="control.step"
-                [valueText]="formatted(control)"
-                [defaultValue]="defaultOf(control)"
-                [inputId]="'setting-' + control.key"
-                (changed)="apply(control, $event)"
-              >
-                <button
-                  type="button"
-                  class="round pin"
-                  [title]="'Pin the ' + name(control).toLowerCase() + ' when fitting'"
-                  [attr.aria-pressed]="pinned().has(control.key)"
-                  (click)="togglePin(control.key)"
+        @if (sources().length > 0) {
+          <div class="field">
+            <span id="import-label">Import shared hyperparameters from</span>
+            <button
+              type="button"
+              class="frosted pill picker"
+              aria-labelledby="import-label import-name"
+              [appMenuTrigger]="importMenu"
+            >
+              <span id="import-name">Choose a Model</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+            <ng-template #importMenu>
+              <div appDropdown aria-label="Import shared hyperparameters from">
+                @for (source of sources(); track source.id) {
+                  <button type="button" cdkMenuItem (cdkMenuItemTriggered)="importAll(source)">
+                    {{ source.label }}
+                  </button>
+                }
+              </div>
+            </ng-template>
+          </div>
+        }
+        <ng-content select="[modelAction]" />
+      </div>
+      @for (settingTab of kind().tabs; track settingTab.name) {
+        <div class="pane settings" [appTabPanel]="settingTab.name">
+          @for (row of rowsOf(settingTab.hyperparameters); track row.sliders[0]?.key) {
+            <div class="row" [class.pair]="row.pair !== undefined">
+              @for (control of row.sliders; track control.key) {
+                <app-slider
+                  [label]="name(control)"
+                  [value]="position(control)"
+                  [min]="control.min"
+                  [max]="control.max"
+                  [step]="control.step"
+                  [valueText]="formatted(control)"
+                  [defaultValue]="defaultOf(control)"
+                  [inputId]="'setting-' + control.key"
+                  (changed)="apply(control, $event)"
                 >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12 17v5" />
-                    <path d="M9 4h6l-1 6 3 3v4H7v-4l3-3z" />
-                  </svg>
-                </button>
-                @if (importSources().get(control.key); as others) {
+                  <button
+                    type="button"
+                    class="round pin"
+                    [title]="'Pin the ' + name(control).toLowerCase() + ' when fitting'"
+                    [attr.aria-pressed]="pinned().has(control.key)"
+                    (click)="togglePin(control.key)"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 17v5" />
+                      <path d="M9 4h6l-1 6 3 3v4H7v-4l3-3z" />
+                    </svg>
+                  </button>
+                  @if (importSources().get(control.key); as others) {
+                    <button
+                      type="button"
+                      class="round"
+                      [title]="'Import the ' + name(control).toLowerCase() + ' from another model'"
+                      [appMenuTrigger]="importMenu"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 4v11" />
+                        <path d="m7 10 5 5 5-5" />
+                        <path d="M5 20h14" />
+                      </svg>
+                    </button>
+                    <ng-template #importMenu>
+                      <div
+                        appDropdown
+                        [attr.aria-label]="'Import the ' + name(control).toLowerCase()"
+                      >
+                        @for (source of others; track source.id) {
+                          <button
+                            type="button"
+                            cdkMenuItem
+                            (cdkMenuItemTriggered)="importFrom(source, [control.key])"
+                          >
+                            From {{ source.label }}
+                          </button>
+                        }
+                      </div>
+                    </ng-template>
+                  }
                   <button
                     type="button"
                     class="round"
-                    [title]="'Import the ' + name(control).toLowerCase() + ' from another model'"
-                    [appMenuTrigger]="importMenu"
+                    aria-haspopup="dialog"
+                    [title]="'About ' + name(control)"
+                    (click)="showHelp(control)"
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M12 4v11" />
-                      <path d="m7 10 5 5 5-5" />
-                      <path d="M5 20h14" />
-                    </svg>
+                    ?
                   </button>
-                  <ng-template #importMenu>
-                    <div
-                      appDropdown
-                      [attr.aria-label]="'Import the ' + name(control).toLowerCase()"
-                    >
-                      @for (source of others; track source.id) {
-                        <button
-                          type="button"
-                          cdkMenuItem
-                          (cdkMenuItemTriggered)="importFrom(source, [control.key])"
-                        >
-                          From {{ source.label }}
-                        </button>
-                      }
-                    </div>
-                  </ng-template>
-                }
-                <button
-                  type="button"
-                  class="round"
-                  aria-haspopup="dialog"
-                  [title]="'About ' + name(control)"
-                  (click)="showHelp(control)"
-                >
-                  ?
-                </button>
-              </app-slider>
-            }
-          </div>
-        }
-      </div>
-    }
+                </app-slider>
+              }
+            </div>
+          }
+        </div>
+      }
+    </app-tab-panels>
     <dialog
       #helpDialog
       class="card"
@@ -302,15 +290,22 @@ function keysOf(kind: BreakModelKind): string[] {
       box-shadow: var(--selected-glow);
     }
 
-    .pane {
+    /*
+     * The panes, out to the edges of the page and down to its bottom, under its padding and the navigation bar, so that
+     * each slides in from its sides, and what scrolls in them scrolls under them, stopping above them.
+     */
+    app-tab-panels {
       flex: 1;
       min-height: 0;
-      display: flex;
-      flex-direction: column;
+      margin: 0 calc(-1 * var(--margin-side))
+        calc(-1 * var(--margin-bottom) - env(safe-area-inset-bottom));
     }
 
-    .pane[hidden] {
-      display: none;
+    .pane {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      padding: 0 var(--margin-side) calc(var(--margin-bottom) + env(safe-area-inset-bottom));
     }
 
     /*
@@ -321,8 +316,6 @@ function keysOf(kind: BreakModelKind): string[] {
       display: grid;
       align-content: start;
       gap: var(--space-1);
-      margin-bottom: calc(-1 * var(--space-3) - env(safe-area-inset-bottom));
-      padding: 0 var(--space-1) calc(var(--space-3) + env(safe-area-inset-bottom));
       overflow-y: auto;
       overscroll-behavior-y: contain;
     }
@@ -361,7 +354,7 @@ function keysOf(kind: BreakModelKind): string[] {
       display: grid;
       align-content: start;
       gap: var(--space-3);
-      padding: var(--space-2) var(--space-1);
+      padding-top: var(--space-2);
     }
 
     .field {

@@ -130,7 +130,7 @@ describe('Segmented', () => {
   });
 
   it('scrolls the strip to show the whole of the one pressed', async () => {
-    const { sizes } = await setUp();
+    const { sizes, stable } = await setUp();
     const last = buttons(sizes).at(-1);
     // A strip 200 pixels wide, its last button 30 pixels past its right edge.
     sizes.getBoundingClientRect = () => new DOMRect(0, 0, 200, 40);
@@ -139,6 +139,7 @@ describe('Segmented', () => {
     }
 
     last?.click();
+    await stable();
 
     expect(sizes.scrollLeft).toBe(30);
   });

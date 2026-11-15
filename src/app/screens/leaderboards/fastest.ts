@@ -46,7 +46,8 @@ interface SplitRow {
       display: block;
       min-height: 0;
       overflow-y: auto;
-      overscroll-behavior: contain;
+      /* Only up and down: swiped sideways, the swipe goes on to the boards around it. */
+      overscroll-behavior-y: contain;
       /* Room for the rows' edges and focus rings as they scroll. */
       margin-inline: -0.25rem;
       padding: 0.25rem;

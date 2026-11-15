@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Background } from '../../ui/background';
 import { Candy } from '../../ui/candy';
 import { Segment, Segmented } from '../../ui/segmented';
+import { TabPanel, TabPanels } from '../../ui/tab-panels';
 import { ACTION_KEY_COLOR } from '../play/keypad/action-keys';
 import { Page } from '../../ui/page';
 import { Palette, PALETTE } from '../../game/layers/place-colors';
@@ -43,7 +44,7 @@ type KeysTab = 'digits' | 'actions';
  */
 @Component({
   selector: 'app-key-colors',
-  imports: [Candy, ColorPicker, CopyValues, Page, Segmented],
+  imports: [Candy, ColorPicker, CopyValues, Page, Segmented, TabPanel, TabPanels],
   template: `
     <app-page heading="Key Colors">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
@@ -62,50 +63,46 @@ type KeysTab = 'digits' | 'actions';
           </button>
         }
       </div>
-      <app-segmented label="Keys" panels="keys" [segments]="tabs" [(value)]="tab" />
-      <div
-        class="grid"
-        role="tabpanel"
-        id="keys-digits"
-        aria-labelledby="keys-tab-digits"
-        [hidden]="tab() !== 'digits'"
-      >
-        @for (row of hexes(); track $index; let r = $index) {
-          <button
-            type="button"
-            class="head tile"
-            [style.--place-color]="row"
-            [attr.aria-label]="names()[r]"
-            [attr.aria-pressed]="r === selected()"
-            (click)="selected.set(r)"
-          >
-            {{ r }}
-          </button>
-          @for (column of hexes(); track $index; let c = $index) {
-            <span
-              class="pair"
-              aria-hidden="true"
-              [class.close]="isClose(row, column)"
+      <app-segmented
+        label="Keys"
+        panels="keys"
+        [segments]="tabs"
+        [position]="keys.position()"
+        [(value)]="tab"
+      />
+      <app-tab-panels #keys panels="keys" [fills]="true" [(value)]="tab">
+        <div class="grid" appTabPanel="digits">
+          @for (row of hexes(); track $index; let r = $index) {
+            <button
+              type="button"
+              class="head tile"
+              [style.--place-color]="row"
+              [attr.aria-label]="names()[r]"
+              [attr.aria-pressed]="r === selected()"
               (click)="selected.set(r)"
             >
-              <span class="tile" [style.--place-color]="row">{{ r }}</span>
-              <span class="tile" [style.--place-color]="column">{{ c }}</span>
-            </span>
+              {{ r }}
+            </button>
+            @for (column of hexes(); track $index; let c = $index) {
+              <span
+                class="pair"
+                aria-hidden="true"
+                [class.close]="isClose(row, column)"
+                (click)="selected.set(r)"
+              >
+                <span class="tile" [style.--place-color]="row">{{ r }}</span>
+                <span class="tile" [style.--place-color]="column">{{ c }}</span>
+              </span>
+            }
           }
-        }
-      </div>
-      <div
-        class="actions"
-        role="tabpanel"
-        id="keys-actions"
-        aria-labelledby="keys-tab-actions"
-        [hidden]="tab() !== 'actions'"
-      >
-        <!-- An action key, as on the keypad, its color shown. -->
-        <button type="button" appCandy="clear" class="action-key" [pressColor]="actions()">
-          {{ actionKeysName }}
-        </button>
-      </div>
+        </div>
+        <div class="actions" appTabPanel="actions">
+          <!-- An action key, as on the keypad, its color shown. -->
+          <button type="button" appCandy="clear" class="action-key" [pressColor]="actions()">
+            {{ actionKeysName }}
+          </button>
+        </div>
+      </app-tab-panels>
       <app-color-picker
         [color]="picked().color"
         [name]="picked().name"

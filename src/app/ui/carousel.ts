@@ -48,7 +48,7 @@ import {
     .track {
       display: flex;
       overflow-x: auto;
-      overscroll-behavior-x: contain;
+      /* Swiped on past its first or last view, the swipe goes on to what scrolls around it, such as a strip of tabs. */
       scroll-snap-type: x mandatory;
       scrollbar-width: none;
 

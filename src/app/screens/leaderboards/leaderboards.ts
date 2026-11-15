@@ -3,6 +3,7 @@ import { RunStore } from '../../player-data/run-store';
 import { Page } from '../../ui/page';
 import { plural } from '../../ui/plural';
 import { Segment, Segmented } from '../../ui/segmented';
+import { TabPanel, TabPanels } from '../../ui/tab-panels';
 import { Fastest } from './fastest';
 import { NextGoal } from './next-goal';
 import { Podium, PodiumPlace } from './podium';
@@ -19,48 +20,38 @@ const BOARDS: readonly Segment<Board>[] = [
 
 /**
  * The player's leaderboards, opened from the main menu, one per tab: their best runs, worked out from their touch
- * logs, so that they rank every run ever played. The farthest places their perfect runs reached, on a podium, with how
+ * logs, so that they rank every run ever played, swiping from one to the next. The farthest places their perfect runs reached, on a podium, with how
  * far the best is from the next goal; their fastest perfect runs to each split place; and the runs proving they know
  * the most digits, mistakes counted, on a podium too.
  */
 @Component({
   selector: 'app-leaderboards',
-  imports: [Fastest, NextGoal, Page, Podium, Segmented],
+  imports: [Fastest, NextGoal, Page, Podium, Segmented, TabPanel, TabPanels],
   template: `
     <app-page heading="Leaderboards">
-      <app-segmented label="Leaderboards" panels="board" [segments]="BOARDS" [(value)]="board" />
-      @switch (board()) {
-        @case ('perfect') {
-          <section
-            class="board"
-            role="tabpanel"
-            id="board-perfect"
-            aria-labelledby="board-tab-perfect"
-          >
-            <p class="caption">Farthest without a mistake</p>
-            <app-podium [places]="perfect()" />
-            <app-next-goal [value]="best()" />
-          </section>
-        }
-        @case ('fastest') {
-          <section
-            class="board"
-            role="tabpanel"
-            id="board-fastest"
-            aria-labelledby="board-tab-fastest"
-          >
-            <p class="caption">Fastest without a mistake, to</p>
-            <app-fastest [records]="records()" />
-          </section>
-        }
-        @case ('known') {
-          <section class="board" role="tabpanel" id="board-known" aria-labelledby="board-tab-known">
-            <p class="caption">Digits known, mistakes counted</p>
-            <app-podium [places]="known()" />
-            <app-next-goal [value]="mostKnown()" />
-          </section>
-        }
-      }
+      <app-segmented
+        label="Leaderboards"
+        panels="board"
+        [segments]="BOARDS"
+        [position]="boards.position()"
+        [(value)]="board"
+      />
+      <app-tab-panels #boards panels="board" [fills]="true" [(value)]="board">
+        <section class="board" appTabPanel="perfect">
+          <p class="caption">Farthest without a mistake</p>
+          <app-podium [places]="perfect()" />
+          <app-next-goal [value]="best()" />
+        </section>
+        <section class="board" appTabPanel="fastest">
+          <p class="caption">Fastest without a mistake, to</p>
+          <app-fastest [records]="records()" />
+        </section>
+        <section class="board" appTabPanel="known">
+          <p class="caption">Digits known, mistakes counted</p>
+          <app-podium [places]="known()" />
+          <app-next-goal [value]="mostKnown()" />
+        </section>
+      </app-tab-panels>
     </app-page>
   `,
   styleUrl: './leaderboards.css',

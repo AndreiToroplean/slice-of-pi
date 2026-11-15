@@ -7,10 +7,17 @@ app-page {
   overflow: hidden;
 }
 
-.board {
+app-tab-panels {
   flex: 1;
   min-height: 0;
+  /* Out to the edges of the page, so that the boards slide in from its sides, past its margins. */
+  margin-inline: calc(-1 * (var(--margin-side) + var(--margin)));
+}
+
+.board {
   display: flex;
+  box-sizing: border-box;
+  padding-inline: calc(var(--margin-side) + var(--margin));
   flex-direction: column;
   gap: var(--space-3);
 }

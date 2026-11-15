@@ -28,6 +28,7 @@ import { PlotView } from '../your-runs/views/plot-view';
 import { plural } from '../../ui/plural';
 import { Candy } from '../../ui/candy';
 import { Segment, Segmented } from '../../ui/segmented';
+import { TabPanel, TabPanels } from '../../ui/tab-panels';
 import { RunCard } from '../your-runs/run-card';
 import { HereLine } from '../your-runs/here-line';
 import { MoreButton } from '../../ui/more-button';
@@ -68,6 +69,8 @@ import { TIMES, TimesView } from '../your-runs/times-view';
     Dropdown,
     HereLine,
     SummaryCard,
+    TabPanel,
+    TabPanels,
     TimesView,
   ],
   providers: [RunsState],
@@ -88,73 +91,61 @@ import { TIMES, TimesView } from '../your-runs/times-view';
               label="Perspective"
               panels="perspective"
               [segments]="PERSPECTIVES"
+              [position]="perspectives.position()"
               [(value)]="perspective"
             />
           </div>
-          <div
-            role="tabpanel"
-            id="perspective-run"
-            aria-labelledby="perspective-tab-run"
-            [hidden]="perspective() !== 'run'"
-          >
-            <app-carousel label="The break model along the places, step by step">
-              <app-times-view
-                class="view"
-                [title]="summaryTitle()"
-                [step]="'1/' + (views().length + 1)"
-                [aggregate]="aggregateShown() ? state.aggregateChart() : undefined"
-                [others]="selectedTimes()"
-                [places]="places()"
-                [top]="top()"
-                [keys]="TIMES_KEYS"
-                caption="The time per digit, along the places, recent runs weighing more. Tap any chart here to pick a place."
-                [marker]="place()"
-                [(zoom)]="placeZoom"
-                (picked)="pickedPlace.set($event)"
-              />
-              @for (plot of views(); track plot.title; let index = $index) {
-                <app-plot-view
+          <app-tab-panels #perspectives panels="perspective" [(value)]="perspective">
+            <div class="perspective" appTabPanel="run">
+              <app-carousel label="The break model along the places, step by step">
+                <app-times-view
                   class="view"
-                  [plot]="plot"
-                  [step]="index + 2 + '/' + (views().length + 1)"
-                  [marker]="plot.x.places ? place() : undefined"
+                  [title]="summaryTitle()"
+                  [step]="'1/' + (views().length + 1)"
+                  [aggregate]="aggregateShown() ? state.aggregateChart() : undefined"
+                  [others]="selectedTimes()"
+                  [places]="places()"
+                  [top]="top()"
+                  [keys]="TIMES_KEYS"
+                  caption="The time per digit, along the places, recent runs weighing more. Tap any chart here to pick a place."
+                  [marker]="place()"
                   [(zoom)]="placeZoom"
-                  (picked)="pickPlaceOn(plot, $event)"
+                  (picked)="pickedPlace.set($event)"
                 />
-              }
-            </app-carousel>
-          </div>
-          <div
-            role="tabpanel"
-            id="perspective-place"
-            aria-labelledby="perspective-tab-place"
-            [hidden]="perspective() !== 'place'"
-          >
-            @if (steps(); as model) {
-              @if (places() > 1) {
-                <app-place-perspective
-                  [steps]="model"
-                  [place]="place()"
-                  [digitCount]="places()"
-                  [picked]="pickedRuns()"
-                  [titles]="titles()"
-                  (placeChange)="pickedPlace.set($event)"
-                />
+                @for (plot of views(); track plot.title; let index = $index) {
+                  <app-plot-view
+                    class="view"
+                    [plot]="plot"
+                    [step]="index + 2 + '/' + (views().length + 1)"
+                    [marker]="plot.x.places ? place() : undefined"
+                    [(zoom)]="placeZoom"
+                    (picked)="pickPlaceOn(plot, $event)"
+                  />
+                }
+              </app-carousel>
+            </div>
+            <div class="perspective" appTabPanel="place">
+              @if (steps(); as model) {
+                @if (places() > 1) {
+                  <app-place-perspective
+                    [steps]="model"
+                    [place]="place()"
+                    [digitCount]="places()"
+                    [picked]="pickedRuns()"
+                    [titles]="titles()"
+                    (placeChange)="pickedPlace.set($event)"
+                  />
+                } @else {
+                  <p>No places yet: each game you play adds some.</p>
+                }
               } @else {
-                <p>No places yet: each game you play adds some.</p>
+                <p>This break model doesn’t show its steps.</p>
               }
-            } @else {
-              <p>This break model doesn’t show its steps.</p>
-            }
-          </div>
-          <div
-            role="tabpanel"
-            id="perspective-group"
-            aria-labelledby="perspective-tab-group"
-            [hidden]="perspective() !== 'group'"
-          >
-            <app-group-perspective [groups]="state.groups()" [plots]="groupPlots()" />
-          </div>
+            </div>
+            <div class="perspective" appTabPanel="group">
+              <app-group-perspective [groups]="state.groups()" [plots]="groupPlots()" />
+            </div>
+          </app-tab-panels>
         </app-summary-card>
       }
       <app-grouping-settings-panel #panel [menu]="panelMenu" (told)="state.message.set($event)">
