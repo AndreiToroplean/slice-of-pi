@@ -33,6 +33,8 @@ import { LIGHT_LAYERS, LightLayer as Layer, menuStyles, MenuLook } from './menu-
 import { Layout, layoutStyles } from '../../ui/layout';
 import { MenuEditor } from './menu-editor';
 import { ScreenTransitions } from '../../ui/screen-transitions';
+import { RunStore } from '../../player-data/run-store';
+import { bestPerfectRun } from '../leaderboards/records';
 
 /** Which key color lights each letter of the name, from the palette, in order: every one but lime, round the wheel. */
 const LETTER_COLORS = [0, 1, 2, 4, 5, 6, 7, 8, 9];
@@ -168,11 +170,18 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
     <p class="developer-message" role="status" [class.shown]="taps.shown()">
       {{ taps.message() }}
     </p>
-    <!-- Above the main buttons, on their left, the right kept for another. -->
+    <!-- Above the main buttons: the leaderboards on their left, and the player's record on their right. -->
     <div class="above-actions">
       <a appCandy class="corner" routerLink="/leaderboards" title="Leaderboards">
         <app-icon name="leaderboards" />
       </a>
+      <!-- Once there's one: a medal and a number, which need no more words. -->
+      @if (record() > 0) {
+        <p class="record">
+          <app-icon name="record" /><span class="visually-hidden">Best perfect run: </span
+          >{{ record() }}
+        </p>
+      }
     </div>
     <app-button-list class="actions" [style.gap]="'var(--buttons-gap)'">
       <!-- Each swiped to start from its place, once there's a checkpoint to start from, nudged until one has been. -->
@@ -272,6 +281,9 @@ export class Menu {
   protected readonly tweaks = inject(Tweaks);
   /** Where the games started from here start: the start of π, or a checkpoint unlocked. */
   protected readonly checkpoint = inject(Checkpoint);
+  private readonly logs = inject(RunStore).logs;
+  /** The farthest place a perfect run reached, the player's record, beside the leaderboards: 0 before any. */
+  protected readonly record = computed(() => bestPerfectRun(this.logs()));
 
   /** The look being edited, in developer mode's editor, shown as it changes. */
   protected readonly editedLook = signal<MenuLook | undefined>(undefined);

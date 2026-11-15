@@ -122,6 +122,11 @@ export function recordsOf(logs: readonly TouchLog[]): RunRecord[] {
   return logs.flatMap((log) => recordOf(log) ?? []);
 }
 
+/** The farthest place a perfect run reached, the player's record: 0 before any. */
+export function bestPerfectRun(logs: readonly TouchLog[]): number {
+  return Math.max(0, ...recordsOf(logs).map((record) => record.perfect));
+}
+
 /**
  * The best records at a feat, the best first, as many as on a podium: the highest values, or the lowest when `lowest`,
  * the earlier run first between equal ones, as it got there first. Runs with no value at it, `undefined`, are left out.

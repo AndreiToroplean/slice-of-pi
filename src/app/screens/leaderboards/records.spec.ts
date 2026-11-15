@@ -1,6 +1,7 @@
 import { newTouchLog, TouchLog } from '../../player-data/touch-log';
 import { decimals, typeKeys as typed } from '../../../testing/touch-logs';
 import {
+  bestPerfectRun,
   knownOf,
   nextSplitPlace,
   podium,
@@ -32,6 +33,11 @@ describe('records', () => {
 
       expect(recordOf(touched as TouchLog)?.perfect).toBe(3);
     });
+  });
+
+  it('makes the farthest perfect run the record, 0 before any', () => {
+    expect(bestPerfectRun([typed([...decimals(3), '0']), typed(decimals(5))])).toBe(5);
+    expect(bestPerfectRun([])).toBe(0);
   });
 
   it('leaves out runs from a checkpoint, unchecked ones and Discovery', () => {

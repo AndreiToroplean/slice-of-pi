@@ -9,7 +9,9 @@ import { Background } from '../../ui/background';
 import { TWILIGHT } from './menu-look';
 import { seasonAt } from '../../game/layers/seasons';
 import { DeveloperMode } from '../../developer-mode/developer-mode';
-import { INDEXED_DB } from '../../player-data/run-store';
+import { IDBFactory } from 'fake-indexeddb';
+import { INDEXED_DB, RunStore } from '../../player-data/run-store';
+import { decimals, typeKeys } from '../../../testing/touch-logs';
 import { LIGHTS_OFF, Menu, RELOAD_PAGE } from './menu';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { ScreenTransitions } from '../../ui/screen-transitions';
@@ -140,6 +142,18 @@ describe('Menu', () => {
     await setUp();
 
     expect(TestBed.inject(Background).colors()).toEqual(['#000000', '#ffffff']);
+  });
+
+  it('shows no record before the player has one', async () => {
+    expect((await setUp()).querySelector('.record')).toBeNull();
+  });
+
+  it('shows the player’s record beside the leaderboards', async () => {
+    TestBed.overrideProvider(INDEXED_DB, { useValue: new IDBFactory() });
+    await TestBed.inject(RunStore).save(typeKeys([...decimals(12), '0']));
+    const host = await setUp();
+
+    expect(host.querySelector('.record')?.textContent.trim()).toBe('Best perfect run: 12');
   });
 
   it('leads to the settings and the leaderboards', async () => {
