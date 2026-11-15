@@ -161,28 +161,12 @@ app-start-from {
   right: var(--margin-side);
 }
 
-.more svg {
-  width: 1em;
-  height: 1em;
-  fill: currentColor;
-}
-
 /* The settings' gear, in the top left corner, like the menu button in the other. */
 .settings {
   position: absolute;
   z-index: 8;
   top: var(--margin-top);
   left: var(--margin-side);
-}
-
-.settings svg {
-  width: 1.1em;
-  height: 1.1em;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 /* Developer mode's pages, under a small title. */

@@ -4,6 +4,7 @@ import { GameMode } from '../../../game/modes/game-mode';
 import { injectBackToMenu } from '../../../ui/back-to-menu';
 import { Candy } from '../../../ui/candy';
 import { ChoiceDialog } from '../../../ui/choice-dialog';
+import { Icon } from '../../../ui/icon';
 import { ReplayButton } from './replay-button';
 
 /**
@@ -21,7 +22,7 @@ import { ReplayButton } from './replay-button';
  */
 @Component({
   selector: 'app-pause',
-  imports: [Candy, ChoiceDialog, ReplayButton],
+  imports: [Candy, ChoiceDialog, Icon, ReplayButton],
   host: { '(document:keydown.escape)': 'escape($event)' },
   template: `
     <app-choice-dialog #dialog heading="Paused" [inReach]="true" (closed)="closed()">
@@ -35,10 +36,7 @@ import { ReplayButton } from './replay-button';
           title="Edit Layout"
           (click)="editLayout()"
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4.5 19.5h4l10-10-4-4-10 10z" />
-            <path d="m12.5 7.5 4 4" />
-          </svg>
+          <app-icon name="edit" />
         </button>
       }
       <button type="button" appCandy="primary" (click)="resume()">Resume</button>

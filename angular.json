@@ -34,6 +34,11 @@
                 "glob": "{LICENSE,files/lexend-latin-wght-normal.woff2}",
                 "input": "node_modules/@fontsource-variable/lexend",
                 "output": "fonts/lexend"
+              },
+              {
+                "glob": "LICENSE",
+                "input": "node_modules/material-symbols",
+                "output": "fonts/material-symbols"
               }
             ],
             "styles": ["src/styles.css"]

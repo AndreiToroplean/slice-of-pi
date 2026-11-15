@@ -99,7 +99,7 @@ describe('menus', () => {
     const { host, chosen, stable } = await setUp();
     const more = button(host, '.more');
     expect(more.getAttribute('type')).toBe('button');
-    expect(more.querySelector('svg')).not.toBeNull();
+    expect(more.querySelector('app-icon')).not.toBeNull();
 
     more.click();
     await stable();

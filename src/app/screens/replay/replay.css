@@ -25,7 +25,6 @@
   right: var(--margin-side);
 }
 
-.back svg,
 .mute .stroke {
   width: 1em;
   height: 1em;

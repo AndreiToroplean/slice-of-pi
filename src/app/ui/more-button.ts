@@ -1,6 +1,7 @@
 import { CdkMenuTrigger } from '@angular/cdk/menu';
 import { Component, inject } from '@angular/core';
 import { MORE_POSITIONS } from './menu';
+import { Icon } from './icon';
 
 /**
  * A ⋮ button opening the menu given to it (an `ng-template` holding an `appDropdown`), with what's in `appMoreData`: a
@@ -18,13 +19,8 @@ import { MORE_POSITIONS } from './menu';
     },
   ],
   host: { type: 'button' },
-  template: `
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="5.5" r="2" />
-      <circle cx="12" cy="12" r="2" />
-      <circle cx="12" cy="18.5" r="2" />
-    </svg>
-  `,
+  imports: [Icon],
+  template: `<app-icon name="more" />`,
   styles: `
     :host {
       display: grid;
@@ -49,10 +45,8 @@ import { MORE_POSITIONS } from './menu';
       outline-offset: -0.1875rem;
     }
 
-    svg {
-      width: 1.25rem;
-      height: 1.25rem;
-      fill: currentColor;
+    app-icon {
+      font-size: 1.25rem;
       filter: drop-shadow(var(--text-shadow));
     }
   `,

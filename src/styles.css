@@ -172,6 +172,16 @@ body {
   font-size: calc(var(--corner-size) / 2.2);
 }
 
+/* Its icon, a little larger than its text, as the symbols leave room around them. */
+.candy.corner app-icon {
+  font-size: 1.3em;
+}
+
+/* On a solid candy button's light face, its icon dark: of a normal grade, rather than one for a dark background. */
+.candy:not(.clear, .danger, [aria-pressed='true']) {
+  --icon-grade: 0;
+}
+
 /* A small frosted pill, such as a button in the top bar of a page. */
 .pill {
   max-width: 10rem;
