@@ -1,13 +1,13 @@
 import { Component, input, output } from '@angular/core';
 import { Candy } from '../../../ui/candy';
+import { Icon } from '../../../ui/icon';
 
 /**
- * The corner button of the pause and game over dialogs that stops the game and replays its run, its icon a circling
- * arrow round a play sign.
+ * The corner button of the pause and game over dialogs that stops the game and replays its run, its icon a strip of film.
  */
 @Component({
   selector: 'app-replay-button',
-  imports: [Candy],
+  imports: [Candy, Icon],
   template: `
     <button
       type="button"
@@ -17,29 +17,12 @@ import { Candy } from '../../../ui/candy';
       [disabled]="disabled()"
       (click)="pressed.emit()"
     >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4.5 12A7.5 7.5 0 1 0 12 4.5M14.5 2 12 4.5 14.5 7" />
-        <path class="play" d="M10.5 9.25 14.75 12l-4.25 2.75z" />
-      </svg>
+      <app-icon name="replay" />
     </button>
   `,
   styles: `
     :host {
       display: grid;
-    }
-
-    svg {
-      width: 1.1em;
-      height: 1.1em;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .play {
-      fill: currentColor;
     }
   `,
 })

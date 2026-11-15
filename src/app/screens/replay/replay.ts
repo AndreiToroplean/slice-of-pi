@@ -16,6 +16,7 @@ import { SoundSetting } from '../../player-data/sound-setting';
 import { Touch } from '../../player-data/touch-log';
 import { injectBackTo } from '../../ui/back-to-menu';
 import { Candy } from '../../ui/candy';
+import { Icon } from '../../ui/icon';
 import { CdkMenuItemRadio } from '@angular/cdk/menu';
 import { Dropdown, MenuTrigger } from '../../ui/menu';
 import { OverlayHost } from '../../ui/overlay-host';
@@ -59,7 +60,7 @@ export const TAIL = 1500;
  */
 @Component({
   selector: 'app-replay',
-  imports: [Candy, CdkMenuItemRadio, Dropdown, MenuTrigger, Play],
+  imports: [Candy, CdkMenuItemRadio, Dropdown, Icon, MenuTrigger, Play],
   providers: [
     { provide: ReplayClock, useFactory: () => new ReplayClock() },
     { provide: TIMER, useExisting: ReplayClock },
@@ -75,7 +76,7 @@ export const TAIL = 1500;
   host: { class: 'screen', '(document:keydown.escape)': 'escape($event)' },
   template: `
     <button type="button" appCandy="clear" class="corner back" title="Back" (click)="back()">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+      <app-icon name="back" />
     </button>
     @let replayed = log();
     @if (replayed !== undefined) {

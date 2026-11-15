@@ -1,6 +1,7 @@
 import { Component, DOCUMENT, inject, input } from '@angular/core';
 import { injectBackToMenu } from './back-to-menu';
 import { Candy } from './candy';
+import { Icon } from './icon';
 import { OverlayHost } from './overlay-host';
 
 /**
@@ -11,14 +12,14 @@ import { OverlayHost } from './overlay-host';
  */
 @Component({
   selector: 'app-page',
-  imports: [Candy],
+  imports: [Candy, Icon],
   hostDirectives: [OverlayHost],
   host: { class: 'screen', '(document:keydown.escape)': 'escape($event)' },
   template: `
     <header class="top-bar">
       @if (canGoBack()) {
         <button type="button" appCandy="clear" class="corner back" title="Back" (click)="back()">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+          <app-icon name="back" />
         </button>
       }
       <h1>{{ heading() }}</h1>

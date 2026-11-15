@@ -3,16 +3,6 @@
   display: contents;
 }
 
-.edit-button svg {
-  width: 1.1em;
-  height: 1.1em;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 /* Two lines, "Continue in" small over the game mode, as tall as a button of one line. */
 .continue {
   --candy-padding-block: 0.25rem;
