@@ -168,6 +168,12 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
     <p class="developer-message" role="status" [class.shown]="taps.shown()">
       {{ taps.message() }}
     </p>
+    <!-- Above the main buttons, on their left, the right kept for another. -->
+    <div class="above-actions">
+      <a appCandy class="corner" routerLink="/leaderboards" title="Leaderboards">
+        <app-icon name="leaderboards" />
+      </a>
+    </div>
     <app-button-list class="actions" [style.gap]="'var(--buttons-gap)'">
       <!-- Each swiped to start from its place, once there's a checkpoint to start from, nudged until one has been. -->
       @let nudge = lit() && !checkpoint.switched();

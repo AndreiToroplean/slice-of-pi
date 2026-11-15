@@ -1,0 +1,114 @@
+:host {
+  /* Each rank's color, and its darker edge, as a candy button's. */
+  --gold: var(--candy-primary);
+  --gold-edge: var(--candy-primary-edge);
+  --silver: #e6e9f2;
+  --silver-edge: #b8bfd3;
+  --bronze: #f0a774;
+  --bronze-edge: #c47440;
+  display: block;
+  min-height: 12rem;
+  /* The steps rise with its height. */
+  container-type: size;
+}
+
+ol {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.625rem;
+}
+
+li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* The best in the middle, the second on its left, the third on its right. */
+.rank-1 {
+  --color: var(--gold);
+  --edge: var(--gold-edge);
+  --rise: 1;
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.rank-2 {
+  --color: var(--silver);
+  --edge: var(--silver-edge);
+  --rise: 0.74;
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.rank-3 {
+  --color: var(--bronze);
+  --edge: var(--bronze-edge);
+  --rise: 0.54;
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.medal {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color);
+  box-shadow: 0 0.1875rem 0 var(--edge);
+  color: var(--ink);
+  font-family: var(--font-digits);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.value {
+  font-family: var(--font-digits);
+  font-size: 2.125rem;
+  font-weight: 600;
+  line-height: 1;
+  text-shadow: var(--text-shadow-large);
+}
+
+.rank-1 .value {
+  font-size: 3rem;
+}
+
+.note {
+  font-size: 0.75rem;
+  text-align: center;
+  text-shadow: var(--text-shadow);
+}
+
+.note:empty {
+  display: none;
+}
+
+/* Its step, as tall as its rank stands, the date its run started at its foot. */
+.step {
+  align-self: stretch;
+  height: calc(var(--rise) * 50cqh);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 0.625rem;
+  box-sizing: border-box;
+  border-radius: 1.125rem 1.125rem 0.375rem 0.375rem;
+  background: var(--color);
+  box-shadow: 0 0.3125rem 0 var(--edge);
+  color: var(--ink);
+  font-size: 0.75rem;
+}
+
+/* A rank no record fills yet: its step, standing empty. */
+.empty {
+  opacity: 0.35;
+}
