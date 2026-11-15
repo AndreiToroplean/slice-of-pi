@@ -47,4 +47,14 @@ describe('Leaderboards', () => {
 
     expect(host.querySelector('app-podium')).toBeNull();
   });
+
+  it('ranks the runs proving the most digits known, with how far they got and their mistakes', async () => {
+    // π's first decimals: 1, 4, 1, 5.
+    const known = typeKeys(['1', '4', '0', 'backspace', '1', '5', '9'], newTouchLog('k', 0));
+    const host = await open([known]);
+    host.querySelector<HTMLElement>('[role="tab"]:nth-of-type(3)')?.click();
+    await vi.waitFor(() => {
+      expect(podium(host)).toEqual(['1 4 reached 5, 1 mistake 1 Jan']);
+    });
+  });
 });

@@ -9,6 +9,7 @@ describe('Fastest', () => {
     startedAt: 0,
     perfect: 0,
     splits,
+    known: { digits: 0, reached: 0, mistakes: 0 },
   });
 
   async function rows(records: RunRecord[]): Promise<string[]> {
