@@ -1,14 +1,14 @@
 import { Component, DOCUMENT, inject, input } from '@angular/core';
 import { injectBackToMenu } from './back-to-menu';
 import { Candy } from './candy';
-import { Icon } from './icon';
+import { Icon, IconName } from './icon';
 import { OverlayHost } from './overlay-host';
 
 /**
  * A page opened from the main menu, scrolling under a frosted top bar that stays at its top: a back button, to the main
- * menu, unless the page can't be left, the page's title, and in the top right corner what is marked `pageAction`, if
- * anything. What else it contains goes under the top bar, in a column. Escape goes back to the main menu too. The menus
- * opened on it open within it.
+ * menu, unless the page can't be left, the page's icon and title, and in the top right corner what is marked
+ * `pageAction`, if anything. What else it contains goes under the top bar, in a column. Escape goes back to the main
+ * menu too. The menus opened on it open within it.
  */
 @Component({
   selector: 'app-page',
@@ -22,7 +22,10 @@ import { OverlayHost } from './overlay-host';
           <app-icon name="back" />
         </button>
       }
-      <h1>{{ heading() }}</h1>
+      <h1>
+        <app-icon [name]="icon()" />
+        {{ heading() }}
+      </h1>
       <div class="actions"><ng-content select="[pageAction]" /></div>
     </header>
     <ng-content />
@@ -32,6 +35,8 @@ import { OverlayHost } from './overlay-host';
 export class Page {
   /** The page's title, in its top bar; not `title`, which the browser would show as a tooltip over the whole page. */
   readonly heading = input.required<string>();
+  /** Its icon, before its title: the same as on the way to it. */
+  readonly icon = input.required<IconName>();
   /** `false` for a page there's no going back from, such as one standing in for another: no back button, nor Escape. */
   readonly canGoBack = input(true);
   protected readonly back = injectBackToMenu();

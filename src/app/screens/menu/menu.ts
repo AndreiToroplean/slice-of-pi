@@ -208,19 +208,33 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
           <div appDropdown aria-labelledby="developer-title">
             <div cdkMenuGroup class="section">
               <h2 id="developer-title">Developer</h2>
-              <a cdkMenuItem routerLink="/runs">Your Runs</a>
-              <a cdkMenuItem routerLink="/developer/break-models">Break Models</a>
-              <a cdkMenuItem routerLink="/developer/sound-models">Sound Models</a>
-              <a cdkMenuItem routerLink="/developer/key-colors">Key Colors</a>
-              <a cdkMenuItem routerLink="/developer/background-colors">Background Colors</a>
-              <a cdkMenuItem routerLink="/developer/vibrations">Vibrations</a>
-              <a cdkMenuItem routerLink="/developer/transitions">Transitions</a>
+              <a cdkMenuItem routerLink="/runs"><app-icon name="runs" />Your Runs</a>
+              <a cdkMenuItem routerLink="/developer/break-models"
+                ><app-icon name="breakModels" />Break Models</a
+              >
+              <a cdkMenuItem routerLink="/developer/sound-models"
+                ><app-icon name="soundModels" />Sound Models</a
+              >
+              <a cdkMenuItem routerLink="/developer/key-colors"
+                ><app-icon name="keyColors" />Key Colors</a
+              >
+              <a cdkMenuItem routerLink="/developer/background-colors"
+                ><app-icon name="backgroundColors" />Background Colors</a
+              >
+              <a cdkMenuItem routerLink="/developer/vibrations"
+                ><app-icon name="vibrations" />Vibrations</a
+              >
+              <a cdkMenuItem routerLink="/developer/transitions"
+                ><app-icon name="transitions" />Transitions</a
+              >
               <!-- The pages above, an action below. -->
               <hr />
               <button cdkMenuItem type="button" (cdkMenuItemTriggered)="edit()">
-                Edit Main Menu
+                <app-icon name="edit" />Edit Main Menu
               </button>
-              <button cdkMenuItem type="button" (cdkMenuItemTriggered)="reload()">Reload</button>
+              <button cdkMenuItem type="button" (cdkMenuItemTriggered)="reload()">
+                <app-icon name="reload" />Reload
+              </button>
             </div>
           </div>
         </ng-template>

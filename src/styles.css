@@ -625,6 +625,11 @@ html:active-view-transition-type(zoom-out) {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* A menu item's icon, before its name. */
+.dropdown app-icon {
+  margin-inline-end: 0.6em;
+}
+
 .dropdown [aria-disabled='true'] {
   opacity: 0.5;
   cursor: default;

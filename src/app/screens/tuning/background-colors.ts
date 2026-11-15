@@ -53,7 +53,7 @@ type Owner = Season | 'menu';
     SeasonHeader,
   ],
   template: `
-    <app-page heading="Background Colors">
+    <app-page heading="Background Colors" icon="backgroundColors">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
         Reset All
       </button>

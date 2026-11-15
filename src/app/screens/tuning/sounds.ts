@@ -102,7 +102,7 @@ export function* song(
   selector: 'app-sounds',
   imports: [Candy, CopyValues, Page, Segmented, Slider, SoundLog],
   template: `
-    <app-page heading="Sound Models">
+    <app-page heading="Sound Models" icon="soundModels">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
         Reset All
       </button>

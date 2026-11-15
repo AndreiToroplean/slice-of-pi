@@ -75,7 +75,7 @@ import { TIMES, TimesView } from '../your-runs/times-view';
   ],
   providers: [RunsState],
   template: `
-    <app-page heading="Break Models">
+    <app-page heading="Break Models" icon="breakModels">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
         Reset All
       </button>

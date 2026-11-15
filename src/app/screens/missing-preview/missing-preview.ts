@@ -24,7 +24,7 @@ export const OPEN_PAGE = new InjectionToken<(url: string) => void>('OPEN_PAGE', 
   selector: 'app-missing-preview',
   imports: [Page],
   template: `
-    <app-page heading="Preview" [canGoBack]="false">
+    <app-page heading="Preview" icon="missingPreview" [canGoBack]="false">
       @if (missing()) {
         <section class="panel">
           <p>The preview of pull request #{{ pr }} isn't built yet.</p>
