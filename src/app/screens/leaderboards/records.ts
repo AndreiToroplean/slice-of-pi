@@ -15,6 +15,11 @@ export interface RunRecord {
    * or its first backspace, which only a mistake is worth.
    */
   readonly perfect: number;
+  /**
+   * Its split times: how long its perfect run took to reach each split place it reached (see {@link splitPlace}), in
+   * order, in milliseconds from its first digit.
+   */
+  readonly splits: readonly number[];
 }
 
 /** One record on a leaderboard: the run that set it, when, and its value. */
@@ -34,7 +39,8 @@ export function recordOf(log: TouchLog): RunRecord | undefined {
     return undefined;
   }
   let perfect = 0;
-  for (const { key } of log.touches) {
+  const splits: number[] = [];
+  for (const { key, time } of log.touches) {
     if (key === null) {
       continue;
     }
@@ -42,8 +48,11 @@ export function recordOf(log: TouchLog): RunRecord | undefined {
       break;
     }
     perfect++;
+    if (perfect === splitPlace(splits.length)) {
+      splits.push(time);
+    }
   }
-  return { id: log.id, startedAt: log.startedAt, perfect };
+  return { id: log.id, startedAt: log.startedAt, perfect, splits };
 }
 
 /** The records of the runs that count on the leaderboards (see {@link recordOf}). */
