@@ -153,7 +153,7 @@ app-start-from {
   line-height: 1.2;
 }
 
-/* What sits above the main buttons, as wide as they are, on their left. */
+/* What sits above the main buttons, as wide as they are, at either end. */
 .above-actions {
   position: absolute;
   z-index: 7;
@@ -162,6 +162,30 @@ app-start-from {
   translate: -50% 0;
   width: min(100% - 2 * (var(--margin-side) + var(--margin)), var(--buttons-width));
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/*
+ * The player's record, on the leaderboards' row, at its other end, the one clear of the title: a gold medal and the
+ * place, in the digits' font.
+ */
+.record {
+  display: flex;
+  align-items: center;
+  gap: 0.15em;
+  margin: 0;
+  font-family: var(--font-digits);
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1;
+  text-shadow: var(--text-shadow-large);
+
+  & app-icon {
+    font-size: 1.2em;
+    color: var(--candy-primary);
+    filter: drop-shadow(var(--text-shadow));
+  }
 }
 
 /* The developer pages' menu button, in the top right corner, the menu it opens within it. */
