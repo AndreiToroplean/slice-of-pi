@@ -142,10 +142,13 @@ describe('Menu', () => {
     expect(TestBed.inject(Background).colors()).toEqual(['#000000', '#ffffff']);
   });
 
-  it('leads to the settings', async () => {
+  it('leads to the settings and the leaderboards', async () => {
     const host = await setUp();
 
     expect(host.querySelector('a[title="Settings"]')?.getAttribute('href')).toBe('/settings');
+    expect(host.querySelector('a[title="Leaderboards"]')?.getAttribute('href')).toBe(
+      '/leaderboards',
+    );
   });
 
   it('shows even when its icon fails to load', async () => {
@@ -274,10 +277,13 @@ describe('Menu', () => {
       await shown();
 
       press('ArrowLeft');
+      expect(focused()).toBe('Leaderboards');
+      press('ArrowLeft');
       expect(focused()).toBe('Slice of Pi');
       press('ArrowLeft');
       expect(focused()).toBe('Settings');
       expect(press('ArrowLeft').defaultPrevented).toBe(false);
+      press('ArrowRight');
       press('ArrowRight');
       press('ArrowRight');
       expect(focused()).toBe('Challenge');
@@ -285,7 +291,7 @@ describe('Menu', () => {
       expect(press('ArrowRight').defaultPrevented).toBe(false);
       expect(focused()).toBe('Free Play');
       press('ArrowLeft');
-      expect(focused()).toBe('Slice of Pi');
+      expect(focused()).toBe('Leaderboards');
     });
   });
 

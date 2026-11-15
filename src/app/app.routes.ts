@@ -29,6 +29,10 @@ export const routes: Routes = [
     canDeactivate: [pauseOnBack],
   },
   {
+    path: 'leaderboards',
+    loadComponent: () => import('./screens/leaderboards/leaderboards').then((m) => m.Leaderboards),
+  },
+  {
     path: 'runs',
     loadComponent: () => import('./screens/your-runs/your-runs').then((m) => m.YourRuns),
   },
