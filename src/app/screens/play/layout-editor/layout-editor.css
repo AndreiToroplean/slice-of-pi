@@ -28,16 +28,24 @@
   gap: var(--space-1);
 }
 
-/* As tall as the others, its icon as large as their text is tall. */
-.preview svg {
-  display: block;
-  width: 1.25em;
-  height: 1.25em;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+/* As tall as the others, its icon as tall as a line of their text. */
+.preview app-icon {
+  font-size: 1.2em;
+  margin: 0;
+}
+
+/* The buttons but the preview's, laid out as if they were the actions themselves. */
+.others {
+  display: contents;
+}
+
+/* Previewing, the preview button alone shows, faint, for the screen to show as in the game, until it's tapped again. */
+.previewing .others {
+  visibility: hidden;
+}
+
+.previewing .preview {
+  opacity: 0.35;
 }
 
 .inspector {

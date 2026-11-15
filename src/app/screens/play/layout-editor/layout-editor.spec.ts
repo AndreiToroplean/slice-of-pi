@@ -198,21 +198,24 @@ describe('LayoutEditor', () => {
     expect(button(host, 'Reset')?.disabled).toBe(true);
   });
 
-  it('hides the handles while previewing, as a toggle, and shows them again', async () => {
+  it('hides the handles and its other buttons while previewing, as a toggle, and shows them again', async () => {
     const { host, stable } = await setUp();
     const preview = host.querySelector<HTMLButtonElement>('button[title="Preview"]');
+    /** Whether its other buttons, Done among them, are out of reach. */
+    const othersAway = (): boolean => button(host, 'Done')?.closest('[inert]') != null;
     expect(preview?.getAttribute('aria-pressed')).toBe('false');
 
     preview?.click();
     await stable();
     expect(preview?.getAttribute('aria-pressed')).toBe('true');
     expect(host.querySelector('[role="slider"]')).toBeNull();
-    expect(button(host, 'Done')).toBeDefined();
+    expect(othersAway()).toBe(true);
 
     preview?.click();
     await stable();
     expect(preview?.getAttribute('aria-pressed')).toBe('false');
     expect(host.querySelectorAll('[role="slider"]').length).toBe(5);
+    expect(othersAway()).toBe(false);
   });
 
   it('tunes the Discovery Halo in Discovery, its core, the knobs of its light and its color, kept as a tweak until reset', async () => {

@@ -214,18 +214,22 @@ describe('MenuEditor', () => {
     expect(button(host, 'Reset')?.disabled).toBe(true);
   });
 
-  it('hides its handles while previewing, and shows them again', async () => {
+  it('hides its handles and its other buttons while previewing, and shows them again', async () => {
     const { host, stable } = await setUp();
     const preview = host.querySelector<HTMLButtonElement>('button[title="Preview"]');
+    /** Whether its other buttons, Done among them, are out of reach. */
+    const othersAway = (): boolean => button(host, 'Done')?.closest('[inert]') != null;
 
     preview?.click();
     await stable();
     expect(sliders(host)).toEqual([]);
     expect(host.querySelector('app-parts')?.classList).toContain('unseen');
+    expect(othersAway()).toBe(true);
 
     preview?.click();
     await stable();
     expect(sliders(host)).toContain('Top margin');
+    expect(othersAway()).toBe(false);
   });
 
   it('stops previewing on a tap on a part, picking it out', async () => {
