@@ -20,6 +20,19 @@ export interface RunRecord {
    * order, in milliseconds from its first digit.
    */
   readonly splits: readonly number[];
+  /**
+   * How many digits of π it proves the player knows, mistakes counted (see {@link knownOf}), and how far it got, and
+   * with how many mistakes.
+   */
+  readonly known: Known;
+}
+
+/** How many digits of π a run proves the player knows, how far it got, and with how many mistakes. */
+export interface Known {
+  readonly digits: number;
+  /** The farthest place it reached, typing right. */
+  readonly reached: number;
+  readonly mistakes: number;
 }
 
 /** One record on a leaderboard: the run that set it, when, and its value. */
@@ -52,7 +65,56 @@ export function recordOf(log: TouchLog): RunRecord | undefined {
       splits.push(time);
     }
   }
-  return { id: log.id, startedAt: log.startedAt, perfect, splits };
+  return { id: log.id, startedAt: log.startedAt, perfect, splits, known: knownOf(log) };
+}
+
+/**
+ * How many digits of π a run proves the player knows, mistakes counted: how much likelier their typing is if they know
+ * π than if they guessed, in decimal digits. Each place counts the different digits tried there, however many times
+ * backspace takes the player back to it, the right one included: one typed right as the t-th proves 1 − log₁₀ t, 1 on
+ * the first try, nothing on the tenth, which guessing would get to anyway. Typing a digit again counts nothing more,
+ * right or wrong. Its mistakes are the wrong digits tried at the places it then typed right: those it ends on, never
+ * typed right, are where it stopped, not mistakes. As the game checks each digit, any typed after a wrong one are
+ * neither tries nor mistakes, until backspace deletes them.
+ */
+export function knownOf(log: TouchLog): Known {
+  let place = 0;
+  let pending = 0;
+  let digits = 0;
+  let reached = 0;
+  const tried: Set<string>[] = [];
+  for (const { key } of log.touches) {
+    if (key === null) {
+      continue;
+    }
+    if (key === 'backspace') {
+      if (pending > 0) {
+        pending--;
+      } else if (place > 0) {
+        place--;
+      }
+      continue;
+    }
+    if (pending > 0) {
+      pending++;
+      continue;
+    }
+    const triedHere = (tried[place] ??= new Set());
+    const right = isPiDecimal(place, key);
+    if (right && !triedHere.has(key)) {
+      digits += 1 - Math.log10(triedHere.size + 1);
+    }
+    triedHere.add(key);
+    if (right) {
+      place++;
+      reached = Math.max(reached, place);
+    } else {
+      pending = 1;
+    }
+  }
+  // The places typed right, before the farthest it got, each hold their right digit and their mistakes.
+  const mistakes = tried.slice(0, reached).reduce((sum, here) => sum + here.size - 1, 0);
+  return { digits, reached, mistakes };
 }
 
 /** The records of the runs that count on the leaderboards (see {@link recordOf}). */
