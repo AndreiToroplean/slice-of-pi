@@ -216,13 +216,19 @@ app-start-from {
   text-shadow: var(--text-shadow);
 }
 
-/* What developer mode's secret taps say, above the title, without covering it. */
+/*
+ * What developer mode's secret taps say: in the middle of the room above the icon tapped, from the top of the screen to
+ * the icon's, between the corner buttons, without covering any of them.
+ */
 .developer-message {
   position: absolute;
   z-index: 9;
-  top: 16vh;
-  left: var(--space-3);
-  right: var(--space-3);
+  top: 0;
+  bottom: calc(var(--icon-y) + var(--icon-size) / 2);
+  left: calc(var(--margin-side) + var(--corner-size) + var(--space-2));
+  right: calc(var(--margin-side) + var(--corner-size) + var(--space-2));
+  display: grid;
+  align-content: center;
   margin: 0 auto;
   max-width: 16rem;
   text-align: center;
