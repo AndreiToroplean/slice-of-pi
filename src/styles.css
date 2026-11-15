@@ -172,6 +172,21 @@ body {
   font-size: calc(var(--corner-size) / 2.2);
 }
 
+/*
+ * A candy button's icon, before what it says: a little larger than its text, as the symbols leave room around them, yet
+ * no taller than a line of it, centered on it, so that the button is as tall with it as without.
+ */
+.candy:not(.corner) > .content:has(> app-icon) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.candy:not(.corner) app-icon {
+  font-size: 1.15em;
+  margin-inline-end: 0.3em;
+}
+
 /* Its icon, a little larger than its text, as the symbols leave room around them. */
 .candy.corner app-icon {
   font-size: 1.3em;

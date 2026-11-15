@@ -39,14 +39,24 @@ import { ReplayButton } from './replay-button';
           <app-icon name="edit" />
         </button>
       }
-      <button type="button" appCandy="primary" (click)="resume()">Resume</button>
-      <button type="button" appCandy (click)="restart.emit(); resume()">Restart</button>
+      <button type="button" appCandy="primary" (click)="resume()">
+        <app-icon name="resume" />Resume
+      </button>
+      <button type="button" appCandy (click)="restart.emit(); resume()">
+        <app-icon name="restart" />Restart
+      </button>
       @if (mode() === 'free') {
         <button type="button" appCandy class="continue" (click)="continueInDiscovery()">
-          <span class="continue-in">Continue in</span> Discovery
+          <span class="beside"
+            ><app-icon name="discovery" /><span
+              ><span class="continue-in">Continue in</span> Discovery</span
+            ></span
+          >
         </button>
       }
-      <button type="button" appCandy="danger" (click)="void endGame()">End Game</button>
+      <button type="button" appCandy="danger" (click)="void endGame()">
+        <app-icon name="end" />End Game
+      </button>
     </app-choice-dialog>
     <app-choice-dialog
       #overDialog
@@ -56,19 +66,31 @@ import { ReplayButton } from './replay-button';
       (closed)="closed()"
     >
       <app-replay-button cornerStart [disabled]="!replayable()" (pressed)="void stopAndReplay()" />
-      <button type="button" appCandy="primary" (click)="playAgain()">Play Again</button>
+      <button type="button" appCandy="primary" (click)="playAgain()">
+        <app-icon name="restart" />Play Again
+      </button>
       <!-- Only on to a game mode asking less of the player: from a challenge, to free play or Discovery. -->
       @if (mode() === 'challenge') {
         <div buttonRow>
           <button type="button" appCandy class="continue" (click)="continueInFreePlay()">
-            <span class="continue-in">Continue in</span> Free Play
+            <span class="beside"
+              ><app-icon name="free" /><span
+                ><span class="continue-in">Continue in</span> Free Play</span
+              ></span
+            >
           </button>
           <button type="button" appCandy class="continue" (click)="continueInDiscovery()">
-            <span class="continue-in">Continue in</span> Discovery
+            <span class="beside"
+              ><app-icon name="discovery" /><span
+                ><span class="continue-in">Continue in</span> Discovery</span
+              ></span
+            >
           </button>
         </div>
       }
-      <button type="button" appCandy (click)="void endGame()">Main Menu</button>
+      <button type="button" appCandy (click)="void endGame()">
+        <app-icon name="menu" />Main Menu
+      </button>
     </app-choice-dialog>
     <app-choice-dialog #replayDialog heading="Watch the Replay?" [inReach]="true">
       <p>Your game ends here: you won’t be able to resume it.</p>

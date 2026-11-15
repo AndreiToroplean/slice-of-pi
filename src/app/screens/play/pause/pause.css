@@ -3,13 +3,30 @@
   display: contents;
 }
 
-/* Two lines, "Continue in" small over the game mode, as tall as a button of one line. */
+/*
+ * Two lines, "Continue in" small over the game mode, as tall as a button of one line, beside the game mode's icon,
+ * centered on both: a little smaller than other buttons' text, to fit two side by side on a small phone.
+ */
 .continue {
   --candy-padding-block: 0.25rem;
+  --candy-padding-inline: 0.5rem;
+  --candy-font-size: 1rem;
+}
+
+.beside {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: left;
+
+  & app-icon {
+    font-size: 1.3em;
+    margin-inline-end: 0.25em;
+  }
 }
 
 .continue-in {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   line-height: 1rem;
 }
