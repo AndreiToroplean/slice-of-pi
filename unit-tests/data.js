@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794697355184,
+  "lastUpdate": 1794783898665,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -4038,6 +4038,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 860,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "f944fc819bb4643fc8275bde6540e13bc64f3461",
+          "message": "feat: leave only a faint preview button while an editor previews\n\n- In both editors, the main menu's and the play screen's, previewing hides the other buttons, Cancel, Reset, Copy and Done, keeping their places, so the screen shows as in the game; the preview button stays, at 35%, to bring them back\n- The preview button's eye comes from the icon font too\n\nClaude-Session: https://claude.ai/code/session_01X1XesqdRcJcQRb9RKhY8D2",
+          "timestamp": "2026-11-16T00:04:35+01:00",
+          "tree_id": "2348be1cbb1d71974d90a391a52fadf79814df6a",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/f944fc819bb4643fc8275bde6540e13bc64f3461"
+        },
+        "date": 1794783898001,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 10701,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 23172,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 718,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
