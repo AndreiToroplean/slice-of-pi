@@ -16,6 +16,7 @@ import { GameMode } from '../../game/modes/game-mode';
 import { Candy, CandyLook } from '../../ui/candy';
 import { CandyGroup } from '../../ui/candy-group';
 import { breatheEvenly } from '../../ui/breath';
+import { Icon } from '../../ui/icon';
 import { Spinner } from '../../ui/spinner';
 
 /** How far a nudge shows the place in, in CSS pixels, before it goes back. */
@@ -41,7 +42,7 @@ export const SWIPE_WAIT = 100;
  */
 @Component({
   selector: 'app-start-from',
-  imports: [Candy, CandyGroup, RouterLink, Spinner],
+  imports: [Icon, Candy, CandyGroup, RouterLink, Spinner],
   host: { '[class.unlocked]': 'unlocked()' },
   template: `
     @if (unlocked()) {
@@ -68,7 +69,8 @@ export const SWIPE_WAIT = 100;
               [pressed]="link.held()"
               [swipeWait]="swipeWait"
               data-vibration="play"
-              >{{ name() }}<span class="visually-hidden">{{ from() ? ' from' : '' }}</span></a
+              ><app-icon [name]="mode()" />{{ name()
+              }}<span class="visually-hidden">{{ from() ? ' from' : '' }}</span></a
             >
             <!--
               Pressed anywhere, its arrow or its spinner, but for a drag of it, which says it isn't a press (see \`Spinner\`),
@@ -105,7 +107,9 @@ export const SWIPE_WAIT = 100;
         </div>
       </div>
     } @else {
-      <a [appCandy]="look()" [routerLink]="path()" data-vibration="play">{{ name() }}</a>
+      <a [appCandy]="look()" [routerLink]="path()" data-vibration="play"
+        ><app-icon [name]="mode()" />{{ name() }}</a
+      >
     }
   `,
   styles: `
