@@ -50,7 +50,7 @@ import { YourData } from './your-data';
   selector: 'app-settings',
   imports: [ButtonList, Candy, ChoiceDialog, Page, Segmented, Slider, Spinner, YourData],
   template: `
-    <app-page heading="Settings">
+    <app-page heading="Settings" icon="settings">
       <button
         pageAction
         type="button"

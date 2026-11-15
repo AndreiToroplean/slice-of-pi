@@ -20,7 +20,7 @@ import { MAX_TURN_SWITCH, TURN_SWITCH } from '../play/turn-shown';
   selector: 'app-transitions',
   imports: [Candy, CopyValues, Page, Slider],
   template: `
-    <app-page heading="Transitions">
+    <app-page heading="Transitions" icon="transitions">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
         Reset All
       </button>

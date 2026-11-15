@@ -52,7 +52,7 @@ interface StepRef {
   selector: 'app-vibrations',
   imports: [Candy, CopyValues, Page, Slider],
   template: `
-    <app-page heading="Vibrations">
+    <app-page heading="Vibrations" icon="vibrations">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="resetAll()">
         Reset All
       </button>

@@ -46,7 +46,7 @@ type KeysTab = 'digits' | 'actions';
   selector: 'app-key-colors',
   imports: [Candy, ColorPicker, CopyValues, Page, Segmented, TabPanel, TabPanels],
   template: `
-    <app-page heading="Key Colors">
+    <app-page heading="Key Colors" icon="keyColors">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
         Reset All
       </button>

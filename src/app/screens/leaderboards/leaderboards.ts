@@ -28,7 +28,7 @@ const BOARDS: readonly Segment<Board>[] = [
   selector: 'app-leaderboards',
   imports: [Fastest, NextGoal, Page, Podium, Segmented, TabPanel, TabPanels],
   template: `
-    <app-page heading="Leaderboards">
+    <app-page heading="Leaderboards" icon="leaderboards">
       <app-segmented
         label="Leaderboards"
         panels="board"

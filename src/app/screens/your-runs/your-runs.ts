@@ -37,7 +37,7 @@ import { Key, Range } from './views/plot';
   ],
   providers: [RunsState],
   template: `
-    <app-page heading="Your Runs">
+    <app-page heading="Your Runs" icon="runs">
       <button
         pageAction
         type="button"

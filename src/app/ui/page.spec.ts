@@ -6,13 +6,13 @@ import { Page } from './page';
 
 @Component({
   imports: [Page],
-  template: `<app-page heading="A page"><dialog>A dialog</dialog></app-page>`,
+  template: `<app-page heading="A page" icon="settings"><dialog>A dialog</dialog></app-page>`,
 })
 class APage {}
 
 @Component({
   imports: [Page],
-  template: `<app-page heading="A page for good" [canGoBack]="false" />`,
+  template: `<app-page heading="A page for good" icon="settings" [canGoBack]="false" />`,
 })
 class APageForGood {}
 
@@ -43,7 +43,8 @@ describe('Page', () => {
     const { harness, host } = await setUp();
     const back = host?.querySelector<HTMLButtonElement>('button[title="Back"]');
 
-    expect(host?.querySelector('h1')?.textContent).toBe('A page');
+    expect(host?.querySelector('h1')?.textContent.trim()).toBe('A page');
+    expect(host?.querySelector<HTMLElement>('h1 app-icon')?.dataset['symbol']).toBe('settings');
     expect(host?.querySelector('app-page')?.hasAttribute('title')).toBe(false);
     back?.click();
     await harness.fixture.whenStable();

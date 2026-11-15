@@ -49,3 +49,7 @@ h1 {
   font-weight: 600;
   text-shadow: var(--text-shadow-large);
 }
+
+h1 app-icon {
+  margin-inline-end: 0.3em;
+}
