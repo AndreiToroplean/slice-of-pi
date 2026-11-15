@@ -144,7 +144,14 @@ export class FakeAudio {
           audio.state = 'running';
         }),
       destination: node(),
-      createDynamicsCompressor: () => node(),
+      createDynamicsCompressor: () => ({
+        ...node(),
+        threshold: param(),
+        knee: param(),
+        ratio: param(),
+        attack: param(),
+        release: param(),
+      }),
       createGain: () => ({ ...node(), gain: param() }),
       createOscillator: () => {
         const oscillator = { ...node(), frequency: { value: 0 } };

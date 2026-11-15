@@ -40,8 +40,17 @@ const FLOOR = 0.001;
  * scheduled to, ending as much later (see {@link envelopeCurve}): longer than the audio is ever late.
  */
 const TAIL = 0.1;
-/** How loud a single note at full volume is, so that a chord with its melody doesn't clip. */
-const HEADROOM = 0.15;
+/**
+ * How loud a single note at full volume is, as a share of the loudest the phone plays: as loud as it can be, so that the
+ * phone's volume goes as far as it can, with room for a chord with its melody, and the {@link LIMITER} for the rest.
+ */
+const HEADROOM = 0.25;
+/**
+ * The limiter all sound goes through: it lets notes through as they are, and only turns the loudest moments down, as
+ * chords pile up, to just under the loudest the phone plays, so they don't clip. Its attack and release are short, so
+ * that it lets go before the next key: a compressor's slower ones turn down the notes after a loud chord too.
+ */
+const LIMITER = { threshold: -3, knee: 0, ratio: 20, attack: 0.002, release: 0.1 } as const;
 /** The frequency the {@link SoundMix.lows} count octaves down from, in hertz: 1 kHz, as loudness is measured from. */
 const LOUDNESS_REFERENCE = 1000;
 /** How loud the buzz of a sour note is at its fullest, next to the note: a square wave is loud for its volume. */
@@ -255,9 +264,14 @@ export class Speaker {
     if (this.context === undefined) {
       this.context = this.createContext();
       if (this.context !== undefined) {
-        const compressor = this.context.createDynamicsCompressor();
-        compressor.connect(this.context.destination);
-        this.output = compressor;
+        const limiter = this.context.createDynamicsCompressor();
+        limiter.threshold.value = LIMITER.threshold;
+        limiter.knee.value = LIMITER.knee;
+        limiter.ratio.value = LIMITER.ratio;
+        limiter.attack.value = LIMITER.attack;
+        limiter.release.value = LIMITER.release;
+        limiter.connect(this.context.destination);
+        this.output = limiter;
       }
     }
     if (this.context === undefined) {
