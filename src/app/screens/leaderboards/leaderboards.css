@@ -15,7 +15,8 @@ app-page {
   gap: var(--space-3);
 }
 
-app-podium {
+app-podium,
+app-fastest {
   flex: 1;
 }
 

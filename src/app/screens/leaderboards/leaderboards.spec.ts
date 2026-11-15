@@ -37,4 +37,14 @@ describe('Leaderboards', () => {
     expect(host.querySelector('app-next-goal')?.textContent).toContain('Next: 50');
     expect(host.querySelector('app-next-goal')?.textContent).toContain('9 to go');
   });
+
+  it('shows the fastest perfect runs on their own tab', async () => {
+    const host = await open([run('a', 3, 30)]);
+    host.querySelector<HTMLElement>('[role="tab"]:nth-of-type(2)')?.click();
+    await vi.waitFor(() => {
+      expect(host.querySelector('app-fastest li')?.textContent).toContain('2.4 s');
+    });
+
+    expect(host.querySelector('app-podium')).toBeNull();
+  });
 });

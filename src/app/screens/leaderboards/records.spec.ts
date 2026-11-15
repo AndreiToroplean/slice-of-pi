@@ -4,6 +4,12 @@ import { nextSplitPlace, podium, recordOf, recordsOf, RunRecord, splitPlace } fr
 
 describe('records', () => {
   describe('a perfect run', () => {
+    it('times each split place it reaches, from its first digit', () => {
+      const log = typed([...decimals(60), '0', ...decimals(50)]);
+
+      expect(recordOf(log)?.splits).toEqual([2_400, 4_900]);
+    });
+
     it('reaches the place of the first mistake', () => {
       expect(recordOf(typed([...decimals(5), '0', ...decimals(3)]))?.perfect).toBe(5);
     });
@@ -29,7 +35,7 @@ describe('records', () => {
     );
 
     expect(recordsOf([fromCheckpoint, unchecked, discovery, typed(['1'])])).toEqual([
-      { id: 'run', startedAt: 1_000, perfect: 1 },
+      { id: 'run', startedAt: 1_000, perfect: 1, splits: [] },
     ]);
   });
 
@@ -38,6 +44,7 @@ describe('records', () => {
       id,
       startedAt,
       perfect,
+      splits: [],
     });
     const records = [record('a', 1, 10), record('b', 2, 30), record('c', 3, 0), record('d', 4, 20)];
     const valued = (record: RunRecord): number | undefined => record.perfect || undefined;
