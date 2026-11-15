@@ -18,6 +18,7 @@ import { Tweaks } from '../../../developer-mode/tweaks';
 import { Layout, LAYOUT } from '../../../ui/layout';
 import { ChoiceDialog } from '../../../ui/choice-dialog';
 import { Candy } from '../../../ui/candy';
+import { Icon } from '../../../ui/icon';
 import { CopyValues } from '../../tuning/copy-values';
 import { LAYOUT_HANDLES } from './layout-handles';
 import { lightCore, LightOf, lightKnobs, Point } from '../../../ui/handles/light-handles';
@@ -101,7 +102,7 @@ const PAGE_HANDLES = [
  */
 @Component({
   selector: 'app-layout-editor',
-  imports: [Candy, ChoiceDialog, ColorPicker, CopyValues, Handles, Parts],
+  imports: [Icon, Candy, ChoiceDialog, ColorPicker, CopyValues, Handles, Parts],
   host: {
     '(document:keydown.escape)': 'escape($event)',
     '(click)': 'unpick($event)',
@@ -121,7 +122,7 @@ const PAGE_HANDLES = [
       <app-handles [handles]="handles()" (released)="save()" />
     }
     <div class="top">
-      <div class="actions">
+      <div class="actions" [class.previewing]="previewing()">
         <button
           type="button"
           appCandy
@@ -130,19 +131,19 @@ const PAGE_HANDLES = [
           [attr.aria-pressed]="previewing()"
           (click)="previewing.set(!previewing())"
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
+          <app-icon name="preview" />
         </button>
-        <button type="button" appCandy="danger" aria-haspopup="dialog" (click)="askToCancel()">
-          Cancel
-        </button>
-        <button type="button" appCandy="danger" [disabled]="untuned()" (click)="reset()">
-          Reset
-        </button>
-        <app-copy-values label="Copy" [values]="{ layout: layout(), discoveryHalo: halo() }" />
-        <button type="button" appCandy="primary" (click)="done.emit()">Done</button>
+        <!-- Previewing, only the preview button shows, faint, the others there unseen, keeping their places. -->
+        <div class="others" [attr.inert]="previewing() ? '' : null">
+          <button type="button" appCandy="danger" aria-haspopup="dialog" (click)="askToCancel()">
+            Cancel
+          </button>
+          <button type="button" appCandy="danger" [disabled]="untuned()" (click)="reset()">
+            Reset
+          </button>
+          <app-copy-values label="Copy" [values]="{ layout: layout(), discoveryHalo: halo() }" />
+          <button type="button" appCandy="primary" (click)="done.emit()">Done</button>
+        </div>
       </div>
       @if (haloAt() !== undefined && !previewing()) {
         <button
