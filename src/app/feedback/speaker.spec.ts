@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { INDEXED_DB } from '../player-data/run-store';
 import { SoundSetting } from '../player-data/sound-setting';
 import { FakeAudio } from '../../testing/fake-audio';
-import { envelopeCurve, mixedGain, Speaker } from './speaker';
+import { envelopeCurve, mixedGain, partialLevels, PARTIALS, Speaker } from './speaker';
 import { SOURING } from './souring';
 import { DeveloperMode } from '../developer-mode/developer-mode';
 import { Tweaks } from '../developer-mode/tweaks';
@@ -62,7 +62,7 @@ describe('Speaker', () => {
   });
 
   it("mixes a key's chords at the chords' volume, and all of a landing at the landings'", () => {
-    const mix = { chords: 0.5, landings: 0.2 };
+    const mix = { chords: 0.5, landings: 0.2, lows: 0, brightness: 0 };
     const melody = { pitch: 60, gain: 0.8, length: 1 };
     const chord = { ...melody, accompaniment: true as const };
 
@@ -70,6 +70,22 @@ describe('Speaker', () => {
     expect(mixedGain(chord, 'key', mix)).toBeCloseTo(0.4);
     expect(mixedGain(melody, 'landing', mix)).toBeCloseTo(0.16);
     expect(mixedGain(chord, 'landing', mix)).toBeCloseTo(0.16);
+  });
+
+  it('plays notes under 1 kHz louder by the lows for each octave under it, and those over it as they are', () => {
+    const mix = { chords: 1, landings: 1, lows: 6, brightness: 0 };
+    const gain = (pitch: number): number => mixedGain({ pitch, gain: 0.5, length: 1 }, 'key', mix);
+
+    // A4, 440 Hz, is about 1.18 octaves under 1 kHz; A3 an octave further.
+    expect(gain(57) / gain(69)).toBeCloseTo(2);
+    expect(gain(69)).toBeCloseTo(0.5 * 2 ** Math.log2(1000 / 440));
+    expect(gain(96)).toBeCloseTo(0.5);
+  });
+
+  it("makes a plain pluck's partials each as loud as the brightness next to the one under it, leaving out the unheard", () => {
+    expect(partialLevels(undefined, 0.5)).toEqual([1, 0.5, 0.25, 0.125, 0.0625, 0.03125]);
+    expect(partialLevels(undefined, 0.12).filter((level) => level > 0)).toHaveLength(3);
+    expect(partialLevels(undefined, 0)).toEqual([1, ...Array<number>(PARTIALS - 1).fill(0)]);
   });
 
   it('makes its audio context once, as it first plays', () => {

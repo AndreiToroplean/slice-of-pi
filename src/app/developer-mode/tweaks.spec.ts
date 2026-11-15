@@ -532,7 +532,7 @@ describe('Tweaks', () => {
 
   it('turns words landing silently, as stored before, into landings at 0 in the mix', () => {
     expect(parseTweaks({ format: 3, landings: false, sound: { chords: 0.4 } })).toEqual({
-      sound: { chords: 0.4, landings: 0 },
+      sound: { ...SOUND_MIX, chords: 0.4, landings: 0 },
     });
     expect(parseTweaks({ format: 3, landings: false })).toEqual({
       sound: { ...SOUND_MIX, landings: 0 },
