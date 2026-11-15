@@ -23,8 +23,8 @@ export const AUDIO = new InjectionToken<() => AudioContext | undefined>('AUDIO',
 
 /** How many partials a note has: its frequency, and as many times it as their rank. */
 export const PARTIALS = 6;
-/** How faint a partial may be next to the fundamental and still play: -40 dB, under which the louder ones hide it. */
-const FAINTEST = 0.01;
+/** The partials of a plain soft pluck, like a kalimba's, by rank, from the fundamental. */
+const PLUCK = [1, 0.12, 0.02, 0, 0, 0] as const;
 /**
  * Where the two resonances shaping a note's timbre are, by the rank of the partials they lift, from 1, the
  * fundamental: their centers, how far they go round them, and how wide they are.
@@ -40,28 +40,8 @@ const FLOOR = 0.001;
  * scheduled to, ending as much later (see {@link envelopeCurve}): longer than the audio is ever late.
  */
 const TAIL = 0.1;
-/**
- * How loud a single note at full volume is, as a share of the loudest the phone plays: so that π typed at a usual pace
- * is about as loud as games on phones are advised to be, -18 LUFS, give or take 2 (ASWG-R001), as loud as other apps,
- * with room for chords piling up, and the {@link LIMITER} for the rest.
- */
-export const HEADROOM = 0.15;
-/**
- * The limiter all sound goes through: it lets notes through as they are, and only turns the loudest moments down, as
- * chords pile up, to just under the loudest the phone plays, so they don't clip. Its attack and release are short, so
- * that it lets go before the next key: a compressor's slower ones turn down the notes after a loud chord too.
- */
-export const LIMITER = { threshold: -3, knee: 0, ratio: 20, attack: 0.002, release: 0.1 } as const;
-/** The frequency the {@link SoundMix.lows} count octaves down from, in hertz: 1 kHz, as loudness is measured from. */
-const LOUDNESS_REFERENCE = 1000;
-/**
- * The lowest frequency the {@link SoundMix.lows} boost more, in hertz: C4. Lower, a phone's speakers hardly play a
- * note's own pitch, so that boosting it would only spend the headroom, and boom in headphones; low notes come through
- * their partials instead (see {@link partialLevels}).
- */
-const LOWEST_BOOSTED = 261.63;
-/** How far apart a plain pluck's partials are, in hertz, for each to be the {@link SoundMix.brightness} times as loud as the one under it: C4's. */
-const BRIGHTNESS_SPACING = 261.63;
+/** How loud a single note at full volume is, so that a chord with its melody doesn't clip. */
+const HEADROOM = 0.15;
 /** How loud the buzz of a sour note is at its fullest, next to the note: a square wave is loud for its volume. */
 const BUZZ_LEVEL = 0.35;
 /** How fast a sour note's rasp flutters, in hertz: as fast as a buzzer's. */
@@ -82,17 +62,11 @@ export type SoundPart = 'key' | 'landing';
 
 /**
  * How loud a note plays in the mix, next to the sound model's own gain for it: a landing's notes at the landings'
- * volume, a key's chords at the chords', its melody as it is, and louder the lower it is, by the mix's lows.
+ * volume, a key's chords at the chords', its melody as it is.
  */
 export function mixedGain(note: Note, part: SoundPart, mix: SoundMix): number {
-  const octavesUnder = Math.max(
-    0,
-    Math.log2(LOUDNESS_REFERENCE / Math.max(LOWEST_BOOSTED, frequencyOf(note.pitch))),
-  );
   return (
-    note.gain *
-    (part === 'landing' ? mix.landings : note.accompaniment === true ? mix.chords : 1) *
-    10 ** ((mix.lows * octavesUnder) / 20)
+    note.gain * (part === 'landing' ? mix.landings : note.accompaniment === true ? mix.chords : 1)
   );
 }
 
@@ -111,25 +85,14 @@ interface Voice {
 }
 
 /**
- * How loud each partial of a note of that `frequency` is, from its fundamental up, the loudest at 1. Without a timbre,
- * a plain soft pluck, like a kalimba's, its partials fading by `brightness` for each {@link BRIGHTNESS_SPACING} they
- * are above the fundamental, as a plucked string's fade by frequency: a low note rich in them, which a phone's small
- * speakers play when they can't play its own pitch, a high one nearly pure; those too faint to hear left silent.
- * With a timbre, the partials of a bright pluck are lifted by two resonances, as a voice's vowels are: going round the
- * wheel of timbres moves them round an ellipse over the partials, the first from the fundamental to the third partial,
- * the second from the second to the fifth, so that the note's tone color goes round, the same way on every note, and
- * back.
+ * How loud each partial of a note is, from its fundamental up, the loudest at 1. With a timbre, the partials of a
+ * bright pluck are lifted by two resonances, as a voice's vowels are: going round the wheel of timbres moves them
+ * round an ellipse over the partials, the first from the fundamental to the third partial, the second from the
+ * second to the fifth, so that the note's tone color goes round, the same way on every note, and back.
  */
-export function partialLevels(
-  timbre: number | undefined,
-  brightness: number,
-  frequency: number,
-): number[] {
+function partialLevels(timbre: number | undefined): number[] {
   if (timbre === undefined) {
-    return Array.from({ length: PARTIALS }, (_, i) => {
-      const level = brightness ** ((i * frequency) / BRIGHTNESS_SPACING);
-      return level < FAINTEST ? 0 : level;
-    });
+    return [...PLUCK];
   }
   const angle = 2 * Math.PI * timbre;
   const first = FIRST.center + FIRST.reach * Math.cos(angle);
@@ -167,7 +130,7 @@ export function envelopeCurve(length: number, sampleRate: number): Float32Array<
 }
 
 /** The frequency of a MIDI note number, in hertz: 69 is A at 440 Hz. */
-export function frequencyOf(pitch: number): number {
+function frequencyOf(pitch: number): number {
   return 440 * 2 ** ((pitch - 69) / 12);
 }
 
@@ -245,14 +208,7 @@ export class Speaker {
     const start = context.currentTime + delay / 1000;
     const mix = this.tweaks.soundMix();
     const voices = chime.map((note) =>
-      this.voice(
-        context,
-        output,
-        note,
-        start + (note.delay ?? 0),
-        mixedGain(note, part, mix),
-        mix.brightness,
-      ),
+      this.voice(context, output, note, start + (note.delay ?? 0), mixedGain(note, part, mix)),
     );
     return {
       stop: () => {
@@ -282,14 +238,9 @@ export class Speaker {
     if (this.context === undefined) {
       this.context = this.createContext();
       if (this.context !== undefined) {
-        const limiter = this.context.createDynamicsCompressor();
-        limiter.threshold.value = LIMITER.threshold;
-        limiter.knee.value = LIMITER.knee;
-        limiter.ratio.value = LIMITER.ratio;
-        limiter.attack.value = LIMITER.attack;
-        limiter.release.value = LIMITER.release;
-        limiter.connect(this.context.destination);
-        this.output = limiter;
+        const compressor = this.context.createDynamicsCompressor();
+        compressor.connect(this.context.destination);
+        this.output = compressor;
       }
     }
     if (this.context === undefined) {
@@ -314,7 +265,7 @@ export class Speaker {
 
   /**
    * Plucks a note at `start`, on the context's clock, fading out (see {@link envelopeCurve}), its tone through a gain a
-   * sour note's rasp shakes, a plain pluck as bright as the mix has it (see {@link partialLevels}).
+   * sour note's rasp shakes.
    */
   private voice(
     context: AudioContext,
@@ -322,7 +273,6 @@ export class Speaker {
     note: Note,
     start: number,
     gain: number,
-    brightness: number,
   ): Voice {
     const peak = HEADROOM * gain;
     const end = start + note.length;
@@ -346,22 +296,20 @@ export class Speaker {
     tone.connect(envelope);
     // Silent partials, as a plain pluck's highest, are left out: each would be an oscillator the device works out for
     // nothing.
-    const partials = partialLevels(note.timbre, brightness, frequencyOf(note.pitch)).flatMap(
-      (level, i) => {
-        if (level === 0) {
-          return [];
-        }
-        const oscillator = context.createOscillator();
-        oscillator.frequency.value = frequencyOf(note.pitch) * (i + 1);
-        const partial = context.createGain();
-        partial.gain.value = level;
-        oscillator.connect(partial);
-        partial.connect(tone);
-        oscillator.start(start);
-        oscillator.stop(end + TAIL);
-        return [{ rank: i + 1, detune: oscillator.detune }];
-      },
-    );
+    const partials = partialLevels(note.timbre).flatMap((level, i) => {
+      if (level === 0) {
+        return [];
+      }
+      const oscillator = context.createOscillator();
+      oscillator.frequency.value = frequencyOf(note.pitch) * (i + 1);
+      const partial = context.createGain();
+      partial.gain.value = level;
+      oscillator.connect(partial);
+      partial.connect(tone);
+      oscillator.start(start);
+      oscillator.stop(end + TAIL);
+      return [{ rank: i + 1, detune: oscillator.detune }];
+    });
     return {
       pitch: note.pitch,
       start,

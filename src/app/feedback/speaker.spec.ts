@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { INDEXED_DB } from '../player-data/run-store';
 import { SoundSetting } from '../player-data/sound-setting';
 import { FakeAudio } from '../../testing/fake-audio';
-import { envelopeCurve, mixedGain, partialLevels, PARTIALS, Speaker } from './speaker';
+import { envelopeCurve, mixedGain, Speaker } from './speaker';
 import { SOURING } from './souring';
 import { DeveloperMode } from '../developer-mode/developer-mode';
 import { Tweaks } from '../developer-mode/tweaks';
@@ -43,13 +43,13 @@ describe('Speaker', () => {
     ]);
   });
 
-  it("starts no oscillator for a silent partial, as a high plain pluck's", () => {
+  it("starts no oscillator for a silent partial, as a plain pluck's highest", () => {
     TestBed.inject(Speaker).play([
-      { pitch: 96, gain: 1, length: 1 },
+      { pitch: 60, gain: 1, length: 1 },
       { pitch: 64, gain: 1, length: 1, timbre: 0.3 },
     ]);
 
-    expect(audio.partials()).toHaveLength(1 + 6);
+    expect(audio.partials()).toHaveLength(3 + 6);
   });
 
   it('takes each note out of the mix once it has faded out', () => {
@@ -62,7 +62,7 @@ describe('Speaker', () => {
   });
 
   it("mixes a key's chords at the chords' volume, and all of a landing at the landings'", () => {
-    const mix = { chords: 0.5, landings: 0.2, lows: 0, brightness: 0 };
+    const mix = { chords: 0.5, landings: 0.2 };
     const melody = { pitch: 60, gain: 0.8, length: 1 };
     const chord = { ...melody, accompaniment: true as const };
 
@@ -70,27 +70,6 @@ describe('Speaker', () => {
     expect(mixedGain(chord, 'key', mix)).toBeCloseTo(0.4);
     expect(mixedGain(melody, 'landing', mix)).toBeCloseTo(0.16);
     expect(mixedGain(chord, 'landing', mix)).toBeCloseTo(0.16);
-  });
-
-  it('plays notes under 1 kHz louder by the lows for each octave under it, down to C4', () => {
-    const mix = { chords: 1, landings: 1, lows: 6, brightness: 0 };
-    const gain = (pitch: number): number => mixedGain({ pitch, gain: 0.5, length: 1 }, 'key', mix);
-
-    // A4, 440 Hz, is about 1.18 octaves under 1 kHz; A3, under C4, no further.
-    expect(gain(69)).toBeCloseTo(0.5 * 2 ** Math.log2(1000 / 440));
-    expect(gain(57)).toBeCloseTo(gain(60));
-    expect(gain(60) / gain(72)).toBeCloseTo(2);
-    expect(gain(96)).toBeCloseTo(0.5);
-  });
-
-  it("fades a plain pluck's partials by the brightness for each C4's worth of hertz, leaving out the unheard", () => {
-    const c4 = 261.63;
-
-    expect(partialLevels(undefined, 0.5, c4)).toEqual([1, 0.5, 0.25, 0.125, 0.0625, 0.03125]);
-    expect(partialLevels(undefined, 0.5, c4 / 2)[2]).toBeCloseTo(0.5);
-    expect(partialLevels(undefined, 0.5, c4 * 2)[1]).toBeCloseTo(0.25);
-    expect(partialLevels(undefined, 0.12, c4).filter((level) => level > 0)).toHaveLength(3);
-    expect(partialLevels(undefined, 0, c4)).toEqual([1, ...Array<number>(PARTIALS - 1).fill(0)]);
   });
 
   it('makes its audio context once, as it first plays', () => {

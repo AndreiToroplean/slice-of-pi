@@ -218,9 +218,7 @@
       "soundModel": "chorale",
       "sound": {
         "chords": 0.6,
-        "landings": 0,
-        "lows": 3,
-        "brightness": 0.4
+        "landings": 0
       },
       "souring": {
         "bend": -70,
