@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('stops showing a key pressed once the mouse is dragged too far off it to type it', async ({
   page,

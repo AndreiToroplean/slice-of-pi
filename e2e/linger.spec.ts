@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('shows a digit key’s lingering color as much as the key says', async ({ page }) => {
   await page.goto('/play');

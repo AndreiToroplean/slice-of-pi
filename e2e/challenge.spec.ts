@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('loses a challenge on its first mistake, the game over dialog staying open until the player plays again', async ({
   page,

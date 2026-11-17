@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('shows the stored settings as a page opens, with nothing sliding over to them', async ({
   page,

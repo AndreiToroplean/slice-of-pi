@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('pauses the game on Back, and resumes it, keeping the history, so that ending it leads to the main menu, and Back out', async ({
   page,

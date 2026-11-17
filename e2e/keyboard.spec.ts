@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('plays from the keyboard: Enter on the main menu, Escape to pause, up and down through the pause menu', async ({
   page,
