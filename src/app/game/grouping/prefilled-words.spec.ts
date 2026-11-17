@@ -1,5 +1,5 @@
 import type { Group } from './break-models/break-model';
-import { groupStart, wordsUpTo } from './prefilled-words';
+import { groupStart, plannedAt, wordsUpTo } from './prefilled-words';
 
 const group = (start: number, size: number, trusted = true, open = false): Group => ({
   start,
@@ -48,5 +48,22 @@ describe('groupStart', () => {
     expect(groupStart([4, 4], 7, [], 5)).toBe(4);
     expect(groupStart([4], 200, [group(0, 4), group(198, 6)], 5)).toBe(198);
     expect(groupStart([], 200, [group(198, 6)], 2)).toBe(198);
+  });
+});
+
+describe('plannedAt', () => {
+  it('plays the group the model trusts there, from the place to its end', () => {
+    const groups = [group(0, 3), group(3, 7)];
+
+    expect(plannedAt(3, groups, 5)).toEqual({ size: 7, trusted: true });
+    expect(plannedAt(5, groups, 5)).toEqual({ size: 5, trusted: true });
+  });
+
+  it("stays on the track of groups of the group size past the player's groups, from wherever it starts", () => {
+    const groups = [group(0, 3), group(3, 4), group(7, 2, false)];
+
+    expect(plannedAt(7, groups, 5)).toEqual({ size: 3, trusted: false });
+    expect(plannedAt(12, groups, 5)).toEqual({ size: 3, trusted: false });
+    expect(plannedAt(15, groups, 5)).toEqual({ size: 5, trusted: false });
   });
 });

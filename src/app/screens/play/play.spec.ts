@@ -1955,9 +1955,11 @@ describe('Play', () => {
     async function discovery(
       runs: readonly number[][] = [],
       checkpoints?: 'manual' | number,
+      before = (): Promise<void> => Promise.resolve(),
     ): Promise<Round> {
       const indexedDb = new IDBFactory();
       TestBed.overrideProvider(INDEXED_DB, { useValue: indexedDb });
+      await before();
       const store = TestBed.inject(RunStore);
       if (checkpoints !== undefined) {
         await TestBed.inject(DeveloperMode).set(true);
@@ -2447,6 +2449,24 @@ describe('Play', () => {
       const grouped = await discovery(Array.from({ length: 4 }, (_, run) => by3(30, run)));
       await listen(grouped, 3);
       expect(virtual(grouped.host)).toBe('141');
+    });
+
+    it('plays groups of the group size where the game trusts the player’s groups, but not for Discovery', async () => {
+      const round = await discovery(
+        // Mars, which sets a level of its own for Discovery: over 4 runs, short of it, but over the game's.
+        Array.from({ length: 4 }, (_, run) => by3(30, run)),
+        undefined,
+        async () => {
+          TestBed.overrideProvider(GAME_BREAK_MODEL, { useValue: MARS });
+          await TestBed.inject(DeveloperMode).set(true);
+          const tweaks = TestBed.inject(Tweaks);
+          await tweaks.setGrouping({ ...tweaks.grouping(), level: 0, discoveryLevel: 0.9 });
+        },
+      );
+
+      await listen(round, 5);
+
+      expect(virtual(round.host)).toBe(PI_DECIMALS.slice(0, 5));
     });
 
     it('shows as many digits as the slots, past the player’s groups too', async () => {
