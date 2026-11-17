@@ -186,24 +186,6 @@ describe('GroupingSettingsPanel', () => {
     expect(keys.sort()).toEqual(Object.keys(kind.defaults).sort());
   });
 
-  it('shows one tab at a time, the runs first', { tags: ['disabled'] }, async () => {
-    const { host, detect } = await setUp();
-    const shown = (): string[] =>
-      Array.from(
-        host.querySelectorAll<HTMLElement>('[role="tabpanel"]:not([hidden])'),
-        (pane) => pane.id,
-      );
-
-    expect(shown()).toEqual(['pane-Runs']);
-    buttonLabelled(host, 'Mixture').click();
-    detect();
-
-    expect(shown()).toEqual(['pane-Mixture']);
-    expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent.trim()).toBe(
-      'Mixture',
-    );
-  });
-
   it('pins a setting for fitting while its pin is pressed, for the model picked', async () => {
     const { host, detect } = await setUp();
     const pin = host.querySelector<HTMLButtonElement>(
