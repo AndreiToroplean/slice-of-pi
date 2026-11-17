@@ -1,5 +1,6 @@
 import type { Group } from './break-models/break-model';
 import { sizeOnTrack } from './group-size';
+import type { GroupPlan } from './groups';
 
 /**
  * The sizes of the words a game shows on the tape up to place `to`, as if the player had typed them: those of `kept`,
@@ -58,11 +59,29 @@ export function groupStart(
 }
 
 /**
+ * How the group starting at a place is played where the game plays the words as `wordsUpTo` cuts them, as Discovery's
+ * game does: as the player's group there, if the model trusts it; otherwise on the track of groups of `groupSize`.
+ */
+export function plannedAt(place: number, groups: readonly Group[], groupSize: number): GroupPlan {
+  return {
+    size: sizeAt(place, groups, groupSize),
+    trusted: trustedOf(groups).some(
+      (group) => place >= group.start && place < group.start + group.size,
+    ),
+  };
+}
+
+/** The groups the model trusts, with a break known to end them. */
+function trustedOf(groups: readonly Group[]): Group[] {
+  return groups.filter((group) => group.trusted && !group.open);
+}
+
+/**
  * How long the word starting at a place is: as the player's group there, if the model trusts it; otherwise as far as the
  * track of groups of the group size, or the next group the model trusts, whichever comes first.
  */
 function sizeAt(place: number, groups: readonly Group[], groupSize: number): number {
-  const trusted = groups.filter((group) => group.trusted && !group.open);
+  const trusted = trustedOf(groups);
   const known = trusted.find((group) => place >= group.start && place < group.start + group.size);
   if (known !== undefined) {
     return known.start + known.size - place;

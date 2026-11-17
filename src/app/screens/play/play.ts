@@ -48,7 +48,7 @@ import { RUN_CLOCK, RunRecorder } from '../../player-data/run-recorder';
 import { LiveRun, RunSession } from '../../player-data/live-run';
 import { newTouchLog, startOf, TouchLog } from '../../player-data/touch-log';
 import { Checkpoint } from '../../player-data/checkpoint';
-import { groupStart, wordsUpTo } from '../../game/grouping/prefilled-words';
+import { groupStart, plannedAt, wordsUpTo } from '../../game/grouping/prefilled-words';
 import {
   checkpointsAhead,
   laggingCheckpoint,
@@ -611,10 +611,11 @@ export class Play implements PausesOnBack {
    * The groups of the earlier runs, as the break model knows them, which the words given are cut in: in Discovery, as far
    * as the model trusts them for it.
    */
-  private readonly knownGroups = computed(() => {
-    const stats = this.tweaks.breakModel().stats(this.countedRuns());
-    return this.discovering() ? stats.discoveryGroups : stats.groups;
-  });
+  private readonly knownGroups = computed(() =>
+    this.discovering() ? this.stats().discoveryGroups : this.stats().groups,
+  );
+  /** What the break model makes of the earlier runs that count in the groups. */
+  private readonly stats = computed(() => this.tweaks.breakModel().stats(this.countedRuns()));
   /**
    * Where the group holding the checkpoint picked starts, in the player's groups: the game starts there, so that it
    * never splits a group.
@@ -627,9 +628,14 @@ export class Play implements PausesOnBack {
     this.wordsUpTo([], this.startPlace()),
   );
   protected readonly grouping = computed(() => groupDigits(this.digits(), this.sizes()));
-  /** How the group being typed is played. */
+  /**
+   * How the group being typed is played: in Discovery, as the words the game shows are cut, in its groups alone, since
+   * its own typing never counts.
+   */
   private readonly plan = computed(() =>
-    this.gameplay().groupAt(this.runTimes(), this.planStart()),
+    this.discovering()
+      ? plannedAt(this.planStart(), this.knownGroups(), this.groupSize())
+      : this.gameplay().groupAt(this.runTimes(), this.planStart()),
   );
   /** Where the group being typed starts. */
   private readonly planStart = computed(
