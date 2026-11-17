@@ -1454,6 +1454,23 @@ describe('Play', () => {
       expect(words(host)).toEqual(['14159']);
     });
 
+    it('continues free play in Discovery in its groups, not those the run broke in', async () => {
+      const { host, type, stable } = await setUp();
+      for (const group of ['141', '592']) {
+        await typeAll(type, group);
+        time.advance(PAUSE);
+        await stable();
+      }
+      await typeAll(type, '6');
+      expect(words(host)).toEqual(['141', '592']);
+
+      pauseItem(host, 'Pause').click();
+      pauseItem(host, 'Continue in Discovery').click();
+      await stable();
+
+      expect(words(host)).toEqual(['14159']);
+    });
+
     it('stands still as if paused, but without the pause, while held, in any mode', async () => {
       const { host, type, stable } = await setUp();
       await typeAll(type, '141');
