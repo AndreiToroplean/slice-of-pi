@@ -91,7 +91,7 @@ import { TIMES, TimesView } from '../your-runs/times-view';
               label="Perspective"
               panels="perspective"
               [segments]="PERSPECTIVES"
-              [position]="perspectives.position()"
+              [follows]="perspectives"
               [(value)]="perspective"
             />
           </div>

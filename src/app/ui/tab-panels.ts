@@ -81,13 +81,21 @@ export class TabPanels<T extends string> {
   readonly value = model.required<T>();
   /** Whether it takes the height it's given, rather than the panel in view's. */
   readonly fills = input(false);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   /**
-   * How far its panels are scrolled, in panels, following a swipe as it goes: 1 when the second is in view, 1.5 halfway
-   * from it to the third. For its tabs' pill to follow it (`Segmented`'s `position`).
+   * The timeline of its panels' scrolling, from the first in view to the last, where the browser has scroll-driven
+   * animations: for its tabs' pill to follow it in the same frame (`Segmented`'s `follows`).
+   */
+  readonly timeline =
+    typeof ScrollTimeline === 'undefined'
+      ? undefined
+      : new ScrollTimeline({ source: this.host, axis: 'x' });
+  /**
+   * How far its panels are scrolled, in panels: 1 when the second is in view, 1.5 halfway from it to the third. It
+   * follows a swipe as it goes only where there's no {@link timeline}; otherwise, it's set as they settle.
    */
   readonly position = signal(0);
 
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly window = inject(DOCUMENT).defaultView;
   private readonly tabs = contentChildren(TabPanel);
   /** Whether a panel is in view yet, from which the next one then slides in. */
@@ -134,14 +142,17 @@ export class TabPanels<T extends string> {
     if (panel !== undefined) {
       this.value.set(panel.value() as T);
     }
+    this.follow();
   }
 
   /**
-   * Follows the scrolling, and where the browser doesn't tell when scrolling ends, settles once it has stopped for a
-   * moment.
+   * Follows the scrolling, unless the browser animates what follows it (see {@link timeline}), and where it doesn't tell
+   * when scrolling ends, settles once it has stopped for a moment.
    */
   protected scrolled(): void {
-    this.follow();
+    if (this.timeline === undefined) {
+      this.follow();
+    }
     if (this.window !== null && 'onscrollend' in this.window) {
       return;
     }

@@ -4,20 +4,34 @@ import {
   afterRenderEffect,
   Component,
   computed,
+  DestroyRef,
   DOCUMENT,
   ElementRef,
   inject,
   Injector,
   input,
   model,
+  Signal,
   viewChild,
   viewChildren,
 } from '@angular/core';
+
+/** How wide the pill's middle is before it's stretched, in CSS pixels. */
+const MIDDLE = 100;
 
 /** One of the choices of a segmented control: its value, and what its segment says. */
 export interface Segment<T extends string> {
   readonly value: T;
   readonly label: string;
+}
+
+/**
+ * Panels a segmented control's tabs show, side by side, swiped from one to the next (`TabPanels`): how far they're
+ * scrolled, in panels, and, where the browser has them, the timeline of their scrolling, for the pill to follow it.
+ */
+export interface SwipedPanels {
+  readonly position: Signal<number>;
+  readonly timeline: AnimationTimeline | undefined;
 }
 
 /**
@@ -28,7 +42,12 @@ export interface Segment<T extends string> {
  * the one chosen into view, rather than squeeze their names. The same everywhere, on the background as on a card: a
  * faint dark strip, the one chosen on a white pill, as a white candy button, the others in the color of the text around
  * them. Choosing another one slides the pill over to it, fitting it, as its name fades to the pill's text color; given
- * the position of its panels, the pill and the names' colors follow them as they're swiped.
+ * its panels, the pill and the names' colors follow them as they're swiped, or slide in as one is chosen. Where the
+ * browser has scroll-driven animations, it moves them itself, from how far the panels are scrolled: set from script at
+ * every scroll, they'd lag a frame or more behind, the more the busier the page is, and judder. And it moves them
+ * without the page's main thread, along with the scrolling, as both are only ever moved (`transform`) and faded
+ * (`opacity`): the pill is its two rounded ends and a middle stretched between them, rather than one box as wide as a
+ * name, and each name fades from a copy in the color around it to one in the pill's, rather than mixing the two.
  */
 @Component({
   selector: 'app-segmented',
@@ -37,10 +56,14 @@ export interface Segment<T extends string> {
     '[attr.aria-label]': 'label()',
     '(keydown)': 'keydown($event)',
     '(window:resize)': 'place()',
-    '[class.following]': 'position() !== undefined',
+    '[class.following]': 'follows() !== undefined',
   },
   template: `
-    <span #pill class="chosen-pill" aria-hidden="true"></span>
+    <span class="chosen-pill" aria-hidden="true">
+      <span #pillStart class="pill-part start"></span>
+      <span #pillMiddle class="pill-part middle"></span>
+      <span #pillEnd class="pill-part end"></span>
+    </span>
     @for (segment of segments(); track segment.value) {
       @let chosen = segment.value === value();
       <button
@@ -52,11 +75,11 @@ export interface Segment<T extends string> {
         [attr.id]="panels() === undefined ? null : panels() + '-tab-' + segment.value"
         [attr.aria-controls]="panels() === undefined ? null : panels() + '-' + segment.value"
         [tabIndex]="chosen ? 0 : -1"
+        [attr.data-label]="segment.label"
         [style.--on-pill]="onPill()[$index]"
-        [class.on-pill]="(onPill()[$index] ?? 0) > 0.5"
         (click)="choose(segment.value)"
       >
-        {{ segment.label }}
+        <span class="name">{{ segment.label }}</span>
       </button>
     }
   `,
@@ -75,16 +98,38 @@ export interface Segment<T extends string> {
       scrollbar-width: none;
     }
 
-    /* Under the one chosen, sliding to the next one chosen. */
+    /* Under the one chosen, sliding to the next one chosen: its parts, each moved from the left edge. */
     .chosen-pill {
       position: absolute;
       inset-block: 0.1875rem;
       left: 0;
-      border-radius: 0.8125rem;
+    }
+
+    .pill-part {
+      position: absolute;
+      inset-block: 0;
+      left: 0;
       background: var(--candy);
-      transition:
-        translate 0.25s var(--ease),
-        width 0.25s var(--ease);
+      transform-origin: left;
+      transition: transform 0.25s var(--ease);
+    }
+
+    .start,
+    .end {
+      width: 0.8125rem;
+    }
+
+    .start {
+      border-radius: 0.8125rem 0 0 0.8125rem;
+    }
+
+    .end {
+      border-radius: 0 0.8125rem 0.8125rem 0;
+    }
+
+    /* Stretched from a set width, which its scale is worked out from (see \`MIDDLE\`). */
+    .middle {
+      width: 100px;
     }
 
     button {
@@ -95,25 +140,40 @@ export interface Segment<T extends string> {
       border: none;
       border-radius: 0.8125rem;
       background: none;
-      /*
-       * From the color of the text around it to the pill's, in proportion to how much of the pill is under it: grey
-       * halfway. The current color, here, is the one around it.
-       */
-      color: color-mix(in srgb, var(--on-candy) calc(var(--on-pill, 0) * 100%), currentColor);
+      display: grid;
+      color: inherit;
       font: inherit;
       text-shadow: inherit;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      transition: color 0.25s var(--ease);
+    }
+
+    /*
+     * Its name twice, one over the other: in the color of the text around it, fading out as much as the pill is under
+     * it (\`--on-pill\`, from 0 to 1), and in the pill's, fading in, for the eye alone, as screen readers read it once.
+     */
+    .name,
+    button::after {
+      grid-area: 1 / 1;
+      transition: opacity 0.25s var(--ease);
+    }
+
+    .name {
+      opacity: calc(1 - var(--on-pill, 0));
+    }
+
+    button::after {
+      content: attr(data-label) / '';
+      color: var(--on-candy);
+      text-shadow: none;
+      opacity: var(--on-pill, 0);
     }
 
     /* Following its panels as they're swiped, at once. */
-    :host(.following) button {
+    :host(.following) .name,
+    :host(.following) button::after,
+    :host(.following) .pill-part {
       transition: none;
-    }
-
-    .on-pill {
-      text-shadow: none;
     }
 
     /* Glowing when picked out, as a simple button does. */
@@ -135,13 +195,20 @@ export class Segmented<T extends string> {
    */
   readonly panels = input<string>();
   /**
-   * Where the pill is, in tabs, when it follows its panels as they're swiped (`TabPanels`' `position`): 1 under the
-   * second, 1.5 halfway from it to the third. Without it, the pill slides to the one chosen.
+   * The panels the pill follows as they're swiped (`TabPanels`), as far as they're scrolled: 1 under the second tab,
+   * 1.5 halfway from it to the third. Without them, the pill slides to the one chosen.
    */
-  readonly position = input<number>();
+  readonly follows = input<SwipedPanels>();
+  /** Where the pill follows the panels from script, at each scroll: where the browser can't animate it from them. */
+  private readonly position = computed(() => {
+    const panels = this.follows();
+    return panels?.timeline === undefined ? panels?.position() : undefined;
+  });
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-  private readonly pill = viewChild.required<ElementRef<HTMLElement>>('pill');
+  private readonly pillStart = viewChild.required<ElementRef<HTMLElement>>('pillStart');
+  private readonly pillMiddle = viewChild.required<ElementRef<HTMLElement>>('pillMiddle');
+  private readonly pillEnd = viewChild.required<ElementRef<HTMLElement>>('pillEnd');
   private readonly segmentRefs = viewChildren<ElementRef<HTMLButtonElement>>('segment');
   private readonly buttons = computed(() => this.segmentRefs().map((ref) => ref.nativeElement));
   /** Moves the focus through them with the arrow keys, and Home and End, round, as for any group of options. */
@@ -170,6 +237,8 @@ export class Segmented<T extends string> {
   });
   /** Whether the pill is under the one chosen yet, from which it then slides to the next. */
   private placed = false;
+  /** The animations moving the pill and fading the names along the panels' scrolling, if the browser runs them. */
+  private animations: Animation[] = [];
 
   constructor() {
     afterRenderEffect(() => {
@@ -185,6 +254,9 @@ export class Segmented<T extends string> {
     });
     // Again once the names' font has arrived, which can change how wide they are.
     const fonts = inject(DOCUMENT).fonts;
+    inject(DestroyRef).onDestroy(() => {
+      this.stopAnimations();
+    });
     afterNextRender(() => {
       void fonts.ready.then(() => {
         this.place();
@@ -194,6 +266,11 @@ export class Segmented<T extends string> {
 
   /** Moves the pill under the one chosen, fitting it: at once the first time, sliding there after that. */
   protected place(): void {
+    const timeline = this.follows()?.timeline;
+    if (timeline !== undefined) {
+      this.animate(timeline);
+      return;
+    }
     const position = this.position();
     if (position !== undefined) {
       this.follow(position);
@@ -203,14 +280,17 @@ export class Segmented<T extends string> {
     if (chosen === undefined) {
       return;
     }
-    const pill = this.pill().nativeElement;
-    pill.style.transition = this.placed ? '' : 'none';
-    pill.style.translate = `${String(chosen.offsetLeft)}px`;
-    pill.style.width = `${String(chosen.offsetWidth)}px`;
+    const parts = this.pillParts();
+    for (const part of parts) {
+      part.style.transition = this.placed ? '' : 'none';
+    }
+    this.setPill(chosen.offsetLeft, chosen.offsetWidth);
     if (!this.placed) {
       // Laid out where it starts before it can slide.
-      pill.getBoundingClientRect();
-      pill.style.transition = '';
+      this.host.getBoundingClientRect();
+      for (const part of parts) {
+        part.style.transition = '';
+      }
       this.placed = true;
     }
   }
@@ -225,10 +305,92 @@ export class Segmented<T extends string> {
     }
     const along = at - Math.floor(at);
     const between = (a: number, b: number): number => a + (b - a) * along;
-    const pill = this.pill().nativeElement;
-    pill.style.transition = 'none';
-    pill.style.translate = `${String(between(from.offsetLeft, to.offsetLeft))}px`;
-    pill.style.width = `${String(between(from.offsetWidth, to.offsetWidth))}px`;
+    this.setPill(
+      between(from.offsetLeft, to.offsetLeft),
+      between(from.offsetWidth, to.offsetWidth),
+    );
+  }
+
+  /** The pill's parts: its start, its middle and its end. */
+  private pillParts(): readonly [HTMLElement, HTMLElement, HTMLElement] {
+    return [
+      this.pillStart().nativeElement,
+      this.pillMiddle().nativeElement,
+      this.pillEnd().nativeElement,
+    ];
+  }
+
+  /** Puts the pill's parts where they make a pill from `left`, `width` wide. */
+  private setPill(left: number, width: number): void {
+    const transforms = this.pillAt(left, width);
+    for (const [k, part] of this.pillParts().entries()) {
+      part.style.transform = transforms[k] ?? '';
+    }
+  }
+
+  /**
+   * The transforms of the pill's parts making a pill from `left`, `width` wide: its rounded ends at either edge, and
+   * its middle stretched between them, overlapping them by a pixel so that no seam shows.
+   */
+  private pillAt(left: number, width: number): readonly [string, string, string] {
+    const end = Math.min(this.pillStart().nativeElement.offsetWidth, width / 2);
+    const middle = Math.max(0, width - 2 * end + 2) / MIDDLE;
+    return [
+      `translateX(${String(left)}px)`,
+      `translateX(${String(left + end - 1)}px) scaleX(${String(middle)})`,
+      `translateX(${String(left + width - end)}px)`,
+    ];
+  }
+
+  /**
+   * Has the browser move the pill and fade the names along the panels' scrolling: under each tab when its panel is in
+   * view, and in between, as far as they're scrolled, as {@link follow} does. Laid out anew each time, as the tabs'
+   * widths may have changed.
+   */
+  private animate(timeline: AnimationTimeline): void {
+    this.stopAnimations();
+    const buttons = this.buttons();
+    const last = buttons.length - 1;
+    if (last < 0) {
+      return;
+    }
+    // Along the scrolling, from the first panel in view (0) to the last (1): a keyframe for each tab.
+    const offset = (i: number): number => (last === 0 ? 0 : i / last);
+    const options: KeyframeAnimationOptions = { timeline, fill: 'both', easing: 'linear' };
+    const pills = buttons.map((button) => this.pillAt(button.offsetLeft, button.offsetWidth));
+    const onPill = (i: number, j: number): number => Math.max(0, 1 - Math.abs(i - j));
+    const fade = (
+      element: Element | null,
+      opacityAt: (i: number) => number,
+      pseudoElement?: string,
+    ): Animation[] =>
+      element === null
+        ? []
+        : [
+            element.animate(
+              buttons.map((_, i) => ({ offset: offset(i), opacity: opacityAt(i) })),
+              pseudoElement === undefined ? options : { ...options, pseudoElement },
+            ),
+          ];
+    this.animations = [
+      ...this.pillParts().map((part, k) =>
+        part.animate(
+          pills.map((transforms, i) => ({ offset: offset(i), transform: transforms[k] })),
+          options,
+        ),
+      ),
+      ...buttons.flatMap((button, j) => [
+        ...fade(button.querySelector('.name'), (i) => 1 - onPill(i, j)),
+        ...fade(button, (i) => onPill(i, j), '::after'),
+      ]),
+    ];
+  }
+
+  private stopAnimations(): void {
+    for (const animation of this.animations) {
+      animation.cancel();
+    }
+    this.animations = [];
   }
 
   protected choose(value: T): void {

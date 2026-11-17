@@ -98,7 +98,7 @@ function keysOf(kind: BreakModelKind): string[] {
         label="Your runs and the grouping settings"
         panels="pane"
         [segments]="tabs()"
-        [position]="panes.position()"
+        [follows]="panes"
         [(value)]="tab"
       />
       <button class="more" title="More" [appMore]="menu()"></button>

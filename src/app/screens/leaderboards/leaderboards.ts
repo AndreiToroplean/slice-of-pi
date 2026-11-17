@@ -33,7 +33,7 @@ const BOARDS: readonly Segment<Board>[] = [
         label="Leaderboards"
         panels="board"
         [segments]="BOARDS"
-        [position]="boards.position()"
+        [follows]="boards"
         [(value)]="board"
       />
       <app-tab-panels #boards panels="board" [fills]="true" [(value)]="board">
