@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('closes a dialog on a click outside it, as on Escape', async ({ page }) => {
   await page.goto('/play');

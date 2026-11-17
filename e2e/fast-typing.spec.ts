@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { PI_DECIMALS } from '../src/app/game/pi/pi-decimals';
 
 test.use({ hasTouch: true, isMobile: true, viewport: { width: 384, height: 824 } });

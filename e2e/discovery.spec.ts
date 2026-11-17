@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('shows a group in Discovery, then takes the player’s retyping, the next round shown with a tap, hurried held', async ({
   page,

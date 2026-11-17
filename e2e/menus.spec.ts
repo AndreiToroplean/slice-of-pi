@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('closes a menu when its button is pressed again', async ({ page }) => {
   // Break Models has tabs, and their menu.

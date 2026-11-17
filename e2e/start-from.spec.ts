@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('swipes a game mode to start from a checkpoint, or from its arrow, kept for the next visits, and back', async ({
   page,
