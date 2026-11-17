@@ -67,7 +67,7 @@ type KeysTab = 'digits' | 'actions';
         label="Keys"
         panels="keys"
         [segments]="tabs"
-        [position]="keys.position()"
+        [follows]="keys"
         [(value)]="tab"
       />
       <app-tab-panels #keys panels="keys" [fills]="true" [(value)]="tab">

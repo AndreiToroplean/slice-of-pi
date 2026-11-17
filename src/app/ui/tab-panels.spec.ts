@@ -1,3 +1,4 @@
+import { pillBox, roundEnds } from '../../testing/pill';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Segmented } from './segmented';
@@ -10,7 +11,7 @@ import { TabPanel, TabPanels } from './tab-panels';
       label="Tabs"
       panels="tabs"
       [segments]="segments"
-      [position]="strip.position()"
+      [follows]="strip"
       [(value)]="tab"
     />
     <app-tab-panels #strip panels="tabs" [(value)]="tab">
@@ -79,6 +80,7 @@ describe('TabPanels', () => {
 
   it('moves the tabs’ pill and their names’ colors along as the panels are swiped, halfway through halfway', async () => {
     const { fixture, host, strip } = await setUp();
+    roundEnds(host);
     const [first, second] = Array.from(host.querySelectorAll<HTMLElement>('[role="tab"]'));
     Object.defineProperties(first, { offsetLeft: { value: 0 }, offsetWidth: { value: 80 } });
     Object.defineProperties(second, { offsetLeft: { value: 100 }, offsetWidth: { value: 120 } });
@@ -88,8 +90,7 @@ describe('TabPanels', () => {
     strip.dispatchEvent(new Event('scroll'));
     await fixture.whenStable();
 
-    const pill = host.querySelector<HTMLElement>('.chosen-pill');
-    expect([pill?.style.translate, pill?.style.width]).toEqual(['50px', '100px']);
+    expect(pillBox(host)).toEqual({ left: 50, width: 100 });
     // Each name halfway between the text's color and the pill's.
     expect([first, second].map((tab) => tab?.style.getPropertyValue('--on-pill'))).toEqual([
       '0.5',

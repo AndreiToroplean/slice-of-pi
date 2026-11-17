@@ -1,3 +1,4 @@
+import { pillBox, roundEnds } from '../../testing/pill';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { pressKey } from '../../testing/keys';
@@ -147,6 +148,7 @@ describe('Segmented', () => {
   it('slides its pill under the one chosen, fitting it', async () => {
     const { sizes, component, stable } = await setUp();
     const pill = sizes.querySelector<HTMLElement>('.chosen-pill');
+    roundEnds(sizes);
     buttons(sizes).forEach((button, i) => {
       Object.defineProperties(button, {
         offsetLeft: { value: 3 + 70 * i },
@@ -157,9 +159,8 @@ describe('Segmented', () => {
     component.size.set('large');
     await stable();
 
-    expect(pill?.style.translate).toBe('143px');
-    expect(pill?.style.width).toBe('70px');
-    expect(pill?.style.transition).toBe('');
+    expect(pillBox(sizes)).toEqual({ left: 143, width: 70 });
+    expect(pill?.querySelector<HTMLElement>('.start')?.style.transition).toBe('');
   });
 
   it('makes tabs, given the panels they show, each labelling its panel', async () => {
