@@ -349,12 +349,14 @@ describe('Play', () => {
     await typeAll(type, '141');
     expect(emptyOpacity(host)).toBe(1);
 
+    // For as long as 10 s at most: a group that never ends fails the test rather than hang it.
     const opacities: number[] = [];
-    while (words(host).length === 0) {
+    while (words(host).length === 0 && opacities.length < 100) {
       time.advance(100);
       await stable();
       opacities.push(emptyOpacity(host));
     }
+    expect(words(host)).toEqual(['141']);
 
     const faded = opacities.slice(0, -1);
     const steps = faded.slice(1).map((opacity, i) => (faded[i] ?? 0) - opacity);

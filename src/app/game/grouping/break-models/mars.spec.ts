@@ -31,7 +31,10 @@ describe('Mars', () => {
    */
   const FLAT: Settings = { envelopeFactor1: 1, envelopeFactor3: 1, envelopeFactor4: 1 };
 
-  /** How long the player must wait after typing `typed` digits of a grouped run for the group to end, to 10 ms. */
+  /**
+   * How long the player must wait after typing `typed` digits of a grouped run for the group to end, to 10 ms; infinite
+   * if it doesn't within a minute.
+   */
   function waitToEnd(
     earlier: readonly (readonly number[])[],
     typed: number,
@@ -45,6 +48,10 @@ describe('Mars', () => {
     let wait = 0;
     while (!play.groupEnds([...times, last + wait], start, true)) {
       wait += 10;
+      // A minute at most: a group that never ends fails the test rather than hang it.
+      if (wait > 60_000) {
+        return Infinity;
+      }
     }
     return wait;
   }
