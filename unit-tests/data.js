@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794783898665,
+  "lastUpdate": 1794951130248,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -4078,6 +4078,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 718,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "a7006fb177e2e5fb1c48d26462d98cf357c4cfe4",
+          "message": "fix: move the tabs' pill with the panels' scrolling, off the main thread\n\n- The pill and the tabs' names' colors followed the panels from script: each scroll set a signal, the page and the tabs re-rendered a frame or more later, the later the busier the page, as on Break Models, so the pill juddered as the panels glided, swiped or sliding in on a tab's click\n- Where the browser has scroll-driven animations, it now moves them itself along the panels' scroll timeline, a keyframe under each tab, laid out anew when the tabs' widths change; elsewhere they follow from script as before\n- They're only ever moved and faded, so the compositor runs them along with the scrolling, however busy the main thread: the pill is two rounded ends and a middle stretched between them, each moved by a transform, rather than a box whose width changes, and each name crossfades with a copy in the pill's color, generated content screen readers skip, rather than mixing its color\n- The tabs take their panels (`follows`) rather than their position, so the page no longer re-renders at every scroll\n\nClaude-Session: https://claude.ai/code/session_01X1XesqdRcJcQRb9RKhY8D2",
+          "timestamp": "2026-11-17T22:31:26+01:00",
+          "tree_id": "39a0f821040aa83218eec4e8f1726174b7ca9dfc",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/a7006fb177e2e5fb1c48d26462d98cf357c4cfe4"
+        },
+        "date": 1794951129930,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 16938,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 37301,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1023,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
