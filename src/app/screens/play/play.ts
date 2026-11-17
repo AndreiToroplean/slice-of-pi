@@ -1159,11 +1159,12 @@ export class Play implements PausesOnBack {
 
   /**
    * Carries the game on in Discovery, a lost challenge or free play, on the same screen: a new session, its rounds
-   * starting from where the group being typed starts, any mistake gone, the run so far ended.
+   * starting from where the group being typed starts in Discovery's groups, any mistake gone, the run so far ended.
+   * The words on the tape are then Discovery's, not those the run cut by its own breaks.
    */
   protected continueInDiscovery(): void {
     const at = this.digits().length;
-    const from = groupStart(this.sizes(), at, this.knownGroups(), this.groupSize());
+    const from = groupStart([], at, this.stats().discoveryGroups, this.groupSize());
     // Kept as the game starts over in Discovery.
     this.rounds.set(newRounds(from, at));
     this.restart('discovery');
