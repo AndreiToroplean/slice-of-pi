@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794951130248,
+  "lastUpdate": 1794956048602,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -4118,6 +4118,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1023,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "6449266ca536ce6504401d159c0e0aa4e29e1f1b",
+          "message": "docs: skip the checks where they can't change\n\nClaude-Session: https://claude.ai/code/session_01X1XesrQ5TVESie4PZR8dPn",
+          "timestamp": "2026-11-17T23:53:40+01:00",
+          "tree_id": "8c886ee5b2a32b4e531ae13e22b2250de2416be2",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/6449266ca536ce6504401d159c0e0aa4e29e1f1b"
+        },
+        "date": 1794956047663,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 19754,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 44467,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1186,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
