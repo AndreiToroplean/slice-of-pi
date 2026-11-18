@@ -7,7 +7,7 @@ import { TabPanel, TabPanels } from '../../ui/tab-panels';
 import { Fastest } from './fastest';
 import { NextGoal } from './next-goal';
 import { Podium, PodiumPlace } from './podium';
-import { podium, recordsOf } from './records';
+import { masteryTenths, podium, recordsOf } from './records';
 
 /** The player's leaderboards, one per tab. */
 type Board = 'perfect' | 'fastest' | 'mastery';
@@ -49,7 +49,7 @@ const BOARDS: readonly Segment<Board>[] = [
         <section class="board" appTabPanel="mastery">
           <p class="caption">Digits right, mistakes counted</p>
           <app-podium [places]="mastery()" />
-          <app-next-goal [value]="mostMastery()" />
+          <app-next-goal [value]="mostMastery()" [decimals]="1" />
         </section>
       </app-tab-panels>
     </app-page>
@@ -70,16 +70,16 @@ export class Leaderboards {
   );
   /** The farthest place a perfect run reached, 0 before any. */
   protected readonly best = computed(() => this.perfectRuns()[0]?.value ?? 0);
-  /** The runs with the most mastery, in whole digits, never rounded up. */
+  /** The runs with the most mastery, to a tenth (see {@link masteryTenths}). */
   private readonly masteryRuns = computed(() =>
-    podium(this.records(), (record) => Math.floor(record.mastery.value) || undefined),
+    podium(this.records(), (record) => masteryTenths(record.mastery.value) || undefined),
   );
   protected readonly mastery = computed((): PodiumPlace[] => {
     const byId = new Map(this.records().map((record) => [record.id, record.mastery]));
     return this.masteryRuns().map(({ id, value, startedAt }) => {
       const { reached = 0, mistakes = 0 } = byId.get(id) ?? {};
       return {
-        value: String(value),
+        value: value.toFixed(1),
         note: `reached ${String(reached)}, ${plural(mistakes, 'mistake')}`,
         startedAt,
       };

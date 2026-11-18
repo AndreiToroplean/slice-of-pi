@@ -1,13 +1,16 @@
 import { Component, computed, input } from '@angular/core';
 import { nextSplitPlace } from './records';
 
-/** How far a record is from the next split place: the next goal, how many places to go, and a bar filling up to it. */
+/**
+ * How far a record is from the next split place: the next goal, how far to go, to as many decimals as the record shows,
+ * and a bar filling up to it.
+ */
 @Component({
   selector: 'app-next-goal',
   template: `
     <p>
       <span>Next: {{ goal() }}</span>
-      <span class="to-go">{{ goal() - value() }} to go</span>
+      <span class="to-go">{{ toGo() }} to go</span>
     </p>
     <div
       class="bar"
@@ -58,7 +61,10 @@ import { nextSplitPlace } from './records';
   `,
 })
 export class NextGoal {
-  /** The record, a number of places. */
+  /** The record, such as a number of places. */
   readonly value = input.required<number>();
+  /** How many decimals the record shows. */
+  readonly decimals = input(0);
   protected readonly goal = computed(() => nextSplitPlace(this.value()));
+  protected readonly toGo = computed(() => (this.goal() - this.value()).toFixed(this.decimals()));
 }
