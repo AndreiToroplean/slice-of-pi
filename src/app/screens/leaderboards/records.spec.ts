@@ -1,14 +1,18 @@
+import { Digit } from '../../game/pi/digit';
+import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { newTouchLog, TouchLog } from '../../player-data/touch-log';
 import { decimals, typeKeys as typed } from '../../../testing/touch-logs';
 import {
   bestPerfectRun,
   masteryOf,
   masteryTenths,
+  lastSplitOf,
   nextSplitPlace,
   podium,
   recordOf,
   recordsOf,
   RunRecord,
+  isSplitPlace,
   splitPlace,
 } from './records';
 
@@ -55,7 +59,7 @@ describe('records', () => {
         startedAt: 1_000,
         perfect: 1,
         splits: [],
-        mastery: { value: 1, reached: 1, mistakes: 0 },
+        mastery: { value: 1, reached: 1, mistakes: 0, stoppedOn: 0 },
       },
     ]);
   });
@@ -93,6 +97,64 @@ describe('records', () => {
     it('leaves out the mistakes it ends on, at a place never typed right', () => {
       expect(mastery(['1', '4', '0', 'backspace', '9'])).toEqual([2, 2, 0]);
     });
+
+    it('keeps the wrong digits it ends on apart, as those at the place being typed', () => {
+      expect(masteryOf(typed(['1', '4', '0', 'backspace', '9', '2'])).stoppedOn).toBe(2);
+      expect(masteryOf(typed(['1', '4', '0', 'backspace', '9', 'backspace', '1'])).stoppedOn).toBe(
+        0,
+      );
+    });
+
+    it('counts from the place a run started from', () => {
+      const fromTen = newTouchLog('c', 0, true, undefined, { start: 10 });
+      expect(masteryOf(typed(PI_DECIMALS.slice(10, 13).split('') as Digit[], fromTen))).toEqual({
+        value: 3,
+        reached: 13,
+        mistakes: 0,
+        stoppedOn: 0,
+      });
+    });
+  });
+
+  describe('the last split', () => {
+    it('is the last split place reached, and when, from the first digit', () => {
+      expect(lastSplitOf(typed(decimals(60)))).toEqual({ place: 50, time: 4900 });
+    });
+
+    it('is the place it counts from, reached at no time, before any other', () => {
+      expect(lastSplitOf(typed(decimals(24)))).toEqual({ place: 0, time: 0 });
+    });
+
+    it('counts past mistakes, and only the first time a place is reached', () => {
+      const keys = [
+        '0',
+        'backspace',
+        ...decimals(26),
+        'backspace',
+        'backspace',
+        ...decimals(26).slice(24),
+      ];
+      expect(lastSplitOf(typed(keys as Parameters<typeof typed>[0]))).toEqual({
+        place: 25,
+        time: 2600,
+      });
+    });
+
+    it('counts from the place the run started from', () => {
+      const fromNinety = newTouchLog('c', 0, true, undefined, { start: 90 });
+      const keys = PI_DECIMALS.slice(90, 101).split('') as Digit[];
+      expect(lastSplitOf(typed(keys, fromNinety))).toEqual({ place: 100, time: 900 });
+    });
+
+    it('times the place it counts from once reached, from a run started before it', () => {
+      const fromNinetySeven = newTouchLog('c', 0, true, undefined, { start: 97 });
+      const keys = PI_DECIMALS.slice(97, 102).split('') as Digit[];
+      expect(lastSplitOf(typed(keys.slice(0, 2), fromNinetySeven), 100)).toEqual({
+        place: 100,
+        time: undefined,
+      });
+      expect(lastSplitOf(typed(keys, fromNinetySeven), 100)).toEqual({ place: 100, time: 200 });
+    });
   });
 
   it('ranks a mastery to a tenth, never rounded up', () => {
@@ -106,7 +168,7 @@ describe('records', () => {
       startedAt,
       perfect,
       splits: [],
-      mastery: { value: 0, reached: 0, mistakes: 0 },
+      mastery: { value: 0, reached: 0, mistakes: 0, stoppedOn: 0 },
     });
     const records = [record('a', 1, 10), record('b', 2, 30), record('c', 3, 0), record('d', 4, 20)];
     const valued = (record: RunRecord): number | undefined => record.perfect || undefined;
@@ -134,5 +196,13 @@ describe('records', () => {
   it('places splits at 25, 50, 100, then every hundred', () => {
     expect([0, 1, 2, 3, 4].map(splitPlace)).toEqual([25, 50, 100, 200, 300]);
     expect([0, 25, 99, 412].map(nextSplitPlace)).toEqual([25, 50, 100, 500]);
+    expect([0, 25, 30, 100, 150, 400].map(isSplitPlace)).toEqual([
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+    ]);
   });
 });
