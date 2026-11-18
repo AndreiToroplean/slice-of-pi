@@ -128,3 +128,14 @@ app-sound-log {
   font-family: var(--font-digits);
   font-size: 1.25rem;
 }
+
+/*
+ * The stats of the run being played, on one quiet line under the season header, its text scaling with the header's
+ * height, as the header's does.
+ */
+app-run-stats {
+  position: absolute;
+  inset-inline: var(--margin);
+  top: calc(var(--margin-top) + var(--header-height) + var(--header-height) / 18);
+  font-size: calc(var(--header-height) / 5 * 0.62);
+}

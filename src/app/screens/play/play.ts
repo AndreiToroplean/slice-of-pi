@@ -66,6 +66,8 @@ import { PI_DECIMALS } from '../../game/pi/pi-decimals';
 import { RunStore } from '../../player-data/run-store';
 import { KeypadKey, KeypadPoint, KeypadTouch } from '../../game/layers/keypad-layout';
 import { SeasonHeader } from './season-header/season-header';
+import { RunStats } from './run-stats/run-stats';
+import { lastSplitOf, masteryOf, ReachedSplit } from '../leaderboards/records';
 import { seasonAt } from '../../game/layers/seasons';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { Layout, layoutStyles } from '../../ui/layout';
@@ -103,6 +105,25 @@ export const HOLD = 300;
 
 /** How often what shows the wait for the group being typed running out is redrawn, in milliseconds: about every frame. */
 const TICK = 16;
+
+/** The stats of the run being played, as the play screen shows them, outside Discovery, and its stopwatch. */
+interface StatsShown {
+  readonly shown:
+    | {
+        readonly split: ReachedSplit;
+        readonly mistakes: number;
+        readonly mastery: number;
+      }
+    | undefined;
+  readonly stopwatch: number;
+  readonly held: boolean;
+}
+
+/** What stops a timer that isn't running. */
+const noTimer = (): void => undefined;
+
+/** How often the stopwatch is redrawn, in milliseconds: as often as its tenths of a second change. */
+const STOPWATCH_TICK = 100;
 
 /**
  * The play screen: type the decimals of π on the keypad into the slots of the group being typed; each finished group
@@ -155,6 +176,7 @@ const TICK = 16;
     LayoutEditor,
     LightLayer,
     Pause,
+    RunStats,
     SeasonHeader,
     Slots,
     SoundLog,
@@ -185,6 +207,16 @@ const TICK = 16;
       ></canvas>
     }
     <app-season-header [view]="season()" />
+    @let stats = shownStats();
+    @if (stats.shown !== undefined) {
+      <app-run-stats
+        [elapsed]="stats.stopwatch"
+        [split]="stats.shown.split"
+        [mistakes]="stats.shown.mistakes"
+        [mastery]="stats.shown.mastery"
+        [disabled]="looksHeld()"
+      />
+    }
     <app-typed-digits
       [words]="grouping().words"
       [digits]="digits()"
@@ -683,6 +715,68 @@ export class Play implements PausesOnBack {
     ),
   );
 
+  /**
+   * What the leaderboards will make of the run being played, outside Discovery, whose runs they don't rank: its last
+   * split, and its mistakes, those at the place being typed included, and mastery.
+   */
+  protected readonly runStats = computed(() => {
+    if (this.discovering()) {
+      return undefined;
+    }
+    const from = this.statsFrom();
+    const log = this.session.touchLog();
+    if (log === undefined) {
+      return {
+        split: { place: from, time: this.startPlace() === from ? 0 : undefined },
+        mistakes: 0,
+        mastery: 0,
+      };
+    }
+    const { value, mistakes, stoppedOn } = masteryOf(log);
+    return { split: lastSplitOf(log, from), mistakes: mistakes + stoppedOn, mastery: value };
+  });
+  /**
+   * The place the run's splits count from, the first one shown: the checkpoint the game started from, if any, or the
+   * start of the run replayed.
+   */
+  private readonly statsFrom = computed(() => {
+    const log = this.replay();
+    return log === undefined ? this.checkpoint : startOf(log);
+  });
+  /** Redraws the stopwatch, every tenth of a second, while it runs. */
+  private readonly stopwatchTicks = signal(0);
+  /** How long it's been since the run's first digit, in milliseconds, as last redrawn. */
+  protected readonly stopwatch = computed(() => {
+    this.stopwatchTicks();
+    this.session.touchLog();
+    return this.session.elapsed();
+  });
+  /** Whether the player holds the game still, to type a simulation. */
+  protected readonly heldStill = computed(() => this.pauseHeld() || this.shiftHeld());
+  /** Whether the game has been held still for {@link HOLD}, long enough not to be a tap of the pause key. */
+  private readonly heldLong = signal(false);
+  /** Stops the wait for the game to have been held still long enough, while it runs. */
+  private stopHeldLong: () => void = noTimer;
+  /**
+   * Whether the run's stats look unavailable, as the game is held still: once a hold is told from a tap of the pause
+   * key, which only pauses, or a simulation started, whichever comes first.
+   */
+  protected readonly looksHeld = computed(
+    () => this.heldStill() && (this.heldLong() || this.simulation() !== undefined),
+  );
+  /**
+   * The run's stats as shown: as they are, but while the game is held still, as they were when it started to be,
+   * standing still, for a simulation never to tell the player whether the digits they try are right.
+   */
+  protected readonly shownStats = linkedSignal<StatsShown, StatsShown>({
+    source: () => ({
+      shown: this.runStats(),
+      stopwatch: this.stopwatch(),
+      held: this.heldStill(),
+    }),
+    computation: (now, before) => (now.held && before !== undefined ? before.value : now),
+  });
+
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
   private readonly timer = inject(TIMER);
@@ -716,10 +810,29 @@ export class Play implements PausesOnBack {
 
   constructor() {
     this.rounds.set(newRounds(this.checkpointStart(), this.checkpoint));
+    // The stopwatch runs from the run's first digit, but neither while paused, when the run's clock stops, nor while
+    // the game is held still, nor once it's lost.
+    effect((onCleanup) => {
+      if (
+        this.discovering() ||
+        this.session.touchLog() === undefined ||
+        this.paused() ||
+        this.heldStill() ||
+        this.lost()
+      ) {
+        return;
+      }
+      onCleanup(
+        this.timer.every(STOPWATCH_TICK, () => {
+          this.stopwatchTicks.update((ticks) => ticks + 1);
+        }),
+      );
+    });
     // Ending the game, back to the main menu, ends the run.
     inject(DestroyRef).onDestroy(() => {
       this.stopWatching();
       this.stopGameOver();
+      this.stopHeldLong();
       this.session.end();
     });
     inject(DestroyRef).onDestroy(() => {
@@ -860,8 +973,15 @@ export class Play implements PausesOnBack {
    * what was left of it; Discovery's time stands still, and goes on from where it was, never showing a round again.
    */
   private standStill(): void {
-    if (!this.pauseHeld() && !this.shiftHeld()) {
+    if (!this.heldStill()) {
       this.endSimulation();
+      this.stopHeldLong();
+      this.stopHeldLong = noTimer;
+      this.heldLong.set(false);
+    } else if (!this.heldLong() && this.stopHeldLong === noTimer) {
+      this.stopHeldLong = this.timer.after(HOLD, () => {
+        this.heldLong.set(true);
+      });
     }
     const still = this.still();
     if (still !== this.stood) {

@@ -239,6 +239,90 @@ describe('Play', () => {
     expect(summary(host)).toBe('3 digits typed, the last one is 1.');
   });
 
+  describe('the run stats', () => {
+    /** A stat of the run being played, by its name, as shown. */
+    function stat(host: HTMLElement, name: string): string | undefined {
+      const shown = Array.from(host.querySelectorAll('app-run-stats dt')).find(
+        (dt) => dt.textContent.trim() === name,
+      );
+      return shown?.nextElementSibling?.querySelector('.number')?.textContent.trim();
+    }
+
+    it('runs the stopwatch from the first digit, stopping it while paused', async () => {
+      const fixture = TestBed.createComponent(Play);
+      await fixture.whenStable();
+      const host = fixture.nativeElement as HTMLElement;
+      const keypad = fixture.debugElement.query(By.directive(Keypad)).componentInstance as Keypad;
+      expect(stat(host, 'Time')).toBe('0.0 s');
+
+      keypad.touched.emit({ key: '1' });
+      time.advance(1_200);
+      await fixture.whenStable();
+      expect(stat(host, 'Time')).toBe('1.2 s');
+
+      installDialogs();
+      try {
+        keypad.pauseKey.emit('down');
+        keypad.pauseKey.emit('up');
+        await fixture.whenStable();
+        time.advance(5_000);
+        await fixture.whenStable();
+      } finally {
+        uninstallDialogs();
+      }
+      await fixture.whenStable();
+      expect(stat(host, 'Time')).toBe('1.2 s');
+    });
+
+    it('stands still, looking unavailable, while the game is held still, telling nothing of the simulation', async () => {
+      const fixture = TestBed.createComponent(Play);
+      await fixture.whenStable();
+      const host = fixture.nativeElement as HTMLElement;
+      const keypad = fixture.debugElement.query(By.directive(Keypad)).componentInstance as Keypad;
+      keypad.touched.emit({ key: '1' });
+      time.advance(500);
+      await fixture.whenStable();
+
+      keypad.pauseKey.emit('down');
+      time.advance(HOLD - 1);
+      await fixture.whenStable();
+      // As yet, as likely a tap, which only pauses.
+      expect(host.querySelector('app-run-stats')?.classList).not.toContain('disabled');
+      time.advance(1);
+      await fixture.whenStable();
+      expect(host.querySelector('app-run-stats')?.classList).toContain('disabled');
+
+      keypad.touched.emit({ key: '4' });
+      time.advance(1_000);
+      await fixture.whenStable();
+      expect(stat(host, 'Mastery')).toBe('1.0');
+      expect(stat(host, 'Time')).toBe('0.5 s');
+      expect(host.querySelector('app-run-stats')?.classList).toContain('disabled');
+
+      keypad.pauseKey.emit('off');
+      await fixture.whenStable();
+      expect(stat(host, 'Mastery')).toBe('1.0');
+      expect(host.querySelector('app-run-stats')?.classList).not.toContain('disabled');
+    });
+
+    it('shows the last split reached, the mistakes and the mastery as the run goes', async () => {
+      const { host, type } = await setUp();
+
+      await typeAll(type, PI_DECIMALS.slice(0, 24));
+      expect(host.querySelector('app-run-stats .place')?.textContent).toBe('0');
+
+      // Decimal 25 is an 8.
+      await typeAll(type, `${PI_DECIMALS.charAt(24)}0`);
+      expect(host.querySelector('app-run-stats .place')?.textContent).toBe('25');
+      expect(stat(host, 'Mistakes')).toBe('1');
+      expect(stat(host, 'Mastery')).toBe('25.0');
+
+      await typeAll(type, '<8');
+      expect(stat(host, 'Mistakes')).toBe('1');
+      expect(stat(host, 'Mastery')).toBe('25.6');
+    });
+  });
+
   it('turns the digits typed into a word when the player pauses, and empties the slots', async () => {
     const { host, type } = await setUpPlayed();
 
@@ -675,6 +759,13 @@ describe('Play', () => {
       await setUp();
 
       expect(TestBed.inject(RunRecorder).start()).toBe(50);
+    });
+
+    it('shows the checkpoint as the split reached, at no time, until the next one', async () => {
+      const { host } = await setUp();
+
+      expect(host.querySelector('app-run-stats .place')?.textContent).toBe('50');
+      expect(host.querySelectorAll('app-run-stats .number')[1]?.textContent).toBe('0.0 s');
     });
   });
 
