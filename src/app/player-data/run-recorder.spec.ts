@@ -172,6 +172,20 @@ describe('RunRecorder', () => {
     expect(recorder.waited()).toBe(200);
   });
 
+  it('tells how long it has been since the first digit, backspaces included, pauses left out', () => {
+    const recorder = TestBed.inject(RunRecorder);
+    expect(recorder.elapsed()).toBe(0);
+
+    press(recorder, '14<', 300);
+    recorder.pause();
+    time += 10_000;
+    expect(recorder.elapsed()).toBe(900);
+    expect(recorder.touchLog()?.touches.map(({ key }) => key)).toEqual(['1', '4', 'backspace']);
+
+    recorder.end();
+    expect(recorder.elapsed()).toBe(0);
+  });
+
   it('starts the next run on a running clock once a run ends while paused, as when the game is left paused', () => {
     const recorder = TestBed.inject(RunRecorder);
     press(recorder, '1');

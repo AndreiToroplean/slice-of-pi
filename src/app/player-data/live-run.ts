@@ -7,8 +7,12 @@ import { addTouch, TouchLog } from './touch-log';
 export interface RunSession {
   /** The run being played, as recorded so far; `undefined` until its first digit is kept. */
   readonly run: Signal<Run | undefined>;
+  /** The touch log of the run being played, from its first digit; `undefined` until then. */
+  readonly touchLog: Signal<TouchLog | undefined>;
   /** Records a touch on the keypad, or a key typed, whatever it typed. */
   record(touch: KeypadTouch): void;
+  /** How long it's been since the current run's first digit, in milliseconds, on the run's clock: 0 before it. */
+  elapsed(): number;
   /** How long it's been since the last digit of the current run, in milliseconds, on the run's clock. */
   waited(): number;
   /** Ends the current run, as kept so far: the next digit starts a new run, its clock started afresh. */
@@ -35,6 +39,7 @@ export interface RunSession {
 export class LiveRun implements RunSession {
   /** The touch log of the run being played, from its first digit. */
   private readonly log = signal<TouchLog | undefined>(undefined);
+  readonly touchLog = this.log.asReadonly();
   /** Whether a simulation is under way (see {@link mark}), whose digits are never checked. */
   private readonly simulating = signal(false);
   private readonly replayed = computed(() => {
@@ -88,6 +93,10 @@ export class LiveRun implements RunSession {
       this.log.set(undefined);
     }
     return log;
+  }
+
+  elapsed(): number {
+    return this.log() === undefined ? 0 : this.clock() - this.start;
   }
 
   waited(): number {
