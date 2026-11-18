@@ -51,15 +51,15 @@ describe('Leaderboards', () => {
     expect(host.querySelector('#board-perfect')?.hasAttribute('inert')).toBe(true);
   });
 
-  it('ranks the runs proving the most digits known, with how far they got and their mistakes', async () => {
+  it('ranks the runs with the most mastery, with how far they got and their mistakes', async () => {
     // π's first decimals: 1, 4, 1, 5.
-    const known = typeKeys(['1', '4', '0', 'backspace', '1', '5', '9'], newTouchLog('k', 0));
-    const host = await open([known]);
-    host.querySelector<HTMLElement>('#board-tab-known')?.click();
+    const mistaken = typeKeys(['1', '4', '0', 'backspace', '1', '5', '9'], newTouchLog('k', 0));
+    const host = await open([mistaken]);
+    host.querySelector<HTMLElement>('#board-tab-mastery')?.click();
     await vi.waitFor(() => {
-      expect(host.querySelector('#board-known')?.hasAttribute('inert')).toBe(false);
+      expect(host.querySelector('#board-mastery')?.hasAttribute('inert')).toBe(false);
     });
 
-    expect(podium(host, 'known')).toEqual(['1 4 reached 5, 1 mistake 1 Jan']);
+    expect(podium(host, 'mastery')).toEqual(['1 4 reached 5, 1 mistake 1 Jan']);
   });
 });

@@ -43,6 +43,7 @@
 - **Vibration:** how the phone buzzes on an event of the game, such as a digit typed, a mistake or a landing. Its **pattern** is the durations of its buzzes and of the pauses between them, in turn.
 - **Milestone:** a number of places reached that gets celebrated.
 - **Leaderboard:** the player's best runs at one **feat**, such as the farthest place reached without a mistake, or a **split**, the time taken to reach a milestone. Their best is their **personal best**.
+- **Mastery:** how many digits of π a run proves the player knows: each digit typed right adds to it, less for each mistake before it at its place.
 - **Streak:** consecutive days the player came back.
 
 ## Memory layers

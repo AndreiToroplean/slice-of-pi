@@ -20,16 +20,14 @@ export interface RunRecord {
    * order, in milliseconds from its first digit.
    */
   readonly splits: readonly number[];
-  /**
-   * How many digits of π it proves the player knows, mistakes counted (see {@link knownOf}), and how far it got, and
-   * with how many mistakes.
-   */
-  readonly known: Known;
+  /** Its mastery, mistakes counted (see {@link masteryOf}), and how far it got, and with how many mistakes. */
+  readonly mastery: Mastery;
 }
 
-/** How many digits of π a run proves the player knows, how far it got, and with how many mistakes. */
-export interface Known {
-  readonly digits: number;
+/** A run's mastery, how far it got, and with how many mistakes. */
+export interface Mastery {
+  /** How many digits of π it proves the player knows. */
+  readonly value: number;
   /** The farthest place it reached, typing right. */
   readonly reached: number;
   readonly mistakes: number;
@@ -65,22 +63,22 @@ export function recordOf(log: TouchLog): RunRecord | undefined {
       splits.push(time);
     }
   }
-  return { id: log.id, startedAt: log.startedAt, perfect, splits, known: knownOf(log) };
+  return { id: log.id, startedAt: log.startedAt, perfect, splits, mastery: masteryOf(log) };
 }
 
 /**
- * How many digits of π a run proves the player knows, mistakes counted: how much likelier their typing is if they know
- * π than if they guessed, in decimal digits. Each place counts the different digits tried there, however many times
+ * A run's mastery: how many digits of π it proves the player knows, mistakes counted, that is, how much likelier their
+ * typing is if they know π than if they guessed, in decimal digits. Each place counts the different digits tried there, however many times
  * backspace takes the player back to it, the right one included: one typed right as the t-th proves 1 − log₁₀ t, 1 on
  * the first try, nothing on the tenth, which guessing would get to anyway. Typing a digit again counts nothing more,
  * right or wrong. Its mistakes are the wrong digits tried at the places it then typed right: those it ends on, never
  * typed right, are where it stopped, not mistakes. As the game checks each digit, any typed after a wrong one are
  * neither tries nor mistakes, until backspace deletes them.
  */
-export function knownOf(log: TouchLog): Known {
+export function masteryOf(log: TouchLog): Mastery {
   let place = 0;
   let pending = 0;
-  let digits = 0;
+  let value = 0;
   let reached = 0;
   const tried: Set<string>[] = [];
   for (const { key } of log.touches) {
@@ -102,7 +100,7 @@ export function knownOf(log: TouchLog): Known {
     const triedHere = (tried[place] ??= new Set());
     const right = isPiDecimal(place, key);
     if (right && !triedHere.has(key)) {
-      digits += 1 - Math.log10(triedHere.size + 1);
+      value += 1 - Math.log10(triedHere.size + 1);
     }
     triedHere.add(key);
     if (right) {
@@ -114,7 +112,7 @@ export function knownOf(log: TouchLog): Known {
   }
   // The places typed right, before the farthest it got, each hold their right digit and their mistakes.
   const mistakes = tried.slice(0, reached).reduce((sum, here) => sum + here.size - 1, 0);
-  return { digits, reached, mistakes };
+  return { value, reached, mistakes };
 }
 
 /** The records of the runs that count on the leaderboards (see {@link recordOf}). */

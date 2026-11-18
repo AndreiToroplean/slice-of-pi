@@ -2,7 +2,7 @@ import { newTouchLog, TouchLog } from '../../player-data/touch-log';
 import { decimals, typeKeys as typed } from '../../../testing/touch-logs';
 import {
   bestPerfectRun,
-  knownOf,
+  masteryOf,
   nextSplitPlace,
   podium,
   recordOf,
@@ -54,43 +54,43 @@ describe('records', () => {
         startedAt: 1_000,
         perfect: 1,
         splits: [],
-        known: { digits: 1, reached: 1, mistakes: 0 },
+        mastery: { value: 1, reached: 1, mistakes: 0 },
       },
     ]);
   });
 
-  describe('the digits known', () => {
-    const known = (keys: Parameters<typeof typed>[0]): number[] => {
-      const { digits, reached, mistakes } = knownOf(typed(keys));
-      return [Number(digits.toFixed(3)), reached, mistakes];
+  describe('the mastery', () => {
+    const mastery = (keys: Parameters<typeof typed>[0]): number[] => {
+      const { value, reached, mistakes } = masteryOf(typed(keys));
+      return [Number(value.toFixed(3)), reached, mistakes];
     };
 
     it('counts each digit right on the first try as one', () => {
-      expect(known(decimals(3))).toEqual([3, 3, 0]);
+      expect(mastery(decimals(3))).toEqual([3, 3, 0]);
     });
 
     // π's first decimals: 1, 4, 1.
     it('counts a digit right as the t-th tried at its place as 1 − log₁₀ t, each digit once', () => {
-      expect(known(['1', '0', 'backspace', '0', 'backspace', '4'])).toEqual([1.699, 2, 1]);
+      expect(mastery(['1', '0', 'backspace', '0', 'backspace', '4'])).toEqual([1.699, 2, 1]);
     });
 
     it('counts nothing for a digit right on the tenth try', () => {
       const wrongs = ['0', '2', '3', '4', '5', '6', '7', '8', '9'] as const;
-      expect(known([...wrongs.flatMap((digit) => [digit, 'backspace' as const]), '1'])).toEqual([
+      expect(mastery([...wrongs.flatMap((digit) => [digit, 'backspace' as const]), '1'])).toEqual([
         0, 1, 9,
       ]);
     });
 
     it('counts a right digit typed again after backspace nothing more', () => {
-      expect(known(['1', '4', 'backspace', 'backspace', '1', '4'])).toEqual([2, 2, 0]);
+      expect(mastery(['1', '4', 'backspace', 'backspace', '1', '4'])).toEqual([2, 2, 0]);
     });
 
     it('leaves out the digits typed after a mistake until deleted', () => {
-      expect(known(['1', '4', '0', '1', 'backspace', 'backspace', '1'])).toEqual([2.699, 3, 1]);
+      expect(mastery(['1', '4', '0', '1', 'backspace', 'backspace', '1'])).toEqual([2.699, 3, 1]);
     });
 
     it('leaves out the mistakes it ends on, at a place never typed right', () => {
-      expect(known(['1', '4', '0', 'backspace', '9'])).toEqual([2, 2, 0]);
+      expect(mastery(['1', '4', '0', 'backspace', '9'])).toEqual([2, 2, 0]);
     });
   });
 
@@ -100,7 +100,7 @@ describe('records', () => {
       startedAt,
       perfect,
       splits: [],
-      known: { digits: 0, reached: 0, mistakes: 0 },
+      mastery: { value: 0, reached: 0, mistakes: 0 },
     });
     const records = [record('a', 1, 10), record('b', 2, 30), record('c', 3, 0), record('d', 4, 20)];
     const valued = (record: RunRecord): number | undefined => record.perfect || undefined;
