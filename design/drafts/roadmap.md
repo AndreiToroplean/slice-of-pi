@@ -28,3 +28,22 @@ Everything in this folder is a draft: what's in progress and what may come next,
 2. **Colors.** Per-season color editors on the play screen, replacing the season colors page.
 
 The "π=3." lead stays, rather than the handoff's "3" with a separator dot.
+
+## Leaderboards in play
+
+The player can tell, as they play, what the leaderboards will make of their run.
+
+### Done
+
+- Known digits are now mastery, to a tenth.
+- The play screen shows, under the season header, outside Discovery: the stopwatch, the last split reached and when, the mistakes and the mastery. It stands still while the game is held still, so that a simulation never tells whether the digits tried are right.
+
+### Next
+
+1. **Milestone celebrations.** Each time a run reaches a milestone, a medium celebration: rainbow colors sweeping up the screen's edges, from the bottom to the top, with a short rewarding sound. The first time the player ever reaches it, a bigger one, as for an achievement.
+2. **Start from milestones only.** Free play and challenges start from the milestones reached, not from every checkpoint. Discovery keeps moving on to checkpoints every 10 places.
+3. **Leaderboards from a milestone.** A menu in the leaderboards page's header picks a milestone for the whole page, back to the start of π on every visit. Every run with digits past it counts, wherever it started, scored only past it: the farthest place reached without a mistake since the milestone, the splits past it, timed from it, and the mastery past it.
+
+### Later
+
+- **Score.** A summary of how well a run went, from its mastery and its timings.
