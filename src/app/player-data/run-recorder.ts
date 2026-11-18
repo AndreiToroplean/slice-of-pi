@@ -58,6 +58,7 @@ export class RunRecorder implements RunSession {
     },
   );
   readonly run = this.live.run;
+  readonly touchLog = this.live.touchLog;
   /** Whether the runs started from now on are challenges, which check their digits whatever developer mode says. */
   readonly challenge = signal(false);
   /** The place the runs started from now on start from: the start of π, or a checkpoint. */
@@ -75,6 +76,10 @@ export class RunRecorder implements RunSession {
     if (log !== undefined && !this.simulating) {
       this.queue(log);
     }
+  }
+
+  elapsed(): number {
+    return this.live.elapsed();
   }
 
   waited(): number {
