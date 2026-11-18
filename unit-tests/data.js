@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795033929599,
+  "lastUpdate": 1795040201919,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -4198,6 +4198,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 821,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "6a5e436f0fa4a6d8a45f1888afb991ecf4899a86",
+          "message": "ci: cache node_modules between runs\n\n- npm ci took about 40 s of each job's minute or two, the preview's included; restoring node_modules takes seconds, and npm ci runs again only when the lockfile or Node.js changes.\n- Saved right after npm ci, so that the cache holds nothing the jobs write into node_modules later.\n- Replaces setup-node's npm cache, which only saved the downloads.\n\nClaude-Session: https://claude.ai/code/session_01X1XessNDMzgFRBwoWZZDxM",
+          "timestamp": "2026-11-18T23:16:08+01:00",
+          "tree_id": "ddf9247d86e32ede45c8edbde272947229671a9d",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/6a5e436f0fa4a6d8a45f1888afb991ecf4899a86"
+        },
+        "date": 1795040201596,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 19028,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 42640,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 1118,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
