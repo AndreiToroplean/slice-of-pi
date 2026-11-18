@@ -1,5 +1,6 @@
 import { afterRenderEffect, DestroyRef, Directive, ElementRef, inject, input } from '@angular/core';
 import { LightSettings } from '../screens/menu/menu-look';
+import { keepGlContext } from './gl-context';
 
 /** A light: where it is, in CSS pixels from the top left corner of its layer, its color, and the seed of its rays. */
 export interface Light {
@@ -118,7 +119,7 @@ const MAX_PIXEL_RATIO = 2;
 /**
  * A layer of light, on the canvas it's set on: the glow and rays of each of its lights, drawn with WebGL each time they
  * or its settings change, and added to whatever lies under it, the layers behind it included. Without WebGL, it stays
- * dark: the light is decoration.
+ * dark: the light is decoration. A context lost, as in the background, is drawn anew once back.
  */
 @Directive({
   selector: 'canvas[appLightLayer]',
@@ -138,7 +139,18 @@ export class LightLayer {
         this.draw(this.lights(), this.settings());
       },
     });
-    inject(DestroyRef).onDestroy(() => this.renderer?.dispose());
+    const destroyRef = inject(DestroyRef);
+    destroyRef.onDestroy(() => this.renderer?.dispose());
+    keepGlContext(this.canvas, destroyRef, {
+      lost: () => {
+        this.renderer = undefined;
+      },
+      restored: () => {
+        // Anew, even after a try while it was lost.
+        this.renderer = undefined;
+        this.draw(this.lights(), this.settings());
+      },
+    });
   }
 
   private draw(lights: readonly Light[], settings: LightSettings): void {

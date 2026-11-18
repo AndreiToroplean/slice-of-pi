@@ -27,6 +27,7 @@ import {
   pointAt,
 } from '../../../game/layers/keypad-layout';
 import { Candy } from '../../../ui/candy';
+import { keepGlContext } from '../../../ui/gl-context';
 import { KEY_MOTION, KeyMotion, Joint, jointsOf, Merges, moving, stepMerges } from './key-merges';
 import { ACTION_KEY_COLOR } from './action-keys';
 import { keyShapes } from './key-shapes';
@@ -659,10 +660,19 @@ export class Keypad {
       this.watchGeometry(destroyRef);
       // Without motion, as the end-to-end tests ask, the keys stay plain candy buttons, never merging: it's all looks.
       if (!this.still) {
-        const renderer = KeypadRenderer.create(this.canvas().nativeElement);
-        if (typeof renderer !== 'string') {
-          this.renderer.set(renderer);
-        }
+        const canvas = this.canvas().nativeElement;
+        const start = (): void => {
+          const renderer = KeypadRenderer.create(canvas);
+          this.renderer.set(typeof renderer === 'string' ? undefined : renderer);
+        };
+        start();
+        // A context lost, as in the background, leaves the keys plain until it's back, then drawn anew.
+        keepGlContext(canvas, destroyRef, {
+          lost: () => {
+            this.renderer.set(undefined);
+          },
+          restored: start,
+        });
       }
     });
     effect(() => {
@@ -678,8 +688,10 @@ export class Keypad {
         requestAnimationFrame(() => {
           const pending = this.pendingScene;
           this.pendingScene = undefined;
-          if (pending !== undefined) {
-            renderer.draw(pending);
+          // The renderer of now: the one asked may have been lost since.
+          const current = this.renderer();
+          if (pending !== undefined && current !== undefined && this.drawing()) {
+            current.draw(pending);
           }
         });
       }
