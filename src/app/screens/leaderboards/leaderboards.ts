@@ -10,19 +10,19 @@ import { Podium, PodiumPlace } from './podium';
 import { podium, recordsOf } from './records';
 
 /** The player's leaderboards, one per tab. */
-type Board = 'perfect' | 'fastest' | 'known';
+type Board = 'perfect' | 'fastest' | 'mastery';
 
 const BOARDS: readonly Segment<Board>[] = [
   { value: 'perfect', label: 'Perfect Run' },
   { value: 'fastest', label: 'Fastest' },
-  { value: 'known', label: 'Known' },
+  { value: 'mastery', label: 'Mastery' },
 ];
 
 /**
  * The player's leaderboards, opened from the main menu, one per tab: their best runs, worked out from their touch
  * logs, so that they rank every run ever played, swiping from one to the next. The farthest places their perfect runs reached, on a podium, with how
- * far the best is from the next goal; their fastest perfect runs to each split place; and the runs proving they know
- * the most digits, mistakes counted, on a podium too.
+ * far the best is from the next goal; their fastest perfect runs to each split place; and the runs with the most
+ * mastery, mistakes counted, on a podium too.
  */
 @Component({
   selector: 'app-leaderboards',
@@ -46,10 +46,10 @@ const BOARDS: readonly Segment<Board>[] = [
           <p class="caption">Fastest without a mistake, to</p>
           <app-fastest [records]="records()" />
         </section>
-        <section class="board" appTabPanel="known">
-          <p class="caption">Digits known, mistakes counted</p>
-          <app-podium [places]="known()" />
-          <app-next-goal [value]="mostKnown()" />
+        <section class="board" appTabPanel="mastery">
+          <p class="caption">Digits right, mistakes counted</p>
+          <app-podium [places]="mastery()" />
+          <app-next-goal [value]="mostMastery()" />
         </section>
       </app-tab-panels>
     </app-page>
@@ -70,13 +70,13 @@ export class Leaderboards {
   );
   /** The farthest place a perfect run reached, 0 before any. */
   protected readonly best = computed(() => this.perfectRuns()[0]?.value ?? 0);
-  /** The runs proving the player knows the most digits, in whole digits, never rounded up. */
-  private readonly knownRuns = computed(() =>
-    podium(this.records(), (record) => Math.floor(record.known.digits) || undefined),
+  /** The runs with the most mastery, in whole digits, never rounded up. */
+  private readonly masteryRuns = computed(() =>
+    podium(this.records(), (record) => Math.floor(record.mastery.value) || undefined),
   );
-  protected readonly known = computed((): PodiumPlace[] => {
-    const byId = new Map(this.records().map((record) => [record.id, record.known]));
-    return this.knownRuns().map(({ id, value, startedAt }) => {
+  protected readonly mastery = computed((): PodiumPlace[] => {
+    const byId = new Map(this.records().map((record) => [record.id, record.mastery]));
+    return this.masteryRuns().map(({ id, value, startedAt }) => {
       const { reached = 0, mistakes = 0 } = byId.get(id) ?? {};
       return {
         value: String(value),
@@ -85,6 +85,6 @@ export class Leaderboards {
       };
     });
   });
-  /** The most digits a run proves the player knows, 0 before any. */
-  protected readonly mostKnown = computed(() => this.knownRuns()[0]?.value ?? 0);
+  /** The most mastery a run has, 0 before any. */
+  protected readonly mostMastery = computed(() => this.masteryRuns()[0]?.value ?? 0);
 }

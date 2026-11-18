@@ -32,7 +32,7 @@ The player against themselves: one leaderboard per feat rather than per game mod
 - **Worked out from the touch logs,** so a new leaderboard ranks every run ever played.
 - **Only the part played by its rules.** A run counts up to where it stops playing by rules at least as strict as the leaderboard's: on one without mistakes, a Free Play run counts up to its first mistake.
 - **Splits.** π has no finish line, so time is scored by milestone.
-- **Digits proven.** A feat for the runs with mistakes: a digit right on the _t_-th try proves 1 − log₁₀ _t_ digits, nothing on the tenth.
+- **Mastery.** A feat for the runs with mistakes: a digit right on the _t_-th try proves 1 − log₁₀ _t_ digits, nothing on the tenth.
 
 ## Later
 
