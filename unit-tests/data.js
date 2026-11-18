@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794956048602,
+  "lastUpdate": 1795033929599,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -4158,6 +4158,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1186,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "20fe2861330f0939edd2c93a11199713b4c0c98c",
+          "message": "fix: redraw the shaders after the phone takes back their GPU memory\n\n- A phone can drop a page's WebGL contexts while the app is in the background; without asking for them back (`preventDefault` on `webglcontextlost`), the browser shows each canvas as broken for good.\n- The light layers and the keypad now rebuild their renderers on `webglcontextrestored` and draw again; meanwhile the keys show as plain candy buttons.\n\nClaude-Session: https://claude.ai/code/session_01X1XesrYA8WUPBHakqU8Rs6",
+          "timestamp": "2026-11-18T21:31:42+01:00",
+          "tree_id": "7bb6a61a87384b75249939644736eff11b08de92",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/20fe2861330f0939edd2c93a11199713b4c0c98c"
+        },
+        "date": 1795033929200,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14254,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 31654,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 821,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
