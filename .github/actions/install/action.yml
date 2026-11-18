@@ -4,9 +4,24 @@ description: Sets up Node.js from .nvmrc and installs the npm dependencies.
 runs:
   using: composite
   steps:
-    - uses: actions/setup-node@v5
+    - id: node
+      uses: actions/setup-node@v5
       with:
         node-version-file: .nvmrc
-        cache: npm
-    - run: npm ci
+    # node_modules as npm ci leaves it, for as long as the lockfile and Node.js stay the same: restoring it takes
+    # seconds, where npm ci takes most of a minute. Pull requests restore main's, which every merge brings up to date.
+    - id: restore
+      uses: actions/cache/restore@v6
+      with:
+        path: node_modules
+        key: node-modules-${{ runner.os }}-${{ steps.node.outputs.node-version }}-${{ hashFiles('package-lock.json') }}
+    - if: steps.restore.outputs.cache-hit != 'true'
+      run: npm ci
       shell: bash
+    # Saved right away rather than at the end of the job, so that it holds nothing the job writes into node_modules
+    # later, such as Vite's cache.
+    - if: steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: node_modules
+        key: ${{ steps.restore.outputs.cache-primary-key }}
