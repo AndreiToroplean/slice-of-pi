@@ -54,14 +54,17 @@ describe('Leaderboards', () => {
   it('ranks the runs with the most mastery, with how far they got and their mistakes', async () => {
     // π's first decimals: 1, 4, 1, 5.
     const mistaken = typeKeys(['1', '4', '0', 'backspace', '1', '5', '9'], newTouchLog('k', 0));
-    const host = await open([mistaken]);
+    const host = await open([mistaken, typeKeys(decimals(3), newTouchLog('p', 0))]);
     host.querySelector<HTMLElement>('#board-tab-mastery')?.click();
     await vi.waitFor(() => {
       expect(host.querySelector('#board-mastery')?.hasAttribute('inert')).toBe(false);
     });
 
     // 1 + 1 + (1 − log₁₀ 2) + 1 + 1 = 4.699…, never rounded up.
-    expect(podium(host, 'mastery')).toEqual(['1 4.6 reached 5, 1 mistake 1 Jan']);
+    expect(podium(host, 'mastery')).toEqual([
+      '1 4.6 reached 5 with 1 mistake 1 Jan',
+      '2 3.0 reached 3 with no mistakes 1 Jan',
+    ]);
     expect(host.querySelector('#board-mastery app-next-goal')?.textContent).toContain('20.4 to go');
   });
 });

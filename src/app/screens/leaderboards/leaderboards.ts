@@ -80,7 +80,7 @@ export class Leaderboards {
       const { reached = 0, mistakes = 0 } = byId.get(id) ?? {};
       return {
         value: value.toFixed(1),
-        note: `reached ${String(reached)}, ${plural(mistakes, 'mistake')}`,
+        note: `reached ${String(reached)} with ${mistakes === 0 ? 'no mistakes' : plural(mistakes, 'mistake')}`,
         startedAt,
       };
     });
