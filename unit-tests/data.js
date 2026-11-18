@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795040201919,
+  "lastUpdate": 1795043033361,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -4238,6 +4238,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 1118,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "f8b95888fe0a103d2cf6c06a21c70167d2f902e8",
+          "message": "docs: chart the next steps for the leaderboards in play\n\n- Milestone celebrations, starting from milestones only, and leaderboards from a milestone, so that we don't forget them.\n\nClaude-Session: https://claude.ai/code/session_01X1XesrnGCWLbgAscAUfS8S",
+          "timestamp": "2026-11-19T00:03:28+01:00",
+          "tree_id": "4acbd7c6971f62508774b3519c10fa43c2f78544",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/f8b95888fe0a103d2cf6c06a21c70167d2f902e8"
+        },
+        "date": 1795043032665,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 12289,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 26926,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 764,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
