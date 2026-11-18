@@ -115,6 +115,14 @@ export function masteryOf(log: TouchLog): Mastery {
   return { value, reached, mistakes };
 }
 
+/**
+ * A mastery as the leaderboards rank it: to a tenth, never rounded up, so that a run never shows more than it proved,
+ * past the error the sums of logarithms leave.
+ */
+export function masteryTenths(value: number): number {
+  return Math.floor(value * 10 + 1e-9) / 10;
+}
+
 /** The records of the runs that count on the leaderboards (see {@link recordOf}). */
 export function recordsOf(logs: readonly TouchLog[]): RunRecord[] {
   return logs.flatMap((log) => recordOf(log) ?? []);

@@ -3,6 +3,7 @@ import { decimals, typeKeys as typed } from '../../../testing/touch-logs';
 import {
   bestPerfectRun,
   masteryOf,
+  masteryTenths,
   nextSplitPlace,
   podium,
   recordOf,
@@ -92,6 +93,11 @@ describe('records', () => {
     it('leaves out the mistakes it ends on, at a place never typed right', () => {
       expect(mastery(['1', '4', '0', 'backspace', '9'])).toEqual([2, 2, 0]);
     });
+  });
+
+  it('ranks a mastery to a tenth, never rounded up', () => {
+    expect(masteryTenths(1.699)).toBe(1.6);
+    expect(masteryTenths(2.9999999999999996)).toBe(3);
   });
 
   describe('a podium', () => {

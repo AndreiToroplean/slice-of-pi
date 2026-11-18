@@ -60,6 +60,8 @@ describe('Leaderboards', () => {
       expect(host.querySelector('#board-mastery')?.hasAttribute('inert')).toBe(false);
     });
 
-    expect(podium(host, 'mastery')).toEqual(['1 4 reached 5, 1 mistake 1 Jan']);
+    // 1 + 1 + (1 − log₁₀ 2) + 1 + 1 = 4.699…, never rounded up.
+    expect(podium(host, 'mastery')).toEqual(['1 4.6 reached 5, 1 mistake 1 Jan']);
+    expect(host.querySelector('#board-mastery app-next-goal')?.textContent).toContain('20.4 to go');
   });
 });
