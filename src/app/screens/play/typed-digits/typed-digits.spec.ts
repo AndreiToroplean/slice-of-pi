@@ -70,6 +70,25 @@ describe('TypedDigits', () => {
     ).toEqual(['', '', '', '']);
   });
 
+  it('measures the tape only as a word comes or goes, not as a digit is typed in the group being typed', async () => {
+    const fixture = TestBed.createComponent(TypedDigits);
+    const typing = async (digits: string): Promise<void> => {
+      fixture.componentRef.setInput('words', wordsOf5(digits));
+      fixture.componentRef.setInput('digits', digits);
+      fixture.componentRef.setInput('colors', placeColors(digits));
+      await fixture.whenStable();
+    };
+    await typing('1415926');
+    const measure = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect');
+
+    await typing('14159265');
+    expect(measure).not.toHaveBeenCalled();
+
+    await typing('1415926535');
+    expect(measure).toHaveBeenCalled();
+    measure.mockRestore();
+  });
+
   it('marks each word with the place of its first digit', async () => {
     const host = await render('1415926535');
 
