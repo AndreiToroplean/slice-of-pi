@@ -207,9 +207,12 @@ export class Speaker {
   ): Playing {
     const start = context.currentTime + delay / 1000;
     const mix = this.tweaks.soundMix();
-    const voices = chime.map((note) =>
-      this.voice(context, output, note, start + (note.delay ?? 0), mixedGain(note, part, mix)),
-    );
+    // Silent notes, as the landings' in the game's own mix, are left out: each would be oscillators the device works out
+    // for nothing, a word's worth at once as it lands.
+    const voices = chime.flatMap((note) => {
+      const gain = mixedGain(note, part, mix);
+      return gain === 0 ? [] : [this.voice(context, output, note, start + (note.delay ?? 0), gain)];
+    });
     return {
       stop: () => {
         for (const voice of voices) {

@@ -52,6 +52,15 @@ describe('Speaker', () => {
     expect(audio.partials()).toHaveLength(3 + 6);
   });
 
+  it('starts nothing for a silent note, as a landing muted in the mix', () => {
+    TestBed.inject(Speaker).play([
+      { pitch: 64, gain: 0, length: 1 },
+      { pitch: 67, gain: 1, length: 1 },
+    ]);
+
+    expect(audio.notes()).toHaveLength(1);
+  });
+
   it('takes each note out of the mix once it has faded out', () => {
     TestBed.inject(Speaker).play([{ pitch: 60, gain: 1, length: 1 }]);
     expect(audio.notes()[0]?.connected()).toBe(true);
