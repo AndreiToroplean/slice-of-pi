@@ -2,17 +2,16 @@ import type { GroupPlan } from '../groups';
 import type { BreakModel, Gameplay, Stats, TimedRun } from './break-model';
 import { timesFromPlace } from '../from-checkpoint';
 import { sizeOnTrack } from '../group-size';
-import type { Mixture } from './statistics';
 import { breaksOf, RunSteps, Steps } from './steps';
 
 /**
  * Works out the steps over the finished runs it was given and, if given, the run in progress, which is then the newest:
  * its times since its first digit, at the place it was prepared for.
- * `init` is the last mixture fitted, if any, to start the fit from. `start`, with a run in progress, is the index where
+ * `start`, with a run in progress, is the index where
  * its group being typed starts, which hasn't finished before its last digit: the groups before it are played, so a
  * model may take them as they are rather than as it would cut them.
  */
-export type Fit = (current?: readonly number[], init?: Mixture, start?: number) => Steps;
+export type Fit = (current?: readonly number[], start?: number) => Steps;
 
 /** Whether the group being typed is finished before the digit at index `next`, as {@link groupEnds} decides. */
 export type Ends = (steps: Steps, next: number, trusted: boolean) => boolean;
@@ -45,11 +44,8 @@ export function fromStartOfPiOnly(
 ): Prepare {
   return (finished, from) => {
     const fit = prepare(timesFromStartOfPi(finished));
-    return (current, init, start) =>
-      withRunsLeftOut(
-        fit(current && timesFromPlace(from, current, finished), init, start),
-        finished,
-      );
+    return (current, start) =>
+      withRunsLeftOut(fit(current && timesFromPlace(from, current, finished), start), finished);
   };
 }
 
@@ -75,22 +71,15 @@ export function withRunsLeftOut(steps: Steps, finished: readonly TimedRun[]): St
 
 /**
  * How the groups are played. The run being typed is one of the runs like any other, so every answer fits the runs
- * again with it, each fit starting from the last one's mixture, if any, so that it takes only a few rounds. The trust horizon is
- * the finished runs' alone, frozen for the run, so that the groups shown don't flicker between the player's own and
- * growing ones as they type.
+ * again with it, each fit from scratch, so that it gives the same answer whatever was asked before. The trust horizon is the finished runs' alone, frozen for the run,
+ * so that the groups shown don't flicker between the player's own and growing ones as they type.
  */
 function gameplayOf(fit: Fit, ends: Ends, groupSize: number, from: number): Gameplay {
   const horizon = fit().horizon;
-  let mixture: Mixture | undefined;
-  const withCurrent = (current: readonly number[], start: number): Steps => {
-    const steps = fit(current, mixture, start);
-    mixture = steps.mixture;
-    return steps;
-  };
   return {
-    groupAt: (current, start) => groupAt(withCurrent(current, start), start, horizon, groupSize),
+    groupAt: (current, start) => groupAt(fit(current, start), start, horizon, groupSize),
     groupEnds: (current, start, trusted) =>
-      ends(withCurrent(current, start), from + current.length - 1, trusted),
+      ends(fit(current, start), from + current.length - 1, trusted),
   };
 }
 

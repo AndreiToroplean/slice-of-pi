@@ -76,7 +76,7 @@ export const MERCURY: BreakModelKind = {
     return modelFromSteps(
       fromStartOfPiOnly((finished) => {
         const done = finishedRuns(finished, settings.window);
-        return (current, init) => mercury(done, current, settings, init);
+        return (current) => mercury(done, current, settings);
       }),
     );
   },
