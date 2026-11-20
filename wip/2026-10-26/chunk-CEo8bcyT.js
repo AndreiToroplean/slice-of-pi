@@ -1,0 +1,1 @@
+import{Et as h,Y as Rr,y as Hr}from"./chunk-BIzaaEOb.js";function v(){return c(`/`)}function c(t){let i=h(Hr),e=h(Rr);return()=>{i.lastSuccessfulNavigation()?.previousNavigation?.finalUrl?.toString()===t?e.back():i.navigateByUrl(t,{replaceUrl:!0})}}export{v as n,c as t};

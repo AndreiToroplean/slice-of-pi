@@ -1,0 +1,1 @@
+import{hn as g,vn as gg}from"./chunk-DjhYXgHV.js";import{n as De}from"./chunk-DfHOIUuC.js";function v(){return c(`/`)}function c(t){let i=g(De),e=g(gg);return()=>{i.lastSuccessfulNavigation()?.previousNavigation?.finalUrl?.toString()===t?e.back():i.navigateByUrl(t,{replaceUrl:!0})}}export{v as n,c as t};
