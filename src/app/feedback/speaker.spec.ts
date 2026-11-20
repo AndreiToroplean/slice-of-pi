@@ -62,6 +62,18 @@ describe('Speaker', () => {
     expect(audio.notes()).toHaveLength(1);
   });
 
+  it("plays a chord's note as one wave of its partials, and the melody's partials apart, to sour", () => {
+    TestBed.inject(Speaker).play([
+      { pitch: 60, gain: 1, length: 1 },
+      { pitch: 48, gain: 1, length: 1, accompaniment: true },
+    ]);
+
+    expect(audio.partials().map(({ type }) => type)).toEqual(['sine', 'sine', 'sine', 'custom']);
+    [1, 0.12, 0.02, 0, 0, 0].forEach((level, i) => {
+      expect(audio.partials()[3]?.wave?.[i]).toBeCloseTo(level);
+    });
+  });
+
   it('takes each note out of the mix once it has faded out', () => {
     TestBed.inject(Speaker).play([{ pitch: 60, gain: 1, length: 1 }]);
     expect(audio.notes()[0]?.connected()).toBe(true);
@@ -185,7 +197,8 @@ describe('Speaker', () => {
     expect(audio.partials()[1]?.bends).toEqual([{ to: -30, by }]);
     expect(melody?.bends).toEqual([{ to: -40, by }]);
     expect(chord?.bends).toEqual([]);
-    const added = audio.tones.filter(({ type }) => type !== 'sine');
+    const own = audio.partials();
+    const added = audio.tones.filter((tone) => !own.includes(tone));
     expect(added.map(({ type, start }) => [type, start])).toEqual([
       ['square', 1.2],
       ['triangle', 1.2],
