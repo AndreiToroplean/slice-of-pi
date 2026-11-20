@@ -120,7 +120,7 @@ export const VENUS: BreakModelKind = {
   create: (tuned) => {
     const settings = withDefaults(tuned);
     return modelFromSteps(
-      fromStartOfPiOnly((finished) => (current, init) => venus(finished, current, settings, init)),
+      fromStartOfPiOnly((finished) => (current) => venus(finished, current, settings)),
     );
   },
   steps: (tuned, finished) =>

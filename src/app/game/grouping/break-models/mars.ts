@@ -381,7 +381,7 @@ function marsModel(settings: MarsSettings): BreakModel {
         settings,
         from,
       );
-      return (current, _init, start) => over(current, start);
+      return over;
     },
     (steps, next) => groupEnds(steps, next, true),
   );
