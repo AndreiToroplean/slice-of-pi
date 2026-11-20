@@ -6,8 +6,10 @@ import { AUDIO } from '../app/feedback/speaker';
  * bent to, in cents, and by when, if it is.
  */
 export interface PlayedTone {
-  /** Its wave: a note's own partials are sine waves. */
+  /** Its wave: a note's own partials are sine waves, or all of them one custom wave. */
   readonly type: OscillatorType;
+  /** The level of each partial of its custom wave, from the fundamental up, if it has one. */
+  readonly wave?: readonly number[];
   /** Whether it's a note's first partial, the first oscillator started after its envelope. */
   readonly first: boolean;
   readonly start: number;
@@ -82,9 +84,9 @@ export class FakeAudio {
     return this.partials().filter(({ first }) => first);
   }
 
-  /** The notes' own partials, in order, leaving out what's added to sour them. */
+  /** The notes' own oscillators, in order, leaving out what's added to sour them. */
   partials(): PlayedTone[] {
-    return this.tones.filter(({ type }) => type === 'sine');
+    return this.tones.filter(({ type }) => type === 'sine' || type === 'custom');
   }
 
   private context(): AudioContext {
@@ -146,12 +148,20 @@ export class FakeAudio {
       destination: node(),
       createDynamicsCompressor: () => node(),
       createGain: () => ({ ...node(), gain: param() }),
+      createPeriodicWave: (_real: Float32Array, imag: Float32Array) => ({
+        levels: Array.from(imag).slice(1),
+      }),
       createOscillator: () => {
         const oscillator = { ...node(), frequency: { value: 0 } };
         const bends: { to: number; by: number }[] = [];
+        let wave: readonly number[] | undefined;
         const made = {
           ...oscillator,
           type: 'sine' as OscillatorType,
+          setPeriodicWave: (periodic: { levels: readonly number[] }) => {
+            made.type = 'custom';
+            wave = periodic.levels;
+          },
           detune: {
             ...param(),
             linearRampToValueAtTime: (to: number, by: number) => {
@@ -161,6 +171,7 @@ export class FakeAudio {
           start: (when: number) => {
             audio.tones.push({
               type: made.type,
+              ...(wave === undefined ? {} : { wave }),
               first: audio.noteStarting,
               start: when,
               connected: oscillator.connected,

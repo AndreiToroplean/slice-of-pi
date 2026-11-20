@@ -79,7 +79,8 @@ export function mixedGain(note: Note, part: SoundPart, mix: SoundMix): number {
 
 /**
  * A note being played: its pitch, when it starts and ends, whether it's the melody, what all its sound goes through,
- * its tone before the envelope, and the pitches of its partials sounding, by their rank, lowest first.
+ * the gain its tone goes through, which a sour note's rasp shakes, and the pitches of its partials sounding, by their
+ * rank, lowest first.
  */
 interface Voice {
   readonly pitch: number;
@@ -161,6 +162,8 @@ export class Speaker {
   private output: AudioNode | undefined;
   /** The envelopes of the notes played so far, by their length in ms, made once each (see {@link envelopeCurve}). */
   private readonly envelopes = new Map<number, AudioBuffer>();
+  /** The waves of the chords' notes played so far, by their timbre, made once each. */
+  private readonly waves = new Map<number | undefined, PeriodicWave>();
 
   /** Gets the audio ready to play, unless the player turned sounds off: done on every tap and key, as browsers ask. */
   warmUp(): void {
@@ -278,6 +281,23 @@ export class Speaker {
     return buffer;
   }
 
+  /** The wave of a note's partials at `levels`, in its timbre: sine waves, as its partials played apart are. */
+  private wave(context: AudioContext, timbre: number | undefined, levels: number[]): PeriodicWave {
+    let wave = this.waves.get(timbre);
+    if (wave === undefined) {
+      // Their sines, from the fundamental up, after no constant.
+      wave = context.createPeriodicWave(
+        new Float32Array(levels.length + 1),
+        Float32Array.from([0, ...levels]),
+        {
+          disableNormalization: true,
+        },
+      );
+      this.waves.set(timbre, wave);
+    }
+    return wave;
+  }
+
   /**
    * Plucks a note at `start`, on the context's clock, fading out (see {@link envelopeCurve}), its tone through a gain a
    * sour note's rasp shakes.
@@ -307,29 +327,48 @@ export class Speaker {
     curve.onended = () => {
       level.disconnect();
     };
-    const tone = context.createGain();
-    tone.connect(envelope);
-    // Silent partials, as a plain pluck's highest, are left out: each would be an oscillator the device works out for
-    // nothing.
-    const partials = partialLevels(note.timbre).flatMap((level, i) => {
-      if (level === 0) {
-        return [];
-      }
-      const oscillator = context.createOscillator();
-      oscillator.frequency.value = frequencyOf(note.pitch) * (i + 1);
-      const partial = context.createGain();
-      partial.gain.value = level;
-      oscillator.connect(partial);
-      partial.connect(tone);
+    const melody = note.accompaniment !== true;
+    // A gain a sour note's rasp shakes: the chords never sour, so theirs is the envelope itself, one gain less to work out.
+    const tone = melody ? context.createGain() : envelope;
+    if (melody) {
+      tone.connect(envelope);
+    }
+    const levels = partialLevels(note.timbre);
+    const play = (oscillator: OscillatorNode, to: AudioNode): void => {
+      oscillator.connect(to);
       oscillator.start(start);
       oscillator.stop(end + TAIL);
-      return [{ rank: i + 1, detune: oscillator.detune }];
-    });
+    };
+    // The melody, which may sour, plays each partial on an oscillator of its own, for them to drift apart (see
+    // {@link sour}). The chords never do: each note plays its partials as one wave, on one oscillator, a few times less
+    // work for the audio, which crackles once it has more than it can work out in time.
+    if (!melody) {
+      const oscillator = context.createOscillator();
+      oscillator.setPeriodicWave(this.wave(context, note.timbre, levels));
+      oscillator.frequency.value = frequencyOf(note.pitch);
+      play(oscillator, tone);
+    }
+    // Silent partials, as a plain pluck's highest, are left out: each would be an oscillator the device works out for
+    // nothing.
+    const partials = !melody
+      ? []
+      : levels.flatMap((level, i) => {
+          if (level === 0) {
+            return [];
+          }
+          const oscillator = context.createOscillator();
+          oscillator.frequency.value = frequencyOf(note.pitch) * (i + 1);
+          const partial = context.createGain();
+          partial.gain.value = level;
+          partial.connect(tone);
+          play(oscillator, partial);
+          return [{ rank: i + 1, detune: oscillator.detune }];
+        });
     return {
       pitch: note.pitch,
       start,
       end,
-      melody: note.accompaniment !== true,
+      melody,
       envelope,
       tone,
       partials,
