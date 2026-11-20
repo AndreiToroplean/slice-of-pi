@@ -9,7 +9,7 @@ import {
   SLIDE_DURATION,
   slideDuration,
   flyIntoWord,
-  snapshotSlot,
+  snapshotSlots,
   tileCorners,
 } from './flight';
 import { installAnimations, uninstallAnimations } from '../../../../testing/fake-animations';
@@ -203,9 +203,55 @@ describe('flyIntoWord', () => {
       ['rgb(12, 148, 136)', 'rgb(255, 255, 255)'],
     ]);
   });
+
+  it('measures every tile before putting any copy on the page, so that the page is laid out once', () => {
+    installAnimations();
+    const steps: string[] = [];
+    const word = document.createElement('span');
+    for (const digit of ['1', '4', '1']) {
+      const tile = document.createElement('span');
+      tile.textContent = digit;
+      vi.spyOn(tile, 'getBoundingClientRect').mockImplementation(() => {
+        steps.push('measure');
+        return new DOMRect();
+      });
+      word.append(tile);
+    }
+    document.body.append(word);
+    const layer = document.createElement('div');
+    document.body.append(layer);
+    vi.spyOn(layer, 'append').mockImplementation(() => {
+      steps.push('write');
+    });
+    const box = { left: 0, top: 0, width: 40, height: 60 };
+    const slot = { box, radius: 14, fontSize: 34, depth: 4, slid: box };
+
+    flyIntoWord(layer, [slot, slot, slot], word);
+
+    expect(steps).toEqual(['measure', 'measure', 'measure', 'write', 'write', 'write']);
+  });
 });
 
-describe('snapshotSlot', () => {
+describe('snapshotSlots', () => {
+  it('finishes every pop before measuring any slot, so that the page is laid out once', () => {
+    const steps: string[] = [];
+    const slots = [0, 1].map(() => {
+      const slot = document.createElement('div');
+      slot.getAnimations = () => [
+        { animationName: 'pop', finish: () => steps.push('finish') } as unknown as Animation,
+      ];
+      vi.spyOn(slot, 'getBoundingClientRect').mockImplementation(() => {
+        steps.push('measure');
+        return new DOMRect();
+      });
+      return slot;
+    });
+
+    snapshotSlots(document.body, slots);
+
+    expect(steps).toEqual(['finish', 'finish', 'measure', 'measure']);
+  });
+
   it('takes the slot as it is once it has popped in, its pop finished first, but not its move', () => {
     const slot = document.createElement('div');
     let popped = false;
@@ -217,7 +263,7 @@ describe('snapshotSlot', () => {
       () => ({ left: 0, top: 0, width: popped ? 40 : 28, height: popped ? 60 : 42 }) as DOMRect,
     );
 
-    expect(snapshotSlot(document.body, slot).box).toMatchObject({ width: 40, height: 60 });
+    expect(snapshotSlots(document.body, [slot])[0]?.box).toMatchObject({ width: 40, height: 60 });
     expect(moved).toBe(false);
   });
 
@@ -227,7 +273,7 @@ describe('snapshotSlot', () => {
     slot.getAnimations = () => [];
     document.body.append(slot);
 
-    expect(snapshotSlot(document.body, slot).depth).toBe(4.5);
+    expect(snapshotSlots(document.body, [slot])[0]?.depth).toBe(4.5);
     slot.remove();
   });
 });

@@ -26,7 +26,7 @@ import {
   leavesAt,
   slideDuration,
   SlotSnapshot,
-  snapshotSlot,
+  snapshotSlots,
 } from './flight/flight';
 import { slotBoxes } from './slots/slot-layout';
 import { SlotHandover } from './slots/slots';
@@ -1682,9 +1682,10 @@ export class Play implements PausesOnBack {
     if (this.quiet || !canFly(this.host) || area === null) {
       return [];
     }
-    const slots = Array.from(area.querySelectorAll('.slot'))
-      .slice(0, length)
-      .map((slot) => snapshotSlot(this.host, slot));
+    const slots = snapshotSlots(
+      this.host,
+      Array.from(area.querySelectorAll('.slot')).slice(0, length),
+    );
     const first = slots[0];
     if (first === undefined) {
       return [];
