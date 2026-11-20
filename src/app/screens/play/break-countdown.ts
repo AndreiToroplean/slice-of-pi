@@ -1,5 +1,5 @@
 import { Component, computed, DestroyRef, inject, input, signal } from '@angular/core';
-import { LONGEST_WAIT } from '../../game/grouping/wait-to-end';
+import { LOOK_AHEAD } from '../../game/grouping/wait-to-end';
 import { RunRecorder } from '../../player-data/run-recorder';
 import { TIMER } from './timer';
 
@@ -8,8 +8,8 @@ const TICK = 16;
 
 /**
  * Developer mode's countdown to the end of the group being typed, in the screen's top right corner: the seconds
- * left before the pause is long enough for the break model to end it, or `> 10⁶` if no pause up to the longest wait
- * looked at would, as it can't tell that from none ever would, over a disk that empties as they run out.
+ * left before the pause is long enough for the break model to end it, or `> 60.0` if no pause as far as the game looks
+ * ahead would, over a disk that empties as they run out.
  */
 @Component({
   selector: 'app-break-countdown',
@@ -57,9 +57,7 @@ export class BreakCountdown {
     return wait === Infinity ? 1 : wait > 0 ? this.left() / wait : 0;
   });
   protected readonly text = computed(() =>
-    this.wait() === Infinity
-      ? `> 10${superscript(Math.log10(LONGEST_WAIT / 1000))}`
-      : seconds(this.left()),
+    this.wait() === Infinity ? `> ${seconds(LOOK_AHEAD)}` : seconds(this.left()),
   );
 
   constructor() {
