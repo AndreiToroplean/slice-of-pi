@@ -55,6 +55,7 @@ import { Keypad } from './keypad/keypad';
 import { KEY_LINGER } from '../../game/layers/place-colors';
 import { PLAY_WITH_MERCURY } from '../../../testing/game-break-model';
 import { GAME_BREAK_MODEL } from '../../game/grouping/break-models/break-models';
+import type { TimedRun } from '../../game/grouping/break-models/break-model';
 
 /** The time between two digits Discovery plays, at its default pace. */
 const MEDIUM_INTERVAL = paceInterval('medium');
@@ -662,7 +663,7 @@ describe('Play', () => {
       expect(countdown(host)).toBeUndefined();
     });
 
-    it('shows the longest wait looked at where no pause up to it ends the group', async () => {
+    it('shows how far it looks ahead where no pause up to it ends the group', async () => {
       // The game's model only ends the player's own groups where the runs agree they end.
       const { host, type } = await setUpWithRuns(4, true, async () => {
         await TestBed.inject(DeveloperMode).set(true);
@@ -670,7 +671,7 @@ describe('Play', () => {
       });
       await typeAll(type, '14');
 
-      expect(countdown(host)).toBe('> 10⁶');
+      expect(countdown(host)).toBe('> 60.0');
     });
 
     it('shows nothing in developer mode unless turned on', async () => {
@@ -1056,6 +1057,34 @@ describe('Play', () => {
         expect(shownTiles(host)).toBe('14159'.slice(0, i + 1).padEnd(5, '_'));
         expect(flyingSlots(host)).toBe('14159'.slice(i + 1));
       }
+    });
+
+    it('ends a group once the player has paused long enough, even past the minute the game first looks ahead', async () => {
+      // A model ending groups after a pause of a minute and a half, and nowhere else.
+      const pause = 90_000;
+      TestBed.overrideProvider(GAME_BREAK_MODEL, {
+        useValue: {
+          ...MARS,
+          create: () => ({
+            play: () => ({
+              groupAt: () => ({ size: 5, trusted: false }),
+              groupEnds: (current: readonly number[]) =>
+                (current.at(-1) ?? 0) - (current.at(-2) ?? 0) >= pause,
+            }),
+            stats: (finished: readonly TimedRun[]) => MARS.create({}).stats(finished),
+          }),
+        },
+      });
+      const { host, type, stable } = await setUp();
+      await typeAll(type, '14');
+
+      time.advance(pause - 1_000);
+      await stable();
+      expect(words(host)).toEqual([]);
+
+      time.advance(10 * PAUSE);
+      await stable();
+      expect(words(host)).toEqual(['14']);
     });
 
     it('flies the digit typed last too when it ends its group at once, though it made room for a slot not shown yet', async () => {
