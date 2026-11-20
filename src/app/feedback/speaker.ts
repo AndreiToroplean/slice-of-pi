@@ -1,6 +1,7 @@
 import { inject, InjectionToken, Service } from '@angular/core';
 import { Tweaks } from '../developer-mode/tweaks';
 import type { Chime, Note } from '../game/layers/sound/sound-model';
+import { RUN_CLOCK } from '../player-data/run-recorder';
 import { SoundSetting } from '../player-data/sound-setting';
 import { SoundMix } from './sound-mix';
 import { Souring } from './souring';
@@ -46,6 +47,12 @@ const HEADROOM = 0.15;
 const BUZZ_LEVEL = 0.35;
 /** How fast a sour note's rasp flutters, in hertz: as fast as a buzzer's. */
 const RASP_RATE = 45;
+
+/**
+ * How late a note waiting for the audio to run may still start, in milliseconds: one later than this, as after the
+ * phone took the audio away for a while, is dropped rather than played out of time, all at once with the others.
+ */
+export const LATEST = 100;
 
 /** What the speaker is playing, to act on as it rings. */
 export interface Playing {
@@ -141,13 +148,15 @@ function frequencyOf(pitch: number): number {
  *
  * Browsers only let a page's audio start on a tap or a key, and the device takes a moment to start it, so the audio is
  * got ready on the player's first tap anywhere, such as on Play (see {@link warmUp}), long before the first key sounds;
- * a note played while the audio isn't running yet waits for it, rather than being lost.
+ * a note played while the audio isn't running yet waits for it, rather than being lost, as long as it's not too late
+ * for it once it runs (see {@link LATEST}).
  */
 @Service()
 export class Speaker {
   private readonly createContext = inject(AUDIO);
   private readonly setting = inject(SoundSetting);
   private readonly tweaks = inject(Tweaks);
+  private readonly clock = inject(RUN_CLOCK);
   private context: AudioContext | undefined;
   private output: AudioNode | undefined;
   /** The envelopes of the notes played so far, by their length in ms, made once each (see {@link envelopeCurve}). */
@@ -161,8 +170,9 @@ export class Speaker {
   }
 
   /**
-   * Plays notes together, as a `part` of the game's sounds, `delay` ms from now, each rolled by its own delay, or from
-   * once the audio runs, if it isn't yet, to stop or sour as they ring.
+   * Plays notes together, as a `part` of the game's sounds, `delay` ms from now, each rolled by its own delay, to stop
+   * or sour as they ring. If the audio isn't running yet, they wait for it, and play as soon as it does, unless that's
+   * more than {@link LATEST} past their time.
    */
   play(chime: Chime, delay = 0, part: SoundPart = 'key'): Playing {
     const ready = this.setting.enabled() ? this.ready() : undefined;
@@ -174,12 +184,14 @@ export class Speaker {
     if (context.state === 'running') {
       return this.schedule(context, output, chime, delay, part);
     }
+    const due = this.clock.now() + delay;
     let playing: Playing | undefined;
     let stopped = false;
     let soured = false;
     void ready.then(() => {
-      if (!stopped) {
-        playing = this.schedule(context, output, chime, delay, part);
+      const left = due - this.clock.now();
+      if (!stopped && left >= -LATEST) {
+        playing = this.schedule(context, output, chime, Math.max(0, left), part);
         if (soured) {
           playing.sour();
         }

@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { INDEXED_DB } from '../player-data/run-store';
 import { SoundSetting } from '../player-data/sound-setting';
 import { FakeAudio } from '../../testing/fake-audio';
-import { envelopeCurve, mixedGain, Speaker } from './speaker';
+import { envelopeCurve, LATEST, mixedGain, Speaker } from './speaker';
+import { RUN_CLOCK } from '../player-data/run-recorder';
 import { SOURING } from './souring';
 import { DeveloperMode } from '../developer-mode/developer-mode';
 import { Tweaks } from '../developer-mode/tweaks';
@@ -91,15 +92,42 @@ describe('Speaker', () => {
     expect(audio.made).toBe(1);
   });
 
-  it('waits for the browser to let the audio run, then plays from then', async () => {
-    audio.block();
-    TestBed.inject(Speaker).play([{ pitch: 60, gain: 1, length: 1 }], 100);
-    expect(audio.tones).toEqual([]);
+  describe('waiting for the audio to run', () => {
+    let now: number;
 
-    audio.currentTime = 2;
-    await audio.allow();
+    beforeEach(() => {
+      now = 1000;
+      TestBed.overrideProvider(RUN_CLOCK, {
+        useValue: { now: () => now, epoch: () => now, newId: () => 'id' },
+      });
+    });
 
-    expect(audio.notes().map(({ start }) => start)).toEqual([2.1]);
+    it('waits for the browser to let the audio run, then plays at its time', async () => {
+      audio.block();
+      TestBed.inject(Speaker).play([{ pitch: 60, gain: 1, length: 1 }], 100);
+      expect(audio.tones).toEqual([]);
+
+      now += 40;
+      audio.currentTime = 2;
+      await audio.allow();
+
+      expect(audio.notes().map(({ start }) => start)).toEqual([2.06]);
+    });
+
+    it('plays at once what is a little late, and drops what is too late, rather than playing it all at once', async () => {
+      audio.block();
+      const speaker = TestBed.inject(Speaker);
+      speaker.play([{ pitch: 60, gain: 1, length: 1 }]);
+      now += 2 * LATEST;
+      speaker.play([{ pitch: 62, gain: 1, length: 1 }]);
+      now += LATEST / 2;
+      speaker.play([{ pitch: 64, gain: 1, length: 1 }]);
+
+      audio.currentTime = 2;
+      await audio.allow();
+
+      expect(audio.notes().map(({ start }) => start)).toEqual([2, 2]);
+    });
   });
 
   it('plays nothing it was waiting to play once silenced', async () => {
