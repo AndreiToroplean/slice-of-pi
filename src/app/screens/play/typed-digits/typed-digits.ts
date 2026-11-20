@@ -99,6 +99,11 @@ export class TypedDigits {
   protected readonly fade = computed(() => this.fadeOut()?.left ?? 1);
   /** The finished groups, in order. */
   readonly words = input.required<readonly Word[]>();
+  /**
+   * The words, changing only as one comes or goes, not with each digit typed in the group being typed: making room
+   * for them measures the tape, laying the page out.
+   */
+  private readonly onTape = computed(() => this.words(), { equal: sameWords });
   /** The digits typed so far, including those of the group being typed. */
   readonly digits = input.required<string>();
   /** The place colors of the digits typed so far: place p's is at index p - 1. */
@@ -137,7 +142,7 @@ export class TypedDigits {
   constructor() {
     // On each word, which comes on or off the tape after the key that typed its last digit, if any.
     afterRenderEffect(() => {
-      const words = this.words();
+      const words = this.onTape();
       untracked(() => {
         const added = this.last !== null && words.length > this.last.words.length;
         this.leaveRoom(words);
@@ -250,6 +255,14 @@ export class TypedDigits {
       });
     }
   }
+}
+
+/** Whether two lists hold the same words. */
+export function sameWords(a: readonly Word[], b: readonly Word[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((word, k) => word.firstPlace === b[k]?.firstPlace && word.digits === b[k].digits)
+  );
 }
 
 /** Where the last of `words` ends, in pixels from their start, with the space after it. */
