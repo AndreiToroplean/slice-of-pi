@@ -194,7 +194,7 @@ export function marsSteps(finished: readonly JudgedRun[], settings: MarsSettings
         logOdds: byIndex(pool.logOdds),
         envelope,
         ...(runBreaks === undefined ? {} : { runBreaks }),
-        agreement: usualOf(pool.breaks).usual,
+        agreement: usualOf(pool.breaks()).usual,
         // The next run counts 1, and the finished runs the current decay times what they count here: its evidence
         // makes up the rest, straight in z, the envelope's as it stands.
         nextRunZ: byIndex(
@@ -243,9 +243,10 @@ interface Pool {
   readonly steps: readonly RunSteps[];
   /** The log-odds of a break: the prior, plus each run's evidence times its weight. */
   readonly logOdds: readonly number[];
-  /** The runs' own verdicts, to tell how many agree with the evidence pooled. */
-  readonly breaks: BreakSums;
-  readonly pace: PaceSums;
+  /** The runs' own verdicts, to tell how many agree with the evidence pooled, added up once first asked for. */
+  readonly breaks: () => BreakSums;
+  /** Their paces, added up once first asked for. */
+  readonly pace: () => PaceSums;
 }
 
 /**
@@ -284,8 +285,8 @@ function pooled(
         from?.logOdds[p] ?? prior,
       ),
     ),
-    breaks: breakSums(logs, steps, weights, undefined, from?.breaks),
-    pace: paceSums(runs, paceRecency, from?.pace),
+    breaks: once(() => breakSums(logs, steps, weights, undefined, from?.breaks())),
+    pace: once(() => paceSums(runs, paceRecency, from?.pace())),
   };
 }
 
@@ -298,29 +299,62 @@ function stepsOf(pool: Pool, settings: MarsSettings, shaped: Enveloped | undefin
   const usual = byIndex(
     pool.logOdds.map((logOdds, p) => logistic(logOdds + (shaped?.evidence[p + 1] ?? 0))),
   );
-  const { coverage, breaks, averageTime } = usualOf(pool.breaks);
-  const trust = trustOf(byIndex(pool.logOdds.map(logistic)), breaks, coverage, {
-    usualThreshold: settings.breakThreshold,
-    level: settings.level,
-  });
+  const sums = once(() => usualOf(pool.breaks()));
+  const trust = once(() =>
+    trustOf(byIndex(pool.logOdds.map(logistic)), sums().breaks, sums().coverage, {
+      usualThreshold: settings.breakThreshold,
+      level: settings.level,
+    }),
+  );
   const digits = digitsOf(pool);
   const groupsWithin = (horizon: number): Group[] =>
     shaped === undefined
       ? groupsOf(usual, settings.breakThreshold, digits, horizon)
       : groupsBetween(shaped.breaks, digits, horizon);
+  const groups = once(() => groupsWithin(trust().horizon));
+  const discoveryGroups = once(() =>
+    groupsWithin(horizonAt(trust().confidenceTrend, settings.discoveryLevel)),
+  );
+  const speedCurve = once(() => paceOf(pool.pace()));
+  // All but the usual-break probability are worked out once first read: as the game plays, it asks again and again
+  // whether a group ends, which only reads that.
   return {
     // One threshold for every break: where the runs usually break is where they break, pooled.
     settings: { ...settings, usualThreshold: settings.breakThreshold },
     runs: pool.steps,
     usual,
-    coverage,
-    ...trust,
-    speedCurve: paceOf(pool.pace),
-    averageTime,
+    get coverage() {
+      return sums().coverage;
+    },
+    get confidence() {
+      return trust().confidence;
+    },
+    get confidenceTrend() {
+      return trust().confidenceTrend;
+    },
+    get horizon() {
+      return trust().horizon;
+    },
+    get speedCurve() {
+      return speedCurve();
+    },
+    get averageTime() {
+      return sums().averageTime;
+    },
     // The envelope's own breaks rather than the probability's over the threshold, which they only miss on a tie.
-    groups: groupsWithin(trust.horizon),
-    discoveryGroups: groupsWithin(horizonAt(trust.confidenceTrend, settings.discoveryLevel)),
+    get groups() {
+      return groups();
+    },
+    get discoveryGroups() {
+      return discoveryGroups();
+    },
   };
+}
+
+/** The value `compute` gives, worked out the first time it's asked for. */
+function once<T>(compute: () => T): () => T {
+  let value: { readonly is: T } | undefined;
+  return () => (value ??= { is: compute() }).is;
 }
 
 /**
@@ -347,7 +381,7 @@ function marsModel(settings: MarsSettings): BreakModel {
         settings,
         from,
       );
-      return (current, _init, start) => over(current, start);
+      return over;
     },
     (steps, next) => groupEnds(steps, next, true),
   );

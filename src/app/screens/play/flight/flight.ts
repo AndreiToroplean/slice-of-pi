@@ -265,26 +265,31 @@ export function boxIn(layer: Element, element: Element): Box {
 }
 
 /**
- * Takes a snapshot of a filled slot before it flies, relative to `layer`: as it is once it has popped in, as the slot
+ * Takes snapshots of filled slots before they fly, relative to `layer`: each as it is once it has popped in, as the slot
  * of the digit typed last may still be doing, smaller, when its group ends at once, but wherever it's moving to, as
- * slots handing over do. It slides nowhere, unless told where (`slid`).
+ * slots handing over do. They slide nowhere, unless told where (`slid`). Every pop is finished before any slot is
+ * measured, so that the browser lays the page out once rather than once for each.
  */
-export function snapshotSlot(layer: Element, slot: Element): SlotSnapshot {
-  for (const animation of slot.getAnimations()) {
-    // Its pop, a CSS animation, rather than its move, one of the script's.
-    if ('animationName' in animation) {
-      animation.finish();
+export function snapshotSlots(layer: Element, slots: readonly Element[]): SlotSnapshot[] {
+  for (const slot of slots) {
+    for (const animation of slot.getAnimations()) {
+      // Its pop, a CSS animation, rather than its move, one of the script's.
+      if ('animationName' in animation) {
+        animation.finish();
+      }
     }
   }
-  const style = getComputedStyle(slot);
-  const box = boxIn(layer, slot);
-  return {
-    box,
-    radius: parseFloat(style.borderTopLeftRadius) || 0,
-    fontSize: parseFloat(style.fontSize) || 0,
-    depth: parseFloat(style.getPropertyValue('--slot-depth')) || 0,
-    slid: box,
-  };
+  return slots.map((slot) => {
+    const style = getComputedStyle(slot);
+    const box = boxIn(layer, slot);
+    return {
+      box,
+      radius: parseFloat(style.borderTopLeftRadius) || 0,
+      fontSize: parseFloat(style.fontSize) || 0,
+      depth: parseFloat(style.getPropertyValue('--slot-depth')) || 0,
+      slid: box,
+    };
+  });
 }
 
 /**
@@ -321,7 +326,14 @@ export function flyIntoWord(
     return tile === undefined ? [] : [{ slot, tile }];
   });
   const slide = slideDuration(slots);
-  return flights.map(({ slot, tile }, i) => {
+  // Every tile measured before anything is written: a copy put on the page before the next tile is measured would have
+  // the browser lay the page out again for each.
+  const measured = flights.map(({ slot, tile }) => {
+    const { backgroundColor, color, opacity } = getComputedStyle(tile);
+    const at = boxIn(layer, tile);
+    return { slot, tile, backgroundColor, color, opacity, to: { ...at, left: at.left - shift } };
+  });
+  return measured.map(({ slot, tile, backgroundColor, color, opacity, to }, i) => {
     const copy = document.createElement('div');
     copy.className = 'flying-slot';
     copy.textContent = tile.textContent.trim();
@@ -333,13 +345,10 @@ export function flyIntoWord(
       height: `${String(slot.box.height)}px`,
       borderRadius: `${String(slot.radius)}px`,
       fontSize: `${String(slot.fontSize)}px`,
+      // In its tile's colors: the slot of the digit typed last is snapshotted before that digit fills it.
+      background: backgroundColor,
+      color,
     });
-    // In its tile's colors: the slot of the digit typed last is snapshotted before that digit fills it.
-    const colors = getComputedStyle(tile);
-    copy.style.background = colors.backgroundColor;
-    copy.style.color = colors.color;
-    const at = boxIn(layer, tile);
-    const to = { ...at, left: at.left - shift };
     tile.style.visibility = 'hidden';
     layer.append(copy);
     const animation = copy.animate(
@@ -350,7 +359,7 @@ export function flyIntoWord(
           wait: flightStagger(i),
           depth: slot.depth,
         }),
-        Number(colors.opacity),
+        Number(opacity),
       ),
       flightTiming(i, slide),
     );

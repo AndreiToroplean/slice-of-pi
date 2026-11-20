@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { INDEXED_DB } from '../player-data/run-store';
 import { SoundSetting } from '../player-data/sound-setting';
 import { FakeAudio } from '../../testing/fake-audio';
-import { envelopeCurve, mixedGain, Speaker } from './speaker';
+import { envelopeCurve, LATEST, mixedGain, Speaker } from './speaker';
+import { RUN_CLOCK } from '../player-data/run-recorder';
 import { SOURING } from './souring';
 import { DeveloperMode } from '../developer-mode/developer-mode';
 import { Tweaks } from '../developer-mode/tweaks';
@@ -52,6 +53,27 @@ describe('Speaker', () => {
     expect(audio.partials()).toHaveLength(3 + 6);
   });
 
+  it('starts nothing for a silent note, as a landing muted in the mix', () => {
+    TestBed.inject(Speaker).play([
+      { pitch: 64, gain: 0, length: 1 },
+      { pitch: 67, gain: 1, length: 1 },
+    ]);
+
+    expect(audio.notes()).toHaveLength(1);
+  });
+
+  it("plays a chord's note as one wave of its partials, and the melody's partials apart, to sour", () => {
+    TestBed.inject(Speaker).play([
+      { pitch: 60, gain: 1, length: 1 },
+      { pitch: 48, gain: 1, length: 1, accompaniment: true },
+    ]);
+
+    expect(audio.partials().map(({ type }) => type)).toEqual(['sine', 'sine', 'sine', 'custom']);
+    [1, 0.12, 0.02, 0, 0, 0].forEach((level, i) => {
+      expect(audio.partials()[3]?.wave?.[i]).toBeCloseTo(level);
+    });
+  });
+
   it('takes each note out of the mix once it has faded out', () => {
     TestBed.inject(Speaker).play([{ pitch: 60, gain: 1, length: 1 }]);
     expect(audio.notes()[0]?.connected()).toBe(true);
@@ -82,15 +104,42 @@ describe('Speaker', () => {
     expect(audio.made).toBe(1);
   });
 
-  it('waits for the browser to let the audio run, then plays from then', async () => {
-    audio.block();
-    TestBed.inject(Speaker).play([{ pitch: 60, gain: 1, length: 1 }], 100);
-    expect(audio.tones).toEqual([]);
+  describe('waiting for the audio to run', () => {
+    let now: number;
 
-    audio.currentTime = 2;
-    await audio.allow();
+    beforeEach(() => {
+      now = 1000;
+      TestBed.overrideProvider(RUN_CLOCK, {
+        useValue: { now: () => now, epoch: () => now, newId: () => 'id' },
+      });
+    });
 
-    expect(audio.notes().map(({ start }) => start)).toEqual([2.1]);
+    it('waits for the browser to let the audio run, then plays at its time', async () => {
+      audio.block();
+      TestBed.inject(Speaker).play([{ pitch: 60, gain: 1, length: 1 }], 100);
+      expect(audio.tones).toEqual([]);
+
+      now += 40;
+      audio.currentTime = 2;
+      await audio.allow();
+
+      expect(audio.notes().map(({ start }) => start)).toEqual([2.06]);
+    });
+
+    it('plays at once what is a little late, and drops what is too late, rather than playing it all at once', async () => {
+      audio.block();
+      const speaker = TestBed.inject(Speaker);
+      speaker.play([{ pitch: 60, gain: 1, length: 1 }]);
+      now += 2 * LATEST;
+      speaker.play([{ pitch: 62, gain: 1, length: 1 }]);
+      now += LATEST / 2;
+      speaker.play([{ pitch: 64, gain: 1, length: 1 }]);
+
+      audio.currentTime = 2;
+      await audio.allow();
+
+      expect(audio.notes().map(({ start }) => start)).toEqual([2, 2]);
+    });
   });
 
   it('plays nothing it was waiting to play once silenced', async () => {
@@ -148,7 +197,8 @@ describe('Speaker', () => {
     expect(audio.partials()[1]?.bends).toEqual([{ to: -30, by }]);
     expect(melody?.bends).toEqual([{ to: -40, by }]);
     expect(chord?.bends).toEqual([]);
-    const added = audio.tones.filter(({ type }) => type !== 'sine');
+    const own = audio.partials();
+    const added = audio.tones.filter((tone) => !own.includes(tone));
     expect(added.map(({ type, start }) => [type, start])).toEqual([
       ['square', 1.2],
       ['triangle', 1.2],

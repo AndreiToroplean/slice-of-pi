@@ -17,7 +17,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import type { ReplayedGame } from '../replay/replay';
 import { Background } from '../../ui/background';
 import { BreakCountdown } from './break-countdown';
-import { waitToEnd } from '../../game/grouping/wait-to-end';
+import { LOOK_AHEAD, waitToEnd } from '../../game/grouping/wait-to-end';
 import {
   boxIn,
   FIRST_LANDING,
@@ -26,7 +26,7 @@ import {
   leavesAt,
   slideDuration,
   SlotSnapshot,
-  snapshotSlot,
+  snapshotSlots,
 } from './flight/flight';
 import { slotBoxes } from './slots/slot-layout';
 import { SlotHandover } from './slots/slots';
@@ -1577,14 +1577,23 @@ export class Play implements PausesOnBack {
     }
     const trusted = this.plan().trusted;
     const start = this.digits().length - this.grouping().current.length;
-    const wait = waitToEnd((waited) => this.endsAfter(waited, start, trusted));
-    const left = wait - this.session.waited();
+    const waited = this.session.waited();
+    // As far as the next whole minute waited, so that asked again within it, as once the game resumes, it gives the same
+    // wait.
+    const longest = (Math.floor(waited / LOOK_AHEAD) + 1) * LOOK_AHEAD;
+    const wait = waitToEnd((w) => this.endsAfter(w, start, trusted), longest);
+    const left = wait - waited;
     if (left <= 0) {
       this.finishGroup(flyNow);
       return;
     }
     this.breakWait.set(wait);
-    if (left < Infinity) {
+    if (left === Infinity) {
+      // No pause it looked at ends the group: it looks further once the player has paused that long.
+      this.stopTimers = this.timer.after(longest - waited, () => {
+        this.watchForPause();
+      });
+    } else {
       const end = this.timer.after(left, () => {
         this.stopWatching();
         this.finishGroup(true);
@@ -1682,9 +1691,10 @@ export class Play implements PausesOnBack {
     if (this.quiet || !canFly(this.host) || area === null) {
       return [];
     }
-    const slots = Array.from(area.querySelectorAll('.slot'))
-      .slice(0, length)
-      .map((slot) => snapshotSlot(this.host, slot));
+    const slots = snapshotSlots(
+      this.host,
+      Array.from(area.querySelectorAll('.slot')).slice(0, length),
+    );
     const first = slots[0];
     if (first === undefined) {
       return [];

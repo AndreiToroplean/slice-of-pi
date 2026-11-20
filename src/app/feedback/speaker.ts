@@ -1,6 +1,7 @@
 import { inject, InjectionToken, Service } from '@angular/core';
 import { Tweaks } from '../developer-mode/tweaks';
 import type { Chime, Note } from '../game/layers/sound/sound-model';
+import { RUN_CLOCK } from '../player-data/run-recorder';
 import { SoundSetting } from '../player-data/sound-setting';
 import { SoundMix } from './sound-mix';
 import { Souring } from './souring';
@@ -47,6 +48,12 @@ const BUZZ_LEVEL = 0.35;
 /** How fast a sour note's rasp flutters, in hertz: as fast as a buzzer's. */
 const RASP_RATE = 45;
 
+/**
+ * How late a note waiting for the audio to run may still start, in milliseconds: one later than this, as after the
+ * phone took the audio away for a while, is dropped rather than played out of time, all at once with the others.
+ */
+export const LATEST = 100;
+
 /** What the speaker is playing, to act on as it rings. */
 export interface Playing {
   /** Silences its notes yet to start, such as once what they go with is cut short. */
@@ -72,7 +79,8 @@ export function mixedGain(note: Note, part: SoundPart, mix: SoundMix): number {
 
 /**
  * A note being played: its pitch, when it starts and ends, whether it's the melody, what all its sound goes through,
- * its tone before the envelope, and the pitches of its partials sounding, by their rank, lowest first.
+ * the gain its tone goes through, which a sour note's rasp shakes, and the pitches of its partials sounding, by their
+ * rank, lowest first.
  */
 interface Voice {
   readonly pitch: number;
@@ -141,17 +149,21 @@ function frequencyOf(pitch: number): number {
  *
  * Browsers only let a page's audio start on a tap or a key, and the device takes a moment to start it, so the audio is
  * got ready on the player's first tap anywhere, such as on Play (see {@link warmUp}), long before the first key sounds;
- * a note played while the audio isn't running yet waits for it, rather than being lost.
+ * a note played while the audio isn't running yet waits for it, rather than being lost, as long as it's not too late
+ * for it once it runs (see {@link LATEST}).
  */
 @Service()
 export class Speaker {
   private readonly createContext = inject(AUDIO);
   private readonly setting = inject(SoundSetting);
   private readonly tweaks = inject(Tweaks);
+  private readonly clock = inject(RUN_CLOCK);
   private context: AudioContext | undefined;
   private output: AudioNode | undefined;
   /** The envelopes of the notes played so far, by their length in ms, made once each (see {@link envelopeCurve}). */
   private readonly envelopes = new Map<number, AudioBuffer>();
+  /** The waves of the chords' notes played so far, by their timbre, made once each. */
+  private readonly waves = new Map<number | undefined, PeriodicWave>();
 
   /** Gets the audio ready to play, unless the player turned sounds off: done on every tap and key, as browsers ask. */
   warmUp(): void {
@@ -161,8 +173,9 @@ export class Speaker {
   }
 
   /**
-   * Plays notes together, as a `part` of the game's sounds, `delay` ms from now, each rolled by its own delay, or from
-   * once the audio runs, if it isn't yet, to stop or sour as they ring.
+   * Plays notes together, as a `part` of the game's sounds, `delay` ms from now, each rolled by its own delay, to stop
+   * or sour as they ring. If the audio isn't running yet, they wait for it, and play as soon as it does, unless that's
+   * more than {@link LATEST} past their time.
    */
   play(chime: Chime, delay = 0, part: SoundPart = 'key'): Playing {
     const ready = this.setting.enabled() ? this.ready() : undefined;
@@ -174,12 +187,14 @@ export class Speaker {
     if (context.state === 'running') {
       return this.schedule(context, output, chime, delay, part);
     }
+    const due = this.clock.now() + delay;
     let playing: Playing | undefined;
     let stopped = false;
     let soured = false;
     void ready.then(() => {
-      if (!stopped) {
-        playing = this.schedule(context, output, chime, delay, part);
+      const left = due - this.clock.now();
+      if (!stopped && left >= -LATEST) {
+        playing = this.schedule(context, output, chime, Math.max(0, left), part);
         if (soured) {
           playing.sour();
         }
@@ -207,9 +222,12 @@ export class Speaker {
   ): Playing {
     const start = context.currentTime + delay / 1000;
     const mix = this.tweaks.soundMix();
-    const voices = chime.map((note) =>
-      this.voice(context, output, note, start + (note.delay ?? 0), mixedGain(note, part, mix)),
-    );
+    // Silent notes, as the landings' in the game's own mix, are left out: each would be oscillators the device works out
+    // for nothing, a word's worth at once as it lands.
+    const voices = chime.flatMap((note) => {
+      const gain = mixedGain(note, part, mix);
+      return gain === 0 ? [] : [this.voice(context, output, note, start + (note.delay ?? 0), gain)];
+    });
     return {
       stop: () => {
         for (const voice of voices) {
@@ -263,6 +281,23 @@ export class Speaker {
     return buffer;
   }
 
+  /** The wave of a note's partials at `levels`, in its timbre: sine waves, as its partials played apart are. */
+  private wave(context: AudioContext, timbre: number | undefined, levels: number[]): PeriodicWave {
+    let wave = this.waves.get(timbre);
+    if (wave === undefined) {
+      // Their sines, from the fundamental up, after no constant.
+      wave = context.createPeriodicWave(
+        new Float32Array(levels.length + 1),
+        Float32Array.from([0, ...levels]),
+        {
+          disableNormalization: true,
+        },
+      );
+      this.waves.set(timbre, wave);
+    }
+    return wave;
+  }
+
   /**
    * Plucks a note at `start`, on the context's clock, fading out (see {@link envelopeCurve}), its tone through a gain a
    * sour note's rasp shakes.
@@ -292,29 +327,48 @@ export class Speaker {
     curve.onended = () => {
       level.disconnect();
     };
-    const tone = context.createGain();
-    tone.connect(envelope);
-    // Silent partials, as a plain pluck's highest, are left out: each would be an oscillator the device works out for
-    // nothing.
-    const partials = partialLevels(note.timbre).flatMap((level, i) => {
-      if (level === 0) {
-        return [];
-      }
-      const oscillator = context.createOscillator();
-      oscillator.frequency.value = frequencyOf(note.pitch) * (i + 1);
-      const partial = context.createGain();
-      partial.gain.value = level;
-      oscillator.connect(partial);
-      partial.connect(tone);
+    const melody = note.accompaniment !== true;
+    // A gain a sour note's rasp shakes: the chords never sour, so theirs is the envelope itself, one gain less to work out.
+    const tone = melody ? context.createGain() : envelope;
+    if (melody) {
+      tone.connect(envelope);
+    }
+    const levels = partialLevels(note.timbre);
+    const play = (oscillator: OscillatorNode, to: AudioNode): void => {
+      oscillator.connect(to);
       oscillator.start(start);
       oscillator.stop(end + TAIL);
-      return [{ rank: i + 1, detune: oscillator.detune }];
-    });
+    };
+    // The melody, which may sour, plays each partial on an oscillator of its own, for them to drift apart (see
+    // {@link sour}). The chords never do: each note plays its partials as one wave, on one oscillator, a few times less
+    // work for the audio, which crackles once it has more than it can work out in time.
+    if (!melody) {
+      const oscillator = context.createOscillator();
+      oscillator.setPeriodicWave(this.wave(context, note.timbre, levels));
+      oscillator.frequency.value = frequencyOf(note.pitch);
+      play(oscillator, tone);
+    }
+    // Silent partials, as a plain pluck's highest, are left out: each would be an oscillator the device works out for
+    // nothing.
+    const partials = !melody
+      ? []
+      : levels.flatMap((level, i) => {
+          if (level === 0) {
+            return [];
+          }
+          const oscillator = context.createOscillator();
+          oscillator.frequency.value = frequencyOf(note.pitch) * (i + 1);
+          const partial = context.createGain();
+          partial.gain.value = level;
+          partial.connect(tone);
+          play(oscillator, partial);
+          return [{ rank: i + 1, detune: oscillator.detune }];
+        });
     return {
       pitch: note.pitch,
       start,
       end,
-      melody: note.accompaniment !== true,
+      melody,
       envelope,
       tone,
       partials,

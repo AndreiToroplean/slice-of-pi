@@ -88,6 +88,19 @@ describe('groupEnds', () => {
     expect(found.groupEnds(timesOf(34, [35]), 27, false)).toBe(false);
   });
 
+  it('gives the same answer whatever was asked before', () => {
+    // A new player's run, its last digit after a long pause, which Mercury once took for none right after no pause.
+    const times = [0, 150, 400, 550, 800, 950, 1200];
+    const asked = (wait: number): boolean =>
+      MERCURY.create(MERCURY_DEFAULTS)
+        .play([], 5)
+        .groupEnds([...times, 1200 + wait], 0, false);
+    const again = MERCURY.create(MERCURY_DEFAULTS).play([], 5);
+    again.groupEnds([...times, 1200], 0, false);
+
+    expect(again.groupEnds([...times, 61_200], 0, false)).toBe(asked(60_000));
+  });
+
   it("finishes a new player's group where they break, judged by the synthetic runs", () => {
     const found = gameplay(0, 30, MERCURY_DEFAULTS);
 
