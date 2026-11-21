@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795043033361,
+  "lastUpdate": 1795299090474,
   "repoUrl": "https://github.com/AndreiToroplean/slice-of-pi",
   "entries": {
     "Unit tests": [
@@ -4278,6 +4278,46 @@ window.BENCHMARK_DATA = {
           {
             "name": "Unit tests: slowest test",
             "value": 764,
+            "unit": "ms",
+            "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andrei.toroplean@gmail.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "committer": {
+            "email": "60916097+AndreiToroplean@users.noreply.github.com",
+            "name": "Andrei Toroplean",
+            "username": "AndreiToroplean"
+          },
+          "distinct": true,
+          "id": "7280ec652342df572383f8b849151e21bb773aa1",
+          "message": "refactor: play a chord's note and the melody's apart, in one branch each\n\n- The two ways of playing a note were split over three checks of whether it's the melody; each now has its own branch.\n\nClaude-Session: https://claude.ai/code/session_01X1XesrXkoyNoHN8QUHc91L",
+          "timestamp": "2026-11-21T23:11:06+01:00",
+          "tree_id": "9945774a83e1aef3a0841fd4a54c4fc57f781c63",
+          "url": "https://github.com/AndreiToroplean/slice-of-pi/commit/7280ec652342df572383f8b849151e21bb773aa1"
+        },
+        "date": 1795299089843,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Unit tests: whole run",
+            "value": 14162,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: all tests added up",
+            "value": 31079,
+            "unit": "ms"
+          },
+          {
+            "name": "Unit tests: slowest test",
+            "value": 842,
             "unit": "ms",
             "extra": "ModelTuning unchecked runs includes unchecked runs, shown and counted in the groups, only when told to"
           }
