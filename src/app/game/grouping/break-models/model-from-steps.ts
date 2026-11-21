@@ -71,8 +71,9 @@ export function withRunsLeftOut(steps: Steps, finished: readonly TimedRun[]): St
 
 /**
  * How the groups are played. The run being typed is one of the runs like any other, so every answer fits the runs
- * again with it, each fit from scratch, so that it gives the same answer whatever was asked before. The trust horizon is the finished runs' alone, frozen for the run,
- * so that the groups shown don't flicker between the player's own and growing ones as they type.
+ * again with it, each fit from scratch, so that it gives the same answer whatever was asked before. The trust horizon
+ * is the finished runs' alone, frozen for the run, so that the groups shown don't flicker between the player's own and
+ * growing ones as they type.
  */
 function gameplayOf(fit: Fit, ends: Ends, groupSize: number, from: number): Gameplay {
   const horizon = fit().horizon;
