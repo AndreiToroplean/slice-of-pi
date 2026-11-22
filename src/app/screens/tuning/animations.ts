@@ -24,29 +24,29 @@ import { MAX_TURN_SWITCH, TURN_SWITCH } from '../play/turn-shown';
 type Tab = 'keypad' | 'milestones';
 
 /**
- * Developer mode's page to tune the game's transitions, on two tabs. On the keypad's: how long its keys take to move,
+ * Developer mode's page to tune the game's animations, on two tabs. On the keypad's: how long its keys take to move,
  * to sink as pressed, or rise back, to merge, and to linger in the color they took as pressed, longer as Discovery's
  * game plays them, and how long it takes to show the other turn as the player switches turns in Discovery. On the
- * milestones' celebrations': the sound they play, whether their waves bend the screen, which is being tried, and the waves of the first time a milestone is ever reached and of
- * every other time, each played over this page by its button. They apply to the whole game while developer mode is
- * on, to try them in it.
+ * milestones' celebrations': the sound they play, whether their waves bend the screen, which is being tried, and the
+ * waves of the first time a milestone is ever reached and of every other time, each played over this page by its
+ * button. They apply to the whole game while developer mode is on, to try them in it.
  */
 @Component({
-  selector: 'app-transitions',
+  selector: 'app-animations',
   imports: [Candy, CopyValues, Page, Segmented, Slider, TabPanel, TabPanels],
   template: `
-    <app-page heading="Transitions" icon="transitions">
+    <app-page heading="Animations" icon="animations">
       <button pageAction type="button" appCandy="danger" [disabled]="!tuned()" (click)="reset()">
         Reset All
       </button>
       <app-segmented
-        label="Transitions"
-        panels="transitions"
+        label="Animations"
+        panels="animations"
         [segments]="tabs"
         [follows]="panes"
         [(value)]="tab"
       />
-      <app-tab-panels #panes panels="transitions" [fills]="true" [(value)]="tab">
+      <app-tab-panels #panes panels="animations" [fills]="true" [(value)]="tab">
         <section class="panel keypad" appTabPanel="keypad">
           <app-slider
             label="Press"
@@ -157,9 +157,9 @@ type Tab = 'keypad' | 'milestones';
       />
     </app-page>
   `,
-  styleUrl: './transitions.css',
+  styleUrl: './animations.css',
 })
-export class Transitions {
+export class Animations {
   protected readonly tweaks = inject(Tweaks);
   private readonly celebration = inject(Celebration);
   protected readonly defaults = KEY_MOTION;

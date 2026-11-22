@@ -6,13 +6,13 @@ import { KEY_LINGER } from '../../game/layers/place-colors';
 import { GAME_LINGER } from '../../game/modes/discovery-pace';
 import { INDEXED_DB } from '../../player-data/run-store';
 import { KEY_MOTION } from '../play/keypad/key-merges';
-import { Transitions } from './transitions';
+import { Animations } from './animations';
 import { TURN_SWITCH } from '../play/turn-shown';
 import { Celebration } from '../../feedback/celebration/celebration';
 import { MILESTONE_SOUND } from '../../feedback/celebration/milestone-sounds';
 import { FIRST_MILESTONE_WAVE, MILESTONE_WAVE } from '../../feedback/celebration/milestone-wave';
 
-describe('Transitions', () => {
+describe('Animations', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [provideRouter([]), { provide: INDEXED_DB, useValue: undefined }],
@@ -21,7 +21,7 @@ describe('Transitions', () => {
 
   it('tunes how long the keys take to move, applied to the whole game while developer mode is on', async () => {
     await TestBed.inject(DeveloperMode).set(true);
-    const fixture = TestBed.createComponent(Transitions);
+    const fixture = TestBed.createComponent(Animations);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
     const [press, merge, linger, discoveryLinger, turnSwitch] = Array.from(
@@ -68,7 +68,7 @@ describe('Transitions', () => {
     const celebrate = vi
       .spyOn(TestBed.inject(Celebration), 'celebrate')
       .mockImplementation(() => undefined);
-    const fixture = TestBed.createComponent(Transitions);
+    const fixture = TestBed.createComponent(Animations);
     await fixture.whenStable();
     const host = fixture.nativeElement as HTMLElement;
     const button = (name: string): HTMLButtonElement | undefined =>
