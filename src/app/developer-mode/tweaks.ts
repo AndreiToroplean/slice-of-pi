@@ -58,6 +58,13 @@ import { Souring, SOURING, SOURING_SLIDERS } from '../feedback/souring';
 import { KEY_MOTION, KeyMotion } from '../screens/play/keypad/key-merges';
 import { KEY_MOTION_SLIDERS } from '../screens/play/keypad/key-motion-sliders';
 import { isTurnSwitch, TURN_SWITCH } from '../screens/play/turn-shown';
+import {
+  FIRST_MILESTONE_WAVE,
+  MILESTONE_WAVE,
+  MILESTONE_WAVE_SLIDERS,
+  MilestoneWave,
+} from '../feedback/celebration/milestone-wave';
+import { MILESTONE_SOUND, milestoneSoundById } from '../feedback/celebration/milestone-sounds';
 import { SoundModel, SoundModelKind } from '../game/layers/sound/sound-model';
 import { SOUND_MODEL, soundModelKindById } from '../game/layers/sound/sound-models';
 
@@ -187,6 +194,12 @@ export interface TweakValues {
   readonly keyMotion?: KeyMotion;
   /** How long the keypad takes to show the other turn as the player switches turns, for {@link TURN_SWITCH}. */
   readonly turnSwitch?: number;
+  /** The id of the sound celebrating a milestone, for {@link MILESTONE_SOUND}. */
+  readonly milestoneSound?: string;
+  /** The wave of the first time a milestone is ever reached, for {@link FIRST_MILESTONE_WAVE}. */
+  readonly firstMilestoneWave?: MilestoneWave;
+  /** The wave of every other time a milestone is reached, for {@link MILESTONE_WAVE}. */
+  readonly milestoneWave?: MilestoneWave;
 }
 
 /** The game's own starting colors of each season. */
@@ -607,6 +620,40 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), turnSwitch }));
   }
 
+  /** The id of the sound celebrating a milestone. */
+  readonly milestoneSound = computed(
+    () =>
+      (this.developerMode.enabled() ? this.tweaks().milestoneSound : undefined) ?? MILESTONE_SOUND,
+  );
+
+  /** Sets the sound celebrating a milestone; `undefined` brings back the game's. */
+  setMilestoneSound(milestoneSound: string | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), milestoneSound }));
+  }
+
+  /** The wave of the first time a milestone is ever reached. */
+  readonly firstMilestoneWave = computed(
+    (): MilestoneWave =>
+      (this.developerMode.enabled() ? this.tweaks().firstMilestoneWave : undefined) ??
+      FIRST_MILESTONE_WAVE,
+  );
+
+  /** Sets the wave of the first time a milestone is ever reached; `undefined` brings back the game's. */
+  setFirstMilestoneWave(firstMilestoneWave: MilestoneWave | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), firstMilestoneWave }));
+  }
+
+  /** The wave of every other time a milestone is reached. */
+  readonly milestoneWave = computed(
+    (): MilestoneWave =>
+      (this.developerMode.enabled() ? this.tweaks().milestoneWave : undefined) ?? MILESTONE_WAVE,
+  );
+
+  /** Sets the wave of every other time a milestone is reached; `undefined` brings back the game's. */
+  setMilestoneWave(milestoneWave: MilestoneWave | undefined): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), milestoneWave }));
+  }
+
   /** Sets how a wrong key's note goes off; `undefined` brings back the game's souring. */
   setSouring(souring: Souring | undefined): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), souring }));
@@ -691,6 +738,9 @@ export function parseTweaks(stored: unknown): TweakValues {
     soundNotes,
     keyMotion,
     turnSwitch,
+    milestoneSound,
+    firstMilestoneWave,
+    milestoneWave,
   } = migrate(stored, TWEAKS_MIGRATIONS);
   if (format !== TWEAKS_FORMAT) {
     return {};
@@ -732,6 +782,13 @@ export function parseTweaks(stored: unknown): TweakValues {
     soundNotes: soundNotes === true ? soundNotes : undefined,
     keyMotion: slidValues(keyMotion, KEY_MOTION_SLIDERS, KEY_MOTION),
     turnSwitch: isTurnSwitch(turnSwitch) ? turnSwitch : undefined,
+    milestoneSound: milestoneSoundById(milestoneSound)?.id,
+    firstMilestoneWave: slidValues(
+      firstMilestoneWave,
+      MILESTONE_WAVE_SLIDERS,
+      FIRST_MILESTONE_WAVE,
+    ),
+    milestoneWave: slidValues(milestoneWave, MILESTONE_WAVE_SLIDERS, MILESTONE_WAVE),
   });
 }
 
@@ -769,6 +826,9 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     souring,
     keyMotion,
     turnSwitch,
+    milestoneSound,
+    firstMilestoneWave,
+    milestoneWave,
   } = values;
   const tuned = Object.entries(grouping ?? {}).filter(([id, settings]) => {
     const defaults = breakModelKindById(id)?.defaults;
@@ -806,6 +866,11 @@ export function withoutDefaults(values: TweakValues, gameBreakModel: BreakModelK
     souring: equal(souring, SOURING) ? undefined : souring,
     keyMotion: equal(keyMotion, KEY_MOTION) ? undefined : keyMotion,
     turnSwitch: turnSwitch === TURN_SWITCH ? undefined : turnSwitch,
+    milestoneSound: milestoneSound === MILESTONE_SOUND ? undefined : milestoneSound,
+    firstMilestoneWave: equal(firstMilestoneWave, FIRST_MILESTONE_WAVE)
+      ? undefined
+      : firstMilestoneWave,
+    milestoneWave: equal(milestoneWave, MILESTONE_WAVE) ? undefined : milestoneWave,
   });
 }
 
@@ -862,6 +927,9 @@ function tweakValues({
   soundNotes,
   keyMotion,
   turnSwitch,
+  milestoneSound,
+  firstMilestoneWave,
+  milestoneWave,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -902,6 +970,9 @@ function tweakValues({
     ...(soundNotes === undefined ? {} : { soundNotes }),
     ...(keyMotion === undefined ? {} : { keyMotion }),
     ...(turnSwitch === undefined ? {} : { turnSwitch }),
+    ...(milestoneSound === undefined ? {} : { milestoneSound }),
+    ...(firstMilestoneWave === undefined ? {} : { firstMilestoneWave }),
+    ...(milestoneWave === undefined ? {} : { milestoneWave }),
   };
 }
 

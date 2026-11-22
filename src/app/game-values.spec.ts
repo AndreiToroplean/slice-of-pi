@@ -45,6 +45,9 @@ describe('GAME_VALUES', () => {
       keyMotion: true,
       turnSwitch: true,
       discoveryHalo: true,
+      milestoneSound: true,
+      firstMilestoneWave: true,
+      milestoneWave: true,
     };
     expect(Object.keys(GAME_VALUES).sort()).toEqual(['format', ...Object.keys(keys)].sort());
     expect(Object.keys(GAME_VALUES.grouping).sort()).toEqual(

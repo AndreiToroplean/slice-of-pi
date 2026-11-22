@@ -26,6 +26,7 @@ import { KEEP_HISTORY } from '../../app.config';
 import { Menu } from '../menu/menu';
 import { keyColorIndices, PALETTE, placeColors } from '../../game/layers/place-colors';
 import { PI_DECIMALS } from '../../game/pi/pi-decimals';
+import { Celebration } from '../../feedback/celebration/celebration';
 import { IDBFactory } from 'fake-indexeddb';
 import { newTouchLog } from '../../player-data/touch-log';
 import { typeKey } from '../../../testing/touch-logs';
@@ -238,6 +239,98 @@ describe('Play', () => {
     expect(slots(host)).toEqual(['1', '4', '1', '', '']);
     expect(words(host)).toEqual([]);
     expect(summary(host)).toBe('3 digits typed, the last one is 1.');
+  });
+
+  describe('milestones', () => {
+    it('celebrates each milestone as its digit shows, the first time ever the longer way', async () => {
+      const { type } = await setUp();
+      const celebrate = vi
+        .spyOn(TestBed.inject(Celebration), 'celebrate')
+        .mockImplementation(() => undefined);
+      await typeAll(type, PI_DECIMALS.slice(0, 24));
+      expect(celebrate).not.toHaveBeenCalled();
+
+      await typeAll(type, PI_DECIMALS.slice(24, 25));
+      expect(celebrate).toHaveBeenCalledExactlyOnceWith(true, PALETTE[0], true);
+    });
+
+    it('celebrates no milestone reached after a mistake', async () => {
+      const { type } = await setUp();
+      const celebrate = vi
+        .spyOn(TestBed.inject(Celebration), 'celebrate')
+        .mockImplementation(() => undefined);
+      await typeAll(type, PI_DECIMALS.slice(0, 24) + '0<' + PI_DECIMALS.slice(24, 25));
+
+      expect(celebrate).not.toHaveBeenCalled();
+    });
+
+    it('celebrates the first time from the line played from, in developer mode', async () => {
+      const { type } = await setUpWithRuns(
+        1,
+        true,
+        async () => {
+          await TestBed.inject(Tweaks).setRunOrder({ ids: ['earlier-0'], line: 0 });
+          await TestBed.inject(DeveloperMode).set(true);
+        },
+        30,
+      );
+      const celebrate = vi
+        .spyOn(TestBed.inject(Celebration), 'celebrate')
+        .mockImplementation(() => undefined);
+      await typeAll(type, PI_DECIMALS.slice(0, 25));
+
+      expect(celebrate).toHaveBeenCalledExactlyOnceWith(true, PALETTE[0], true);
+    });
+
+    it('celebrates a milestone an earlier run reached the short way', async () => {
+      const { type } = await setUpWithRuns(1, true, undefined, 30);
+      const celebrate = vi
+        .spyOn(TestBed.inject(Celebration), 'celebrate')
+        .mockImplementation(() => undefined);
+      await typeAll(type, PI_DECIMALS.slice(0, 25));
+
+      expect(celebrate).toHaveBeenCalledExactlyOnceWith(false, PALETTE[0], true);
+    });
+
+    it('celebrates as a run replayed did then, the runs after it unknown, silently once muted', async () => {
+      // An earlier run, started at 0, reached 30 without a mistake.
+      await setUpWithRuns(1, true, undefined, 30);
+      const celebrate = vi
+        .spyOn(TestBed.inject(Celebration), 'celebrate')
+        .mockImplementation(() => undefined);
+      const replay = async (startedAt: number, muted: boolean): Promise<void> => {
+        const fixture = TestBed.createComponent(Play);
+        fixture.componentRef.setInput('replay', newTouchLog('run', startedAt));
+        fixture.componentRef.setInput('muted', muted);
+        await fixture.whenStable();
+        for (const key of PI_DECIMALS.slice(0, 25)) {
+          fixture.componentInstance.replayTouch({ key: key as Digit });
+        }
+      };
+
+      await replay(-1, false);
+      await replay(1, true);
+
+      expect(celebrate.mock.calls).toEqual([
+        [true, PALETTE[0], true],
+        [false, PALETTE[0], false],
+      ]);
+    });
+
+    it('celebrates nothing skipping ahead in a run replayed', async () => {
+      const celebrate = vi
+        .spyOn(TestBed.inject(Celebration), 'celebrate')
+        .mockImplementation(() => undefined);
+      const fixture = TestBed.createComponent(Play);
+      fixture.componentRef.setInput('replay', newTouchLog('run', 0));
+      await fixture.whenStable();
+      fixture.componentInstance.quiet = true;
+      for (const key of PI_DECIMALS.slice(0, 25)) {
+        fixture.componentInstance.replayTouch({ key: key as Digit });
+      }
+
+      expect(celebrate).not.toHaveBeenCalled();
+    });
   });
 
   describe('the run stats', () => {

@@ -5,9 +5,10 @@ import { Tweaks } from './developer-mode/tweaks';
 import { layoutStyles } from './ui/layout';
 import { Vibrator } from './feedback/vibrator';
 import { Speaker } from './feedback/speaker';
+import { CelebrationLayer } from './feedback/celebration/celebration-layer';
 
 @Component({
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, CelebrationLayer],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',

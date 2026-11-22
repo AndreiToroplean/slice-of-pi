@@ -147,6 +147,7 @@ export class FakeAudio {
         }),
       destination: node(),
       createDynamicsCompressor: () => node(),
+      createConvolver: () => ({ ...node(), buffer: null }),
       createGain: () => ({ ...node(), gain: param() }),
       createPeriodicWave: (_real: Float32Array, imag: Float32Array) => ({
         levels: Array.from(imag).slice(1),
