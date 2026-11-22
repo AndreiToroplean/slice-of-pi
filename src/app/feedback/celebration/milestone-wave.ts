@@ -29,6 +29,10 @@ export interface MilestoneWave {
   readonly shimmer: number;
   /** How much its color shows, at a value of 1. */
   readonly glow: number;
+  /** How far it bends the screen under it, inward, at a value of 1, in the screen's size. */
+  readonly distortion: number;
+  /** How far apart it splits the screen's red and blue under it, at a value of 1, in the screen's size. */
+  readonly colorSplit: number;
 }
 
 /** The wave of the first time a milestone is ever reached: crests fading out, the first the strongest. */
@@ -54,6 +58,8 @@ export const MILESTONE_WAVE_SLIDERS: readonly SoundSlider<MilestoneWave>[] = [
   { key: 'hue', label: 'Hue', min: 0, max: 90, step: 1, format: plain(0, '°') },
   { key: 'shimmer', label: 'Shimmer', min: 0, max: 60, step: 1, format: plain(0, '°') },
   { key: 'glow', label: 'Glow', min: 0, max: 3, step: 0.01, format: plain(2) },
+  { key: 'distortion', label: 'Distortion', min: 0, max: 0.2, step: 0.001, format: plain(3) },
+  { key: 'colorSplit', label: 'Color Split', min: 0, max: 0.03, step: 0.0005, format: plain(4) },
 ];
 
 /** How long the wave takes to climb `height` screen heights from the bottom, speeding up as it goes, in seconds. */

@@ -256,7 +256,9 @@
         "falloff": 3.05,
         "hue": 45,
         "shimmer": 30,
-        "glow": 1.47
+        "glow": 1.47,
+        "distortion": 0.022,
+        "colorSplit": 0.003
       },
       "milestoneWave": {
         "frequency": 1.5,
@@ -269,7 +271,9 @@
         "falloff": 4,
         "hue": 18,
         "shimmer": 6,
-        "glow": 2
+        "glow": 2,
+        "distortion": 0.12,
+        "colorSplit": 0.006
       }
     }
   }

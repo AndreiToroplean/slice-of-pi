@@ -88,6 +88,9 @@ describe('Transitions', () => {
 
     const tweaks = TestBed.inject(Tweaks);
     expect(tweaks.milestoneSound()).toBe('climb');
+    host.querySelector<HTMLInputElement>('.setting input')?.click();
+    await fixture.whenStable();
+    expect(tweaks.bendScreen()).toBe(true);
     expect(tweaks.milestoneWave()).toEqual({ ...MILESTONE_WAVE, peak: 1.2 });
     expect(tweaks.firstMilestoneWave()).toEqual(FIRST_MILESTONE_WAVE);
 
@@ -101,6 +104,7 @@ describe('Transitions', () => {
     button('Reset All')?.click();
     await fixture.whenStable();
     expect(tweaks.milestoneSound()).toBe(MILESTONE_SOUND);
+    expect(tweaks.bendScreen()).toBe(false);
     expect(tweaks.milestoneWave()).toEqual(MILESTONE_WAVE);
   });
 

@@ -27,7 +27,7 @@ type Tab = 'keypad' | 'milestones';
  * Developer mode's page to tune the game's transitions, on two tabs. On the keypad's: how long its keys take to move,
  * to sink as pressed, or rise back, to merge, and to linger in the color they took as pressed, longer as Discovery's
  * game plays them, and how long it takes to show the other turn as the player switches turns in Discovery. On the
- * milestones' celebrations': the sound they play, and the waves of the first time a milestone is ever reached and of
+ * milestones' celebrations': the sound they play, whether their waves bend the screen, which is being tried, and the waves of the first time a milestone is ever reached and of
  * every other time, each played over this page by its button. They apply to the whole game while developer mode is
  * on, to try them in it.
  */
@@ -107,6 +107,14 @@ type Tab = 'keypad' | 'milestones';
               [value]="tweaks.milestoneSound()"
               (valueChange)="setSound($event)"
             />
+            <label class="setting">
+              Bend the Screen
+              <input
+                type="checkbox"
+                [checked]="tweaks.bendScreen()"
+                (change)="setBendScreen($event)"
+              />
+            </label>
           </section>
           @for (wave of waves; track wave.first) {
             <section class="panel" [attr.aria-labelledby]="wave.id">
@@ -191,6 +199,7 @@ export class Transitions {
       this.tweaks.gameLinger() !== GAME_LINGER ||
       this.tweaks.turnSwitch() !== TURN_SWITCH ||
       this.tweaks.milestoneSound() !== MILESTONE_SOUND ||
+      this.tweaks.bendScreen() ||
       MILESTONE_WAVE_SLIDERS.some(
         ({ key }) =>
           this.firstWave()[key] !== FIRST_MILESTONE_WAVE[key] ||
@@ -219,6 +228,10 @@ export class Transitions {
     void this.tweaks.setMilestoneSound(id);
   }
 
+  protected setBendScreen(event: Event): void {
+    void this.tweaks.setBendScreen((event.target as HTMLInputElement).checked);
+  }
+
   protected setWave(first: boolean, key: keyof MilestoneWave, value: number): void {
     if (first) {
       this.firstWave.update((wave) => ({ ...wave, [key]: value }));
@@ -243,6 +256,7 @@ export class Transitions {
     void this.tweaks.setGameLinger(undefined);
     void this.tweaks.setTurnSwitch(undefined);
     void this.tweaks.setMilestoneSound(undefined);
+    void this.tweaks.setBendScreen(false);
     void this.tweaks.setFirstMilestoneWave(undefined);
     void this.tweaks.setMilestoneWave(undefined);
   }

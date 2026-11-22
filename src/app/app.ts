@@ -6,9 +6,10 @@ import { layoutStyles } from './ui/layout';
 import { Vibrator } from './feedback/vibrator';
 import { Speaker } from './feedback/speaker';
 import { CelebrationLayer } from './feedback/celebration/celebration-layer';
+import { CelebrationBend } from './feedback/celebration/celebration-bend';
 
 @Component({
-  imports: [RouterOutlet, CelebrationLayer],
+  imports: [RouterOutlet, CelebrationLayer, CelebrationBend],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',

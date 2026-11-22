@@ -200,6 +200,8 @@ export interface TweakValues {
   readonly firstMilestoneWave?: MilestoneWave;
   /** The wave of every other time a milestone is reached, for {@link MILESTONE_WAVE}. */
   readonly milestoneWave?: MilestoneWave;
+  /** `true` for the milestones' waves to bend the screen under them, in developer mode, which they otherwise don't. */
+  readonly bendScreen?: true;
 }
 
 /** The game's own starting colors of each season. */
@@ -531,6 +533,16 @@ export class Tweaks {
     return this.save(tweakValues({ ...this.tweaks(), checkpointLag }));
   }
 
+  /** Whether the milestones' waves bend the screen under them: in developer mode alone, while it's tried. */
+  readonly bendScreen = computed(
+    () => this.developerMode.enabled() && this.tweaks().bendScreen === true,
+  );
+
+  /** Has the milestones' waves bend the screen under them, or not. */
+  setBendScreen(bendScreen: boolean): Promise<void> {
+    return this.save(tweakValues({ ...this.tweaks(), bendScreen: bendScreen ? true : undefined }));
+  }
+
   /** Shows the countdown to the end of the group being typed, or hides it. */
   setCountdown(countdown: boolean): Promise<void> {
     return this.save(tweakValues({ ...this.tweaks(), countdown: countdown ? true : undefined }));
@@ -741,6 +753,7 @@ export function parseTweaks(stored: unknown): TweakValues {
     milestoneSound,
     firstMilestoneWave,
     milestoneWave,
+    bendScreen,
   } = migrate(stored, TWEAKS_MIGRATIONS);
   if (format !== TWEAKS_FORMAT) {
     return {};
@@ -789,6 +802,7 @@ export function parseTweaks(stored: unknown): TweakValues {
       FIRST_MILESTONE_WAVE,
     ),
     milestoneWave: slidValues(milestoneWave, MILESTONE_WAVE_SLIDERS, MILESTONE_WAVE),
+    bendScreen: bendScreen === true ? bendScreen : undefined,
   });
 }
 
@@ -930,6 +944,7 @@ function tweakValues({
   milestoneSound,
   firstMilestoneWave,
   milestoneWave,
+  bendScreen,
 }: {
   readonly [K in keyof TweakValues]: TweakValues[K] | undefined;
 }): TweakValues {
@@ -973,6 +988,7 @@ function tweakValues({
     ...(milestoneSound === undefined ? {} : { milestoneSound }),
     ...(firstMilestoneWave === undefined ? {} : { firstMilestoneWave }),
     ...(milestoneWave === undefined ? {} : { milestoneWave }),
+    ...(bendScreen === undefined ? {} : { bendScreen }),
   };
 }
 
