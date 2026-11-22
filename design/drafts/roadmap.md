@@ -41,8 +41,9 @@ The player can tell, as they play, what the leaderboards will make of their run.
 
 ### Next
 
-1. **Start from milestones only.** Free play and challenges start from the milestones reached, not from every checkpoint. Discovery keeps moving on to checkpoints every 10 places.
-2. **Leaderboards from a milestone.** A menu in the leaderboards page's header picks a milestone for the whole page, back to the start of π on every visit. Every run with digits past it counts, wherever it started, scored only past it: the farthest place reached without a mistake since the milestone, the splits past it, timed from it, and the mastery past it.
+1. **Muted celebrations.** A milestone reached with mistakes, in Free Play, still gets a celebration, a muted one: how it looks and sounds is to be discussed once the bent screen is tried. The full one stays for a milestone reached without a mistake.
+2. **Start from milestones only.** Free play and challenges start from the milestones reached, not from every checkpoint. Discovery keeps moving on to checkpoints every 10 places.
+3. **Leaderboards from a milestone.** A menu in the leaderboards page's header picks a milestone for the whole page, back to the start of π on every visit. Every run with digits past it counts, wherever it started, scored only past it: the farthest place reached without a mistake since the milestone, the splits past it, timed from it, and the mastery past it.
 
 ### Later
 
