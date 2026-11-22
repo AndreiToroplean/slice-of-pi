@@ -67,7 +67,15 @@ import { RunStore } from '../../player-data/run-store';
 import { KeypadKey, KeypadPoint, KeypadTouch } from '../../game/layers/keypad-layout';
 import { SeasonHeader } from './season-header/season-header';
 import { RunStats } from './run-stats/run-stats';
-import { lastSplitOf, masteryOf, ReachedSplit } from '../leaderboards/records';
+import {
+  isSplitPlace,
+  lastSplitOf,
+  masteryOf,
+  perfectReach,
+  ReachedSplit,
+  splitIndex,
+} from '../leaderboards/records';
+import { Celebration } from '../../feedback/celebration/celebration';
 import { seasonAt } from '../../game/layers/seasons';
 import { Tweaks } from '../../developer-mode/tweaks';
 import { Layout, layoutStyles } from '../../ui/layout';
@@ -629,6 +637,24 @@ export class Play implements PausesOnBack {
       ...this.playedHere(),
     ];
   });
+  private readonly logs = inject(RunStore).logs;
+  /**
+   * The farthest place an earlier run reached without a mistake, as the game takes the runs, checked ones alone, those
+   * after the line it plays from left out, as is Discovery's: past it, a milestone is reached perfectly for the first
+   * time.
+   */
+  private readonly perfectEver = computed(() => {
+    const earlier = new Set(
+      groupRuns(this.earlierRuns(), false, this.tweaks.runOrder()).map((run) => run.id),
+    );
+    return Math.max(
+      0,
+      ...this.logs()
+        .filter((log) => earlier.has(log.id))
+        .map(perfectReach),
+    );
+  });
+  private readonly celebration = inject(Celebration);
   /** The earlier runs that count in the groups, oldest first. */
   private readonly countedRuns = computed(() =>
     groupRuns(this.earlierRuns(), this.tweaks.includeUnchecked(), this.tweaks.runOrder()),
@@ -1237,8 +1263,33 @@ export class Play implements PausesOnBack {
         }
         return;
       }
+      this.celebrateMilestone(place + 1, checks);
       this.watchForPause();
     }
+  }
+
+  /**
+   * Celebrates the milestone a right digit reaches, `reached` places in, as it shows in the slots, if it's one, the
+   * game `checked` it, not a simulation's, and the run reached it without a mistake, nor a backspace, as it proves the
+   * player knows π that far: as the leaderboards' perfect runs, which Discovery, playing for the player to learn,
+   * never sets. The first time a run reaches it so, the celebration is the longer one: replaying a run, as it was
+   * then, the runs after it unknown. Skipping ahead in a replay celebrates nothing, and a muted one shows it alone.
+   */
+  private celebrateMilestone(reached: number, checked: boolean): void {
+    const log = this.session.touchLog();
+    if (
+      !checked ||
+      this.quiet ||
+      !isSplitPlace(reached) ||
+      log === undefined ||
+      perfectReach(log) !== reached
+    ) {
+      return;
+    }
+    const palette = this.tweaks.palette();
+    // The palette's colors in order, as the leaderboards give the splits theirs.
+    const color = palette[splitIndex(reached) % palette.length] ?? palette[0] ?? '#ffffff';
+    this.celebration.celebrate(reached > this.perfectEver(), color, !this.silent());
   }
 
   /**

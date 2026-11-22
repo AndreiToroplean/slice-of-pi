@@ -6,6 +6,9 @@
   [style]="layout()"
   [style.--breath]="tweaks.breath()"
   [style.--unavailable]="tweaks.unavailable()"
+  [style.filter]="bend.filter()"
 >
   <router-outlet />
 </main>
+<canvas class="celebration" appCelebrationLayer></canvas>
+<app-celebration-bend #bend />

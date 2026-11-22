@@ -71,6 +71,24 @@ export function recordOf(log: TouchLog): RunRecord | undefined {
   return { id: log.id, startedAt: log.startedAt, perfect, splits, mastery: masteryOf(log) };
 }
 
+/**
+ * The place a run reached without a mistake from where it started, whatever its start: that of the digit after the
+ * last it typed right before its first mistake, or its first backspace, which only a mistake is worth.
+ */
+export function perfectReach(log: TouchLog): number {
+  let reached = startOf(log);
+  for (const { key } of log.touches) {
+    if (key === null) {
+      continue;
+    }
+    if (!isDigit(key) || !isPiDecimal(reached, key)) {
+      break;
+    }
+    reached++;
+  }
+  return reached;
+}
+
 /** A digit tried at a place of a run, as the game checks it: right or wrong, and when, from the run's first digit. */
 interface Try {
   readonly place: number;
@@ -212,6 +230,15 @@ export function podium(
 /** The places the leaderboards rank the time to reach, as splits: 25, 50, 100, then every hundred. */
 export function splitPlace(index: number): number {
   return index < 2 ? 25 * (index + 1) : 100 * (index - 1);
+}
+
+/** Which split a split place is, from 0 for the first (see {@link splitPlace}). */
+export function splitIndex(place: number): number {
+  let index = 0;
+  while (splitPlace(index) < place) {
+    index++;
+  }
+  return index;
 }
 
 /** Whether a place is a split place (see {@link splitPlace}). */

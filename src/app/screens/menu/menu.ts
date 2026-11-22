@@ -233,8 +233,8 @@ const DARK: Readonly<Record<Layer, readonly Light[]>> = { icon: [], slice: [], p
               <a cdkMenuItem routerLink="/developer/vibrations"
                 ><app-icon name="vibrations" />Vibrations</a
               >
-              <a cdkMenuItem routerLink="/developer/transitions"
-                ><app-icon name="transitions" />Transitions</a
+              <a cdkMenuItem routerLink="/developer/animations"
+                ><app-icon name="animations" />Animations</a
               >
               <!-- The pages above, an action below. -->
               <hr />

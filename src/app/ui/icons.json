@@ -27,7 +27,7 @@
   "spring": "psychiatry",
   "stopwatch": "timer",
   "summer": "sunny",
-  "transitions": "animation",
+  "animations": "animation",
   "vibrations": "mobile_vibrate",
   "winter": "snowflake"
 }

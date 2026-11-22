@@ -243,6 +243,37 @@
       "keyMotion": {
         "merge": 160,
         "press": 160
+      },
+      "milestoneSound": "musicBox",
+      "firstMilestoneWave": {
+        "frequency": 1.05,
+        "duration": 2.8,
+        "decay": 1.7,
+        "peak": 1,
+        "speed": 0.94,
+        "acceleration": 5.8,
+        "depth": 0.325,
+        "falloff": 3.05,
+        "hue": 45,
+        "shimmer": 30,
+        "glow": 1.47,
+        "distortion": 0.022,
+        "colorSplit": 0.003
+      },
+      "milestoneWave": {
+        "frequency": 1.5,
+        "duration": 0.33,
+        "decay": 1,
+        "peak": 0.5,
+        "speed": 0.05,
+        "acceleration": 8,
+        "depth": 0.48,
+        "falloff": 4,
+        "hue": 18,
+        "shimmer": 6,
+        "glow": 2,
+        "distortion": 0.12,
+        "colorSplit": 0.006
       }
     }
   }

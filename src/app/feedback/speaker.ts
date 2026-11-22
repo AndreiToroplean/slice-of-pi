@@ -212,6 +212,27 @@ export class Speaker {
     };
   }
 
+  /**
+   * Plays a piece of its own, apart from the sound model, such as a milestone's celebration, unless the player turned
+   * sounds off: `perform` schedules its sounds into the output from `start`, on the context's clock, as soon as the
+   * audio runs.
+   */
+  perform(perform: (context: AudioContext, output: AudioNode, start: number) => void): void {
+    const ready = this.setting.enabled() ? this.ready() : undefined;
+    const context = this.context;
+    const output = this.output;
+    if (ready === undefined || context === undefined || output === undefined) {
+      return;
+    }
+    if (context.state === 'running') {
+      perform(context, output, context.currentTime);
+      return;
+    }
+    void ready.then(() => {
+      perform(context, output, context.currentTime);
+    });
+  }
+
   /** Plays notes on a running context: see {@link play}. */
   private schedule(
     context: AudioContext,

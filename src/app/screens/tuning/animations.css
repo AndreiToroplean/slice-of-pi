@@ -1,0 +1,80 @@
+:host {
+  display: contents;
+}
+
+/* Fitting the screen, without scrolling: a tab's panel scrolls, if it doesn't fit what's left of it. */
+app-page {
+  overflow: hidden;
+  gap: var(--space-2);
+}
+
+app-tab-panels {
+  flex: 1;
+  min-height: 0;
+}
+
+/* The keypad's card no taller than its sliders. */
+.keypad {
+  align-self: start;
+  max-height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.panel {
+  gap: var(--space-2);
+  text-shadow: var(--text-shadow);
+}
+
+.celebrations {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow-y: auto;
+}
+
+/* Its cards as tall as their content, the panel scrolling past them. */
+.celebrations > * {
+  flex: none;
+}
+
+/* A wave's name, with the button playing it on the right. */
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.panel h2 {
+  margin: 0;
+  font-family: var(--font-digits);
+  font-size: 1.375rem;
+  font-weight: 600;
+}
+
+/* A wave's sliders, two to a row. */
+.pairs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem var(--space-3);
+}
+
+/* A setting's name, and its checkbox on the right. */
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.setting input {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  margin: 0;
+  accent-color: var(--candy);
+}

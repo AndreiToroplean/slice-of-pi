@@ -8,6 +8,7 @@ import {
   masteryTenths,
   lastSplitOf,
   nextSplitPlace,
+  perfectReach,
   podium,
   recordOf,
   recordsOf,
@@ -62,6 +63,17 @@ describe('records', () => {
         mastery: { value: 1, reached: 1, mistakes: 0, stoppedOn: 0 },
       },
     ]);
+  });
+
+  describe('the perfect reach', () => {
+    it('is the place reached before the first mistake or backspace, from wherever the run started', () => {
+      const fromTen = newTouchLog('c', 0, true, undefined, { start: 10 });
+      const keys = Array.from(PI_DECIMALS.slice(10, 15)) as Parameters<typeof typed>[0];
+
+      expect(perfectReach(typed(keys, fromTen))).toBe(15);
+      expect(perfectReach(typed([...keys, '0', 'backspace'], fromTen))).toBe(15);
+      expect(perfectReach(typed([...decimals(4), 'backspace', '5']))).toBe(4);
+    });
   });
 
   describe('the mastery', () => {

@@ -38,6 +38,9 @@ export type GameValues = Required<
     | 'keyMotion'
     | 'turnSwitch'
     | 'discoveryHalo'
+    | 'milestoneSound'
+    | 'firstMilestoneWave'
+    | 'milestoneWave'
   >
 > & {
   readonly seasons: SeasonStarts;
