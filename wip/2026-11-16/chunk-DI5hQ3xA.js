@@ -1,0 +1,1 @@
+function t(r,n){return`${String(r)} ${n}${r===1?``:`s`}`}export{t};
